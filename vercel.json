@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/bizflow-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "backend/bizflow-backend/src/main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/bizflow-backend/src/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/bizflow-frontend/$1"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "backend/bizflow-backend"
+  },
+  "functions": {
+    "backend/bizflow-backend/src/main.py": {
+      "runtime": "python3.11"
+    }
+  }
+}
+
