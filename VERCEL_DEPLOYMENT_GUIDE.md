@@ -154,52 +154,40 @@ In the Vercel project configuration:
 
 Add these environment variables in Vercel Dashboard (Settings → Environment Variables):
 
-#### Database Configuration
+#### Backend Environment Variables (from `backend/bizflow-backend/.env`)
 ```env
-# MySQL Database (use your actual connection string)
-DATABASE_URL=mysql://username:password@host:port/database
+SECRET_KEY=chukwunna-nyerem-aka
+JWT_SECRET_KEY=chineke-first
 
-# Alternative individual settings (if not using DATABASE_URL)
+# MySQL Database (use your actual connection string)
+# For Vercel, you should use a remote MySQL database like PlanetScale, Railway, or Aiven
+# Example: DATABASE_URL=mysql://username:password@host:port/database
+# If using individual variables:
 MYSQL_HOST=your-mysql-host
 MYSQL_PORT=3306
 MYSQL_USER=your-username
 MYSQL_PASSWORD=your-password
 MYSQL_DATABASE=bizflow_sme
-```
 
-#### Application Security
-```env
-SECRET_KEY=your-super-secret-key-change-this-in-production
-JWT_SECRET_KEY=your-jwt-secret-key-change-this-too
-```
+PAYSTACK_SECRET_KEY=sk_test_6faf5fd985e4a4bd501c52b5fad642de191bc628
+PAYSTACK_PUBLIC_KEY=pk_test_58449e3de8d50386cfbcdbfba368ad8ece5737f9
 
-#### Paystack Configuration
-```env
-# Use test keys for staging, live keys for production
-PAYSTACK_SECRET_KEY=sk_live_your_secret_key
-PAYSTACK_PUBLIC_KEY=pk_live_your_public_key
-```
-
-#### Cloudinary Configuration
-```env
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-```
-
-#### Email Configuration
-```env
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
+MAIL_USERNAME=onyemechicaleb4@gmail.com
+MAIL_PASSWORD=vapm msba ootv gtab
+
+CLOUDINARY_CLOUD_NAME=dkogzpxhn
+CLOUDINARY_API_KEY=295652824886667
+CLOUDINARY_API_SECRET=Ez4PtwNaR8oAfdy3FBHlD_LyeHw
 ```
 
-#### Application URLs
+#### Frontend Environment Variables (from `frontend/bizflow-frontend/.env`)
 ```env
-FRONTEND_URL=https://your-domain.vercel.app
-BACKEND_URL=https://your-domain.vercel.app
+VITE_API_BASE_URL=https://your-vercel-app-url.vercel.app/api
+VITE_PAYSTACK_PUBLIC_KEY=pk_test_58449e3de8d50386cfbcdbfba368ad8ece5737f9
+VITE_CLOUDINARY_CLOUD_NAME=dkogzpxhn
 ```
 
 ### Step 4: Configure Serverless Functions
@@ -378,12 +366,12 @@ To use a custom domain:
 2. **Set up transformations**:
    ```javascript
    // Example: Optimized product image
-   const optimizedUrl = cloudinary.url('product_image', {
+   const optimizedUrl = cloudinary.url("product_image", {
      width: 400,
      height: 400,
-     crop: 'fill',
-     quality: 'auto',
-     format: 'auto'
+     crop: "fill",
+     quality: "auto",
+     format: "auto"
    });
    ```
 
@@ -536,4 +524,6 @@ Remember to:
 - Maintain regular backups and updates
 
 Your Bizflow SME Nigeria application is now ready to serve Nigerian small and medium enterprises with a comprehensive business management solution!
+
+
 

@@ -91,13 +91,12 @@ cd frontend/bizflow-frontend
 
 # Install dependencies
 npm install
-i downgraded the react and react dom version to 18.0.0 because of compactibility issues
 # or
 pnpm install
 
 # Configure environment variables
-cp .env.example .env.local
-# Edit .env.local with your API URLs
+cp .env.example .env
+# Edit .env with your API URLs
 ```
 
 ### 4. Database Setup
@@ -194,7 +193,7 @@ cp -r dist/* ../backend/bizflow-backend/static/
 
 ### Environment Variables
 
-#### Backend (.env)
+#### Backend (`backend/bizflow-backend/.env`)
 ```env
 # Database
 DATABASE_URL=mysql://user:password@host:port/database
@@ -225,7 +224,7 @@ MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
 ```
 
-#### Frontend (.env.local)
+#### Frontend (`frontend/bizflow-frontend/.env`)
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
 VITE_PAYSTACK_PUBLIC_KEY=pk_test_your_key
@@ -404,4 +403,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for Nigerian SMEs**
 
 Transform your business operations with Bizflow SME Nigeria - the comprehensive business management platform designed specifically for the Nigerian market.
+
+
 
