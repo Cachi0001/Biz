@@ -195,6 +195,19 @@ const apiService = {
     return response.data;
   },
 
+  // Authentication token management
+  getAuthToken: () => {
+    return localStorage.getItem('token');
+  },
+
+  removeAuthToken: () => {
+    localStorage.removeItem('token');
+  },
+
+  setAuthToken: (token) => {
+    localStorage.setItem('token', token);
+  },
+
   // Add other API calls as needed
 };
 

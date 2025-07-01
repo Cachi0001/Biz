@@ -119,3 +119,8 @@ coverage/
 *.tgz
 *.tar.gz
 
+
+
+!frontend/bizflow-frontend/src/lib/
+
+
