@@ -1,18 +1,13 @@
 import os
 import sys
-from datetime import timedelta
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Add the parent directory to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from flask import Flask, send_from_directory, jsonify
+from datetime import datetime
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 # Import database and models
 from src.models.user import db
@@ -40,28 +35,56 @@ def create_app(config=None):
     """Application factory pattern for creating Flask app."""
     app = Flask(__name__)
     
-    # Configuration
+    # Load configuration
     if config:
         app.config.update(config)
     else:
-        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///bizflow.db')
+        # Load from environment variables
+        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
+        app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
+        
+        # MySQL Database Configuration
+        mysql_host = os.getenv('MYSQL_HOST', 'localhost')
+        mysql_port = os.getenv('MYSQL_PORT', '3306')
+        mysql_user = os.getenv('MYSQL_USER', 'root')
+        mysql_password = os.getenv('MYSQL_PASSWORD', '')
+        mysql_database = os.getenv('MYSQL_DATABASE', 'bizflow_sme')
+        
+        # Check if DATABASE_URL is provided (for production)
+        database_url = os.getenv('DATABASE_URL')
+        if database_url:
+            # Handle mysql:// URLs for compatibility
+            if database_url.startswith('mysql://'):
+                database_url = database_url.replace('mysql://', 'mysql+pymysql://', 1)
+            app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        else:
+            # Use individual MySQL parameters
+            app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}'
+        
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
-        app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+        
+        # Mail configuration
         app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-        app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', '587'))
-        app.config['MAIL_USE_TLS'] = True
+        app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+        app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
         app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
         app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-        app.config['PAYSTACK_SECRET_KEY'] = os.getenv('PAYSTACK_SECRET_KEY')
-        app.config['PAYSTACK_PUBLIC_KEY'] = os.getenv('PAYSTACK_PUBLIC_KEY')
+        
+        # File upload configuration
+        app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 16777216))
     
     # Initialize extensions
     db.init_app(app)
     CORS(app, origins="*", allow_headers=["Content-Type", "Authorization"])
     JWTManager(app)
     Mail(app)
+    
+    # Initialize Cloudinary
+    cloudinary.config(
+        cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.getenv('CLOUDINARY_API_KEY'),
+        api_secret=os.getenv('CLOUDINARY_API_SECRET')
+    )
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -79,26 +102,38 @@ def create_app(config=None):
     with app.app_context():
         try:
             db.create_all()
+            print("Database tables created successfully!")
         except Exception as e:
-            print(f"Database initialization error: {e}")
+            print(f"Error creating database tables: {e}")
     
     # Health check endpoint
     @app.route('/api/health')
     def health_check():
         return jsonify({
-            'status': 'healthy', 
+            'status': 'healthy',
             'message': 'Bizflow SME Nigeria API is running',
-            'version': '1.0.0'
+            'timestamp': datetime.utcnow().isoformat(),
+            'database': 'MySQL',
+            'file_storage': 'Cloudinary'
         })
     
-    # Root endpoint
-    @app.route('/')
-    def root():
-        return jsonify({
-            'message': 'Welcome to Bizflow SME Nigeria API',
-            'version': '1.0.0',
-            'endpoints': {
-                'health': '/api/health',
+    # Serve static files (for production)
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_static(path):
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
+    
+    return app
+
+# Create app instance
+app = create_app()
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)   'health': '/api/health',
                 'auth': '/api/auth',
                 'customers': '/api/customers',
                 'products': '/api/products',

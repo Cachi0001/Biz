@@ -17,6 +17,7 @@ class Expense(db.Model):
     # Receipt Management
     receipt_filename = db.Column(db.String(255))
     receipt_url = db.Column(db.String(500))
+    receipt_public_id = db.Column(db.String(255))  # Cloudinary public ID
     
     # Tax and Business
     is_tax_deductible = db.Column(db.Boolean, default=False)
@@ -43,6 +44,7 @@ class Expense(db.Model):
             'payment_method': self.payment_method,
             'receipt_filename': self.receipt_filename,
             'receipt_url': self.receipt_url,
+            'receipt_public_id': self.receipt_public_id,
             'is_tax_deductible': self.is_tax_deductible,
             'tax_category': self.tax_category,
             'vendor_name': self.vendor_name,

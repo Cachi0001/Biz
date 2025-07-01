@@ -1,676 +1,406 @@
-# Bizflow SME Nigeria - Business Management Platform
+# Bizflow SME Nigeria - Comprehensive Business Management Platform
 
-![Bizflow Logo](https://via.placeholder.com/200x80/2563eb/ffffff?text=Bizflow)
+![Bizflow SME Nigeria](https://img.shields.io/badge/Bizflow-SME%20Nigeria-blue) ![Version](https://img.shields.io/badge/version-1.0.0-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**A comprehensive business management platform designed specifically for Small and Medium Enterprises (SMEs) in Nigeria.**
+A comprehensive business management platform specifically designed for Nigerian Small and Medium Enterprises (SMEs). Built with modern technologies and tailored for the Nigerian market with features like Paystack integration, 7-day free trial system, and referral earnings.
 
-## Table of Contents
+## 🚀 Features
 
-- [Overview](#overview)
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
-- [Support](#support)
+### Core Business Management
+- **Customer Relationship Management (CRM)** - Complete customer database with interaction tracking
+- **Product & Inventory Management** - Stock tracking with low-stock alerts and product images
+- **Professional Invoice Generation** - PDF invoices with email delivery
+- **Expense Tracking** - Receipt uploads with Cloudinary storage and categorization
+- **Sales Reporting** - Daily sales reports with detailed analytics
+- **Payment Processing** - Secure Paystack integration for Nigerian payments
 
-## Overview
+### Unique Value Propositions
+- **7-Day Free Trial** - Automatic activation of weekly plan features for new users
+- **Referral System** - 10% commission on referrals with withdrawal management
+- **Team Management** - Role-based access control for sales teams
+- **Real-time Analytics** - Business intelligence dashboard with KPIs
+- **Mobile Responsive** - Optimized for Nigerian mobile usage patterns
 
-Bizflow SME Nigeria is a modern, full-stack business management platform built to address the unique needs of Nigerian small and medium enterprises. The platform provides comprehensive tools for customer relationship management, inventory tracking, invoice generation, payment processing, and business analytics.
+### Advanced Features
+- **Multi-user Support** - Team collaboration with role-based permissions
+- **Email Notifications** - Automated business communications
+- **PDF/Excel Exports** - Professional document generation
+- **File Management** - Cloudinary integration for images and receipts
+- **Subscription Management** - Flexible pricing plans with automatic billing
 
-### Key Objectives
-
-- **Simplify Business Operations**: Streamline day-to-day business processes with intuitive interfaces
-- **Financial Management**: Comprehensive invoicing and payment tracking with Paystack integration
-- **Data-Driven Insights**: Advanced analytics and reporting for informed decision-making
-- **Scalability**: Built to grow with your business from startup to enterprise
-- **Local Context**: Designed with Nigerian business practices and payment methods in mind
-
-## Features
-
-### 🏢 Business Management
-- **Customer Relationship Management (CRM)**
-  - Complete customer profiles with contact information
-  - Customer interaction history and notes
-  - Customer segmentation and analytics
-  - Automated customer communications
-
-- **Inventory Management**
-  - Product catalog with SKU tracking
-  - Real-time stock level monitoring
-  - Low stock alerts and notifications
-  - Category-based product organization
-  - Inventory valuation and reporting
-
-- **Invoice Management**
-  - Professional invoice generation
-  - Customizable invoice templates
-  - Automated invoice numbering
-  - Multiple invoice statuses (Draft, Sent, Paid, Overdue)
-  - Invoice PDF generation and email delivery
-
-### 💰 Financial Operations
-- **Payment Processing**
-  - Secure Paystack integration for online payments
-  - Multiple payment method support
-  - Payment tracking and reconciliation
-  - Automated payment confirmations
-  - Payment analytics and reporting
-
-- **Financial Reporting**
-  - Revenue tracking and analytics
-  - Profit and loss statements
-  - Cash flow monitoring
-  - Tax calculation and reporting
-  - Financial dashboard with key metrics
-
-### 📊 Analytics & Reporting
-- **Business Intelligence Dashboard**
-  - Real-time business metrics
-  - Revenue trends and forecasting
-  - Customer acquisition analytics
-  - Product performance insights
-  - Interactive charts and visualizations
-
-- **Export Capabilities**
-  - PDF report generation
-  - Excel spreadsheet exports
-  - Custom date range filtering
-  - Automated report scheduling
-
-### 🔐 Security & Authentication
-- **User Management**
-  - Secure user registration and authentication
-  - JWT-based session management
-  - Role-based access control
-  - Password encryption and security
-
-- **Data Protection**
-  - Encrypted data transmission
-  - Secure API endpoints
-  - Input validation and sanitization
-  - CORS protection
-
-## Technology Stack
-
-### Frontend
-- **React 18** - Modern JavaScript library for building user interfaces
-- **Vite** - Fast build tool and development server
-- **Tailwind CSS** - Utility-first CSS framework for rapid UI development
-- **Shadcn/UI** - High-quality, accessible React components
-- **Lucide React** - Beautiful and consistent icon library
-- **Recharts** - Composable charting library for React
-- **React Router** - Declarative routing for React applications
+## 🛠 Technology Stack
 
 ### Backend
-- **Flask** - Lightweight and flexible Python web framework
-- **SQLAlchemy** - Python SQL toolkit and Object-Relational Mapping (ORM)
-- **Flask-JWT-Extended** - JWT token management for Flask
-- **Flask-Mail** - Email sending capabilities
-- **Flask-CORS** - Cross-Origin Resource Sharing support
+- **Framework**: Flask (Python)
+- **Database**: MySQL with SQLAlchemy ORM
+- **Authentication**: JWT with bcrypt password hashing
+- **File Storage**: Cloudinary for images and documents
+- **Payments**: Paystack integration
+- **Email**: SMTP with Flask-Mail
 
-### Database
-- **SQLite** (Development) - Lightweight, serverless database
-- **PostgreSQL** (Production) - Robust, scalable relational database
+### Frontend
+- **Framework**: React 18 with Vite
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: Context API
+- **Routing**: React Router with protected routes
+- **Icons**: Lucide React
 
-### External Services
-- **Paystack** - Nigerian payment processing platform
-- **SMTP Email** - Email delivery for notifications and invoices
+### Infrastructure
+- **Deployment**: Vercel (full-stack)
+- **Database Hosting**: PlanetScale/Railway/Aiven
+- **File Storage**: Cloudinary CDN
+- **Domain**: Custom domain support
+- **SSL**: Automatic HTTPS
 
-### Development Tools
-- **pytest** - Python testing framework
-- **Coverage.py** - Code coverage measurement
-- **ESLint** - JavaScript linting utility
-- **Prettier** - Code formatting tool
+## 📋 Prerequisites
 
-## Architecture
+- **Node.js** 18+ and npm/pnpm
+- **Python** 3.11+ with pip
+- **MySQL** database (local or cloud)
+- **Cloudinary** account for file storage
+- **Paystack** account for payments
+- **Email service** (Gmail with App Password recommended)
 
-Bizflow follows a modern, scalable architecture pattern:
+## 🚀 Quick Start
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   Database      │
-│   (React)       │◄──►│   (Flask)       │◄──►│   (SQLite/      │
-│                 │    │                 │    │   PostgreSQL)   │
-│   - Components  │    │   - REST APIs   │    │                 │
-│   - State Mgmt  │    │   - Business    │    │   - User Data   │
-│   - Routing     │    │     Logic       │    │   - Business    │
-│   - UI/UX       │    │   - Auth        │    │     Records     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │ External APIs   │
-                    │                 │
-                    │ - Paystack      │
-                    │ - Email SMTP    │
-                    │ - File Storage  │
-                    └─────────────────┘
-```
-
-### Design Principles
-
-1. **Separation of Concerns (SOC)**: Clear separation between frontend, backend, and data layers
-2. **RESTful API Design**: Consistent and intuitive API endpoints
-3. **Component-Based Architecture**: Reusable and maintainable React components
-4. **Service Layer Pattern**: Business logic encapsulated in service classes
-5. **Repository Pattern**: Data access abstraction for database operations
-
-## Prerequisites
-
-Before installing Bizflow, ensure you have the following installed on your system:
-
-### Required Software
-- **Python 3.11+** - Backend runtime environment
-- **Node.js 18+** - Frontend development and build tools
-- **npm or pnpm** - Package manager for JavaScript dependencies
-- **Git** - Version control system
-
-### Optional Tools
-- **PostgreSQL** - For production database (SQLite used for development)
-- **Redis** - For session storage and caching (future enhancement)
-
-### System Requirements
-- **Operating System**: Windows 10+, macOS 10.15+, or Linux (Ubuntu 20.04+)
-- **RAM**: Minimum 4GB, Recommended 8GB+
-- **Storage**: 2GB free space for development environment
-- **Network**: Internet connection for package installation and API integrations
-
-## Installation
-
-Follow these steps to set up Bizflow on your local development environment:
-
-### 1. Clone the Repository
-
+### 1. Clone Repository
 ```bash
 git clone https://github.com/Cachi0001/Biz.git
 cd Biz
 ```
 
 ### 2. Backend Setup
-
-Navigate to the backend directory and set up the Python environment:
-
 ```bash
 cd backend/bizflow-backend
 
 # Create virtual environment
 python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
 ### 3. Frontend Setup
-
-Navigate to the frontend directory and install Node.js dependencies:
-
 ```bash
-cd ../../frontend/bizflow-frontend
+cd frontend/bizflow-frontend
 
-# Install dependencies using pnpm (recommended)
+# Install dependencies
+npm install
+# or
 pnpm install
 
-# Or using npm
-npm install
+# Configure environment variables
+cp .env.example .env.local
+# Edit .env.local with your API URLs
 ```
 
-### 4. Environment Configuration
+### 4. Database Setup
 
-Create environment configuration files:
-
-#### Backend Environment (.env)
-Create a `.env` file in the `backend/bizflow-backend` directory:
-
-```env
-# Flask Configuration
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-key-here
-FLASK_ENV=development
-
-# Database Configuration
-DATABASE_URL=sqlite:///bizflow.db
-
-# Paystack Configuration
-PAYSTACK_SECRET_KEY=sk_test_your_paystack_secret_key
-PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_public_key
-
-# Email Configuration
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-FROM_EMAIL=your-email@gmail.com
-FROM_NAME=Bizflow SME Nigeria
-
-# File Upload Configuration
-UPLOAD_FOLDER=uploads
-MAX_CONTENT_LENGTH=16777216  # 16MB
+#### Option A: Local MySQL (XAMPP/WAMP)
+```bash
+# Start MySQL service
+# Create database: bizflow_sme
+# Update .env with local credentials
 ```
 
-#### Frontend Environment (.env)
-Create a `.env` file in the `frontend/bizflow-frontend` directory:
-
-```env
-# API Configuration
-VITE_API_BASE_URL=http://localhost:5000/api
-VITE_PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_public_key
-
-# Application Configuration
-VITE_APP_NAME=Bizflow SME Nigeria
-VITE_APP_VERSION=1.0.0
+#### Option B: Cloud MySQL (PlanetScale/Railway)
+```bash
+# Sign up for PlanetScale or Railway
+# Create MySQL database
+# Copy connection string to .env
 ```
 
-## Configuration
-
-### Database Setup
-
-The application uses SQLite for development and PostgreSQL for production.
-
-#### Development Database (SQLite)
-No additional setup required. The database file will be created automatically when you first run the application.
-
-#### Production Database (PostgreSQL)
-For production deployment, update the `DATABASE_URL` in your environment configuration:
-
-```env
-DATABASE_URL=postgresql://username:password@localhost:5432/bizflow_db
+### 5. Cloudinary Setup
+```bash
+# Sign up at cloudinary.com
+# Get Cloud Name, API Key, and API Secret
+# Add to .env file
 ```
 
-### Paystack Integration
+### 6. Run Development Servers
 
-To enable payment processing, you need to set up a Paystack account:
-
-1. Visit [Paystack](https://paystack.com) and create an account
-2. Navigate to Settings > API Keys & Webhooks
-3. Copy your Test/Live API keys
-4. Update the environment variables with your keys
-
-### Email Configuration
-
-For email notifications and invoice delivery:
-
-1. **Gmail Setup** (Recommended for development):
-   - Enable 2-factor authentication on your Gmail account
-   - Generate an App Password for Bizflow
-   - Use the App Password in the `SMTP_PASSWORD` environment variable
-
-2. **Other SMTP Providers**:
-   - Update `SMTP_SERVER` and `SMTP_PORT` accordingly
-   - Ensure your provider supports TLS encryption
-
-## Running the Application
-
-### Development Mode
-
-Start both the backend and frontend development servers:
-
-#### Terminal 1 - Backend Server
+#### Backend
 ```bash
 cd backend/bizflow-backend
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 python src/main.py
+# Server runs on http://localhost:5000
 ```
 
-The backend API will be available at `http://localhost:5000`
-
-#### Terminal 2 - Frontend Development Server
+#### Frontend
 ```bash
 cd frontend/bizflow-frontend
-pnpm run dev  # Or: npm run dev
+npm run dev
+# Server runs on http://localhost:5173
 ```
 
-The frontend application will be available at `http://localhost:5173`
+## 🌐 Deployment
 
-### Production Mode
+### Vercel Deployment (Recommended)
 
-For production deployment:
+1. **Push to GitHub** (already done)
+2. **Connect to Vercel**:
+   - Import project from GitHub
+   - Configure build settings
+   - Add environment variables
+3. **Deploy**: Automatic deployment on push
 
-#### Build Frontend
+See [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+### Alternative Deployment Options
+
+#### Docker Deployment
 ```bash
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+#### Manual Server Deployment
+```bash
+# Build frontend
 cd frontend/bizflow-frontend
-pnpm run build  # Or: npm run build
+npm run build
+
+# Copy build to backend static folder
+cp -r dist/* ../backend/bizflow-backend/static/
+
+# Deploy backend to your server
 ```
 
-#### Deploy Backend
-```bash
-cd backend/bizflow-backend
-source venv/bin/activate
-gunicorn --bind 0.0.0.0:5000 src.main:app
-```
+## 📊 Business Model
 
-## API Documentation
+### Pricing Plans
 
-The Bizflow API follows RESTful conventions and provides comprehensive endpoints for all business operations.
+| Plan | Price | Features |
+|------|-------|----------|
+| **Free** | ₦0/month | 5 invoices, 5 expenses, basic reporting |
+| **Silver Weekly** | ₦1,400/week | 100 invoices, 100 expenses, advanced reporting |
+| **Silver Monthly** | ₦4,500/month | 450 invoices, 450 expenses, ₦500 referral rewards |
+| **Silver Yearly** | ₦50,000/year | 6,000 invoices, 6,000 expenses, ₦5,000 referral rewards |
 
-### Base URL
-- **Development**: `http://localhost:5000/api`
-- **Production**: `https://your-domain.com/api`
+### Revenue Streams
+- **Subscription fees** from paid plans
+- **Referral commissions** (10% of upgrades)
+- **Premium features** and add-ons
+- **Enterprise solutions** for larger businesses
 
-### Authentication
+## 🔧 Configuration
 
-All API endpoints (except registration and login) require JWT authentication:
+### Environment Variables
 
-```http
-Authorization: Bearer <your-jwt-token>
-```
-
-### Core Endpoints
-
-#### Authentication
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/logout` - User logout
-
-#### Customer Management
-- `GET /customers` - List all customers
-- `POST /customers` - Create new customer
-- `GET /customers/{id}` - Get customer details
-- `PUT /customers/{id}` - Update customer
-- `DELETE /customers/{id}` - Delete customer
-
-#### Product Management
-- `GET /products` - List all products
-- `POST /products` - Create new product
-- `GET /products/{id}` - Get product details
-- `PUT /products/{id}` - Update product
-- `DELETE /products/{id}` - Delete product
-- `PATCH /products/{id}/stock` - Update stock quantity
-
-#### Invoice Management
-- `GET /invoices` - List all invoices
-- `POST /invoices` - Create new invoice
-- `GET /invoices/{id}` - Get invoice details
-- `PUT /invoices/{id}` - Update invoice
-- `DELETE /invoices/{id}` - Delete invoice
-- `POST /invoices/{id}/send` - Send invoice via email
-- `GET /invoices/{id}/pdf` - Generate invoice PDF
-
-#### Payment Processing
-- `POST /payments/initialize` - Initialize payment
-- `POST /payments/verify` - Verify payment
-- `GET /payments` - List all payments
-- `GET /payments/{id}` - Get payment details
-- `POST /payments/webhook` - Paystack webhook endpoint
-
-#### Dashboard & Analytics
-- `GET /dashboard/overview` - Business overview metrics
-- `GET /dashboard/revenue-analytics` - Revenue analytics
-- `GET /dashboard/customer-analytics` - Customer analytics
-- `GET /dashboard/product-analytics` - Product analytics
-- `GET /dashboard/invoice-analytics` - Invoice analytics
-- `GET /dashboard/recent-activities` - Recent business activities
-- `GET /dashboard/export` - Export dashboard data
-
-For detailed API documentation with request/response examples, see [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md).
-
-## Testing
-
-Bizflow includes comprehensive test suites for both backend and frontend components.
-
-### Backend Testing
-
-Run the backend test suite:
-
-```bash
-cd backend/bizflow-backend
-source venv/bin/activate
-pytest
-```
-
-#### Test Coverage
-```bash
-# Run tests with coverage report
-pytest --cov=src --cov-report=html
-
-# View coverage report
-open htmlcov/index.html
-```
-
-#### Test Categories
-- **Unit Tests**: Individual function and method testing
-- **Integration Tests**: API endpoint testing
-- **Service Tests**: Business logic validation
-- **Database Tests**: Data persistence verification
-
-### Frontend Testing
-
-Run the frontend test suite:
-
-```bash
-cd frontend/bizflow-frontend
-pnpm test  # Or: npm test
-```
-
-#### Test Types
-- **Component Tests**: React component rendering and behavior
-- **Integration Tests**: User interaction flows
-- **API Tests**: Frontend-backend communication
-- **E2E Tests**: Complete user journey testing
-
-### Continuous Integration
-
-The project includes GitHub Actions workflows for automated testing:
-
-- **Backend CI**: Python testing and linting
-- **Frontend CI**: JavaScript testing and building
-- **Security Scanning**: Dependency vulnerability checks
-- **Code Quality**: Code coverage and quality metrics
-
-## Deployment
-
-Bizflow can be deployed on various platforms. Here are the recommended deployment options:
-
-### Platform Deployment Options
-
-#### 1. Heroku Deployment
-```bash
-# Install Heroku CLI
-# Create Heroku app
-heroku create bizflow-app
-
-# Set environment variables
-heroku config:set SECRET_KEY=your-secret-key
-heroku config:set DATABASE_URL=your-postgres-url
-heroku config:set PAYSTACK_SECRET_KEY=your-paystack-key
-
-# Deploy
-git push heroku main
-```
-
-#### 2. DigitalOcean App Platform
-```yaml
-# app.yaml
-name: bizflow
-services:
-- name: api
-  source_dir: backend/bizflow-backend
-  github:
-    repo: your-username/Biz
-    branch: main
-  run_command: gunicorn --bind 0.0.0.0:$PORT src.main:app
-  environment_slug: python
-  instance_count: 1
-  instance_size_slug: basic-xxs
-  envs:
-  - key: SECRET_KEY
-    value: your-secret-key
-    type: SECRET
-```
-
-#### 3. AWS Elastic Beanstalk
-```bash
-# Install EB CLI
-pip install awsebcli
-
-# Initialize EB application
-eb init bizflow
-
-# Create environment
-eb create production
-
-# Deploy
-eb deploy
-```
-
-#### 4. Docker Deployment
-```dockerfile
-# Dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY backend/bizflow-backend/requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY backend/bizflow-backend/ .
-COPY frontend/bizflow-frontend/dist/ static/
-
-EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "src.main:app"]
-```
-
-### Environment-Specific Configuration
-
-#### Production Environment Variables
+#### Backend (.env)
 ```env
-# Production settings
-FLASK_ENV=production
-SECRET_KEY=your-production-secret-key
-DATABASE_URL=your-production-database-url
-PAYSTACK_SECRET_KEY=sk_live_your_live_paystack_key
+# Database
+DATABASE_URL=mysql://user:password@host:port/database
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=
+MYSQL_DATABASE=bizflow_sme
 
-# Security settings
-SESSION_COOKIE_SECURE=True
-SESSION_COOKIE_HTTPONLY=True
-PERMANENT_SESSION_LIFETIME=3600
+# Security
+SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret
+
+# Paystack
+PAYSTACK_SECRET_KEY=sk_test_your_key
+PAYSTACK_PUBLIC_KEY=pk_test_your_key
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Email
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
 ```
 
-#### SSL/HTTPS Configuration
-Ensure your production deployment includes:
-- SSL certificate installation
-- HTTPS redirect configuration
-- Secure cookie settings
-- CORS policy updates
+#### Frontend (.env.local)
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_PAYSTACK_PUBLIC_KEY=pk_test_your_key
+VITE_CLOUDINARY_CLOUD_NAME=your-cloud-name
+```
 
-### Database Migration
+## 🧪 Testing
 
-For production deployments with existing data:
-
+### Backend Tests
 ```bash
-# Backup existing database
-pg_dump your_database > backup.sql
+cd backend/bizflow-backend
+source venv/bin/activate
 
-# Run migrations
-flask db upgrade
+# Run all tests
+python -m pytest
 
-# Verify data integrity
-python scripts/verify_migration.py
+# Run with coverage
+python -m pytest --cov=src
+
+# Run specific test file
+python -m pytest tests/test_auth.py
 ```
 
-## Contributing
+### Frontend Tests
+```bash
+cd frontend/bizflow-frontend
 
-We welcome contributions to Bizflow! Please follow these guidelines:
+# Run unit tests
+npm test
 
-### Development Workflow
+# Run e2e tests
+npm run test:e2e
 
-1. **Fork the Repository**
-   ```bash
-   git fork https://github.com/Cachi0001/Biz.git
-   ```
+# Run with coverage
+npm run test:coverage
+```
 
-2. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+### Manual Testing Checklist
+- [ ] User registration and email verification
+- [ ] 7-day trial activation
+- [ ] Customer management (CRUD)
+- [ ] Product management with image upload
+- [ ] Invoice generation and PDF download
+- [ ] Expense tracking with receipt upload
+- [ ] Payment processing with Paystack
+- [ ] Sales reporting and analytics
+- [ ] Referral system and earnings
+- [ ] Team management and permissions
 
-3. **Make Changes**
-   - Follow coding standards
-   - Add tests for new features
-   - Update documentation
+## 📚 API Documentation
 
-4. **Run Tests**
-   ```bash
-   # Backend tests
-   cd backend/bizflow-backend && pytest
-   
-   # Frontend tests
-   cd frontend/bizflow-frontend && pnpm test
-   ```
+### Authentication Endpoints
+```
+POST /api/auth/register - User registration
+POST /api/auth/login - User login
+POST /api/auth/logout - User logout
+POST /api/auth/forgot-password - Password reset
+```
 
-5. **Submit Pull Request**
-   - Provide clear description
-   - Reference related issues
-   - Ensure CI passes
+### Business Management Endpoints
+```
+GET/POST/PUT/DELETE /api/customers - Customer management
+GET/POST/PUT/DELETE /api/products - Product management
+GET/POST/PUT/DELETE /api/invoices - Invoice management
+GET/POST/PUT/DELETE /api/expenses - Expense management
+GET /api/sales - Sales reporting
+GET /api/dashboard - Analytics dashboard
+```
 
-### Coding Standards
+### File Upload Endpoints
+```
+POST /api/products/{id}/upload-image - Product image upload
+POST /api/expenses/upload-receipt/{id} - Receipt upload
+DELETE /api/products/{id}/delete-image - Delete product image
+```
 
-#### Python (Backend)
-- Follow PEP 8 style guide
-- Use type hints where applicable
-- Write docstrings for functions and classes
-- Maximum line length: 100 characters
+### Payment Endpoints
+```
+POST /api/payments/initialize - Initialize payment
+POST /api/payments/verify - Verify payment
+POST /api/payments/webhook - Paystack webhook
+```
 
-#### JavaScript/React (Frontend)
-- Use ESLint and Prettier configurations
-- Follow React best practices
-- Use TypeScript for type safety
-- Write meaningful component names
+## 🔒 Security Features
 
-### Issue Reporting
+- **JWT Authentication** with secure token management
+- **Password Hashing** using bcrypt
+- **Input Validation** and sanitization
+- **CORS Protection** with proper configuration
+- **SQL Injection Prevention** with parameterized queries
+- **File Upload Security** with type and size validation
+- **Rate Limiting** on sensitive endpoints
+- **Environment Variable Security** for sensitive data
 
-When reporting issues, please include:
-- **Environment Details**: OS, Python/Node versions
-- **Steps to Reproduce**: Clear reproduction steps
-- **Expected Behavior**: What should happen
-- **Actual Behavior**: What actually happens
-- **Screenshots**: If applicable
+## 📱 Mobile Responsiveness
 
-## License
+The application is fully responsive and optimized for:
+- **Desktop** - Full feature access with optimal layout
+- **Tablet** - Adapted interface for medium screens
+- **Mobile** - Touch-optimized interface for smartphones
+- **Progressive Web App** features for mobile installation
+
+## 🌍 Nigerian Market Features
+
+- **Naira Currency** formatting and calculations
+- **Paystack Integration** for local payment processing
+- **Nigerian Business Practices** in invoice templates
+- **Local Time Zone** support
+- **Nigerian Phone Number** validation
+- **Local Business Categories** and tax structures
+
+## 🤝 Contributing
+
+We welcome contributions to improve Bizflow SME Nigeria:
+
+1. **Fork the repository**
+2. **Create feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open Pull Request**
+
+### Development Guidelines
+- Follow **clean code principles**
+- Write **comprehensive tests**
+- Update **documentation**
+- Follow **commit message conventions**
+- Ensure **mobile responsiveness**
+
+## 📞 Support
+
+### Technical Support
+- **GitHub Issues**: [Report bugs and feature requests](https://github.com/Cachi0001/Biz/issues)
+- **Documentation**: Comprehensive guides and API docs
+- **Community**: Join our developer community
+
+### Business Support
+- **Email**: support@bizflow.ng
+- **Phone**: +234-XXX-XXX-XXXX
+- **Live Chat**: Available on the platform
+- **Knowledge Base**: Help articles and tutorials
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Third-Party Licenses
+## 🙏 Acknowledgments
 
-Bizflow uses several open-source libraries and frameworks. See [THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md) for complete license information.
+- **Nigerian SME Community** for feedback and requirements
+- **Open Source Contributors** for libraries and tools
+- **Paystack** for payment processing infrastructure
+- **Cloudinary** for file storage and optimization
+- **Vercel** for hosting and deployment platform
 
-## Support
+## 🔮 Roadmap
 
-### Documentation
-- [User Manual](docs/USER_MANUAL.md) - Complete user guide
-- [API Documentation](docs/API_DOCUMENTATION.md) - Detailed API reference
-- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Production deployment instructions
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+### Version 1.1 (Q2 2024)
+- [ ] Advanced analytics and forecasting
+- [ ] Multi-currency support
+- [ ] Bank statement reconciliation
+- [ ] Mobile app (React Native)
 
-### Community Support
-- **GitHub Issues**: [Report bugs and request features](https://github.com/Cachi0001/Biz/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/Cachi0001/Biz/discussions)
-- **Wiki**: [Additional documentation and guides](https://github.com/Cachi0001/Biz/wiki)
+### Version 1.2 (Q3 2024)
+- [ ] AI-powered insights
+- [ ] Integration with accounting software
+- [ ] Advanced inventory management
+- [ ] Multi-location support
 
-### Commercial Support
-For enterprise support, custom development, or consulting services, please contact:
-- **Email**: support@bizflow.ng
-- **Website**: https://bizflow.ng
-- **Phone**: +234 (0) 800 BIZFLOW
-
-### Security Issues
-For security-related issues, please email security@bizflow.ng instead of using public issue tracking.
+### Version 2.0 (Q4 2024)
+- [ ] Enterprise features
+- [ ] White-label solutions
+- [ ] API marketplace
+- [ ] Advanced automation
 
 ---
 
-**Built with ❤️ for Nigerian SMEs by the Bizflow Team**
+**Built with ❤️ for Nigerian SMEs**
 
-*Empowering businesses to grow, one transaction at a time.*
+Transform your business operations with Bizflow SME Nigeria - the comprehensive business management platform designed specifically for the Nigerian market.
 

@@ -188,7 +188,7 @@ def delete_expense(expense_id):
 @expense_bp.route('/upload-receipt/<int:expense_id>', methods=['POST'])
 @jwt_required()
 def upload_receipt(expense_id):
-    """Upload receipt for an expense"""
+    """Upload receipt for an expense using Cloudinary"""
     try:
         user_id = get_jwt_identity()
         expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first()
@@ -200,35 +200,39 @@ def upload_receipt(expense_id):
             return jsonify({'error': 'No receipt file provided'}), 400
         
         file = request.files['receipt']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
         
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            # Add timestamp to filename to avoid conflicts
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-            filename = timestamp + filename
-            
-            # Create uploads directory if it doesn't exist
-            upload_dir = os.path.join(os.getcwd(), 'uploads', 'receipts')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            file_path = os.path.join(upload_dir, filename)
-            file.save(file_path)
-            
-            # Update expense with receipt info
-            expense.receipt_filename = filename
-            expense.receipt_url = f'/uploads/receipts/{filename}'
-            expense.updated_at = datetime.utcnow()
-            
-            db.session.commit()
-            
-            return jsonify({
-                'message': 'Receipt uploaded successfully',
-                'receipt_url': expense.receipt_url
-            })
-        else:
-            return jsonify({'error': 'Invalid file type. Allowed: png, jpg, jpeg, gif, pdf'}), 400
+        # Import Cloudinary service
+        from src.services.cloudinary_service import CloudinaryService, RECEIPT_EXTENSIONS
+        
+        # Validate file
+        validation = CloudinaryService.validate_file(
+            file, 
+            allowed_extensions=RECEIPT_EXTENSIONS,
+            max_size_mb=16
+        )
+        
+        if not validation['valid']:
+            return jsonify({'error': validation['error']}), 400
+        
+        # Upload to Cloudinary
+        upload_result = CloudinaryService.upload_receipt(file, user_id, expense_id)
+        
+        if not upload_result['success']:
+            return jsonify({'error': f'Upload failed: {upload_result["error"]}'}), 500
+        
+        # Update expense with receipt info
+        expense.receipt_filename = upload_result['original_filename']
+        expense.receipt_url = upload_result['url']
+        expense.receipt_public_id = upload_result['public_id']
+        expense.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Receipt uploaded successfully',
+            'receipt_url': expense.receipt_url,
+            'receipt_filename': expense.receipt_filename
+        })
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

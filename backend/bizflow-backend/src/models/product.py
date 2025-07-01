@@ -18,7 +18,12 @@ class Product(db.Model):
     tax_rate = db.Column(db.Numeric(5, 2), default=0.00)  # percentage
     is_active = db.Column(db.Boolean, default=True)
     is_service = db.Column(db.Boolean, default=False)  # True for services, False for products
-    image_url = db.Column(db.String(255))
+    
+    # Product Images
+    image_url = db.Column(db.String(500))
+    image_public_id = db.Column(db.String(255))  # Cloudinary public ID
+    
+    # Additional fields
     barcode = db.Column(db.String(50))
     supplier_info = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -48,6 +53,7 @@ class Product(db.Model):
             'is_active': self.is_active,
             'is_service': self.is_service,
             'image_url': self.image_url,
+            'image_public_id': self.image_public_id,
             'barcode': self.barcode,
             'supplier_info': self.supplier_info,
             'created_at': self.created_at.isoformat() if self.created_at else None,
