@@ -91,6 +91,7 @@ cd frontend/bizflow-frontend
 
 # Install dependencies
 npm install
+i downgraded the react and react dom version to 18.0.0 because of compactibility issues
 # or
 pnpm install
 
