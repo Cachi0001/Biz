@@ -1,57 +1,119 @@
-# Bizflow SME Nigeria - Frontend Troubleshooting Guide
+# Bizflow SME Nigeria - Frontend Troubleshooting Guide (Updated)
 
-## 🚨 Common Issues and Solutions
+## 🚨 Critical Issue: `axios` Import Error (Failed to resolve import)
+
+**Symptoms:**
+```
+Error: The following dependencies are imported but could not be resolved:
+  axios (imported by /home/ubuntu/Biz/frontend/bizflow-frontend/src/lib/api.js)
+Are they installed?
+```
+This error indicates that your development environment (Vite) cannot find the `axios` package, even if it appears to be listed in your `package.json` or you've attempted to install it. This is often due to corrupted `node_modules`, package manager cache issues, or Node.js version conflicts.
+
+**Solutions: Perform a Deep Clean and Reinstallation**
+
+This is the most critical step. You need to ensure your local environment is completely clean before reinstalling dependencies. Follow these steps precisely:
+
+### Step 1: Verify Your Current Directory
+
+First, ensure you are in the correct directory. Open your terminal or command prompt and navigate to the `frontend/bizflow-frontend` directory within your cloned `Biz` project.
+
+```bash
+# Example: If your 'Biz' folder is in your home directory
+cd ~/Biz/frontend/bizflow-frontend
+
+# Verify you are in the correct directory
+pwd # (on Linux/macOS)
+# or
+cd # (on Windows, then check the path displayed)
+
+# List contents to confirm package.json is present
+ls -la
+```
+
+### Step 2: Verify Node.js Version
+
+Ensure you are using a compatible Node.js version. Bizflow is developed and tested with Node.js **v18.x** or **v20.x**. Using other versions (especially older ones) can lead to unexpected issues.
+
+```bash
+node --version
+# Expected output: v18.x.x or v20.x.x
+
+# If your version is different, consider using nvm (Node Version Manager) to switch:
+# Install nvm (if you haven't already): https://github.com/nvm-sh/nvm#installing-and-updating
+# nvm install 18 # or nvm install 20
+# nvm use 18 # or nvm use 20
+```
+
+### Step 3: Perform a Comprehensive Clean-up
+
+This step removes all existing dependencies, caches, and lock files to ensure a fresh start. **Execute these commands in the `frontend/bizflow-frontend` directory.**
+
+```bash
+# 1. Stop any running development servers (Ctrl+C in the terminal where it's running)
+
+# 2. Delete node_modules directory
+rm -rf node_modules
+
+# 3. Delete package-lock.json (npm's lock file)
+rm -rf package-lock.json
+
+# 4. Delete yarn.lock (if you've ever used yarn)
+rm -rf yarn.lock
+
+# 5. Delete pnpm-lock.yaml (if you've ever used pnpm)
+rm -rf pnpm-lock.yaml
+
+# 6. Clear npm cache (this is crucial!)
+npm cache clean --force
+
+# 7. Clear Vite cache (if it exists)
+rm -rf .vite
+```
+
+### Step 4: Reinstall Dependencies
+
+After the deep clean, reinstall all dependencies using `npm`.
+
+```bash
+npm install
+
+# If the above command fails or gives warnings, try with --legacy-peer-deps
+# npm install --legacy-peer-deps
+```
+
+### Step 5: Run the Development Server
+
+Now, try starting the development server. Use the `--force` flag with Vite to ensure it re-optimizes dependencies from scratch.
+
+```bash
+npm run dev -- --force
+```
+
+### Step 6: Verify in Browser
+
+Open your browser and navigate to the URL provided by Vite (e.g., `http://localhost:5173/`). Check the browser console (usually F12 -> Console tab) for any errors.
+
+## 🚨 Common Issues and Solutions (Revisited)
 
 ### Issue 1: 500 Internal Server Errors on Component Loading
 
 **Symptoms:**
 ```
 GET http://localhost:5173/src/contexts/AuthContext.jsx net::ERR_ABORTED 500 (Internal Server Error)
-GET http://localhost:5173/src/components/ui/button.jsx net::ERR_ABORTED 500 (Internal Server Error)
 ```
 
 **Root Causes:**
-1. **Node.js Version Mismatch**: Different Node.js versions can cause module resolution issues
-2. **Package Manager Conflicts**: Mixing npm, yarn, and pnpm can cause dependency conflicts
-3. **Cache Issues**: Stale cache can cause import resolution problems
-4. **Path Resolution**: Windows vs Unix path differences
+-   **Node.js Version Mismatch**: Different Node.js versions can cause module resolution issues.
+-   **Package Manager Conflicts**: Mixing npm, yarn, and pnpm can cause dependency conflicts.
+-   **Cache Issues**: Stale cache can cause import resolution problems.
+-   **Path Resolution**: Windows vs Unix path differences.
 
-**Solutions:**
+**Solutions:** (Covered in Deep Clean above)
 
-#### Solution 1: Complete Clean Install
-```bash
-# Delete all cache and dependencies
-rm -rf node_modules
-rm -rf package-lock.json
-rm -rf pnpm-lock.yaml
-rm -rf yarn.lock
+#### Solution: Update `vite.config.js` for Path Aliases
+Ensure your `vite.config.js` has the correct path alias configuration. This should already be in your project from my previous pushes.
 
-# Clear npm cache
-npm cache clean --force
-
-# Reinstall with npm only
-npm install
-
-# Start with forced cache clearing
-npm run dev -- --force
-```
-
-#### Solution 2: Use Specific Node.js Version
-```bash
-# Check your Node.js version
-node --version
-
-# Recommended: Use Node.js 18.x or 20.x
-# If using nvm:
-nvm install 18
-nvm use 18
-
-# Reinstall dependencies
-npm install
-```
-
-#### Solution 3: Fix Path Resolution Issues
-Create or update `vite.config.js`:
 ```javascript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -82,7 +144,7 @@ export default defineConfig({
 })
 ```
 
-### Issue 2: Import Resolution Errors
+### Issue 2: Import Resolution Errors (e.g., `@/lib/utils`)
 
 **Symptoms:**
 ```
@@ -91,7 +153,9 @@ Failed to resolve import "@/lib/utils" from "src/components/ui/textarea.jsx"
 
 **Solutions:**
 
-#### Solution 1: Update jsconfig.json
+#### Solution 1: Update `jsconfig.json`
+Ensure your `jsconfig.json` is correctly configured for path mapping. This should also be in your project.
+
 ```json
 {
   "compilerOptions": {
@@ -120,8 +184,20 @@ Failed to resolve import "@/lib/utils" from "src/components/ui/textarea.jsx"
 }
 ```
 
-#### Solution 2: Use Relative Imports (Fallback)
-If path aliases don't work, update components to use relative imports:
+#### Solution 2: Verify `src/lib` Directory and Files
+
+Crucially, ensure that the `src/lib` directory and its contents (`api.js`, `utils.js`) are present in your local `frontend/bizflow-frontend/src/` directory. I have pushed these files to your GitHub repository. You must `git pull origin main` to get them.
+
+```bash
+# After navigating to frontend/bizflow-frontend/src/
+ls -la lib/
+# You should see api.js and utils.js listed here
+```
+
+#### Solution 3: Use Relative Imports (Fallback - if path aliases still fail)
+If path aliases (`@/`) continue to cause issues after all other steps, you can temporarily modify the imports in your components to use relative paths. This is a less ideal solution but can help isolate the problem.
+
+**Example (for `textarea.jsx`):**
 
 **Before:**
 ```javascript
@@ -153,7 +229,7 @@ npm install --force
 ```
 
 #### Solution 3: Use Exact Versions
-Update `package.json` with exact versions:
+Update `package.json` with exact versions (less common, but can resolve specific conflicts):
 ```json
 {
   "dependencies": {
@@ -205,31 +281,41 @@ cat package.json | grep "name"
 ### Verify Dependencies
 ```bash
 # Check if all required dependencies are installed
-npm list react react-dom vite @vitejs/plugin-react
+npm list react react-dom vite @vitejs/plugin-react axios
 
 # Check for peer dependency warnings
 npm install --dry-run
 ```
 
-## 🚀 Step-by-Step Recovery Process
+## 🚀 Step-by-Step Recovery Process (Consolidated)
 
-### Step 1: Environment Check
+### Step 1: Get Latest Code
 ```bash
-# Ensure you're in the frontend directory
+# Navigate to your Biz project root directory
+cd ~/Biz # or wherever your Biz folder is
+
+# Pull the latest changes from GitHub
+git pull origin main
+```
+
+### Step 2: Environment Check
+```bash
+# Navigate to the frontend directory
 cd frontend/bizflow-frontend
 
 # Check Node.js version
 node --version
 ```
 
-### Step 2: Complete Clean
+### Step 3: Complete Deep Clean
 ```bash
 # Remove all dependencies and cache
-rm -rf node_modules package-lock.json pnpm-lock.yaml
+rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
 npm cache clean --force
+rm -rf .vite
 ```
 
-### Step 3: Fresh Install
+### Step 4: Fresh Install
 ```bash
 # Install dependencies
 npm install
@@ -238,7 +324,7 @@ npm install
 npm install --legacy-peer-deps
 ```
 
-### Step 4: Start Development Server
+### Step 5: Start Development Server
 ```bash
 # Start with cache clearing
 npm run dev -- --force
@@ -247,7 +333,7 @@ npm run dev -- --force
 npm run dev
 ```
 
-### Step 5: Test Build
+### Step 6: Test Build
 ```bash
 # Test production build
 npm run build
@@ -261,6 +347,7 @@ npm run preview
 ### Check File Structure
 ```bash
 # Verify all required files exist
+ls -la src/lib/api.js
 ls -la src/lib/utils.js
 ls -la src/components/ui/
 ls -la src/contexts/AuthContext.jsx
@@ -268,9 +355,10 @@ ls -la src/contexts/AuthContext.jsx
 
 ### Check Import Syntax
 ```bash
-# Verify no syntax errors in key files
+# Verify no syntax errors in key files (requires Node.js to be able to parse JSX/TSX)
+# For JS files:
 node -c src/lib/utils.js
-node -c src/components/ui/button.jsx
+# For JSX files, you might need a transpiler like babel-node or just rely on 'npm run dev' errors
 ```
 
 ### Check Vite Configuration
@@ -279,77 +367,15 @@ node -c src/components/ui/button.jsx
 npx vite --help
 ```
 
-## 📱 Alternative Setup Methods
-
-### Method 1: Use Create React App (Fallback)
-If Vite continues to have issues:
-```bash
-npx create-react-app bizflow-frontend-backup
-# Then manually copy src files
-```
-
-### Method 2: Use Different Package Manager
-```bash
-# Try with yarn
-yarn install
-yarn dev
-
-# Or try with pnpm
-pnpm install
-pnpm dev
-```
-
-## 🎯 User Capacity Estimation
-
-Based on the current architecture:
-
-### **Small Scale (0-100 users)**
-- **Frontend**: Can handle unlimited concurrent users (static files)
-- **Backend**: 50-100 concurrent users with current Flask setup
-- **Database**: SQLite suitable for development, MySQL for production
-- **Hosting**: Vercel free tier sufficient
-
-### **Medium Scale (100-1,000 users)**
-- **Frontend**: No limitations (CDN-served static files)
-- **Backend**: Requires horizontal scaling (multiple Flask instances)
-- **Database**: MySQL with connection pooling required
-- **Hosting**: Vercel Pro plan recommended
-
-### **Large Scale (1,000+ users)**
-- **Frontend**: Global CDN distribution (Vercel handles this automatically)
-- **Backend**: Microservices architecture with load balancing
-- **Database**: MySQL cluster or PostgreSQL with read replicas
-- **Hosting**: Enterprise hosting solutions
-
-### **Performance Optimizations Implemented**
-- ✅ Code splitting and lazy loading
-- ✅ Bundle optimization with Vite
-- ✅ Image optimization with Cloudinary
-- ✅ Efficient state management
-- ✅ Responsive design for mobile performance
-
-### **Scalability Bottlenecks**
-1. **Backend API**: Single Flask instance limitation
-2. **Database**: SQLite not suitable for production
-3. **File Storage**: Local storage vs Cloudinary
-4. **Session Management**: In-memory vs Redis
-
-### **Recommended Production Setup**
-- **Frontend**: Vercel (unlimited scaling)
-- **Backend**: Multiple Flask instances behind load balancer
-- **Database**: MySQL with connection pooling
-- **Cache**: Redis for session management
-- **Monitoring**: Application performance monitoring
-
 ## 📞 Support
 
 If issues persist after following this guide:
 
-1. **Check Node.js version**: Use 18.x or 20.x
-2. **Try different terminal**: Use Git Bash on Windows
-3. **Clear all caches**: Browser, npm, and system
-4. **Use WSL on Windows**: For better compatibility
-5. **Check antivirus**: May block file operations
+1.  **Check Node.js version**: Use 18.x or 20.x
+2.  **Try different terminal**: Use Git Bash on Windows
+3.  **Clear all caches**: Browser, npm, and system
+4.  **Use WSL on Windows**: For better compatibility
+5.  **Check antivirus**: May block file operations
 
-The frontend is production-ready and can scale to handle thousands of users with proper backend infrastructure.
+I am confident that following these steps will resolve the `axios` import error and get your frontend running. Please let me know the outcome after you try these steps.
 
