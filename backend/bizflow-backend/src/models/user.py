@@ -10,6 +10,7 @@ class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -17,6 +18,9 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     business_name = db.Column(db.String(100))
     business_type = db.Column(db.String(50))
+    business_address = db.Column(db.Text)
+    business_phone = db.Column(db.String(20))
+    business_email = db.Column(db.String(120))
     
     # Trial and Subscription Management
     trial_start_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -141,12 +145,16 @@ class User(db.Model):
         """Convert user to dictionary"""
         return {
             'id': self.id,
+            'username': self.username,
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
             'phone': self.phone,
             'business_name': self.business_name,
             'business_type': self.business_type,
+            'business_address': self.business_address,
+            'business_phone': self.business_phone,
+            'business_email': self.business_email,
             'trial_start_date': self.trial_start_date.isoformat() if self.trial_start_date else None,
             'trial_end_date': self.trial_end_date.isoformat() if self.trial_end_date else None,
             'is_trial_active': self.is_trial_active,
