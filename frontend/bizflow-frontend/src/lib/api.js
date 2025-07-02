@@ -143,6 +143,11 @@ const apiService = {
     return response.data;
   },
 
+  getDashboardOverview: async () => {
+    const response = await api.get('/dashboard/overview');
+    return response.data;
+  },
+
   getDashboardSummary: async () => {
     const response = await api.get('/dashboard/summary');
     return response.data;
@@ -192,6 +197,71 @@ const apiService = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+
+  getSales: async () => {
+    const response = await api.get('/sales');
+    return response.data;
+  },
+
+  createSale: async (saleData) => {
+    const response = await api.post('/sales', saleData);
+    return response.data;
+  },
+
+  updateSale: async (id, saleData) => {
+    const response = await api.put(`/sales/${id}`, saleData);
+    return response.data;
+  },
+
+  deleteSale: async (id) => {
+    const response = await api.delete(`/sales/${id}`);
+    return response.data;
+  },
+
+  getTeamMembers: async () => {
+    const response = await api.get('/team');
+    return response.data;
+  },
+
+  createTeamMember: async (memberData) => {
+    const response = await api.post('/team', memberData);
+    return response.data;
+  },
+
+  updateTeamMember: async (id, memberData) => {
+    const response = await api.put(`/team/${id}`, memberData);
+    return response.data;
+  },
+
+  deleteTeamMember: async (id) => {
+    const response = await api.delete(`/team/${id}`);
+    return response.data;
+  },
+
+  getReferrals: async () => {
+    const response = await api.get('/referrals');
+    return response.data;
+  },
+
+  createReferral: async (referralData) => {
+    const response = await api.post('/referrals', referralData);
+    return response.data;
+  },
+
+  getSubscriptionPlans: async () => {
+    const response = await api.get('/subscription/plans');
+    return response.data;
+  },
+
+  upgradeSubscription: async (planData) => {
+    const response = await api.post('/subscription/upgrade', planData);
+    return response.data;
+  },
+
+  getSubscriptionStatus: async () => {
+    const response = await api.get('/subscription/status');
     return response.data;
   },
 

@@ -9,29 +9,13 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Invoices from './pages/Invoices';
+import Products from './pages/Products';
+import Sales from './pages/Sales';
+import Team from './pages/Team';
+import Customers from './pages/Customers';
 
 // Placeholder components for other pages
-const Customers = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Customers</h1>
-    <p className="text-muted-foreground">Customer management coming soon...</p>
-  </div>
-);
-
-const Products = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Products</h1>
-    <p className="text-muted-foreground">Product management coming soon...</p>
-  </div>
-);
-
-const Invoices = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Invoices</h1>
-    <p className="text-muted-foreground">Invoice management coming soon...</p>
-  </div>
-);
-
 const Payments = () => (
   <div className="space-y-6">
     <h1 className="text-3xl font-bold">Payments</h1>
@@ -91,7 +75,37 @@ function App() {
               }
             />
             <Route
+              path="/sales"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Sales />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Team />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/invoices"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Invoices />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoices/new"
               element={
                 <ProtectedRoute>
                   <Layout>
