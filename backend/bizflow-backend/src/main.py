@@ -45,17 +45,7 @@ def create_app():
     app = Flask(__name__)
 
     # Configuration
-    # Use DATABASE_URL if provided, otherwise construct from individual MySQL variables
-    if os.getenv("DATABASE_URL"):
-        app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
-    else:
-        mysql_host = os.getenv("MYSQL_HOST", "localhost")
-        mysql_port = os.getenv("MYSQL_PORT", "3306")
-        mysql_user = os.getenv("MYSQL_USER", "root")
-        mysql_password = os.getenv("MYSQL_PASSWORD", "")
-        mysql_database = os.getenv("MYSQL_DATABASE", "bizflow_sme")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
-
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///bizflow_sme.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-jwt-key")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
@@ -90,13 +80,13 @@ def create_app():
     app.register_blueprint(sale_bp, url_prefix="/api/sales")
     app.register_blueprint(referral_bp, url_prefix="/api/referrals")
 
-    # Create database tables if they don\"t exist
+    # Create database tables if they don't exist
     with app.app_context():
         db.create_all()
 
     @app.route("/api/health")
     def health_check():
-        return jsonify({"status": "healthy", "database": "MySQL", "file_storage": "Cloudinary"})
+        return jsonify({"status": "healthy", "database": "SQLite", "file_storage": "Cloudinary"})
 
     return app
 
