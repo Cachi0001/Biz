@@ -61,14 +61,12 @@ def create_app():
     mail = Mail(app)
     CORS(app)
 
-    # Initialize services
     app.paystack_service = PaystackService()
     app.email_service = EmailService()
     app.pdf_service = PDFService()
     app.excel_service = ExcelService()
     app.cloudinary_service = CloudinaryService()
 
-    # Register blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(user_bp, url_prefix="/api/users")
     app.register_blueprint(customer_bp, url_prefix="/api/customers")
@@ -96,5 +94,3 @@ app = create_app()
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
