@@ -147,4 +147,3 @@ class SaleItem(db.Model):
     
     def __repr__(self):
         return f'<SaleItem {self.product_name}: {self.quantity} x {self.unit_price}>'
-

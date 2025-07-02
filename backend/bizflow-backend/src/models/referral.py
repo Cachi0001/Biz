@@ -118,4 +118,3 @@ class ReferralEarning(db.Model):
     
     def __repr__(self):
         return f'<ReferralEarning {self.earning_type}: {self.amount}>'
-

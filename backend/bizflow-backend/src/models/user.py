@@ -26,8 +26,8 @@ class User(db.Model):
     trial_start_date = db.Column(db.DateTime, default=datetime.utcnow)
     trial_end_date = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
     is_trial_active = db.Column(db.Boolean, default=True)
-    subscription_plan = db.Column(db.String(20), default='trial')  # trial, weekly, monthly, yearly
-    subscription_status = db.Column(db.String(20), default='active')  # active, cancelled, expired
+    subscription_plan = db.Column(db.String(20), default='trial')
+    subscription_status = db.Column(db.String(20), default='active')
     subscription_start_date = db.Column(db.DateTime)
     subscription_end_date = db.Column(db.DateTime)
     
@@ -46,7 +46,7 @@ class User(db.Model):
     password_reset_expires = db.Column(db.DateTime)
     
     # Role and Team Management
-    role = db.Column(db.String(20), default='owner')  # owner, salesperson
+    role = db.Column(db.String(20), default='owner')
     team_owner_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     
     # Timestamps
@@ -55,14 +55,15 @@ class User(db.Model):
     last_login = db.Column(db.DateTime)
     
     # Relationships
-    team_members = db.relationship('User', backref=db.backref('team_owner', remote_side=[id]))
-    referrals = db.relationship('User', backref=db.backref('referrer', remote_side=[id]))
+    team_members = db.relationship('User', backref=db.backref('team_owner', remote_side=[id]), foreign_keys=[team_owner_id])
+    referrals = db.relationship('User', backref=db.backref('referrer', remote_side=[id]), foreign_keys=[referred_by])
     customers = db.relationship('Customer', backref='user', lazy=True, cascade='all, delete-orphan')
     products = db.relationship('Product', backref='user', lazy=True, cascade='all, delete-orphan')
     invoices = db.relationship('Invoice', backref='user', lazy=True, cascade='all, delete-orphan')
     expenses = db.relationship('Expense', backref='user', lazy=True, cascade='all, delete-orphan')
-    sales = db.relationship('Sale', backref='user', lazy=True, cascade='all, delete-orphan')
+    sales = db.relationship('Sale', backref='user', foreign_keys='Sale.user_id', lazy=True, cascade='all, delete-orphan')  # Updated
     withdrawals = db.relationship('ReferralWithdrawal', backref='user', lazy=True, cascade='all, delete-orphan')
+    sales_made = db.relationship('Sale', backref='salesperson', foreign_keys='Sale.salesperson_id', lazy=True)  # Updated
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -72,36 +73,29 @@ class User(db.Model):
             self.email_verification_token = self.generate_verification_token()
     
     def set_password(self, password):
-        """Set password hash"""
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        """Check password against hash"""
         return check_password_hash(self.password_hash, password)
     
     def generate_referral_code(self):
-        """Generate unique referral code"""
         while True:
             code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
             if not User.query.filter_by(referral_code=code).first():
                 return code
     
     def generate_verification_token(self):
-        """Generate email verification token"""
         return secrets.token_urlsafe(32)
     
     def generate_password_reset_token(self):
-        """Generate password reset token"""
         self.password_reset_token = secrets.token_urlsafe(32)
         self.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
         return self.password_reset_token
     
     def is_trial_expired(self):
-        """Check if trial period has expired"""
         return datetime.utcnow() > self.trial_end_date
     
     def is_subscription_active(self):
-        """Check if subscription is active"""
         if self.subscription_status != 'active':
             return False
         if self.subscription_end_date and datetime.utcnow() > self.subscription_end_date:
@@ -109,18 +103,16 @@ class User(db.Model):
         return True
     
     def can_access_feature(self, feature):
-        """Check if user can access a specific feature based on plan"""
         if self.is_trial_active and not self.is_trial_expired():
-            return True  # Trial users get full access
+            return True
         
         if not self.is_subscription_active():
-            return False  # No access if subscription is inactive
+            return False
         
-        # Define feature access by plan
         plan_features = {
             'weekly': ['basic_invoicing', 'basic_reporting', 'client_management'],
             'monthly': ['basic_invoicing', 'basic_reporting', 'client_management', 'expense_tracking', 'team_management'],
-            'yearly': ['all_features']  # Full access
+            'yearly': ['all_features']
         }
         
         if self.subscription_plan == 'yearly':
@@ -129,12 +121,10 @@ class User(db.Model):
         return feature in plan_features.get(self.subscription_plan, [])
     
     def add_referral_earning(self, amount):
-        """Add referral earning"""
         self.referral_earnings += amount
         self.total_referrals += 1
     
     def withdraw_earnings(self, amount):
-        """Withdraw referral earnings"""
         if amount <= self.referral_earnings:
             self.referral_earnings -= amount
             self.total_withdrawn += amount
@@ -142,7 +132,6 @@ class User(db.Model):
         return False
     
     def to_dict(self):
-        """Convert user to dictionary"""
         return {
             'id': self.id,
             'username': self.username,
@@ -176,4 +165,3 @@ class User(db.Model):
     
     def __repr__(self):
         return f'<User {self.email}>'
-
