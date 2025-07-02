@@ -6,11 +6,14 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from flask_mail import Mail
 from flask_cors import CORS
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Set base directory
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+print(f"Base Directory: {BASE_DIR}")
 
 # Import database and models
 from src.models.user import db, User
@@ -45,24 +48,21 @@ def create_app():
     app = Flask(__name__)
 
     # Configuration
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///bizflow_sme.db")
+    db_path = os.getenv("DATABASE_URL", os.path.join(BASE_DIR, "src/instance/bizflow_sme.db"))
+    print(f"Database URL: {db_path}")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-jwt-key")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
-    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
-    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True").lower() == "true"
-    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 
     # Initialize extensions
     db.init_app(app)
     jwt = JWTManager(app)
-    mail = Mail(app)
     CORS(app)
 
+    # Initialize services with app context
     app.paystack_service = PaystackService()
-    app.email_service = EmailService()
+    app.email_service = EmailService()  # Already uses os.getenv, no app context needed here
     app.pdf_service = PDFService()
     app.excel_service = ExcelService()
     app.cloudinary_service = CloudinaryService()
@@ -78,13 +78,17 @@ def create_app():
     app.register_blueprint(sale_bp, url_prefix="/api/sales")
     app.register_blueprint(referral_bp, url_prefix="/api/referrals")
 
-    # Create database tables if they don't exist
     with app.app_context():
         db.create_all()
 
     @app.route("/api/health")
     def health_check():
         return jsonify({"status": "healthy", "database": "SQLite", "file_storage": "Cloudinary"})
+
+    # @app.route("/api/test-email")
+    # def test_email():
+    #     app.email_service._create_message("test@example.com", "Test Subject", html_content="<h1>Test</h1>")
+    #     return jsonify({"message": "Email creation test"})
 
     return app
 
