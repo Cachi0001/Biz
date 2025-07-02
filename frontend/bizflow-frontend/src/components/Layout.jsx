@@ -27,6 +27,8 @@ import {
   LogOut,
   Bell,
   Search,
+  Twitter,
+  MessageCircle,
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -51,6 +53,14 @@ const Layout = ({ children }) => {
 
   const isActive = (href) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
+  };
+
+  const handleTwitterClick = () => {
+    window.open('https://x.com/Caleb0533', '_blank');
+  };
+
+  const handleWhatsAppClick = () => {
+    window.open('https://wa.me/2348158025887', '_blank');
   };
 
   const SidebarContent = () => (
@@ -86,6 +96,24 @@ const Layout = ({ children }) => {
           );
         })}
       </nav>
+
+      {/* Social Links */}
+      <div className="border-t p-4 space-y-2">
+        <button
+          onClick={handleTwitterClick}
+          className="flex items-center space-x-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Twitter className="h-5 w-5 text-blue-500" />
+          <span>Follow our CEO</span>
+        </button>
+        <button
+          onClick={handleWhatsAppClick}
+          className="flex items-center space-x-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <MessageCircle className="h-5 w-5 text-green-500" />
+          <span>Feedback</span>
+        </button>
+      </div>
 
       {/* User info */}
       <div className="border-t p-4">
@@ -154,6 +182,16 @@ const Layout = ({ children }) => {
 
           {/* Right side */}
           <div className="flex items-center gap-x-4 lg:gap-x-6">
+            {/* Social Links for Mobile */}
+            <div className="flex items-center gap-x-2 lg:hidden">
+              <Button variant="ghost" size="icon" onClick={handleTwitterClick}>
+                <Twitter className="h-5 w-5 text-blue-500" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleWhatsAppClick}>
+                <MessageCircle className="h-5 w-5 text-green-500" />
+              </Button>
+            </div>
+
             {/* Notifications */}
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5" />
