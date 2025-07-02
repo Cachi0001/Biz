@@ -38,7 +38,7 @@ class Sale(db.Model):
     
     # Relationships
     sale_items = db.relationship('SaleItem', backref='sale', lazy=True, cascade='all, delete-orphan')
-    salesperson = db.relationship('User', foreign_keys=[salesperson_id], backref='sales_made')
+    salesperson = db.relationship('User', foreign_keys=[salesperson_id], backref='sales_processed_by')  # Updated backref to 'sales_processed_by'
     
     def generate_sale_number(self):
         """Generate unique sale number"""

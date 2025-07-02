@@ -61,9 +61,9 @@ class User(db.Model):
     products = db.relationship('Product', backref='user', lazy=True, cascade='all, delete-orphan')
     invoices = db.relationship('Invoice', backref='user', lazy=True, cascade='all, delete-orphan')
     expenses = db.relationship('Expense', backref='user', lazy=True, cascade='all, delete-orphan')
-    sales = db.relationship('Sale', backref='user', foreign_keys='Sale.user_id', lazy=True, cascade='all, delete-orphan')  # Updated
-    withdrawals = db.relationship('ReferralWithdrawal', backref='user', lazy=True, cascade='all, delete-orphan')
-    sales_made = db.relationship('Sale', backref='salesperson', foreign_keys='Sale.salesperson_id', lazy=True)  # Updated
+    sales = db.relationship('Sale', backref='user', foreign_keys='Sale.user_id', lazy=True, cascade='all, delete-orphan')
+    withdrawals = db.relationship('ReferralWithdrawal', backref='user', foreign_keys='ReferralWithdrawal.user_id', lazy=True, cascade='all, delete-orphan')
+    sales_made = db.relationship('Sale', backref='sales_made_by', foreign_keys='Sale.salesperson_id', lazy=True)
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
