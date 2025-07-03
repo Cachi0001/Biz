@@ -55,6 +55,7 @@ from src.routes.referral import referral_bp
 from src.routes.subscription import subscription_bp
 from src.routes.notifications import notifications_bp
 from src.routes.withdrawal import withdrawal_bp
+from src.routes.subscription_upgrade import subscription_upgrade_bp
 
 def create_app():
     app = Flask(__name__)
@@ -125,6 +126,7 @@ def create_app():
     app.register_blueprint(subscription_bp, url_prefix="/api/subscription")
     app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
     app.register_blueprint(withdrawal_bp, url_prefix="/api/withdrawals")
+    app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription")
 
     with app.app_context():
         db.create_all()

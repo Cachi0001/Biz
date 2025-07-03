@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import db, User
 from src.models.referral import ReferralWithdrawal, ReferralEarning
+from src.services.referral_service import ReferralService
 from datetime import datetime
 from sqlalchemy import func
 
@@ -17,6 +18,12 @@ def get_referral_stats():
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
+        
+        # Use the referral service to get comprehensive stats
+        referral_summary = ReferralService.get_referral_summary(user_id)
+        
+        if referral_summary:
+            return jsonify(referral_summary), 200
         
         # Get referred users
         referred_users = User.query.filter_by(referred_by=user_id).all()
