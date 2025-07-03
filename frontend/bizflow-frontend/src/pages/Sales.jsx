@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { api } from '@/lib/api';
+import apiService from '../lib/api.js';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
