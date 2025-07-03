@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }) => {
       setUser(response.user);
       return response;
     } catch (error) {
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -59,7 +60,8 @@ export const AuthProvider = ({ children }) => {
       setUser(response.user);
       return response;
     } catch (error) {
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);

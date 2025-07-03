@@ -28,9 +28,16 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Handle unauthorized errors, e.g., redirect to login
+      // Handle unauthorized errors, but don't auto-redirect from certain pages
+      const currentPath = window.location.pathname;
+      const protectedPaths = ['/settings', '/dashboard', '/customers', '/products', '/invoices'];
+      
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      
+      // Only auto-redirect if not on a protected page (let the component handle it)
+      if (!protectedPaths.some(path => currentPath.includes(path))) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -262,6 +269,52 @@ const apiService = {
 
   getSubscriptionStatus: async () => {
     const response = await api.get('/subscription/status');
+    return response.data;
+  },
+
+  changePassword: async (passwordData) => {
+    const response = await api.put('/auth/change-password', passwordData);
+    return response.data;
+  },
+
+  updateNotificationSettings: async (settings) => {
+    const response = await api.put('/user/notification-settings', settings);
+    return response.data;
+  },
+
+  getNotificationSettings: async () => {
+    const response = await api.get('/user/notification-settings');
+    return response.data;
+  },
+
+  requestReferralWithdrawal: async (amount) => {
+    const response = await api.post('/referrals/withdraw', { amount });
+    return response.data;
+  },
+
+  getSalesReport: async (dateRange) => {
+    const response = await api.get('/sales/report', { params: dateRange });
+    return response.data;
+  },
+
+  downloadSalesReport: async (dateRange, format = 'pdf') => {
+    const response = await api.get('/sales/report/download', { 
+      params: { ...dateRange, format },
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  getExpenseReport: async (dateRange) => {
+    const response = await api.get('/expenses/report', { params: dateRange });
+    return response.data;
+  },
+
+  downloadExpenseReport: async (dateRange, format = 'pdf') => {
+    const response = await api.get('/expenses/report/download', { 
+      params: { ...dateRange, format },
+      responseType: 'blob'
+    });
     return response.data;
   },
 

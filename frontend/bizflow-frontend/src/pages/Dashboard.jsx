@@ -362,19 +362,19 @@ const Dashboard = () => {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Button asChild variant="outline" className="h-20 flex-col">
-              <Link to="/customers/new">
+              <Link to="/customers">
                 <Users className="h-6 w-6 mb-2" />
                 Add Customer
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-20 flex-col">
-              <Link to="/products/new">
+              <Link to="/products">
                 <Package className="h-6 w-6 mb-2" />
                 Add Product
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-20 flex-col">
-              <Link to="/invoices/new">
+              <Link to="/invoices">
                 <FileText className="h-6 w-6 mb-2" />
                 Create Invoice
               </Link>

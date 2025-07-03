@@ -44,7 +44,13 @@ const Customers = () => {
 
   const handleCreateCustomer = async () => {
     try {
-      await apiService.createCustomer(newCustomer);
+      setLoading(true);
+      const response = await apiService.createCustomer(newCustomer);
+      
+      // Immediately add the new customer to the list for real-time feedback
+      const createdCustomer = response.customer || response;
+      setCustomers(prevCustomers => [createdCustomer, ...prevCustomers]);
+      
       setIsCreateDialogOpen(false);
       setNewCustomer({
         name: '',
@@ -54,30 +60,70 @@ const Customers = () => {
         business_name: '',
         notes: ''
       });
-      fetchCustomers();
+      
+      // Show success message (you can add toast here)
+      console.log('Customer created successfully!');
+      
+      // Refresh to ensure data consistency
+      await fetchCustomers();
     } catch (error) {
       console.error('Failed to create customer:', error);
+      // Show error message (you can add toast here)
+      alert('Failed to create customer. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEditCustomer = async () => {
     try {
-      await apiService.updateCustomer(selectedCustomer.id, selectedCustomer);
+      setLoading(true);
+      const response = await apiService.updateCustomer(selectedCustomer.id, selectedCustomer);
+      
+      // Immediately update the customer in the list for real-time feedback
+      const updatedCustomer = response.customer || response;
+      setCustomers(prevCustomers => 
+        prevCustomers.map(customer => 
+          customer.id === selectedCustomer.id ? updatedCustomer : customer
+        )
+      );
+      
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
-      fetchCustomers();
+      
+      // Show success message
+      console.log('Customer updated successfully!');
+      
+      // Refresh to ensure data consistency
+      await fetchCustomers();
     } catch (error) {
       console.error('Failed to update customer:', error);
+      alert('Failed to update customer. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteCustomer = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
+        setLoading(true);
         await apiService.deleteCustomer(id);
-        fetchCustomers();
+        
+        // Immediately remove the customer from the list for real-time feedback
+        setCustomers(prevCustomers => 
+          prevCustomers.filter(customer => customer.id !== id)
+        );
+        
+        console.log('Customer deleted successfully!');
+        
+        // Refresh to ensure data consistency
+        await fetchCustomers();
       } catch (error) {
         console.error('Failed to delete customer:', error);
+        alert('Failed to delete customer. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };

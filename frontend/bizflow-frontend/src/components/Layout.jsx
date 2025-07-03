@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import NotificationCenter from './NotificationCenter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,8 @@ import {
   Search,
   Twitter,
   MessageCircle,
+  TrendingUp,
+  Receipt,
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -36,13 +39,85 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Initialize notifications and real-time updates
+  useEffect(() => {
+    const sampleNotifications = [
+      {
+        id: 1,
+        title: 'New Sale Recorded',
+        message: 'A new sale of N15,000 has been recorded',
+        time: '2 minutes ago',
+        type: 'success'
+      },
+      {
+        id: 2,
+        title: 'Low Stock Alert',
+        message: 'Product "Office Chair" is running low (2 items left)',
+        time: '1 hour ago',
+        type: 'warning'
+      },
+      {
+        id: 3,
+        title: 'Invoice Payment Received',
+        message: 'Payment received for Invoice #INV-001',
+        time: '3 hours ago',
+        type: 'success'
+      }
+    ];
+    
+    setNotifications(sampleNotifications);
+    setUnreadCount(sampleNotifications.length);
+
+    const interval = setInterval(() => {
+      const randomNotifications = [
+        {
+          id: Date.now(),
+          title: 'New Customer Added',
+          message: 'A new customer has been added to your database',
+          time: 'Just now',
+          type: 'info'
+        },
+        {
+          id: Date.now() + 1,
+          title: 'Expense Recorded',
+          message: 'New expense of N5,000 has been recorded',
+          time: 'Just now',
+          type: 'info'
+        },
+        {
+          id: Date.now() + 2,
+          title: 'Trial Reminder',
+          message: 'Your trial expires in 3 days. Upgrade now!',
+          time: 'Just now',
+          type: 'warning'
+        }
+      ];
+
+      if (Math.random() < 0.3) {
+        const randomNotification = randomNotifications[Math.floor(Math.random() * randomNotifications.length)];
+        setNotifications(prev => [randomNotification, ...prev.slice(0, 9)]);
+        setUnreadCount(prev => prev + 1);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const markNotificationsAsRead = () => {
+    setUnreadCount(0);
+  };
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Customers', href: '/customers', icon: Users },
     { name: 'Products', href: '/products', icon: Package },
     { name: 'Invoices', href: '/invoices', icon: FileText },
-    { name: 'Payments', href: '/payments', icon: CreditCard },
+    { name: 'Expenses', href: '/expenses', icon: Receipt },
+    { name: 'Sales Report', href: '/sales/report', icon: TrendingUp },
+    { name: 'Transactions', href: '/transactions', icon: CreditCard },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -51,151 +126,118 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const isActive = (href) => {
-    return location.pathname === href || location.pathname.startsWith(href + '/');
-  };
-
-  const handleTwitterClick = () => {
-    window.open('https://x.com/Caleb0533', '_blank');
-  };
-
-  const handleWhatsAppClick = () => {
-    window.open('https://wa.me/2348158025887', '_blank');
-  };
-
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Link to="/dashboard" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">B</span>
-          </div>
-          <span className="font-bold text-lg">Bizflow</span>
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-4 py-4">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive(item.href)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Icon className="h-5 w-5" />
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Social Links */}
-      <div className="border-t p-4 space-y-2">
-        <button
-          onClick={handleTwitterClick}
-          className="flex items-center space-x-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <Twitter className="h-5 w-5 text-blue-500" />
-          <span>Follow our CEO</span>
-        </button>
-        <button
-          onClick={handleWhatsAppClick}
-          className="flex items-center space-x-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <MessageCircle className="h-5 w-5 text-green-500" />
-          <span>Feedback</span>
-        </button>
-      </div>
-
-      {/* User info */}
-      <div className="border-t p-4">
-        <div className="flex items-center space-x-3">
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {user?.first_name} {user?.last_name}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.business_name || user?.email}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r bg-card">
-          <SidebarContent />
-        </div>
-      </div>
-
-      {/* Mobile Sidebar */}
+      {/* Mobile sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <SidebarContent />
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 md:hidden fixed top-4 left-4 z-50"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="flex flex-col">
+          <nav className="grid gap-2 text-lg font-medium">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 text-lg font-semibold mb-4"
+            >
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">B</span>
+              </div>
+              Bizflow
+            </Link>
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground ${
+                    location.pathname === item.href
+                      ? 'bg-muted text-foreground'
+                      : ''
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
-      <div className="lg:pl-72">
-        {/* Top Header */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b bg-card px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-          {/* Mobile menu button */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-          </Sheet>
-
-          {/* Search */}
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="relative flex flex-1 items-center">
-              <Search className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-muted-foreground pl-3" />
-              <input
-                className="block h-full w-full border-0 bg-transparent py-0 pl-10 pr-0 text-foreground placeholder:text-muted-foreground focus:ring-0 sm:text-sm"
-                placeholder="Search..."
-                type="search"
-              />
-            </div>
+      {/* Desktop sidebar */}
+      <div className="hidden border-r bg-muted/40 md:block fixed left-0 top-0 z-30 h-full w-64">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">B</span>
+              </div>
+              <span className="">Bizflow SME</span>
+            </Link>
           </div>
+          <div className="flex-1">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
+                      location.pathname === item.href
+                        ? 'bg-muted text-primary'
+                        : ''
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-x-4 lg:gap-x-6">
-            {/* Social Links for Mobile */}
-            <div className="flex items-center gap-x-2 lg:hidden">
-              <Button variant="ghost" size="icon" onClick={handleTwitterClick}>
+      {/* Main content */}
+      <div className="flex flex-col md:ml-64">
+        {/* Header */}
+        <div className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+          <div className="w-full flex-1">
+            <form>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="search"
+                  placeholder="Search..."
+                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-input px-3 py-1 text-sm"
+                />
+              </div>
+            </form>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Social Links */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon">
                 <Twitter className="h-5 w-5 text-blue-500" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleWhatsAppClick}>
+              <Button variant="ghost" size="icon">
                 <MessageCircle className="h-5 w-5 text-green-500" />
               </Button>
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
-            </Button>
+            <NotificationCenter />
 
             {/* Profile dropdown */}
             <DropdownMenu>
@@ -244,4 +286,3 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
-

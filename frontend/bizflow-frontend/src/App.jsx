@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import ToastProvider from './components/ToastProvider';
 
 // Pages
 import Landing from './pages/Landing';
@@ -12,8 +13,12 @@ import Dashboard from './pages/Dashboard';
 import Invoices from './pages/Invoices';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
+import SalesReport from './pages/SalesReport';
 import Team from './pages/Team';
 import Customers from './pages/Customers';
+import Settings from './pages/Settings';
+import Expenses from './pages/Expenses';
+import Transactions from './pages/Transactions';
 
 // Placeholder components for other pages
 const Payments = () => (
@@ -23,20 +28,14 @@ const Payments = () => (
   </div>
 );
 
-const Settings = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Settings</h1>
-    <p className="text-muted-foreground">Settings page coming soon...</p>
-  </div>
-);
-
 import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-background">
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Landing />} />
@@ -80,6 +79,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Sales />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/report"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SalesReport />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -134,6 +143,26 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/expenses"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Expenses />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Transactions />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             
             {/* 404 fallback */}
             <Route
@@ -151,6 +180,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </ToastProvider>
   );
 }
 

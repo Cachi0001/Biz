@@ -3,6 +3,14 @@ import sys
 from datetime import timedelta
 from dotenv import load_dotenv
 
+# Add the current directory to Python path to enable imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -31,6 +39,7 @@ from src.services.email_service import EmailService
 from src.services.pdf_service import PDFService
 from src.services.excel_service import ExcelService
 from src.services.cloudinary_service import CloudinaryService
+from src.services.supabase_service import SupabaseService
 
 # Import routes
 from src.routes.auth import auth_bp
@@ -43,13 +52,26 @@ from src.routes.dashboard import dashboard_bp
 from src.routes.expense import expense_bp
 from src.routes.sale import sale_bp
 from src.routes.referral import referral_bp
+from src.routes.subscription import subscription_bp
+from src.routes.notifications import notifications_bp
 
 def create_app():
     app = Flask(__name__)
 
-    # Configuration
-    db_path = os.getenv("DATABASE_URL", os.path.join(BASE_DIR, "src/instance/bizflow_sme.db"))
-    print(f"Database URL: {db_path}")
+    # Configuration - Support both Supabase and SQLite
+    supabase_url = os.getenv("SUPABASE_URL")
+    
+    if supabase_url and supabase_url != "your_supabase_project_url_here":
+        # Use Supabase PostgreSQL for production
+        db_path = f"postgresql://postgres:[password]@{supabase_url.split('//')[1]}/postgres"
+        print(f"Using Supabase PostgreSQL: {supabase_url}")
+    else:
+        # Use SQLite for local development
+        instance_dir = os.path.join(BASE_DIR, "instance")
+        os.makedirs(instance_dir, exist_ok=True)
+        db_path = f"sqlite:///{os.path.join(instance_dir, 'bizflow_sme.db')}"
+        print(f"Using SQLite for development: {db_path}")
+    
     app.config["SQLALCHEMY_DATABASE_URI"] = db_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-jwt-key")
@@ -58,7 +80,13 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     jwt = JWTManager(app)
-    CORS(app)
+    
+    # Configure CORS for development and production
+    CORS(app, 
+         origins=["http://localhost:5173", "http://localhost:3000", "https://*.vercel.app", "https://bizflow-sme-nigeria.vercel.app"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+         supports_credentials=True)
 
     # Initialize services with app context
     app.paystack_service = PaystackService()
@@ -66,6 +94,7 @@ def create_app():
     app.pdf_service = PDFService()
     app.excel_service = ExcelService()
     app.cloudinary_service = CloudinaryService()
+    app.supabase_service = SupabaseService()
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(user_bp, url_prefix="/api/users")
@@ -77,6 +106,8 @@ def create_app():
     app.register_blueprint(expense_bp, url_prefix="/api/expenses")
     app.register_blueprint(sale_bp, url_prefix="/api/sales")
     app.register_blueprint(referral_bp, url_prefix="/api/referrals")
+    app.register_blueprint(subscription_bp, url_prefix="/api/subscription")
+    app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
 
     with app.app_context():
         db.create_all()

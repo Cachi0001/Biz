@@ -1,0 +1,170 @@
+Bizflow SME Nigeria - Enhanced Implementation Guide for Full-Stack AI Engineer
+Date: July 3, 2025, 10:30 PM WAT
+
+Purpose:
+This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for Bizflow—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
+
+Tech Stack:
+- Backend: Flask (Python) with Supabase (PostgreSQL)
+  - Justification: Supabase replaces MySQL for its free tier, managed PostgreSQL, built-in authentication, real-time capabilities, and scalability—ideal for an MVP with budget constraints.
+- Frontend: React with Tailwind CSS
+  - Justification: Modern, responsive, and performant for a seamless user experience.
+- Authentication: JWT with Supabase
+- Payments: Paystack (for Nigerian payment processing)
+- Image Storage: Cloudinary (for product images and receipts)
+- Deployment: Vercel (mandatory per original spec)
+
+Core Functionalities:
+1. User Management & Authentication
+   - Email-based registration with mandatory verification
+   - Secure login with password recovery
+   - Auto-delete inactive accounts after 30 days (via Supabase scheduled function)
+2. Customer Relationship Management (CRM)
+   - Customer profiles (contact details, purchase history, interactions)
+   - Segmentation by purchase behavior
+   - Manual client input for invoices (typeable names)
+   - Edit/delete clients (Silver plan)
+3. Product/Inventory Management
+   - Add/edit/delete products (name, description, price, stock, images via Cloudinary)
+   - Auto stock reduction on sales
+   - Configurable low stock alerts (in-app toasts and push notifications)
+4. Invoice Generation & Management
+   - Create/send professional invoices (PDF export, email delivery)
+   - Status tracking (Draft, Sent, Paid, Overdue)
+   - Offline creation with sync
+5. Expense Tracking
+   - Record/categorize expenses with receipt uploads (Cloudinary)
+   - Expense reports
+   - Offline entry with sync
+6. Payment Processing
+   - Paystack integration for secure payments
+   - Auto-reconcile payments with invoices
+7. Sales Reporting & Analytics
+   - Daily sales reports (total, items sold, payment method breakdown)
+   - Downloadable as PDF/PNG
+   - Business analytics dashboard (revenue, expenses, profit)
+8. Referral System
+   - 10% commission on upgrades, ₦5,000 bonus for yearly plans
+   - Real-time tracking dashboard
+   - Withdrawal system (min ₦3,000)
+9. Subscription Plans
+   - Free: 5 invoices/expenses monthly, basic reporting
+   - Silver Weekly (₦1,400): 100 invoices/expenses weekly, advanced features
+   - Silver Monthly (₦4,500): 450 invoices/expenses monthly, ₦500 referral rewards
+   - Silver Yearly (₦50,000): 6,000 invoices/expenses yearly, team management, ₦5,000 referral rewards
+   - Gold (future teaser): AI features
+10. Offline Functionality
+    - Offline invoice creation, expense entry, product updates, customer edits
+    - Auto-sync when online with conflict resolution
+11. Transaction History
+    - "Money In" (sales) and "Money Out" (expenses) view
+    - Role-based access: Owners see all, Salespeople see sales-related only
+    - Filter by date, category, payment method
+12. Intelligent Upgrade Path
+    - Suggest upgrades based on usage (e.g., nearing invoice limits)
+    - In-app upgrade with prorated cost calculation
+
+Architecture & Best Practices:
+- Scalability: Efficient queries, caching (Redis), async processing (Celery)
+- Clean Architecture: SOC, DDD, modular design
+- Security:
+  - JWT authentication
+  - Bcrypt password hashing
+  - Input validation/sanitization
+  - Strict CORS
+  - Supabase Row-Level Security (RLS)
+  - Environment variables for sensitive data
+- Testing: Unit, integration, E2E tests (Jest, Pytest)
+- Performance: Lazy loading, code splitting, image optimization
+- Error Handling: User-friendly errors, comprehensive logging
+
+Database Schema (Supabase - PostgreSQL):
+- users: id (UUID), email (nullable, unique), phone (unique), role ('Owner', 'Salesperson', 'Admin'), subscription_tier ('Free', 'Silver'), referral_code (unique), active (boolean), last_login (timestamp)
+- customers: id (UUID), user_id (UUID), name (text), email (nullable), phone (nullable), address (text), purchase_history (JSONB), interactions (JSONB)
+- products: id (UUID), user_id (UUID), name (text), description (text), price (decimal), quantity (integer), low_stock_threshold (integer), category (text), image_url (text)
+- invoices: id (UUID), user_id (UUID), customer_id (nullable), product_id (nullable), amount (decimal), status ('Draft', 'Sent', 'Paid', 'Overdue'), due_date (timestamp)
+- expenses: id (UUID), user_id (UUID), category (text), amount (decimal), date (timestamp), receipt_url (text)
+- salespeople: id (UUID), user_id (UUID), name (text), email (text), active (boolean)
+- referrals: id (UUID), referrer_id (UUID), referred_id (UUID), reward_amount (decimal), status ('Pending', 'Claimed'), withdrawal_amount (decimal), withdrawal_status ('Pending', 'Processed')
+- transactions: id (UUID), user_id (UUID), type ('Money In', 'Money Out'), amount (decimal), category (text), payment_method (text), date (timestamp)
+- RLS Policies:
+  - salespeople: Owners only for CRUD
+  - invoices/expenses/products: Salespeople insert/update, Owners delete
+  - transactions: Owners see all, Salespeople see sales-related
+
+API Endpoints (Flask):
+- Authentication
+  - POST /api/auth/register
+  - POST /api/auth/login
+  - POST /api/auth/forgot-password
+- Users
+  - GET /api/users/{id}
+  - PUT /api/users/{id}
+- Customers
+  - POST /api/customers
+  - GET /api/customers?user_id={id}
+  - PUT /api/customers/{id}
+  - DELETE /api/customers/{id}
+- Products
+  - POST /api/products
+  - GET /api/products?user_id={id}
+  - PUT /api/products/{id}
+  - DELETE /api/products/{id}
+- Invoices
+  - POST /api/invoices
+  - GET /api/invoices?user_id={id}
+  - PUT /api/invoices/{id}
+  - DELETE /api/invoices/{id}
+- Expenses
+  - POST /api/expenses
+  - GET /api/expenses?user_id={id}
+- Salespeople
+  - POST /api/salespeople
+  - PUT /api/salespeople/{id}
+- Referrals
+  - POST /api/referrals
+  - GET /api/referrals?referrer_id={id}
+- Transactions
+  - GET /api/transactions?user_id={id}
+  - GET /api/reports/sales
+- Security: JWT, RLS, Flask-Limiter (100 req/hour)
+
+Frontend (React with Tailwind CSS):
+- Pages:
+  - Landing: "Get Started" button
+  - Register: Phone required, email optional
+  - Login: Phone or email
+  - Dashboard: Metrics, actions, trial/upgrade status
+  - Pricing: Free/Silver plans with Paystack
+  - Clients: Manage clients (Silver)
+  - Team: Manage salespeople (Silver)
+  - Stocks: Manage products/alerts
+  - Referrals: Link and earnings
+  - Transaction History: Filterable view
+- Components:
+  - Navbar: Dynamic login/logout
+  - Dashboard: Lazy-loaded analytics
+  - Stock Management: Forms, toast alerts
+  - Offline Mode: Service Workers/localStorage, sync status indicators
+- Styling: Nigerian-inspired (e.g., green/blue gradients), Naira formatting
+
+Implementation Steps:
+1. Environment Setup
+   - Clone repo: git clone [url]
+   - Install dependencies (Flask, React, Supabase, Paystack)
+2. Database
+   - Create tables and RLS in Supabase
+3. Backend
+   - Build Flask API with JWT, RLS, rate limiting
+4. Frontend
+   - Develop React pages/components with offline support
+5. Testing
+   - Unit, integration, E2E tests
+6. Deployment
+   - Deploy on Vercel with CI/CD
+
+Additional Notes:
+- Offline functionality uses Service Workers/localStorage for critical tasks, syncing with Supabase when online.
+- Transaction history provides role-based clarity, enhancing financial oversight.
+- Intelligent upgrade path ensures seamless growth with contextual prompts.
+- Future-proofed for AI features via modular design and Supabase scalability.

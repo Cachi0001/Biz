@@ -41,7 +41,14 @@ const Login = () => {
       await login(formData);
       navigate(from, { replace: true });
     } catch (error) {
-      setError(error.message || 'Login failed. Please try again.');
+      // Handle detailed error messages from backend
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else {
+        setError(error.message || 'Login failed. Please check your credentials and try again.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -18,11 +18,21 @@ def register():
                 return jsonify({'error': f'{field} is required'}), 400
         
         # Check if user already exists
-        if User.query.filter_by(username=data['username']).first():
-            return jsonify({'error': 'Username already exists'}), 400
+        existing_user = User.query.filter_by(username=data['username']).first()
+        if existing_user:
+            return jsonify({
+                'error': 'Username already exists',
+                'message': 'This username is already taken. Please choose a different username.',
+                'field': 'username'
+            }), 400
         
-        if User.query.filter_by(email=data['email']).first():
-            return jsonify({'error': 'Email already exists'}), 400
+        existing_email = User.query.filter_by(email=data['email']).first()
+        if existing_email:
+            return jsonify({
+                'error': 'Email already exists',
+                'message': 'An account with this email already exists. Please use a different email or try logging in.',
+                'field': 'email'
+            }), 400
         
         # Create new user
         user = User(
@@ -73,11 +83,26 @@ def login():
             (User.email == data['username'])
         ).first()
         
-        if not user or not user.check_password(data['password']):
-            return jsonify({'error': 'Invalid credentials'}), 401
+        if not user:
+            return jsonify({
+                'error': 'Invalid credentials',
+                'message': 'No account found with this username or email. Please check your credentials or sign up for a new account.',
+                'field': 'username'
+            }), 401
+            
+        if not user.check_password(data['password']):
+            return jsonify({
+                'error': 'Invalid credentials',
+                'message': 'Incorrect password. Please check your password and try again.',
+                'field': 'password'
+            }), 401
         
         if not user.is_active:
-            return jsonify({'error': 'Account is deactivated'}), 401
+            return jsonify({
+                'error': 'Account deactivated',
+                'message': 'Your account has been deactivated. Please contact support for assistance.',
+                'field': 'account'
+            }), 401
         
         # Create access token
         access_token = create_access_token(

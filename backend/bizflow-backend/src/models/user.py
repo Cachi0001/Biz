@@ -22,11 +22,11 @@ class User(db.Model):
     business_phone = db.Column(db.String(20))
     business_email = db.Column(db.String(120))
     
-    # Trial and Subscription Management
+    # Trial and Subscription Management (7-day trial gives weekly plan features)
     trial_start_date = db.Column(db.DateTime, default=datetime.utcnow)
     trial_end_date = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
     is_trial_active = db.Column(db.Boolean, default=True)
-    subscription_plan = db.Column(db.String(20), default='trial')
+    subscription_plan = db.Column(db.String(20), default='free')  # Default to free plan
     subscription_status = db.Column(db.String(20), default='active')
     subscription_start_date = db.Column(db.DateTime)
     subscription_end_date = db.Column(db.DateTime)
@@ -103,16 +103,20 @@ class User(db.Model):
         return True
     
     def can_access_feature(self, feature):
+        # During 7-day trial, user gets weekly plan features
         if self.is_trial_active and not self.is_trial_expired():
-            return True
+            weekly_features = ['invoicing', 'expense_tracking', 'reporting', 'client_management', 'team_management', 'sales_reports']
+            return feature in weekly_features
         
-        if not self.is_subscription_active():
-            return False
+        if not self.is_subscription_active() and self.subscription_plan == 'free':
+            free_features = ['basic_invoicing', 'basic_reporting']
+            return feature in free_features
         
         plan_features = {
-            'weekly': ['basic_invoicing', 'basic_reporting', 'client_management'],
-            'monthly': ['basic_invoicing', 'basic_reporting', 'client_management', 'expense_tracking', 'team_management'],
-            'yearly': ['all_features']
+            'free': ['basic_invoicing', 'basic_reporting'],  # 5 invoices, 5 expenses
+            'weekly': ['invoicing', 'expense_tracking', 'reporting', 'client_management', 'team_management', 'sales_reports'],
+            'monthly': ['invoicing', 'expense_tracking', 'reporting', 'client_management', 'team_management', 'sales_reports', 'referral_rewards'],
+            'yearly': ['all_features', 'priority_support', 'advanced_team_management']
         }
         
         if self.subscription_plan == 'yearly':

@@ -23,6 +23,9 @@ const Invoices = () => {
 
   const [newInvoice, setNewInvoice] = useState({
     customer_id: '',
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
     due_date: '',
     notes: '',
     status: 'draft'
@@ -68,33 +71,62 @@ const Invoices = () => {
 
   const handleCreateInvoice = async () => {
     try {
+      setLoading(true);
       const invoiceData = {
         ...newInvoice,
         items: invoiceItems.filter(item => item.product_id && item.quantity > 0)
       };
       
-      await apiService.createInvoice(invoiceData);
+      const response = await apiService.createInvoice(invoiceData);
+      
+      // Immediately add the new invoice to the list for real-time feedback
+      const createdInvoice = response.invoice || response;
+      setInvoices(prevInvoices => [createdInvoice, ...prevInvoices]);
+      
       setIsCreateDialogOpen(false);
       setNewInvoice({
         customer_id: '',
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
         due_date: '',
         notes: '',
         status: 'draft'
       });
       setInvoiceItems([{ product_id: '', quantity: 1, unit_price: 0 }]);
-      fetchInvoices();
+      
+      console.log('Invoice created successfully!');
+      
+      // Refresh to ensure data consistency
+      await fetchInvoices();
     } catch (error) {
       console.error('Failed to create invoice:', error);
+      alert('Failed to create invoice. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteInvoice = async (id) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
+        setLoading(true);
         await apiService.deleteInvoice(id);
-        fetchInvoices();
+        
+        // Immediately remove the invoice from the list for real-time feedback
+        setInvoices(prevInvoices => 
+          prevInvoices.filter(invoice => invoice.id !== id)
+        );
+        
+        console.log('Invoice deleted successfully!');
+        
+        // Refresh to ensure data consistency
+        await fetchInvoices();
       } catch (error) {
         console.error('Failed to delete invoice:', error);
+        alert('Failed to delete invoice. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -183,9 +215,18 @@ const Invoices = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer</Label>
-                  <Select value={newInvoice.customer_id} onValueChange={(value) => setNewInvoice({...newInvoice, customer_id: value})}>
+                  <Select value={newInvoice.customer_id} onValueChange={(value) => {
+                    const selectedCustomer = customers.find(c => c.id.toString() === value);
+                    setNewInvoice({
+                      ...newInvoice, 
+                      customer_id: value,
+                      customer_name: selectedCustomer?.name || '',
+                      customer_email: selectedCustomer?.email || '',
+                      customer_phone: selectedCustomer?.phone || ''
+                    });
+                  }}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
+                      <SelectValue placeholder="Select existing customer or enter manually below" />
                     </SelectTrigger>
                     <SelectContent>
                       {customers.map((customer) => (
@@ -204,6 +245,42 @@ const Invoices = () => {
                     value={newInvoice.due_date}
                     onChange={(e) => setNewInvoice({...newInvoice, due_date: e.target.value})}
                   />
+                </div>
+              </div>
+
+              {/* Manual Customer Input */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Customer Details (Manual Entry)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_name">Customer Name *</Label>
+                    <Input
+                      id="customer_name"
+                      placeholder="Enter customer name"
+                      value={newInvoice.customer_name}
+                      onChange={(e) => setNewInvoice({...newInvoice, customer_name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_email">Customer Email</Label>
+                    <Input
+                      id="customer_email"
+                      type="email"
+                      placeholder="Enter customer email"
+                      value={newInvoice.customer_email}
+                      onChange={(e) => setNewInvoice({...newInvoice, customer_email: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_phone">Customer Phone</Label>
+                    <Input
+                      id="customer_phone"
+                      placeholder="Enter customer phone"
+                      value={newInvoice.customer_phone}
+                      onChange={(e) => setNewInvoice({...newInvoice, customer_phone: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
 
