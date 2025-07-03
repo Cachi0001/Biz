@@ -158,17 +158,58 @@ CREATE TABLE public.referrals (
     paid_at TIMESTAMP WITH TIME ZONE
 );
 
--- Referral withdrawals table
+-- Referral withdrawals table (Updated with Paystack fields)
 CREATE TABLE public.referral_withdrawals (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     amount DECIMAL(15,2) NOT NULL,
+    withdrawal_method TEXT DEFAULT 'bank_transfer',
+    
+    -- Paystack Required Bank Details
     bank_name TEXT NOT NULL,
     account_number TEXT NOT NULL,
     account_name TEXT NOT NULL,
+    bank_code TEXT,
+    recipient_code TEXT,
+    
+    -- Status and Processing
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    reference_number TEXT UNIQUE,
+    transaction_id TEXT,
+    
+    -- Admin Management
+    admin_notes TEXT,
+    processed_by UUID REFERENCES public.users(id),
     processed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    
+    -- Timestamps
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Referral earnings table (Updated with UUID)
+CREATE TABLE public.referral_earnings (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    referrer_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    referred_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    
+    -- Earning Details
+    earning_type TEXT NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    commission_rate DECIMAL(5,2) NOT NULL,
+    
+    -- Source Information
+    source_id UUID,
+    source_type TEXT,
+    
+    -- Status
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'paid')),
+    
+    -- Timestamps
+    earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    confirmed_at TIMESTAMP WITH TIME ZONE,
+    paid_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Transactions table (for money in/out tracking)

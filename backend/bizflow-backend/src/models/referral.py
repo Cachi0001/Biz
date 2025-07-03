@@ -1,16 +1,24 @@
 from src.models.user import db
 from datetime import datetime
+from src.models.base import GUID, get_id_column
+import uuid
 
 class ReferralWithdrawal(db.Model):
     __tablename__ = 'referral_withdrawals'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = get_id_column()
+    user_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)
     
     # Withdrawal Details
     amount = db.Column(db.Float, nullable=False)
-    withdrawal_method = db.Column(db.String(50), nullable=False)  # bank_transfer, paystack, etc.
-    account_details = db.Column(db.JSON)  # Store bank details or payment info
+    withdrawal_method = db.Column(db.String(50), default='bank_transfer')  # bank_transfer, paystack
+    
+    # Paystack Required Bank Details
+    bank_name = db.Column(db.String(100), nullable=False)
+    account_number = db.Column(db.String(20), nullable=False)
+    account_name = db.Column(db.String(100), nullable=False)
+    bank_code = db.Column(db.String(10))  # Paystack bank code
+    recipient_code = db.Column(db.String(100))  # Paystack recipient code for transfers
     
     # Status and Processing
     status = db.Column(db.String(20), default='pending')  # pending, processing, completed, failed
@@ -19,7 +27,7 @@ class ReferralWithdrawal(db.Model):
     
     # Admin Notes
     admin_notes = db.Column(db.Text)
-    processed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    processed_by = db.Column(GUID(), db.ForeignKey('users.id'))
     processed_at = db.Column(db.DateTime)
     
     # Timestamps
@@ -41,16 +49,20 @@ class ReferralWithdrawal(db.Model):
     
     def to_dict(self):
         return {
-            'id': self.id,
-            'user_id': self.user_id,
+            'id': str(self.id),
+            'user_id': str(self.user_id),
             'amount': self.amount,
             'withdrawal_method': self.withdrawal_method,
-            'account_details': self.account_details,
+            'bank_name': self.bank_name,
+            'account_number': self.account_number,
+            'account_name': self.account_name,
+            'bank_code': self.bank_code,
+            'recipient_code': self.recipient_code,
             'status': self.status,
             'reference_number': self.reference_number,
             'transaction_id': self.transaction_id,
             'admin_notes': self.admin_notes,
-            'processed_by': self.processed_by,
+            'processed_by': str(self.processed_by) if self.processed_by else None,
             'processed_at': self.processed_at.isoformat() if self.processed_at else None,
             'requested_at': self.requested_at.isoformat() if self.requested_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -63,9 +75,9 @@ class ReferralWithdrawal(db.Model):
 class ReferralEarning(db.Model):
     __tablename__ = 'referral_earnings'
     
-    id = db.Column(db.Integer, primary_key=True)
-    referrer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    referred_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = get_id_column()
+    referrer_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)
+    referred_user_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)
     
     # Earning Details
     earning_type = db.Column(db.String(50), nullable=False)  # signup, subscription, sale

@@ -1,11 +1,16 @@
 from src.models.user import db
 from datetime import datetime
+import uuid
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import JSON
+from src.models.base import GUID, get_id_column, get_foreign_key_column
+import os
 
 class Customer(db.Model):
     __tablename__ = 'customers'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = get_id_column()
+    user_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
@@ -17,6 +22,13 @@ class Customer(db.Model):
     company_name = db.Column(db.String(100))
     tax_id = db.Column(db.String(50))
     notes = db.Column(db.Text)
+    
+    # JSON fields that work with both SQLite and PostgreSQL
+    purchase_history = db.Column(JSONB if os.getenv("SUPABASE_URL") else JSON, default=lambda: [])
+    interactions = db.Column(JSONB if os.getenv("SUPABASE_URL") else JSON, default=lambda: [])
+    total_purchases = db.Column(db.Numeric(15,2), default=0)
+    last_purchase_date = db.Column(db.DateTime)
+    
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

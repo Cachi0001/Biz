@@ -54,6 +54,7 @@ from src.routes.sale import sale_bp
 from src.routes.referral import referral_bp
 from src.routes.subscription import subscription_bp
 from src.routes.notifications import notifications_bp
+from src.routes.withdrawal import withdrawal_bp
 
 def create_app():
     app = Flask(__name__)
@@ -63,8 +64,23 @@ def create_app():
     
     if supabase_url and supabase_url != "your_supabase_project_url_here":
         # Use Supabase PostgreSQL for production
-        db_path = f"postgresql://postgres:[password]@{supabase_url.split('//')[1]}/postgres"
-        print(f"Using Supabase PostgreSQL: {supabase_url}")
+        supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
+        if not supabase_service_key:
+            print("ERROR: SUPABASE_SERVICE_KEY not found in environment variables")
+            supabase_service_key = os.getenv("SUPABASE_KEY", "")
+        
+        # Extract project reference from Supabase URL
+        try:
+            project_ref = supabase_url.split('//')[1].split('.')[0]
+            # Use direct connection to Supabase PostgreSQL
+            db_path = f"postgresql://postgres.{project_ref}:{supabase_service_key}@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
+            print(f"Using Supabase PostgreSQL: {project_ref}")
+        except Exception as e:
+            print(f"Error parsing Supabase URL: {e}")
+            print("Falling back to SQLite")
+            instance_dir = os.path.join(BASE_DIR, "instance")
+            os.makedirs(instance_dir, exist_ok=True)
+            db_path = f"sqlite:///{os.path.join(instance_dir, 'bizflow_sme.db')}"
     else:
         # Use SQLite for local development
         instance_dir = os.path.join(BASE_DIR, "instance")
@@ -108,13 +124,24 @@ def create_app():
     app.register_blueprint(referral_bp, url_prefix="/api/referrals")
     app.register_blueprint(subscription_bp, url_prefix="/api/subscription")
     app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
+    app.register_blueprint(withdrawal_bp, url_prefix="/api/withdrawals")
 
     with app.app_context():
         db.create_all()
 
     @app.route("/api/health")
     def health_check():
-        return jsonify({"status": "healthy", "database": "SQLite", "file_storage": "Cloudinary"})
+        db_type = "Supabase PostgreSQL" if supabase_url and supabase_url != "your_supabase_project_url_here" else "SQLite"
+        supabase_status = "Connected" if app.supabase_service.is_enabled() else "Disabled"
+        
+        return jsonify({
+            "status": "healthy", 
+            "database": db_type,
+            "supabase": supabase_status,
+            "file_storage": "Cloudinary",
+            "notifications": "Enabled",
+            "version": "1.0.0"
+        })
 
     # @app.route("/api/test-email")
     # def test_email():

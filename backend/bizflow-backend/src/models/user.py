@@ -3,13 +3,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import secrets
 import string
+import uuid
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import JSON
+from src.models.base import GUID, get_id_column, get_foreign_key_column
+import os
 
 db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
+    # Hybrid ID column that works with both SQLite and PostgreSQL
+    id = get_id_column()
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -26,14 +32,14 @@ class User(db.Model):
     trial_start_date = db.Column(db.DateTime, default=datetime.utcnow)
     trial_end_date = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
     is_trial_active = db.Column(db.Boolean, default=True)
-    subscription_plan = db.Column(db.String(20), default='free')  # Default to free plan
-    subscription_status = db.Column(db.String(20), default='active')
+    subscription_plan = db.Column(db.String(20), default='weekly')  # Default to weekly plan for trial
+    subscription_status = db.Column(db.String(20), default='trial')  # Default to trial status
     subscription_start_date = db.Column(db.DateTime)
     subscription_end_date = db.Column(db.DateTime)
     
     # Referral System
     referral_code = db.Column(db.String(10), unique=True, nullable=False)
-    referred_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    referred_by = db.Column(GUID(), db.ForeignKey('users.id'))
     total_referrals = db.Column(db.Integer, default=0)
     referral_earnings = db.Column(db.Float, default=0.0)
     total_withdrawn = db.Column(db.Float, default=0.0)
@@ -46,8 +52,8 @@ class User(db.Model):
     password_reset_expires = db.Column(db.DateTime)
     
     # Role and Team Management
-    role = db.Column(db.String(20), default='owner')
-    team_owner_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    role = db.Column(db.String(20), default='Owner')
+    team_owner_id = db.Column(GUID(), db.ForeignKey('users.id'))
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
