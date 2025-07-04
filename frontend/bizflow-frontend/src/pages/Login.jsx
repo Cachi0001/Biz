@@ -87,7 +87,7 @@ const Login = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">Username or Email</Label>
+                <Label htmlFor="username">Phone Number or Email</Label>
                 <Input
                   id="username"
                   name="username"
