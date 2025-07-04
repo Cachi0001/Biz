@@ -5,8 +5,9 @@ import { ArrowRight, Shield, Smartphone, Zap, Users, TrendingUp, Star, Menu, X }
 const TypingAnimation = () => {
   const messages = [
     { text: "Your Business, ", highlight: "Simplified", color: "text-primary" },
-    { text: "Mrs Ekwunife ❤️", highlight: "", color: "" },
-    { text: "Your feedback sef na em matter pass", highlight: "", color: "" }
+    { text: "We Are Here for you❤️", highlight: "", color: "" },
+    { text: "Your feedback sef na em matter pass", highlight: "", color: "" },
+    { text: "Let's Take that business to the next ", highlight: "level", color: "text-primary" }
   ];
   
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
