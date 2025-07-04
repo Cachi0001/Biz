@@ -57,6 +57,9 @@ const apiService = {
 
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+    }
     return response.data;
   },
 

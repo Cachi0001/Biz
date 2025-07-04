@@ -23,11 +23,20 @@ export const AuthProvider = ({ children }) => {
         const token = apiService.getAuthToken();
         if (token) {
           const response = await apiService.getProfile();
-          setUser(response.user);
+          // Handle different response structures
+          if (response.user) {
+            setUser(response.user);
+          } else if (response.data && response.data.user) {
+            setUser(response.data.user);
+          } else {
+            // If response structure is different, use the response itself
+            setUser(response);
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         apiService.removeAuthToken();
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -41,7 +50,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const response = await apiService.login(credentials);
-      setUser(response.user);
+      
+      // After successful login, get user profile
+      if (response.access_token) {
+        try {
+          const profileResponse = await apiService.getProfile();
+          setUser(profileResponse.user || profileResponse);
+        } catch (profileError) {
+          console.error('Failed to get user profile:', profileError);
+          // Set a basic user object if profile fetch fails
+          setUser({ id: 'unknown', email: credentials.username });
+        }
+      }
+      
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -57,7 +78,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const response = await apiService.register(userData);
-      setUser(response.user);
+      
+      // After successful registration, get user profile if token is provided
+      if (response.access_token) {
+        try {
+          const profileResponse = await apiService.getProfile();
+          setUser(profileResponse.user || profileResponse);
+        } catch (profileError) {
+          console.error('Failed to get user profile:', profileError);
+          // Set a basic user object if profile fetch fails
+          setUser({ id: 'unknown', email: userData.email });
+        }
+      }
+      
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -81,10 +114,18 @@ export const AuthProvider = ({ children }) => {
   const updateUser = async (userData) => {
     try {
       const response = await apiService.updateProfile(userData);
-      setUser(response.user);
+      // Handle different response structures
+      if (response.user) {
+        setUser(response.user);
+      } else if (response.data && response.data.user) {
+        setUser(response.data.user);
+      } else {
+        setUser(response);
+      }
       return response;
     } catch (error) {
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(errorMessage);
       throw error;
     }
   };
