@@ -45,7 +45,12 @@ api.interceptors.response.use(
 
 const apiService = {
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
+    // Transform username field to email_or_phone for backend compatibility
+    const loginData = {
+      email_or_phone: credentials.username,
+      password: credentials.password
+    };
+    const response = await api.post('/auth/login', loginData);
     localStorage.setItem('token', response.data.access_token);
     return response.data;
   },

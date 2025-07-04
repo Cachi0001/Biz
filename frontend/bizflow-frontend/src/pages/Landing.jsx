@@ -189,7 +189,7 @@ const Landing = () => {
               </Link>
               <a 
                 href="#features" 
-                className="border border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
+                className="border border-primary text-primary hover:bg-primary hover:text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
               >
                 Learn More
               </a>
@@ -284,12 +284,12 @@ const Landing = () => {
               <div className="text-4xl font-bold text-primary mb-2">
                 ₦0
               </div>
+              <p className="text-base font-medium text-foreground mb-2">No credit card required</p>
               <div className="mb-4">
                 <span className="text-lg font-bold text-yellow-400 animate-pulse bg-yellow-100 px-3 py-1 rounded-full">
                   7 days free
                 </span>
               </div>
-              <p className="text-sm text-foreground/80 mb-2">No credit card required</p>
               <p className="text-foreground mb-6">Perfect for getting started</p>
               <ul className="text-left space-y-3 mb-8">
                 <li className="flex items-center">
@@ -343,7 +343,7 @@ const Landing = () => {
               </ul>
               <Link 
                 to="/register" 
-                className="w-full bg-card hover:bg-card/90 text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold transition-colors block text-center shadow-md"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-2 border-primary py-3 px-6 rounded-lg font-semibold transition-colors block text-center shadow-md"
               >
                 Start for Free
               </Link>

@@ -115,7 +115,7 @@ const Register = () => {
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Personal Information</h3>
                 
                 {/* First Name and Last Name - Side by Side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
                     <Input
@@ -126,7 +126,7 @@ const Register = () => {
                       value={formData.first_name}
                       onChange={handleChange}
                       placeholder="Enter your first name"
-                      className="h-11"
+                      className="h-10 sm:h-11"
                     />
                   </div>
 
@@ -140,13 +140,13 @@ const Register = () => {
                       value={formData.last_name}
                       onChange={handleChange}
                       placeholder="Enter your last name"
-                      className="h-11"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
 
                 {/* Email and Phone - Side by Side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
                     <Input
@@ -157,7 +157,7 @@ const Register = () => {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="Enter your email"
-                      className="h-11"
+                      className="h-10 sm:h-11"
                     />
                   </div>
 
@@ -171,13 +171,13 @@ const Register = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="Enter your phone number"
-                      className="h-11"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
 
                 {/* Password and Confirm Password - Side by Side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
                     <div className="relative">
@@ -189,7 +189,7 @@ const Register = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Create a password"
-                        className="h-11 pr-10"
+                        className="h-10 sm:h-11 pr-10"
                       />
                       <Button
                         type="button"
@@ -218,7 +218,7 @@ const Register = () => {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Confirm your password"
-                        className="h-11 pr-10"
+                        className="h-10 sm:h-11 pr-10"
                       />
                       <Button
                         type="button"
@@ -251,7 +251,7 @@ const Register = () => {
                     value={formData.business_name}
                     onChange={handleChange}
                     placeholder="Enter your business name"
-                    className="h-11"
+                    className="h-10 sm:h-11"
                   />
                   <p className="text-xs text-muted-foreground">You can add more business details later in your profile</p>
                 </div>
@@ -260,7 +260,7 @@ const Register = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-semibold"
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold"
                 disabled={isLoading}
               >
                 {isLoading ? (
