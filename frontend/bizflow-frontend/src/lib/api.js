@@ -45,9 +45,9 @@ api.interceptors.response.use(
 
 const apiService = {
   login: async (credentials) => {
-    // Transform username field to email_or_phone for backend compatibility
+    // Transform username field to login for backend compatibility
     const loginData = {
-      email_or_phone: credentials.username,
+      login: credentials.username,
       password: credentials.password
     };
     const response = await api.post('/auth/login', loginData);
@@ -69,7 +69,7 @@ const apiService = {
   },
 
   getProfile: async () => {
-    const response = await api.get('/user/profile');
+    const response = await api.get('/auth/profile');
     return response.data;
   },
 
