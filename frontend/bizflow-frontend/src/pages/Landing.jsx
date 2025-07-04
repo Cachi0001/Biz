@@ -1,8 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Shield, Smartphone, Zap, Users, TrendingUp, Star } from 'lucide-react';
+import { ArrowRight, Shield, Smartphone, Zap, Users, TrendingUp, Star, Menu, X } from 'lucide-react';
+
+const TypingAnimation = () => {
+  const messages = [
+    "Your Business, Simplified",
+    "We de for you no fear",
+    "Your feedback sef na em matter pass"
+  ];
+  
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+  const [charIndex, setCharIndex] = useState(0);
+
+  useEffect(() => {
+    const currentMessage = messages[currentMessageIndex];
+    
+    if (isTyping) {
+      if (charIndex < currentMessage.length) {
+        const timeout = setTimeout(() => {
+          setCurrentText(currentMessage.slice(0, charIndex + 1));
+          setCharIndex(charIndex + 1);
+        }, 100); // Typing speed
+        return () => clearTimeout(timeout);
+      } else {
+        // Finished typing current message, wait before erasing
+        const timeout = setTimeout(() => {
+          setIsTyping(false);
+        }, 2000); // Display complete message for 2 seconds
+        return () => clearTimeout(timeout);
+      }
+    } else {
+      if (charIndex > 0) {
+        const timeout = setTimeout(() => {
+          setCurrentText(currentMessage.slice(0, charIndex - 1));
+          setCharIndex(charIndex - 1);
+        }, 50); // Erasing speed
+        return () => clearTimeout(timeout);
+      } else {
+        // Finished erasing, move to next message
+        const timeout = setTimeout(() => {
+          setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+          setIsTyping(true);
+        }, 500); // Pause before next message
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [charIndex, isTyping, currentMessageIndex, messages]);
+
+  return (
+    <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 min-h-[4rem] md:min-h-[6rem]">
+      {currentText}
+      <span className="animate-pulse text-primary">|</span>
+    </h1>
+  );
+};
 
 const Landing = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -15,6 +76,8 @@ const Landing = () => {
               </div>
               <span className="ml-2 text-2xl font-bold text-foreground">SabiOps</span>
             </div>
+            
+            {/* Desktop Navigation */}
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
                 <a href="#features" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
@@ -37,7 +100,58 @@ const Landing = () => {
                 </Link>
               </div>
             </div>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={toggleMobileMenu}
+                className="text-foreground hover:text-primary p-2 rounded-md transition-colors"
+                aria-label="Toggle mobile menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden">
+              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-card border-t border-border">
+                <a 
+                  href="#features" 
+                  className="text-muted-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a 
+                  href="#pricing" 
+                  className="text-muted-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Pricing
+                </a>
+                <Link 
+                  to="/login" 
+                  className="text-primary hover:text-primary/80 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground block px-3 py-2 rounded-md text-base font-medium transition-colors text-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Get Started For Free
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -45,9 +159,7 @@ const Landing = () => {
       <section className="bg-gradient-to-br from-accent to-background py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-              Your Business, <span className="text-primary">Simplified</span>
-            </h1>
+            <TypingAnimation />
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
               Manage invoices, expenses, and clients with ease. Built specifically for 
               Nigerian SMEs. Start free, upgrade when ready!
@@ -83,28 +195,28 @@ const Landing = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 rounded-xl bg-accent hover:bg-accent/80 transition-colors">
+            <div className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-all duration-300">
               <div className="bg-primary text-primary-foreground rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Shield className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">100% Secure & Private</h3>
-              <p className="text-muted-foreground">Your business data is encrypted and protected with bank-level security</p>
+              <h3 className="text-xl font-semibold text-card-foreground mb-2">100% Secure & Private</h3>
+              <p className="text-card-foreground/80">Your business data is encrypted and protected with bank-level security</p>
             </div>
             
-            <div className="text-center p-6 rounded-xl bg-accent hover:bg-accent/80 transition-colors">
+            <div className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-all duration-300">
               <div className="bg-primary text-primary-foreground rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Smartphone className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Mobile Responsive</h3>
-              <p className="text-muted-foreground">Access your business anywhere, anytime from any device</p>
+              <h3 className="text-xl font-semibold text-card-foreground mb-2">Mobile Responsive</h3>
+              <p className="text-card-foreground/80">Access your business anywhere, anytime from any device</p>
             </div>
             
-            <div className="text-center p-6 rounded-xl bg-accent hover:bg-accent/80 transition-colors">
+            <div className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-all duration-300">
               <div className="bg-primary text-primary-foreground rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Zap className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Quick Setup</h3>
-              <p className="text-muted-foreground">Get started in minutes, not hours. No technical knowledge required</p>
+              <h3 className="text-xl font-semibold text-card-foreground mb-2">Quick Setup</h3>
+              <p className="text-card-foreground/80">Get started in minutes, not hours. No technical knowledge required</p>
             </div>
           </div>
         </div>
