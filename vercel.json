@@ -24,7 +24,7 @@
     }
   ],
   "env": {
-    "PYTHONPATH": "backend/bizflow-backend"
+    "PYTHONPATH": "backend/bizflow-backend/src"
   }
 }
 
