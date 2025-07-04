@@ -1,8 +1,3 @@
-PS C:\Users\DELL\Saas\Biz\backend\bizflow-backend> python -m src.main       
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\DELL\Saas\Biz\backend\bizflow-backend\src\main.py", line 15, in <module>
-    from flask_sqlalchemy import SQLAlchemy
-ModuleNotFoundError: No module named 'flask_sqlalchemy'
-PS C:\Users\DELL\Saas\Biz\backend\bizflow-backend>  
+(sqlite3.OperationalError) no such column: users.trial_ends_at [SQL: SELECT users.id AS users_id, users.email AS users_email, users.phone AS users_phone, users.first_name AS users_first_name, users.last_name AS users_last_name, users.business_name AS users_business_name, users.password_hash AS users_password_hash, users.role AS users_role, users.subscription_plan AS users_subscription_plan, users.subscription_status AS users_subscription_status, users.trial_ends_at AS users_trial_ends_at, users.referral_code AS users_referral_code, users.referred_by AS users_referred_by, users.active AS users_active, users.last_login AS users_last_login, users.created_at AS users_created_at, users.updated_at AS users_updated_at FROM users WHERE users.email = ? LIMIT ? OFFSET ?] [parameters: ('passioncaleb5@gmail.com', 1, 0)] (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+(sqlite3.OperationalError) no such column: users.trial_ends_at [SQL: SELECT users.id AS users_id, users.email AS users_email, users.phone AS users_phone, users.first_name AS users_first_name, users.last_name AS users_last_name, users.business_name AS users_business_name, users.password_hash AS users_password_hash, users.role AS users_role, users.subscription_plan AS users_subscription_plan, users.subscription_status AS users_subscription_status, users.trial_ends_at AS users_trial_ends_at, users.referral_code AS users_referral_code, users.referred_by AS users_referred_by, users.active AS users_active, users.last_login AS users_last_login, users.created_at AS users_created_at, users.updated_at AS users_updated_at FROM users WHERE users.email = ? OR users.phone = ? LIMIT ? OFFSET ?] [parameters: ('caleb@gmail.com', 'caleb@gmail.com', 1, 0)] (Background on this error at: https://sqlalche.me/e/20/e3q8)
