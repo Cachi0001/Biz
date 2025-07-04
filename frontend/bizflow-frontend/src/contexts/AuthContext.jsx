@@ -61,12 +61,22 @@ export const AuthProvider = ({ children }) => {
           // Set a basic user object if profile fetch fails
           setUser({ id: 'unknown', email: credentials.username });
         }
+      } else {
+        // If no token, set user from response or create basic user object
+        if (response.user) {
+          setUser(response.user);
+        } else {
+          setUser({ id: 'unknown', email: credentials.username });
+        }
       }
       
       return response;
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed';
       setError(errorMessage);
+      // Don't set user to null or undefined - keep it as null
+      setUser(null);
       throw error;
     } finally {
       setLoading(false);
@@ -89,12 +99,22 @@ export const AuthProvider = ({ children }) => {
           // Set a basic user object if profile fetch fails
           setUser({ id: 'unknown', email: userData.email });
         }
+      } else {
+        // If no token, set user from response or create basic user object
+        if (response.user) {
+          setUser(response.user);
+        } else {
+          setUser({ id: 'unknown', email: userData.email });
+        }
       }
       
       return response;
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed';
       setError(errorMessage);
+      // Don't set user to null or undefined - keep it as null
+      setUser(null);
       throw error;
     } finally {
       setLoading(false);
