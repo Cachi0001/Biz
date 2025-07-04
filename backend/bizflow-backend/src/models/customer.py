@@ -1,13 +1,13 @@
-from src.models.base import db
 from datetime import datetime
 import uuid
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy import JSON
-from src.models.base import GUID, get_id_column, get_foreign_key_column
+from src.models.base import db, GUID, get_id_column, get_foreign_key_column
 import os
 
 class Customer(db.Model):
     __tablename__ = 'customers'
+    __table_args__ = {'extend_existing': True}
     
     id = get_id_column()
     user_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)

@@ -66,8 +66,8 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/products/');
-      setProducts(response.data);
+      const response = await apiService.getProducts();
+      setProducts(response.data || response);
     } catch (error) {
       setError('Failed to fetch products');
       console.error('Error fetching products:', error);
@@ -78,10 +78,12 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/products/categories');
-      setCategories(response.data);
+      const response = await apiService.request('/products/categories');
+      setCategories(response.data || response);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      // Set default categories if API fails
+      setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
     }
   };
 
@@ -97,11 +99,11 @@ const Products = () => {
     e.preventDefault();
     try {
       if (editingProduct) {
-        await api.put(`/products/${editingProduct.id}`, formData);
+        await apiService.updateProduct(editingProduct.id, formData);
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
-        await api.post('/products/', formData);
+        await apiService.createProduct(formData);
         setShowAddDialog(false);
       }
       
@@ -152,7 +154,7 @@ const Products = () => {
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await api.delete(`/products/${productId}`);
+        await apiService.deleteProduct(productId);
         fetchProducts();
       } catch (error) {
         setError('Failed to delete product');

@@ -1,722 +1,657 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Badge } from '../components/ui/badge';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  User, 
+  Settings as SettingsIcon, 
+  Users, 
+  Bell, 
+  Shield,
+  CreditCard,
+  Building,
+  Mail,
+  Phone,
+  MapPin,
+  Save,
+  UserPlus
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  User,
-  Building,
-  CreditCard,
-  Bell,
-  Shield,
-  Users,
-  Gift,
-  Download,
-  Upload,
-  AlertTriangle,
-  CheckCircle,
-  Copy,
-  ExternalLink
-} from 'lucide-react';
-import { toast } from 'sonner';
 
 const Settings = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [subscriptionData, setSubscriptionData] = useState(null);
-  const [referralData, setReferralData] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
-  
-  // Form states
-  const [profileForm, setProfileForm] = useState({
+  const [showAddTeamDialog, setShowAddTeamDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // Business Profile State
+  const [businessProfile, setBusinessProfile] = useState({
+    business_name: user?.business_name || '',
+    business_email: user?.business_email || '',
+    business_phone: user?.business_phone || '',
+    business_address: user?.business_address || '',
+    business_description: '',
+    business_website: '',
+    business_logo: ''
+  });
+
+  // Team Member Form State
+  const [newTeamMember, setNewTeamMember] = useState({
     first_name: '',
     last_name: '',
     email: '',
     phone: '',
-    business_name: '',
-    business_type: '',
-    business_address: '',
-    business_phone: '',
-    business_email: ''
+    role: 'salesperson',
+    permissions: {
+      can_create_sales: true,
+      can_view_customers: true,
+      can_create_customers: false,
+      can_view_products: true,
+      can_create_products: false,
+      can_view_reports: false,
+      can_manage_team: false
+    }
   });
-  
-  const [passwordForm, setPasswordForm] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: ''
-  });
-  
+
+  // Notification Settings State
   const [notificationSettings, setNotificationSettings] = useState({
     email_notifications: true,
+    sms_notifications: false,
     low_stock_alerts: true,
     payment_reminders: true,
-    invoice_updates: true,
-    trial_reminders: true
+    sales_reports: true,
+    new_customer_alerts: false
   });
 
   useEffect(() => {
-    if (user) {
-      setProfileForm({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        business_name: user.business_name || '',
-        business_type: user.business_type || '',
-        business_address: user.business_address || '',
-        business_phone: user.business_phone || '',
-        business_email: user.business_email || ''
-      });
-    }
-    fetchSubscriptionData();
-    fetchReferralData();
     fetchTeamMembers();
-  }, [user]);
-
-  const fetchSubscriptionData = async () => {
-    try {
-      const response = await apiService.getSubscriptionStatus();
-      setSubscriptionData(response);
-    } catch (error) {
-      console.error('Failed to fetch subscription data:', error);
-      // Don't redirect on error, just set default data
-      setSubscriptionData({
-        subscription_plan: user?.subscription_plan || 'free',
-        subscription_status: user?.subscription_status || 'active',
-        is_trial_active: user?.is_trial_active || false
-      });
-    }
-  };
-
-  const fetchReferralData = async () => {
-    try {
-      const response = await apiService.getReferrals();
-      setReferralData(response);
-    } catch (error) {
-      console.error('Failed to fetch referral data:', error);
-      // Set default referral data from user object
-      setReferralData({
-        referral_earnings: user?.referral_earnings || 0,
-        total_referrals: user?.total_referrals || 0,
-        total_withdrawn: user?.total_withdrawn || 0
-      });
-    }
-  };
+  }, []);
 
   const fetchTeamMembers = async () => {
     try {
+      setLoading(true);
       const response = await apiService.getTeamMembers();
-      setTeamMembers(response.team_members || []);
+      setTeamMembers(response.team_members || response || []);
     } catch (error) {
       console.error('Failed to fetch team members:', error);
-      // Set empty array as default
       setTeamMembers([]);
-    }
-  };
-
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await updateUser(profileForm);
-      toast.success('Profile updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update profile: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (passwordForm.new_password !== passwordForm.confirm_password) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    
-    setLoading(true);
+  const handleCreateTeamMember = async () => {
     try {
-      await apiService.changePassword(passwordForm);
-      toast.success('Password changed successfully!');
-      setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
+      setLoading(true);
+      const response = await apiService.createTeamMember(newTeamMember);
+      
+      // Add the new team member to the list
+      setTeamMembers(prev => [...prev, response.team_member || response]);
+      
+      // Reset form and close dialog
+      setNewTeamMember({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        role: 'salesperson',
+        permissions: {
+          can_create_sales: true,
+          can_view_customers: true,
+          can_create_customers: false,
+          can_view_products: true,
+          can_create_products: false,
+          can_view_reports: false,
+          can_manage_team: false
+        }
+      });
+      setShowAddTeamDialog(false);
     } catch (error) {
-      toast.error('Failed to change password: ' + error.message);
+      console.error('Failed to create team member:', error);
+      alert('Failed to create team member. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const copyReferralCode = () => {
-    if (user?.referral_code) {
-      navigator.clipboard.writeText(user.referral_code);
-      toast.success('Referral code copied to clipboard!');
-    }
-  };
-
-  const copyReferralLink = () => {
-    const referralLink = `${window.location.origin}/register?ref=${user?.referral_code}`;
-    navigator.clipboard.writeText(referralLink);
-    toast.success('Referral link copied to clipboard!');
-  };
-
-  const getTrialDaysRemaining = () => {
-    if (!user?.trial_end_date) return 0;
-    const endDate = new Date(user.trial_end_date);
-    const today = new Date();
-    const diffTime = endDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  };
-
-  const getSubscriptionStatusBadge = () => {
-    if (!subscriptionData) return null;
-    
-    const { subscription_plan, subscription_status, is_trial_active } = subscriptionData;
-    
-    if (is_trial_active) {
-      const daysLeft = getTrialDaysRemaining();
-      return (
-        <Badge variant={daysLeft > 3 ? "default" : "destructive"}>
-          Trial - {daysLeft} days left
-        </Badge>
+  const handleEditTeamMember = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.updateTeamMember(editingMember.id, editingMember);
+      
+      // Update the team member in the list
+      setTeamMembers(prev => 
+        prev.map(member => 
+          member.id === editingMember.id ? (response.team_member || response) : member
+        )
       );
+      
+      setShowEditDialog(false);
+      setEditingMember(null);
+    } catch (error) {
+      console.error('Failed to update team member:', error);
+      alert('Failed to update team member. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    const statusColors = {
-      active: "default",
-      expired: "destructive",
-      cancelled: "secondary"
-    };
-    
-    return (
-      <Badge variant={statusColors[subscription_status] || "secondary"}>
-        {subscription_plan} - {subscription_status}
-      </Badge>
-    );
+  };
+
+  const handleDeleteTeamMember = async (memberId) => {
+    if (window.confirm('Are you sure you want to remove this team member?')) {
+      try {
+        await apiService.deleteTeamMember(memberId);
+        setTeamMembers(prev => prev.filter(member => member.id !== memberId));
+      } catch (error) {
+        console.error('Failed to delete team member:', error);
+        alert('Failed to remove team member. Please try again.');
+      }
+    }
+  };
+
+  const handleBusinessProfileUpdate = async () => {
+    try {
+      setLoading(true);
+      // Update business profile via API
+      await apiService.request('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(businessProfile)
+      });
+      alert('Business profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update business profile:', error);
+      alert('Failed to update business profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNotificationSettingsUpdate = async () => {
+    try {
+      setLoading(true);
+      // Update notification settings via API
+      await apiService.request('/users/notifications', {
+        method: 'PUT',
+        body: JSON.stringify(notificationSettings)
+      });
+      alert('Notification settings updated successfully!');
+    } catch (error) {
+      console.error('Failed to update notification settings:', error);
+      alert('Failed to update notification settings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'owner': return 'bg-purple-100 text-purple-800';
+      case 'manager': return 'bg-blue-100 text-blue-800';
+      case 'salesperson': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600">Manage your business settings and team</p>
+        </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="business">Business</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
-          <TabsTrigger value="referrals">Referrals</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+      <Tabs defaultValue="business" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="business" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Business Profile
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Team Management
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="subscription" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Subscription
+          </TabsTrigger>
         </TabsList>
 
-        {/* Profile Settings */}
-        <TabsContent value="profile" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Information
-              </CardTitle>
-              <CardDescription>
-                Update your personal details and contact information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input
-                      id="first_name"
-                      value={profileForm.first_name}
-                      onChange={(e) => setProfileForm({...profileForm, first_name: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input
-                      id="last_name"
-                      value={profileForm.last_name}
-                      onChange={(e) => setProfileForm({...profileForm, last_name: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileForm.email}
-                    onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
-                    placeholder="+234 XXX XXX XXXX"
-                  />
-                </div>
-                
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Updating...' : 'Update Profile'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Password Change */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Change Password
-              </CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current_password">Current Password</Label>
-                  <Input
-                    id="current_password"
-                    type="password"
-                    value={passwordForm.current_password}
-                    onChange={(e) => setPasswordForm({...passwordForm, current_password: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="new_password">New Password</Label>
-                  <Input
-                    id="new_password"
-                    type="password"
-                    value={passwordForm.new_password}
-                    onChange={(e) => setPasswordForm({...passwordForm, new_password: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    value={passwordForm.confirm_password}
-                    onChange={(e) => setPasswordForm({...passwordForm, confirm_password: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Changing...' : 'Change Password'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Business Settings */}
-        <TabsContent value="business" className="space-y-4">
+        {/* Business Profile Tab */}
+        <TabsContent value="business">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Business Information
+                Business Profile
               </CardTitle>
               <CardDescription>
-                Configure your business details for invoices and reports
+                Update your business information and contact details
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-4">
-                <div className="space-y-2">
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <Label htmlFor="business_name">Business Name</Label>
                   <Input
                     id="business_name"
-                    value={profileForm.business_name}
-                    onChange={(e) => setProfileForm({...profileForm, business_name: e.target.value})}
-                    placeholder="Your Business Name"
+                    value={businessProfile.business_name}
+                    onChange={(e) => setBusinessProfile(prev => ({
+                      ...prev,
+                      business_name: e.target.value
+                    }))}
+                    placeholder="Enter business name"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="business_type">Business Type</Label>
-                  <Select
-                    value={profileForm.business_type}
-                    onValueChange={(value) => setProfileForm({...profileForm, business_type: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select business type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="wholesale">Wholesale</SelectItem>
-                      <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="consulting">Consulting</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="business_address">Business Address</Label>
-                  <Textarea
-                    id="business_address"
-                    value={profileForm.business_address}
-                    onChange={(e) => setProfileForm({...profileForm, business_address: e.target.value})}
-                    placeholder="Your business address"
-                    rows={3}
+                <div>
+                  <Label htmlFor="business_email">Business Email</Label>
+                  <Input
+                    id="business_email"
+                    type="email"
+                    value={businessProfile.business_email}
+                    onChange={(e) => setBusinessProfile(prev => ({
+                      ...prev,
+                      business_email: e.target.value
+                    }))}
+                    placeholder="business@example.com"
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="business_phone">Business Phone</Label>
-                    <Input
-                      id="business_phone"
-                      value={profileForm.business_phone}
-                      onChange={(e) => setProfileForm({...profileForm, business_phone: e.target.value})}
-                      placeholder="+234 XXX XXX XXXX"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="business_email">Business Email</Label>
-                    <Input
-                      id="business_email"
-                      type="email"
-                      value={profileForm.business_email}
-                      onChange={(e) => setProfileForm({...profileForm, business_email: e.target.value})}
-                      placeholder="business@example.com"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="business_phone">Business Phone</Label>
+                  <Input
+                    id="business_phone"
+                    value={businessProfile.business_phone}
+                    onChange={(e) => setBusinessProfile(prev => ({
+                      ...prev,
+                      business_phone: e.target.value
+                    }))}
+                    placeholder="+234 xxx xxx xxxx"
+                  />
                 </div>
-                
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Updating...' : 'Update Business Info'}
-                </Button>
-              </form>
+                <div>
+                  <Label htmlFor="business_website">Website (Optional)</Label>
+                  <Input
+                    id="business_website"
+                    value={businessProfile.business_website}
+                    onChange={(e) => setBusinessProfile(prev => ({
+                      ...prev,
+                      business_website: e.target.value
+                    }))}
+                    placeholder="https://www.yourbusiness.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="business_address">Business Address</Label>
+                <Textarea
+                  id="business_address"
+                  value={businessProfile.business_address}
+                  onChange={(e) => setBusinessProfile(prev => ({
+                    ...prev,
+                    business_address: e.target.value
+                  }))}
+                  placeholder="Enter complete business address"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="business_description">Business Description</Label>
+                <Textarea
+                  id="business_description"
+                  value={businessProfile.business_description}
+                  onChange={(e) => setBusinessProfile(prev => ({
+                    ...prev,
+                    business_description: e.target.value
+                  }))}
+                  placeholder="Describe your business and services"
+                  rows={4}
+                />
+              </div>
+              <Button 
+                onClick={handleBusinessProfileUpdate} 
+                disabled={loading}
+                className="w-full md:w-auto"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? 'Saving...' : 'Save Business Profile'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Subscription Settings */}
-        <TabsContent value="subscription" className="space-y-4">
+        {/* Team Management Tab */}
+        <TabsContent value="team">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription Status
-              </CardTitle>
-              <CardDescription>
-                Manage your subscription plan and billing
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">Current Plan</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {user?.subscription_plan || 'Free'}
-                  </p>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Team Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your sales team and their permissions
+                  </CardDescription>
                 </div>
-                {getSubscriptionStatusBadge()}
-              </div>
-              
-              {user?.is_trial_active && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Your free trial expires in {getTrialDaysRemaining()} days. 
-                    Upgrade now to continue using all features.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Free Plan */}
-                <Card className="border-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Free Plan</CardTitle>
-                    <div className="text-2xl font-bold">₦0<span className="text-sm font-normal">/month</span></div>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      <li>• 5 invoices/month</li>
-                      <li>• 5 expenses/month</li>
-                      <li>• Basic reporting</li>
-                    </ul>
-                    <Button className="w-full mt-4" variant="outline">
-                      {user?.subscription_plan === 'free' && !user?.is_trial_active ? 'Current Plan' : 'Downgrade'}
+                <Dialog open={showAddTeamDialog} onOpenChange={setShowAddTeamDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Team Member
                     </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Silver Weekly Plan */}
-                <Card className="border-2 border-green-500">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Silver Weekly</CardTitle>
-                    <div className="text-2xl font-bold">₦1,400<span className="text-sm font-normal">/week</span></div>
-                    {user?.is_trial_active && <Badge className="bg-green-100 text-green-800">7-Day Free Trial</Badge>}
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      <li>• 100 invoices/week</li>
-                      <li>• 100 expenses/week</li>
-                      <li>• Unlimited clients</li>
-                      <li>• Advanced reporting</li>
-                      <li>• Sales report downloads</li>
-                      <li>• Team management</li>
-                    </ul>
-                    <Button className="w-full mt-4" variant="outline">
-                      {user?.is_trial_active ? 'Current Trial (Weekly Features)' : 
-                       user?.subscription_plan === 'weekly' ? 'Current Plan' : 'Upgrade'}
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-primary">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Silver Monthly</CardTitle>
-                    <div className="text-2xl font-bold">₦4,500<span className="text-sm font-normal">/month</span></div>
-                    <Badge>Most Popular</Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      <li>• 450 invoices/month</li>
-                      <li>• 450 expenses/month</li>
-                      <li>• Unlimited clients</li>
-                      <li>• Advanced reporting</li>
-                      <li>• Sales report downloads</li>
-                      <li>• Team management</li>
-                      <li>• ₦500 referral rewards</li>
-                    </ul>
-                    <Button className="w-full mt-4">
-                      {user?.subscription_plan === 'monthly' ? 'Current Plan' : 'Upgrade'}
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Silver Yearly</CardTitle>
-                    <div className="text-2xl font-bold">₦50,000<span className="text-sm font-normal">/year</span></div>
-                    <Badge variant="secondary">Best Value</Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      <li>• 6,000 invoices/year</li>
-                      <li>• 6,000 expenses/year</li>
-                      <li>• Unlimited clients</li>
-                      <li>• Advanced reporting</li>
-                      <li>• Sales report downloads</li>
-                      <li>• Team management</li>
-                      <li>• Priority support</li>
-                      <li>• ₦5,000 referral rewards</li>
-                    </ul>
-                    <Button className="w-full mt-4" variant="outline">
-                      {user?.subscription_plan === 'yearly' ? 'Current Plan' : 'Upgrade'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Referral Settings */}
-        <TabsContent value="referrals" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5" />
-                Referral Program
-              </CardTitle>
-              <CardDescription>
-                Earn 10% commission on referrals. Share your code and earn money!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">₦{user?.referral_earnings?.toFixed(2) || '0.00'}</div>
-                      <p className="text-sm text-muted-foreground">Available Earnings</p>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add New Team Member</DialogTitle>
+                      <DialogDescription>
+                        Create a new salesperson account for your team
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="first_name">First Name</Label>
+                          <Input
+                            id="first_name"
+                            value={newTeamMember.first_name}
+                            onChange={(e) => setNewTeamMember(prev => ({
+                              ...prev,
+                              first_name: e.target.value
+                            }))}
+                            placeholder="John"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="last_name">Last Name</Label>
+                          <Input
+                            id="last_name"
+                            value={newTeamMember.last_name}
+                            onChange={(e) => setNewTeamMember(prev => ({
+                              ...prev,
+                              last_name: e.target.value
+                            }))}
+                            placeholder="Doe"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={newTeamMember.email}
+                            onChange={(e) => setNewTeamMember(prev => ({
+                              ...prev,
+                              email: e.target.value
+                            }))}
+                            placeholder="john@example.com"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={newTeamMember.phone}
+                            onChange={(e) => setNewTeamMember(prev => ({
+                              ...prev,
+                              phone: e.target.value
+                            }))}
+                            placeholder="+234 xxx xxx xxxx"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="role">Role</Label>
+                        <Select 
+                          value={newTeamMember.role} 
+                          onValueChange={(value) => setNewTeamMember(prev => ({
+                            ...prev,
+                            role: value
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="salesperson">Salesperson</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowAddTeamDialog(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleCreateTeamMember}
+                          disabled={loading || !newTeamMember.first_name || !newTeamMember.email}
+                        >
+                          {loading ? 'Creating...' : 'Create Team Member'}
+                        </Button>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{user?.total_referrals || 0}</div>
-                      <p className="text-sm text-muted-foreground">Total Referrals</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">₦{user?.total_withdrawn?.toFixed(2) || '0.00'}</div>
-                      <p className="text-sm text-muted-foreground">Total Withdrawn</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </DialogContent>
+                </Dialog>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label>Your Referral Code</Label>
-                  <div className="flex gap-2">
-                    <Input value={user?.referral_code || ''} readOnly />
-                    <Button variant="outline" size="icon" onClick={copyReferralCode}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label>Referral Link</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      value={`${window.location.origin}/register?ref=${user?.referral_code || ''}`} 
-                      readOnly 
-                    />
-                    <Button variant="outline" size="icon" onClick={copyReferralLink}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                {user?.referral_earnings >= 3000 && (
-                  <Button className="w-full">
-                    Request Withdrawal (Min. ₦3,000)
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Team Settings */}
-        <TabsContent value="team" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Team Management
-              </CardTitle>
-              <CardDescription>
-                Manage your team members and their permissions
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              {user?.subscription_plan !== 'free' || user?.is_trial_active ? (
-                <div className="space-y-4">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Team Member
+              {teamMembers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No team members yet</h3>
+                  <p className="text-gray-600 mb-4">Start building your sales team by adding your first team member.</p>
+                  <Button onClick={() => setShowAddTeamDialog(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add First Team Member
                   </Button>
-                  
-                  {teamMembers.length > 0 ? (
-                    <div className="space-y-2">
-                      {teamMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{member.first_name} {member.last_name}</p>
-                            <p className="text-sm text-muted-foreground">{member.email}</p>
-                          </div>
-                          <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
-                            {member.role}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No team members added yet.</p>
-                  )}
                 </div>
               ) : (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Team management is available with paid plans (Weekly, Monthly, or Yearly). 
-                    {user?.is_trial_active ? 
-                      'You can use this feature during your trial period.' : 
-                      <Button variant="link" className="p-0 h-auto">Upgrade now</Button>
-                    }
-                  </AlertDescription>
-                </Alert>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {teamMembers.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell className="font-medium">
+                          {member.first_name} {member.last_name}
+                        </TableCell>
+                        <TableCell>{member.email}</TableCell>
+                        <TableCell>{member.phone}</TableCell>
+                        <TableCell>
+                          <Badge className={getRoleBadgeColor(member.role)}>
+                            {member.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-green-600">
+                            Active
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingMember(member);
+                                setShowEditDialog(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteTeamMember(member.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Notification Settings */}
-        <TabsContent value="notifications" className="space-y-4">
+        {/* Notifications Tab */}
+        <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Notification Preferences
+                Notification Settings
               </CardTitle>
               <CardDescription>
                 Configure how you want to receive notifications
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(notificationSettings).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor={key} className="text-sm font-medium">
-                      {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {key === 'email_notifications' && 'Receive general email notifications'}
-                      {key === 'low_stock_alerts' && 'Get notified when products are low in stock'}
-                      {key === 'payment_reminders' && 'Receive payment reminder notifications'}
-                      {key === 'invoice_updates' && 'Get notified about invoice status changes'}
-                      {key === 'trial_reminders' && 'Receive trial expiration reminders'}
-                    </p>
+              <div className="space-y-4">
+                {Object.entries(notificationSettings).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor={key} className="text-sm font-medium">
+                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Label>
+                      <p className="text-sm text-gray-600">
+                        {key === 'email_notifications' && 'Receive notifications via email'}
+                        {key === 'sms_notifications' && 'Receive notifications via SMS'}
+                        {key === 'low_stock_alerts' && 'Get notified when products are running low'}
+                        {key === 'payment_reminders' && 'Reminders for overdue payments'}
+                        {key === 'sales_reports' && 'Daily and weekly sales reports'}
+                        {key === 'new_customer_alerts' && 'Notifications for new customer registrations'}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id={key}
+                      checked={value}
+                      onChange={(e) => setNotificationSettings(prev => ({
+                        ...prev,
+                        [key]: e.target.checked
+                      }))}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
                   </div>
-                  <Switch
-                    id={key}
-                    checked={value}
-                    onCheckedChange={(checked) => 
-                      setNotificationSettings({...notificationSettings, [key]: checked})
-                    }
-                  />
-                </div>
-              ))}
+                ))}
+              </div>
+              <Button 
+                onClick={handleNotificationSettingsUpdate} 
+                disabled={loading}
+                className="w-full md:w-auto"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? 'Saving...' : 'Save Notification Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Subscription Tab */}
+        <TabsContent value="subscription">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription & Billing
+              </CardTitle>
+              <CardDescription>
+                Manage your subscription plan and billing information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  You are currently on the <strong>7-Day Free Trial</strong>. 
+                  Upgrade to a paid plan to continue using all features after your trial expires.
+                </AlertDescription>
+              </Alert>
               
-              <Button>Save Notification Preferences</Button>
+              <div className="mt-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border-2 border-primary">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Silver Weekly</CardTitle>
+                      <div className="text-2xl font-bold">₦1,400<span className="text-sm font-normal">/week</span></div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm">
+                        <li>• 100 invoices per week</li>
+                        <li>• 100 expenses per week</li>
+                        <li>• Advanced reporting</li>
+                        <li>• Email support</li>
+                      </ul>
+                      <Button className="w-full mt-4">Upgrade Now</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Silver Monthly</CardTitle>
+                      <div className="text-2xl font-bold">₦4,500<span className="text-sm font-normal">/month</span></div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm">
+                        <li>• 450 invoices per month</li>
+                        <li>• 450 expenses per month</li>
+                        <li>• ₦500 referral rewards</li>
+                        <li>• Priority support</li>
+                      </ul>
+                      <Button variant="outline" className="w-full mt-4">Upgrade Now</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Silver Yearly</CardTitle>
+                      <div className="text-2xl font-bold">₦50,000<span className="text-sm font-normal">/year</span></div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm">
+                        <li>• 6,000 invoices per year</li>
+                        <li>• 6,000 expenses per year</li>
+                        <li>• ₦5,000 referral rewards</li>
+                        <li>• Premium support</li>
+                      </ul>
+                      <Button variant="outline" className="w-full mt-4">Upgrade Now</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -726,3 +661,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

@@ -17,16 +17,9 @@ import SalesReport from './pages/SalesReport';
 import Team from './pages/Team';
 import Customers from './pages/Customers';
 import Settings from './pages/Settings';
+import Payments from './pages/Payments';
 import Expenses from './pages/Expenses';
 import Transactions from './pages/Transactions';
-
-// Placeholder components for other pages
-const Payments = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Payments</h1>
-    <p className="text-muted-foreground">Payment management coming soon...</p>
-  </div>
-);
 
 import './App.css';
 

@@ -60,11 +60,12 @@ from src.routes.subscription_upgrade import subscription_upgrade_bp
 def create_app():
     app = Flask(__name__)
 
-    # Configuration - Support both Supabase and SQLite
+    # Configuration - Prioritize SQLite for development
     supabase_url = os.getenv("SUPABASE_URL")
     
-    if supabase_url and supabase_url != "your_supabase_project_url_here":
-        # Use Supabase PostgreSQL for production
+    # Force SQLite for development unless explicitly using production
+    if os.getenv("ENVIRONMENT") == "production" and supabase_url and supabase_url != "your_supabase_project_url_here":
+        # Use Supabase PostgreSQL for production only
         supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
         if not supabase_service_key:
             print("ERROR: SUPABASE_SERVICE_KEY not found in environment variables")
@@ -83,7 +84,7 @@ def create_app():
             os.makedirs(instance_dir, exist_ok=True)
             db_path = f"sqlite:///{os.path.join(instance_dir, 'bizflow_sme.db')}"
     else:
-        # Use SQLite for local development
+        # Use SQLite for local development (default)
         instance_dir = os.path.join(BASE_DIR, "instance")
         os.makedirs(instance_dir, exist_ok=True)
         db_path = f"sqlite:///{os.path.join(instance_dir, 'bizflow_sme.db')}"
