@@ -45,13 +45,15 @@ api.interceptors.response.use(
 
 const apiService = {
   login: async (credentials) => {
-    // Transform username field to login for backend compatibility
+    // Use login field as expected by main.py backend
     const loginData = {
-      login: credentials.username,
+      login: credentials.username || credentials.email_or_phone,
       password: credentials.password
     };
     const response = await api.post('/auth/login', loginData);
-    localStorage.setItem('token', response.data.access_token);
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+    }
     return response.data;
   },
 

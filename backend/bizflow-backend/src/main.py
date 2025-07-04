@@ -72,18 +72,29 @@ def register():
     try:
         data = request.get_json()
         
-        required_fields = ["email", "phone", "password", "first_name", "last_name", "business_name"]
+        # Make business_name optional - only require essential fields
+        required_fields = ["email", "phone", "password", "first_name", "last_name"]
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"{field} is required"}), 400
         
         # Check if user already exists
-        existing_user = supabase.table("users").select("*").or_(
-            f"email.eq.{data["email"]},phone.eq.{data["phone"]}"
-        ).execute()
+        existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
+        existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
         
-        if existing_user.data:
-            return jsonify({"error": "User with this email or phone already exists"}), 400
+        if existing_user_email.data:
+            return jsonify({
+                "error": "Email already exists",
+                "message": "An account with this email already exists. Please use a different email or try logging in.",
+                "field": "email"
+            }), 400
+            
+        if existing_user_phone.data:
+            return jsonify({
+                "error": "Phone number already exists", 
+                "message": "An account with this phone number already exists. Please use a different phone number or try logging in.",
+                "field": "phone"
+            }), 400
         
         password_hash = generate_password_hash(data["password"])
         
@@ -94,7 +105,7 @@ def register():
             "password_hash": password_hash,
             "first_name": data["first_name"],
             "last_name": data["last_name"],
-            "business_name": data["business_name"],
+            "business_name": data.get("business_name", ""),  # Optional field with default empty string
             "role": "Owner",
             "subscription_plan": "weekly",
             "subscription_status": "trial",
@@ -132,7 +143,11 @@ def login():
         data = request.get_json()
         
         if not data.get("login") or not data.get("password"):
-            return jsonify({"error": "Login (email or phone) and password are required"}), 400
+            return jsonify({
+                "error": "Login credentials required",
+                "message": "Email/Phone and password are required",
+                "field": "login"
+            }), 400
         
         login_field = data["login"]
         password = data["password"]
@@ -144,12 +159,27 @@ def login():
             user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
         
         if not user_result.data:
-            return jsonify({"error": "Invalid credentials"}), 401
+            return jsonify({
+                "error": "Invalid credentials",
+                "message": "No account found with this email or phone number. Please check your credentials or sign up for a new account.",
+                "field": "login"
+            }), 401
         
         user = user_result.data[0]
         
         if not check_password_hash(user["password_hash"], password):
-            return jsonify({"error": "Invalid credentials"}), 401
+            return jsonify({
+                "error": "Invalid credentials",
+                "message": "Incorrect password. Please check your password and try again.",
+                "field": "password"
+            }), 401
+        
+        if not user.get("active", True):
+            return jsonify({
+                "error": "Account deactivated",
+                "message": "Your account has been deactivated. Please contact support for assistance.",
+                "field": "account"
+            }), 401
         
         # Update last login
         supabase.table("users").update({"last_login": datetime.now().isoformat()}).eq("id", user["id"]).execute()
@@ -173,7 +203,10 @@ def login():
         }), 200
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": "Login failed",
+            "message": f"An error occurred during login: {str(e)}"
+        }), 500
 
 @app.route("/api/auth/profile", methods=["GET"])
 @jwt_required()
@@ -430,7 +463,7 @@ def create_invoice():
             "user_id": user_id,
             "business_id": user_id,
             "customer_id": data["customer_id"],
-            "invoice_number": f"INV-{datetime.now().strftime("%Y%m%d")}-{str(uuid.uuid4())[:8].upper()}",
+            "invoice_number": f"INV-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
             "subtotal": subtotal,
             "tax_amount": tax_amount,
             "total_amount": total_amount,
@@ -618,7 +651,7 @@ def initialize_payment():
         return jsonify({
             "message": "Payment initialized successfully",
             "payment": result.data[0],
-            "authorization_url": f"https://checkout.paystack.com/{data["reference"]}"  # Mock URL
+            "authorization_url": f"https://checkout.paystack.com/{data['reference']}"  # Mock URL
         }), 201
         
     except Exception as e:

@@ -13,8 +13,7 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
-        "runtime": "python3.9",
-        "buildCommand": "pip install -r backend/bizflow-backend/requirements.txt && gunicorn --bind 0.0.0.0:$PORT main:app"
+        "runtime": "python3.9"
       }
     }
   ],
@@ -25,11 +24,16 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/bizflow-frontend/$1"
+      "dest": "/frontend/bizflow-frontend/dist/$1"
     }
   ],
   "env": {
     "PYTHONPATH": "backend/bizflow-backend/src"
+  },
+  "functions": {
+    "backend/bizflow-backend/src/main.py": {
+      "maxDuration": 30
+    }
   }
 }
 
