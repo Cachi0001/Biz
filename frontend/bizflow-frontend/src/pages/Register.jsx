@@ -86,17 +86,16 @@ const Register = () => {
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">S</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
             Create Your Account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start managing your business with Bizflow
+            Start managing your business with SabiOps
           </p>
         </div>
 
-        {/* Registration Form */}
         <Card>
           <CardHeader>
             <CardTitle>Sign Up</CardTitle>
@@ -112,7 +111,6 @@ const Register = () => {
                 </Alert>
               )}
 
-              {/* Personal Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Personal Information</h3>
                 

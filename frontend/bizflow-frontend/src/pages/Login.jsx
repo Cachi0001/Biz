@@ -60,10 +60,10 @@ const Login = () => {
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">S</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-            Welcome to Bizflow
+            Welcome to SabiOps
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Sign in to your business management account
@@ -156,17 +156,6 @@ const Login = () => {
                 </Link>
               </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo Credentials */}
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6">
-            <h3 className="text-sm font-medium text-foreground mb-2">Demo Credentials</h3>
-            <p className="text-xs text-muted-foreground">
-              Username: demo@bizflow.com<br />
-              Password: demo123
-            </p>
           </CardContent>
         </Card>
       </div>

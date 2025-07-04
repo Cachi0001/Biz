@@ -330,7 +330,7 @@ const Landing = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-foreground">And more...</span>
+                  <span className="text-foreground">Offline functionality also available</span>
                 </li>
                 <li className="flex items-center">
                   <div className="bg-primary rounded-full p-1 mr-3">
@@ -338,7 +338,7 @@ const Landing = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-foreground">Offline functionality</span>
+                  <span className="text-foreground">And many more...</span>
                 </li>
               </ul>
               <Link 
