@@ -40,11 +40,10 @@
     "noUncheckedIndexedAccess": true,
 
     /* Type definitions */
-    "types": ["node", "jest", "@testing-library/jest-dom"]
+    "types": ["node"]
   },
   "include": [
-    "src",
-    "tests"
+    "src"
   ],
   "exclude": [
     "node_modules",
