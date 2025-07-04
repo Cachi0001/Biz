@@ -16,7 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/bizflow-backend/src/main_full.py"
+      "dest": "/backend/bizflow-backend/src/main.py"
     },
     {
       "src": "/(.*)",
