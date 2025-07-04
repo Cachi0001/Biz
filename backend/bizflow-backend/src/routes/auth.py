@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from src.models.user import User, db
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -11,21 +11,13 @@ def register():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+        # Validate required fields - removed username, made phone required
+        required_fields = ['email', 'phone', 'password', 'first_name', 'last_name']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Check if user already exists
-        existing_user = User.query.filter_by(username=data['username']).first()
-        if existing_user:
-            return jsonify({
-                'error': 'Username already exists',
-                'message': 'This username is already taken. Please choose a different username.',
-                'field': 'username'
-            }), 400
-        
+        # Check if user already exists by email
         existing_email = User.query.filter_by(email=data['email']).first()
         if existing_email:
             return jsonify({
@@ -34,17 +26,22 @@ def register():
                 'field': 'email'
             }), 400
         
-        # Create new user
+        # Check if user already exists by phone
+        existing_phone = User.query.filter_by(phone=data['phone']).first()
+        if existing_phone:
+            return jsonify({
+                'error': 'Phone number already exists',
+                'message': 'An account with this phone number already exists. Please use a different phone number or try logging in.',
+                'field': 'phone'
+            }), 400
+        
+        # Create new user - removed username field
         user = User(
-            username=data['username'],
             email=data['email'],
+            phone=data['phone'],
             first_name=data['first_name'],
             last_name=data['last_name'],
-            phone=data.get('phone'),
-            business_name=data.get('business_name'),
-            business_address=data.get('business_address'),
-            business_phone=data.get('business_phone'),
-            business_email=data.get('business_email')
+            business_name=data.get('business_name')
         )
         user.set_password(data['password'])
         
@@ -69,25 +66,26 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Login user"""
+    """Login user using email or phone"""
     try:
         data = request.get_json()
         
-        # Validate required fields
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'error': 'Username and password are required'}), 400
+        # Validate required fields - changed to accept email_or_phone
+        if not data.get('email_or_phone') or not data.get('password'):
+            return jsonify({'error': 'Email/Phone and password are required'}), 400
         
-        # Find user by username or email
+        # Find user by email or phone
+        identifier = data['email_or_phone']
         user = User.query.filter(
-            (User.username == data['username']) | 
-            (User.email == data['username'])
+            (User.email == identifier) | 
+            (User.phone == identifier)
         ).first()
         
         if not user:
             return jsonify({
                 'error': 'Invalid credentials',
-                'message': 'No account found with this username or email. Please check your credentials or sign up for a new account.',
-                'field': 'username'
+                'message': 'No account found with this email or phone number. Please check your credentials or sign up for a new account.',
+                'field': 'email_or_phone'
             }), 401
             
         if not user.check_password(data['password']):
@@ -97,12 +95,16 @@ def login():
                 'field': 'password'
             }), 401
         
-        if not user.is_active:
+        if not user.active:  # Changed from is_active to active to match Supabase schema
             return jsonify({
                 'error': 'Account deactivated',
                 'message': 'Your account has been deactivated. Please contact support for assistance.',
                 'field': 'account'
             }), 401
+        
+        # Update last login
+        user.last_login = datetime.utcnow()
+        db.session.commit()
         
         # Create access token
         access_token = create_access_token(
@@ -148,14 +150,23 @@ def update_profile():
         
         data = request.get_json()
         
-        # Update allowed fields
+        # Update allowed fields - removed username-related fields
         allowed_fields = [
-            'first_name', 'last_name', 'phone', 'business_name',
-            'business_address', 'business_phone', 'business_email'
+            'first_name', 'last_name', 'phone', 'business_name'
         ]
         
         for field in allowed_fields:
             if field in data:
+                # Check for phone uniqueness if updating phone
+                if field == 'phone' and data[field] != user.phone:
+                    existing_phone = User.query.filter_by(phone=data[field]).first()
+                    if existing_phone:
+                        return jsonify({
+                            'error': 'Phone number already exists',
+                            'message': 'This phone number is already associated with another account.',
+                            'field': 'phone'
+                        }), 400
+                
                 setattr(user, field, data[field])
         
         # Handle password change
@@ -206,4 +217,3 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-

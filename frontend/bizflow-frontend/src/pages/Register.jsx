@@ -6,22 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     first_name: '',
     last_name: '',
-    phone: '',
     business_name: '',
-    business_address: '',
-    business_phone: '',
-    business_email: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -47,6 +42,10 @@ const Register = () => {
     }
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters long');
+      return false;
+    }
+    if (!formData.email || !formData.phone) {
+      setError('Email and phone number are required');
       return false;
     }
     return true;
@@ -92,14 +91,14 @@ const Register = () => {
             Create Your Account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start managing your business with SabiOps
+            Start managing your business with SabiOps - No username required!
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
-            <CardDescription>
+        <Card className="shadow-lg border-0 bg-card">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-2xl font-bold text-center">Sign Up</CardTitle>
+            <CardDescription className="text-center">
               Fill in your details to create your business account
             </CardDescription>
           </CardHeader>
@@ -111,12 +110,14 @@ const Register = () => {
                 </Alert>
               )}
 
+              {/* Personal Information Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Personal Information</h3>
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Personal Information</h3>
                 
+                {/* First Name and Last Name - Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name *</Label>
+                    <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
                     <Input
                       id="first_name"
                       name="first_name"
@@ -125,11 +126,12 @@ const Register = () => {
                       value={formData.first_name}
                       onChange={handleChange}
                       placeholder="Enter your first name"
+                      className="h-11"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Label htmlFor="last_name" className="text-sm font-medium">Last Name *</Label>
                     <Input
                       id="last_name"
                       name="last_name"
@@ -138,26 +140,15 @@ const Register = () => {
                       value={formData.last_name}
                       onChange={handleChange}
                       placeholder="Enter your last name"
+                      className="h-11"
                     />
                   </div>
                 </div>
 
+                {/* Email and Phone - Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username *</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      required
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="Choose a username"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
                     <Input
                       id="email"
                       name="email"
@@ -166,25 +157,29 @@ const Register = () => {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="Enter your email"
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="Enter your phone number"
+                      className="h-11"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
+                {/* Password and Confirm Password - Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -194,6 +189,7 @@ const Register = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Create a password"
+                        className="h-11 pr-10"
                       />
                       <Button
                         type="button"
@@ -212,7 +208,7 @@ const Register = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
@@ -222,6 +218,7 @@ const Register = () => {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Confirm your password"
+                        className="h-11 pr-10"
                       />
                       <Button
                         type="button"
@@ -241,12 +238,12 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Business Information */}
+              {/* Business Information Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Business Information (Optional)</h3>
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Business Information</h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="business_name">Business Name</Label>
+                  <Label htmlFor="business_name" className="text-sm font-medium">Business Name (Optional)</Label>
                   <Input
                     id="business_name"
                     name="business_name"
@@ -254,62 +251,35 @@ const Register = () => {
                     value={formData.business_name}
                     onChange={handleChange}
                     placeholder="Enter your business name"
+                    className="h-11"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="business_address">Business Address</Label>
-                  <Textarea
-                    id="business_address"
-                    name="business_address"
-                    value={formData.business_address}
-                    onChange={handleChange}
-                    placeholder="Enter your business address"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="business_phone">Business Phone</Label>
-                    <Input
-                      id="business_phone"
-                      name="business_phone"
-                      type="tel"
-                      value={formData.business_phone}
-                      onChange={handleChange}
-                      placeholder="Enter business phone"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="business_email">Business Email</Label>
-                    <Input
-                      id="business_email"
-                      name="business_email"
-                      type="email"
-                      value={formData.business_email}
-                      onChange={handleChange}
-                      placeholder="Enter business email"
-                    />
-                  </div>
+                  <p className="text-xs text-muted-foreground">You can add more business details later in your profile</p>
                 </div>
               </div>
 
+              {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 text-base font-semibold"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Creating account...
                   </>
                 ) : (
                   'Create Account'
                 )}
               </Button>
+
+              {/* Terms and Privacy */}
+              <p className="text-xs text-center text-muted-foreground">
+                By creating an account, you agree to our{' '}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+              </p>
             </form>
 
             <div className="mt-6 text-center">
@@ -317,7 +287,7 @@ const Register = () => {
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  className="font-medium text-primary hover:text-primary/80"
+                  className="font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   Sign in
                 </Link>

@@ -10,6 +10,7 @@ import os
 
 class User(db.Model):
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True}
     
     # UUID primary key to match Supabase schema
     id = get_id_column()
@@ -47,8 +48,6 @@ class User(db.Model):
         super(User, self).__init__(**kwargs)
         if not self.referral_code:
             self.referral_code = self.generate_referral_code()
-        if not self.email_verification_token:
-            self.email_verification_token = self.generate_verification_token()
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -58,31 +57,22 @@ class User(db.Model):
     
     def generate_referral_code(self):
         while True:
-            code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+            # Generate SABI prefix code to match Supabase schema
+            code = 'SABI' + ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
             if not User.query.filter_by(referral_code=code).first():
                 return code
     
-    def generate_verification_token(self):
-        return secrets.token_urlsafe(32)
-    
-    def generate_password_reset_token(self):
-        self.password_reset_token = secrets.token_urlsafe(32)
-        self.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
-        return self.password_reset_token
-    
     def is_trial_expired(self):
-        return datetime.utcnow() > self.trial_end_date
+        return datetime.utcnow() > self.trial_ends_at if self.trial_ends_at else False
     
     def is_subscription_active(self):
         if self.subscription_status != 'active':
-            return False
-        if self.subscription_end_date and datetime.utcnow() > self.subscription_end_date:
             return False
         return True
     
     def can_access_feature(self, feature):
         # During 7-day trial, user gets weekly plan features
-        if self.is_trial_active and not self.is_trial_expired():
+        if self.subscription_status == 'trial' and not self.is_trial_expired():
             weekly_features = ['invoicing', 'expense_tracking', 'reporting', 'client_management', 'team_management', 'sales_reports']
             return feature in weekly_features
         
@@ -102,45 +92,22 @@ class User(db.Model):
         
         return feature in plan_features.get(self.subscription_plan, [])
     
-    def add_referral_earning(self, amount):
-        self.referral_earnings += amount
-        self.total_referrals += 1
-    
-    def withdraw_earnings(self, amount):
-        if amount <= self.referral_earnings:
-            self.referral_earnings -= amount
-            self.total_withdrawn += amount
-            return True
-        return False
-    
     def to_dict(self):
         return {
-            'id': self.id,
-            'username': self.username,
+            'id': str(self.id),
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
             'phone': self.phone,
             'business_name': self.business_name,
-            'business_type': self.business_type,
-            'business_address': self.business_address,
-            'business_phone': self.business_phone,
-            'business_email': self.business_email,
-            'trial_start_date': self.trial_start_date.isoformat() if self.trial_start_date else None,
-            'trial_end_date': self.trial_end_date.isoformat() if self.trial_end_date else None,
-            'is_trial_active': self.is_trial_active,
+            'trial_ends_at': self.trial_ends_at.isoformat() if self.trial_ends_at else None,
             'trial_expired': self.is_trial_expired(),
             'subscription_plan': self.subscription_plan,
             'subscription_status': self.subscription_status,
             'subscription_active': self.is_subscription_active(),
             'referral_code': self.referral_code,
-            'total_referrals': self.total_referrals,
-            'referral_earnings': self.referral_earnings,
-            'total_withdrawn': self.total_withdrawn,
             'role': self.role,
-            'team_owner_id': self.team_owner_id,
-            'is_active': self.is_active,
-            'is_verified': self.is_verified,
+            'active': self.active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
