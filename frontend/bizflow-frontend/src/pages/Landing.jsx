@@ -5,7 +5,7 @@ import { ArrowRight, Shield, Smartphone, Zap, Users, TrendingUp, Star, Menu, X }
 const TypingAnimation = () => {
   const messages = [
     { text: "Your Business, ", highlight: "Simplified", color: "text-primary" },
-    { text: "We de for you no fear ❤️", highlight: "", color: "" },
+    { text: "Mrs Ekwunife ❤️", highlight: "", color: "" },
     { text: "Your feedback sef na em matter pass", highlight: "", color: "" }
   ];
   
