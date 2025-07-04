@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Check the actual file structure and identify missing files.
+Used to check the file structure of the backend.
 """
 
 import os
