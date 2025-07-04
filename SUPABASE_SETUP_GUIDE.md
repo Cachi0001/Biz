@@ -29,9 +29,9 @@ Go to **SQL Editor** in Supabase and run this SQL:
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table (extends Supabase auth.users)
+-- Users table (Flask Authentication Compatible)
 CREATE TABLE public.users (
-    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     email TEXT UNIQUE,
     phone TEXT UNIQUE NOT NULL,
     first_name TEXT,
