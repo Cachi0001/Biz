@@ -26,10 +26,5 @@
   "env": {
     "PYTHONPATH": "backend/bizflow-backend"
   },
-  "functions": {
-    "backend/bizflow-backend/src/main.py": {
-      "runtime": "python3.11"
-    }
-  }
 }
 
