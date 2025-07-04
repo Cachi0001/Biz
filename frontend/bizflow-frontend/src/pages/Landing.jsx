@@ -4,9 +4,9 @@ import { ArrowRight, Shield, Smartphone, Zap, Users, TrendingUp, Star, Menu, X }
 
 const TypingAnimation = () => {
   const messages = [
-    "Your Business, Simplified",
-    "We de for you no fear",
-    "Your feedback sef na em matter pass"
+    { text: "Your Business, ", highlight: "Simplified", color: "text-primary" },
+    { text: "We de for you no fear ❤️", highlight: "", color: "" },
+    { text: "Your feedback sef na em matter pass", highlight: "", color: "" }
   ];
   
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -16,11 +16,12 @@ const TypingAnimation = () => {
 
   useEffect(() => {
     const currentMessage = messages[currentMessageIndex];
+    const fullText = currentMessage.text + currentMessage.highlight;
     
     if (isTyping) {
-      if (charIndex < currentMessage.length) {
+      if (charIndex < fullText.length) {
         const timeout = setTimeout(() => {
-          setCurrentText(currentMessage.slice(0, charIndex + 1));
+          setCurrentText(fullText.slice(0, charIndex + 1));
           setCharIndex(charIndex + 1);
         }, 100); // Typing speed
         return () => clearTimeout(timeout);
@@ -34,7 +35,7 @@ const TypingAnimation = () => {
     } else {
       if (charIndex > 0) {
         const timeout = setTimeout(() => {
-          setCurrentText(currentMessage.slice(0, charIndex - 1));
+          setCurrentText(fullText.slice(0, charIndex - 1));
           setCharIndex(charIndex - 1);
         }, 50); // Erasing speed
         return () => clearTimeout(timeout);
@@ -49,9 +50,24 @@ const TypingAnimation = () => {
     }
   }, [charIndex, isTyping, currentMessageIndex, messages]);
 
+  const renderText = () => {
+    const currentMessage = messages[currentMessageIndex];
+    if (currentMessage.highlight && currentText.includes(currentMessage.highlight)) {
+      const parts = currentText.split(currentMessage.highlight);
+      return (
+        <>
+          {parts[0]}
+          <span className={currentMessage.color}>{currentMessage.highlight}</span>
+          {parts[1]}
+        </>
+      );
+    }
+    return currentText;
+  };
+
   return (
     <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 min-h-[4rem] md:min-h-[6rem]">
-      {currentText}
+      {renderText()}
       <span className="animate-pulse text-primary">|</span>
     </h1>
   );
@@ -67,7 +83,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="bg-card shadow-sm border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -156,7 +172,7 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-accent to-background py-20">
+      <section className="bg-gradient-to-br from-accent to-background py-20 pt-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <TypingAnimation />
@@ -173,7 +189,7 @@ const Landing = () => {
               </Link>
               <a 
                 href="#features" 
-                className="border border-primary text-primary hover:bg-accent px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
+                className="border border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
               >
                 Learn More
               </a>
@@ -266,9 +282,9 @@ const Landing = () => {
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-2">Free Trial</h3>
               <div className="text-4xl font-bold text-primary mb-4">
-                ₦0<span className="text-lg text-muted-foreground">/7 days</span>
+                ₦0<span className="text-lg text-foreground">/7 days</span>
               </div>
-              <p className="text-muted-foreground mb-6">Perfect for getting started</p>
+              <p className="text-foreground mb-6">Perfect for getting started</p>
               <ul className="text-left space-y-3 mb-8">
                 <li className="flex items-center">
                   <div className="bg-primary rounded-full p-1 mr-3">
@@ -313,7 +329,7 @@ const Landing = () => {
               </ul>
               <Link 
                 to="/register" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-lg font-semibold transition-colors block text-center"
+                className="w-full bg-card hover:bg-card/90 text-primary border-2 border-primary py-3 px-6 rounded-lg font-semibold transition-colors block text-center shadow-md"
               >
                 Start for Free
               </Link>
