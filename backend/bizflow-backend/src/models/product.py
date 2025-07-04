@@ -1,31 +1,24 @@
-from src.models.user import db
+from src.models.base import db, GUID, get_id_column
 from datetime import datetime
 
 class Product(db.Model):
     __tablename__ = 'products'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # UUID primary key to match Supabase schema
+    id = get_id_column()
+    user_id = db.Column(GUID(), db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    sku = db.Column(db.String(50), unique=True)
+    price = db.Column(db.Numeric(15, 2), nullable=False)  # Changed from unit_price to price
+    cost_price = db.Column(db.Numeric(15, 2))
+    quantity = db.Column(db.Integer, default=0)  # Changed from quantity_in_stock to quantity
+    low_stock_threshold = db.Column(db.Integer, default=5)  # Changed from minimum_stock_level
     category = db.Column(db.String(50))
-    unit_price = db.Column(db.Numeric(10, 2), nullable=False)
-    cost_price = db.Column(db.Numeric(10, 2))
-    quantity_in_stock = db.Column(db.Integer, default=0)
-    minimum_stock_level = db.Column(db.Integer, default=0)
-    unit_of_measure = db.Column(db.String(20), default='piece')  # piece, kg, liter, etc.
-    tax_rate = db.Column(db.Numeric(5, 2), default=0.00)  # percentage
-    is_active = db.Column(db.Boolean, default=True)
-    is_service = db.Column(db.Boolean, default=False)  # True for services, False for products
+    image_url = db.Column(db.String(500))  # Aligned with Supabase schema
+    sku = db.Column(db.String(50))
+    active = db.Column(db.Boolean, default=True)  # Changed from is_active to active
     
-    # Product Images
-    image_url = db.Column(db.String(500))
-    image_public_id = db.Column(db.String(255))  # Cloudinary public ID
-    
-    # Additional fields
-    barcode = db.Column(db.String(50))
-    supplier_info = db.Column(db.Text)
+    # Timestamps - Aligned with Supabase schema
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

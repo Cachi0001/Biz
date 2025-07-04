@@ -11,9 +11,9 @@ const Landing = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="bg-primary text-primary-foreground rounded-lg p-2 font-bold text-xl">
-                B
+                S
               </div>
-              <span className="ml-2 text-2xl font-bold text-foreground">Bizflow</span>
+              <span className="ml-2 text-2xl font-bold text-foreground">SabiOps</span>
             </div>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
@@ -33,7 +33,7 @@ const Landing = () => {
                   to="/register" 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Get Started Free
+                  Get Started For Free
                 </Link>
               </div>
             </div>
@@ -57,7 +57,7 @@ const Landing = () => {
                 to="/register" 
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-flex items-center justify-center"
               >
-                Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+                Get Started For Free <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <a 
                 href="#features" 
@@ -164,7 +164,7 @@ const Landing = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-foreground">Unlimited invoices</span>
+                  <span className="text-foreground">450 invoices per month</span>
                 </li>
                 <li className="flex items-center">
                   <div className="bg-primary rounded-full p-1 mr-3">
@@ -188,7 +188,15 @@ const Landing = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-foreground">Basic reports</span>
+                  <span className="text-foreground">Advanced reports</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="bg-primary rounded-full p-1 mr-3">
+                    <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-foreground">And more...</span>
                 </li>
               </ul>
               <Link 
@@ -209,7 +217,7 @@ const Landing = () => {
             Ready to Simplify Your Business?
           </h2>
           <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Join thousands of Nigerian entrepreneurs who trust Bizflow to manage their business
+            Join hundreds of Nigerian entrepreneurs who trust SabiOps to manage their business
           </p>
           <Link 
             to="/register" 
@@ -227,9 +235,9 @@ const Landing = () => {
             <div>
               <div className="flex items-center mb-4">
                 <div className="bg-primary text-primary-foreground rounded-lg p-2 font-bold text-xl">
-                  B
+                  S
                 </div>
-                <span className="ml-2 text-2xl font-bold">Bizflow</span>
+                <span className="ml-2 text-2xl font-bold">SabiOps</span>
               </div>
               <p className="text-slate-400">
                 Simplifying business management for Nigerian SMEs
@@ -258,7 +266,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2025 Bizflow SME Nigeria. All rights reserved.</p>
+            <p>&copy; 2025 Sabiops SME Nigeria. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-from src.models.user import db
+from src.models.base import db
 from datetime import datetime
 from src.models.base import GUID, get_id_column
 import uuid

@@ -1,4 +1,3 @@
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import secrets
@@ -6,70 +5,43 @@ import string
 import uuid
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy import JSON
-from src.models.base import GUID, get_id_column, get_foreign_key_column
+from src.models.base import db, GUID, get_id_column, get_foreign_key_column
 import os
-
-db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'users'
     
-    # Hybrid ID column that works with both SQLite and PostgreSQL
+    # UUID primary key to match Supabase schema
     id = get_id_column()
-    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
-    phone = db.Column(db.String(20))
+    email = db.Column(db.String(120), unique=True, nullable=True, index=True)  # Nullable as per Supabase
+    phone = db.Column(db.String(20), unique=True, nullable=False)  # Required and unique as per Supabase
+    first_name = db.Column(db.String(50), nullable=True)
+    last_name = db.Column(db.String(50), nullable=True)
     business_name = db.Column(db.String(100))
-    business_type = db.Column(db.String(50))
-    business_address = db.Column(db.Text)
-    business_phone = db.Column(db.String(20))
-    business_email = db.Column(db.String(120))
+    password_hash = db.Column(db.String(255), nullable=True)  # Add this field to Supabase if needed
     
-    # Trial and Subscription Management (7-day trial gives weekly plan features)
-    trial_start_date = db.Column(db.DateTime, default=datetime.utcnow)
-    trial_end_date = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
-    is_trial_active = db.Column(db.Boolean, default=True)
-    subscription_plan = db.Column(db.String(20), default='weekly')  # Default to weekly plan for trial
-    subscription_status = db.Column(db.String(20), default='trial')  # Default to trial status
-    subscription_start_date = db.Column(db.DateTime)
-    subscription_end_date = db.Column(db.DateTime)
+    # Trial and Subscription Management - Aligned with Supabase schema
+    role = db.Column(db.String(20), default='Owner')  # 'Owner', 'Salesperson', 'Admin'
+    subscription_plan = db.Column(db.String(20), default='weekly')  # 'free', 'weekly', 'monthly', 'yearly'
+    subscription_status = db.Column(db.String(20), default='trial')  # 'trial', 'active', 'expired', 'cancelled'
+    trial_ends_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
     
-    # Referral System
-    referral_code = db.Column(db.String(10), unique=True, nullable=False)
+    # Referral System - Aligned with Supabase schema
+    referral_code = db.Column(db.String(20), unique=True, nullable=False)
     referred_by = db.Column(GUID(), db.ForeignKey('users.id'))
-    total_referrals = db.Column(db.Integer, default=0)
-    referral_earnings = db.Column(db.Float, default=0.0)
-    total_withdrawn = db.Column(db.Float, default=0.0)
     
-    # Account Management
-    is_active = db.Column(db.Boolean, default=True)
-    is_verified = db.Column(db.Boolean, default=False)
-    email_verification_token = db.Column(db.String(100))
-    password_reset_token = db.Column(db.String(100))
-    password_reset_expires = db.Column(db.DateTime)
+    # Account Management - Aligned with Supabase schema
+    active = db.Column(db.Boolean, default=True)  # Changed from is_active to active
     
-    # Role and Team Management
-    role = db.Column(db.String(20), default='Owner')
-    team_owner_id = db.Column(GUID(), db.ForeignKey('users.id'))
-    
-    # Timestamps
+    # Timestamps - Aligned with Supabase schema
+    last_login = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_login = db.Column(db.DateTime)
     
-    # Relationships
-    team_members = db.relationship('User', backref=db.backref('team_owner', remote_side=[id]), foreign_keys=[team_owner_id])
+    # Relationships - Simplified for Supabase compatibility
     referrals = db.relationship('User', backref=db.backref('referrer', remote_side=[id]), foreign_keys=[referred_by])
     customers = db.relationship('Customer', backref='user', lazy=True, cascade='all, delete-orphan')
     products = db.relationship('Product', backref='user', lazy=True, cascade='all, delete-orphan')
-    invoices = db.relationship('Invoice', backref='user', lazy=True, cascade='all, delete-orphan')
-    expenses = db.relationship('Expense', backref='user', lazy=True, cascade='all, delete-orphan')
-    sales = db.relationship('Sale', backref='user', foreign_keys='Sale.user_id', lazy=True, cascade='all, delete-orphan')
-    withdrawals = db.relationship('ReferralWithdrawal', backref='user', foreign_keys='ReferralWithdrawal.user_id', lazy=True, cascade='all, delete-orphan')
-    sales_made = db.relationship('Sale', backref='sales_made_by', foreign_keys='Sale.salesperson_id', lazy=True)
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)

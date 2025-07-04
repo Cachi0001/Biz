@@ -3,10 +3,14 @@ Base model utilities for hybrid SQLite/PostgreSQL support
 """
 import os
 import uuid
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy import String as SQLString
+
+# Shared database instance - THIS FIXES THE TABLE REDEFINITION ERROR
+db = SQLAlchemy()
 
 class GUID(TypeDecorator):
     """Platform-independent GUID type.

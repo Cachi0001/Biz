@@ -1,31 +1,3 @@
-# 🚀 Supabase Setup Guide for Bizflow SME Nigeria
-
-## 📋 **Step 1: Create Supabase Project**
-
-1. **Go to [Supabase](https://supabase.com)**
-2. **Sign up/Login** with your account
-3. **Create New Project**
-   - Project Name: `bizflow-sme-nigeria`
-   - Database Password: `[choose a strong password]`
-   - Region: `Southeast Asia (Singapore)` or closest to Nigeria
-4. **Wait for project setup** (2-3 minutes)
-
-## 🔑 **Step 2: Get Your Credentials**
-
-After project creation, go to **Settings > API**:
-
-```bash
-# Copy these values to your .env file:
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_KEY=your-anon-public-key-here
-SUPABASE_SERVICE_KEY=your-service-role-key-here
-```
-
-## 🗄️ **Step 3: Create Database Schema**
-
-Go to **SQL Editor** in Supabase and run this SQL:
-
-```sql
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -249,11 +221,6 @@ CREATE TABLE public.push_subscriptions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-```
-
-## 🔒 **Step 4: Set Up Row Level Security (RLS)**
-
-```sql
 -- Enable RLS on all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
@@ -317,11 +284,6 @@ CREATE POLICY "Users can manage own notifications" ON public.notifications
 -- Push subscriptions policies
 CREATE POLICY "Users can manage own push subscriptions" ON public.push_subscriptions
     FOR ALL USING (auth.uid() = user_id);
-```
-
-## 🔧 **Step 5: Create Database Functions**
-
-```sql
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -378,44 +340,8 @@ $$ language 'plpgsql';
 CREATE TRIGGER create_transaction_from_expense_trigger
     AFTER INSERT ON public.expenses
     FOR EACH ROW EXECUTE FUNCTION create_transaction_from_expense();
-```
 
-## 🔄 **Step 6: Update Your Environment Variables**
+    ALTER TABLE public.users ALTER COLUMN referral_code SET DEFAULT CONCAT('SABI', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 6)));
 
-Replace the placeholder values in your `.env` file:
-
-```bash
-# Replace these with your actual Supabase credentials
-SUPABASE_URL=https://your-actual-project-id.supabase.co
-SUPABASE_KEY=your-actual-anon-key
-SUPABASE_SERVICE_KEY=your-actual-service-role-key
-```
-
-## ✅ **Step 7: Test the Setup**
-
-1. **Install dependencies:**
-   ```bash
-   cd backend/bizflow-backend
-   pip install supabase postgrest
-   ```
-
-2. **Start your backend:**
-   ```bash
-   python src/main.py
-   ```
-
-3. **Test the connection:**
-   - Visit: `http://localhost:5001/api/health`
-   - Should show: `{"status": "healthy", "database": "Supabase"}`
-
-## 🎉 **You're Ready!**
-
-Your Bizflow SME Nigeria app now has:
-- ✅ **Supabase PostgreSQL database**
-- ✅ **Row-level security**
-- ✅ **Real-time capabilities**
-- ✅ **Automatic transaction tracking**
-- ✅ **Notification system**
-- ✅ **Role-based access control**
-
-**Next:** Start your frontend and backend servers to test the full integration!
+-- Update existing referral codes to SabiOps format (optional)
+UPDATE public.users SET referral_code = CONCAT('SABI', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 6))) WHERE referral_code LIKE 'BIZ%';

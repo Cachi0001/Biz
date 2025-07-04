@@ -1,4 +1,4 @@
-from src.models.user import db
+from src.models.base import db
 from datetime import datetime
 
 class Sale(db.Model):

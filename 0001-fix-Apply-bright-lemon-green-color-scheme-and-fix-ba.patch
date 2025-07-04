@@ -1,5 +1,4 @@
 From 5cf601948aeccc1966a712bf3b361757b047c629 Mon Sep 17 00:00:00 2001
-From: Manus AI <manus@example.com>
 Date: Tue, 1 Jul 2025 20:37:44 -0400
 Subject: [PATCH] fix: Apply bright lemon-green color scheme and fix backend
  authentication errors
