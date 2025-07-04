@@ -6,11 +6,16 @@ configure({ testIdAttribute: 'data-testid' });
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+  takeRecords() { return []; }
+} as any;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -37,18 +42,22 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock localStorage
 const localStorageMock = {
+  length: 0,
   getItem: jest.fn(),
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
+  key: jest.fn(),
 };
-global.localStorage = localStorageMock;
+global.localStorage = localStorageMock as any;
 
 // Mock sessionStorage
 const sessionStorageMock = {
+  length: 0,
   getItem: jest.fn(),
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
+  key: jest.fn(),
 };
-global.sessionStorage = sessionStorageMock;
+global.sessionStorage = sessionStorageMock as any;
