@@ -1,10 +1,10 @@
-import { auth, user } from './api';
+import apiService from './api';
 
 export const authService = {
   // User login
   async login(email, password) {
     try {
-      const response = await auth.login(email, password);
+      const response = await apiService.login(email, password);
       if (response.data.access_token) {
         localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -18,7 +18,7 @@ export const authService = {
   // User registration
   async register(userData) {
     try {
-      const response = await auth.register(userData);
+      const response = await apiService.register(userData);
       if (response.data.access_token) {
         localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -32,7 +32,8 @@ export const authService = {
   // Create team member (Owner/Admin only)
   async createTeamMember(memberData) {
     try {
-      const response = await auth.createTeamMember(memberData);
+      // Assuming apiService has a method for creating team members
+      const response = await apiService.createTeamMember(memberData);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to create team member' };
@@ -42,7 +43,7 @@ export const authService = {
   // Get current user profile
   async getProfile() {
     try {
-      const response = await user.getProfile();
+      const response = await apiService.getProfile();
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to fetch profile' };
@@ -52,7 +53,7 @@ export const authService = {
   // Update user profile
   async updateProfile(userData) {
     try {
-      const response = await user.updateProfile(userData);
+      const response = await apiService.updateProfile(userData);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to update profile' };
@@ -71,7 +72,7 @@ export const authService = {
 
   // Logout
   logout() {
-    auth.logout(); // This handles clearing local storage and redirecting
+    apiService.logout(); // This handles clearing local storage and redirecting
   },
 
   // Check user role
