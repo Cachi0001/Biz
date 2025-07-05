@@ -10,6 +10,11 @@ import uuid
 from decimal import Decimal
 import json
 
+# Add current directory to Python path for module imports
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
+
 # Import blueprints
 from src.routes.auth import auth_bp
 from src.routes.customer import customer_bp
@@ -167,5 +172,7 @@ def after_request(response):
     response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
     response.headers.add("Access-Control-Allow-Credentials", "true")
     return response
+
+
 
 

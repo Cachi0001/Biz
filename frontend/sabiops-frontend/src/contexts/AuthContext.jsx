@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import apiService from "../services/api";
+import { authService } from "../services/authService";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
@@ -51,9 +52,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = apiService.getAuthToken();
+        const token = authService.getToken();
         if (token) {
-          const response = await apiService.getProfile();
+          const response = await authService.getProfile();
           // Handle different response structures
           let userData = null;
           if (response.user) {
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        apiService.removeAuthToken();
+        authService.logout(); // Use authService.logout to clear token and user
         setUser(null);
       } finally {
         setLoading(false);
@@ -82,12 +83,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiService.login(credentials);
+      const response = await authService.login(credentials.username, credentials.password);
       
       // After successful login, get user profile
       if (response.access_token) {
         try {
-          const profileResponse = await apiService.getProfile();
+          const profileResponse = await authService.getProfile();
           const userData = profileResponse.user || profileResponse;
           setUser(enhanceUserData(userData));
         } catch (profileError) {
@@ -127,12 +128,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiService.register(userData);
+      const response = await authService.register(userData);
       
       // After successful registration, get user profile if token is provided
       if (response.access_token) {
         try {
-          const profileResponse = await apiService.getProfile();
+          const profileResponse = await authService.getProfile();
           const userProfileData = profileResponse.user || profileResponse;
           setUser(enhanceUserData(userProfileData));
         } catch (profileError) {
@@ -170,7 +171,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await apiService.logout();
+      await authService.logout();
       setUser(null);
       setError(null);
     } catch (error) {
@@ -180,7 +181,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (userData) => {
     try {
-      const response = await apiService.updateProfile(userData);
+      const response = await authService.updateProfile(userData);
       // Handle different response structures
       let updatedUserData = null;
       if (response.user) {
@@ -202,9 +203,9 @@ export const AuthProvider = ({ children }) => {
 
   const updateSubscription = async (subscriptionData) => {
     try {
-      const response = await apiService.updateSubscription(subscriptionData);
+      const response = await authService.updateSubscription(subscriptionData);
       // Refresh user data after subscription update
-      const profileResponse = await apiService.getProfile();
+      const profileResponse = await authService.getProfile();
       const userData = profileResponse.user || profileResponse;
       setUser(enhanceUserData(userData));
       return response;

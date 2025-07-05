@@ -1,13 +1,12 @@
-// SabiOps Authentication Service
-import api from './api';
+import { auth, user } from './api';
 
 export const authService = {
   // User login
   async login(email, password) {
     try {
-      const response = await api.post('/auth/login', { email, password });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
+      const response = await auth.login(email, password);
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
@@ -19,9 +18,9 @@ export const authService = {
   // User registration
   async register(userData) {
     try {
-      const response = await api.post('/auth/register', userData);
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
+      const response = await auth.register(userData);
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
@@ -33,17 +32,31 @@ export const authService = {
   // Create team member (Owner/Admin only)
   async createTeamMember(memberData) {
     try {
-      const response = await api.post('/auth/create-team-member', memberData);
+      const response = await auth.createTeamMember(memberData);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to create team member' };
     }
   },
 
-  // Get current user
-  getCurrentUser() {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+  // Get current user profile
+  async getProfile() {
+    try {
+      const response = await user.getProfile();
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Failed to fetch profile' };
+    }
+  },
+
+  // Update user profile
+  async updateProfile(userData) {
+    try {
+      const response = await user.updateProfile(userData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Failed to update profile' };
+    }
   },
 
   // Get auth token
@@ -58,9 +71,7 @@ export const authService = {
 
   // Logout
   logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    auth.logout(); // This handles clearing local storage and redirecting
   },
 
   // Check user role
@@ -69,3 +80,4 @@ export const authService = {
     return user && roles.includes(user.role);
   }
 };
+
