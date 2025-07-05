@@ -29,11 +29,6 @@
   ],
   "env": {
     "PYTHONPATH": "backend/sabiops-backend/src"
-  },
-  "functions": {
-    "backend/sabiops-backend/src/main.py": {
-      "maxDuration": 30
-    }
   }
 }
 
