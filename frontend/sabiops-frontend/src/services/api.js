@@ -1,10 +1,16 @@
+// SabiOps API Service
 import axios from 'axios';
 
+// Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://sabiops-backend.vercel.app/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Add a request interceptor to include the token
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -18,119 +24,125 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle token expiration or invalid tokens
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token expired or invalid, clear local storage and redirect to login
+    if (error.response?.status === 401) {
+      // Token expired or invalid
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-// Export individual API functions for better modularity and clarity
-export const auth = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
-  register: (userData) => api.post('/auth/register', userData),
-  createTeamMember: (memberData) => api.post('/auth/create-team-member', memberData),
-  getProfile: () => api.get('/users/profile'),
-  updateProfile: (userData) => api.put('/users/profile', userData),
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+// API Service Methods
+const apiService = {
+  // Auth token management
+  getAuthToken: () => localStorage.getItem('token'),
+  setAuthToken: (token) => localStorage.setItem('token', token),
+  removeAuthToken: () => localStorage.removeItem('token'),
+
+  // Authentication endpoints
+  register: async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    if (response.data.access_token) {
+      apiService.setAuthToken(response.data.access_token);
+    }
+    return response.data;
+  },
+
+  login: async (credentials) => {
+    const response = await api.post('/auth/login', credentials);
+    if (response.data.access_token) {
+      apiService.setAuthToken(response.data.access_token);
+    }
+    return response.data;
+  },
+
+  logout: async () => {
+    apiService.removeAuthToken();
+    return Promise.resolve();
+  },
+
+  getProfile: async () => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+
+  updateProfile: async (userData) => {
+    const response = await api.put('/auth/profile', userData);
+    return response.data;
+  },
+
+  // Health check
+  healthCheck: async () => {
+    const response = await api.get('/health');
+    return response.data;
+  },
+
+  testDatabase: async () => {
+    const response = await api.get('/test-db');
+    return response.data;
+  },
+
+  // Customers
+  getCustomers: async () => {
+    const response = await api.get('/customers');
+    return response.data;
+  },
+
+  createCustomer: async (customerData) => {
+    const response = await api.post('/customers', customerData);
+    return response.data;
+  },
+
+  updateCustomer: async (customerId, customerData) => {
+    const response = await api.put(`/customers/${customerId}`, customerData);
+    return response.data;
+  },
+
+  deleteCustomer: async (customerId) => {
+    const response = await api.delete(`/customers/${customerId}`);
+    return response.data;
+  },
+
+  // Products
+  getProducts: async () => {
+    const response = await api.get('/products');
+    return response.data;
+  },
+
+  createProduct: async (productData) => {
+    const response = await api.post('/products', productData);
+    return response.data;
+  },
+
+  updateProduct: async (productId, productData) => {
+    const response = await api.put(`/products/${productId}`, productData);
+    return response.data;
+  },
+
+  deleteProduct: async (productId) => {
+    const response = await api.delete(`/products/${productId}`);
+    return response.data;
+  },
+
+  // Dashboard
+  getDashboardOverview: async () => {
+    const response = await api.get('/dashboard/overview');
+    return response.data;
+  },
+
+  getRevenueChart: async () => {
+    const response = await api.get('/dashboard/revenue-chart');
+    return response.data;
   },
 };
 
-export const customer = {
-  getCustomers: () => api.get('/customers'),
-  createCustomer: (customerData) => api.post('/customers', customerData),
-  updateCustomer: (id, customerData) => api.put(`/customers/${id}`, customerData),
-  deleteCustomer: (id) => api.delete(`/customers/${id}`),
-};
-
-export const product = {
-  getProducts: () => api.get('/products'),
-  createProduct: (productData) => api.post('/products', productData),
-  updateProduct: (id, productData) => api.put(`/products/${id}`, productData),
-  deleteProduct: (id) => api.delete(`/products/${id}`),
-};
-
-export const sale = {
-  getSales: () => api.get('/sales'),
-  createSale: (saleData) => api.post('/sales', saleData),
-  updateSale: (id, saleData) => api.put(`/sales/${id}`, saleData),
-  deleteSale: (id) => api.delete(`/sales/${id}`),
-};
-
-export const expense = {
-  getExpenses: () => api.get('/expenses'),
-  createExpense: (expenseData) => api.post('/expenses', expenseData),
-  updateExpense: (id, expenseData) => api.put(`/expenses/${id}`, expenseData),
-  deleteExpense: (id) => api.delete(`/expenses/${id}`),
-};
-
-export const invoice = {
-  getInvoices: () => api.get('/invoices'),
-  createInvoice: (invoiceData) => api.post('/invoices', invoiceData),
-  updateInvoice: (id, invoiceData) => api.put(`/invoices/${id}`, invoiceData),
-  deleteInvoice: (id) => api.delete(`/invoices/${id}`),
-};
-
-export const payment = {
-  getPayments: () => api.get('/payments'),
-  createPayment: (paymentData) => api.post('/payments', paymentData),
-  updatePayment: (id, paymentData) => api.put(`/payments/${id}`, paymentData),
-  deletePayment: (id) => api.delete(`/payments/${id}`),
-};
-
-export const dashboard = {
-  getDashboardSummary: () => api.get('/dashboard/summary'),
-  getSalesOverview: () => api.get('/dashboard/sales-overview'),
-  getTopProducts: () => api.get('/dashboard/top-products'),
-  getRecentActivities: () => api.get('/dashboard/recent-activities'),
-};
-
-export const referral = {
-  getReferrals: () => api.get('/referrals'),
-  createReferral: (referralData) => api.post('/referrals', referralData),
-};
-
-export const notification = {
-  getNotifications: () => api.get('/notifications'),
-  markAsRead: (id) => api.put(`/notifications/${id}/read`),
-};
-
-export const subscription = {
-  getSubscriptionPlans: () => api.get('/subscriptions/plans'),
-  updateSubscription: (subscriptionData) => api.put('/subscriptions/update', subscriptionData),
-};
-
-export const withdrawal = {
-  getWithdrawals: () => api.get('/withdrawals'),
-  requestWithdrawal: (withdrawalData) => api.post('/withdrawals', withdrawalData),
-};
-
-export const user = {
-  getUsers: () => api.get('/users'),
-  createUser: (userData) => api.post('/users', userData),
-  updateUser: (id, userData) => api.put(`/users/${id}`, userData),
-  deleteUser: (id) => api.delete(`/users/${id}`),
-  resetPassword: (id) => api.post(`/users/${id}/reset-password`),
-};
-
-export const subscriptionUpgrade = {
-  getSubscriptionUpgradeOptions: () => api.get('/subscription-upgrade/options'),
-  initiateUpgrade: (upgradeData) => api.post('/subscription-upgrade/initiate', upgradeData),
-};
-
-// Default export for backward compatibility if needed, but prefer named exports
-export default api;
+export default apiService;
 
 
