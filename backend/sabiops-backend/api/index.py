@@ -135,3 +135,16 @@ if __name__ == "__main__":
 
 
 
+
+
+@app.before_request
+def handle_options_requests():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        headers = response.headers
+        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        return response
+
+
