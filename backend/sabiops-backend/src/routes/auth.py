@@ -1,219 +1,301 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from src.models.user import User, db
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
+import uuid
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route('/register', methods=['POST'])
+def success_response(data=None, message="Success", status_code=200):
+    return jsonify({
+        "success": True,
+        "data": data,
+        "message": message
+    }), status_code
+
+def error_response(error, message="Error", status_code=400):
+    return jsonify({
+        "success": False,
+        "error": error,
+        "message": message
+    }), status_code
+
+@auth_bp.route("/register", methods=["POST"])
 def register():
-    """Register a new user"""
     try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
         data = request.get_json()
         
-        # Validate required fields - removed username, made phone required
-        required_fields = ['email', 'phone', 'password', 'first_name', 'last_name']
+        required_fields = ["email", "phone", "password", "first_name", "last_name"]
         for field in required_fields:
             if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
+                return error_response(f"{field} is required", status_code=400)
         
-        # Check if user already exists by email
-        existing_email = User.query.filter_by(email=data['email']).first()
-        if existing_email:
-            return jsonify({
-                'error': 'Email already exists',
-                'message': 'An account with this email already exists. Please use a different email or try logging in.',
-                'field': 'email'
-            }), 400
+        existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
+        existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
         
-        # Check if user already exists by phone
-        existing_phone = User.query.filter_by(phone=data['phone']).first()
-        if existing_phone:
-            return jsonify({
-                'error': 'Phone number already exists',
-                'message': 'An account with this phone number already exists. Please use a different phone number or try logging in.',
-                'field': 'phone'
-            }), 400
+        if existing_user_email.data:
+            return error_response(
+                error="Email already exists",
+                message="An account with this email already exists. Please use a different email or try logging in.",
+                status_code=400
+            )
+            
+        if existing_user_phone.data:
+            return error_response(
+                error="Phone number already exists", 
+                message="An account with this phone number already exists. Please use a different phone number or try logging in.",
+                status_code=400
+            )
         
-        # Create new user - removed username field
-        user = User(
-            email=data['email'],
-            phone=data['phone'],
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            business_name=data.get('business_name')
-        )
-        user.set_password(data['password'])
+        password_hash = generate_password_hash(data["password"])
         
-        db.session.add(user)
-        db.session.commit()
+        user_data = {
+            "id": str(uuid.uuid4()),
+            "email": data["email"],
+            "phone": data["phone"],
+            "password_hash": password_hash,
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
+            "business_name": data.get("business_name", ""),
+            "role": "Owner",
+            "subscription_plan": "weekly",
+            "subscription_status": "trial",
+            "active": True
+        }
         
-        # Create access token
-        access_token = create_access_token(
-            identity=user.id,
-            expires_delta=timedelta(hours=24)
-        )
+        result = supabase.table("users").insert(user_data).execute()
         
-        return jsonify({
-            'message': 'User registered successfully',
-            'user': user.to_dict(),
-            'access_token': access_token
-        }), 201
-        
+        if result.data:
+            user = result.data[0]
+            access_token = create_access_token(identity=user["id"])
+            
+            return success_response(
+                message="User registered successfully",
+                data={
+                    "access_token": access_token,
+                    "user": {
+                        "id": user["id"],
+                        "email": user["email"],
+                        "phone": user["phone"],
+                        "first_name": user["first_name"],
+                        "last_name": user["last_name"],
+                        "business_name": user["business_name"],
+                        "role": user["role"],
+                        "subscription_plan": user["subscription_plan"],
+                        "subscription_status": user["subscription_status"]
+                    }
+                },
+                status_code=201
+            )
+            
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), status_code=500)
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route("/login", methods=["POST"])
 def login():
-    """Login user using email or phone"""
     try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
         data = request.get_json()
         
-        # Validate required fields - changed to accept email_or_phone
-        if not data.get('email_or_phone') or not data.get('password'):
-            return jsonify({'error': 'Email/Phone and password are required'}), 400
+        if not data.get("login") or not data.get("password"):
+            return error_response(
+                error="Login credentials required",
+                message="Email/Phone and password are required",
+                status_code=400
+            )
         
-        # Find user by email or phone
-        identifier = data['email_or_phone']
-        user = User.query.filter(
-            (User.email == identifier) | 
-            (User.phone == identifier)
-        ).first()
+        login_field = data["login"]
+        password = data["password"]
         
-        if not user:
-            return jsonify({
-                'error': 'Invalid credentials',
-                'message': 'No account found with this email or phone number. Please check your credentials or sign up for a new account.',
-                'field': 'email_or_phone'
-            }), 401
-            
-        if not user.check_password(data['password']):
-            return jsonify({
-                'error': 'Invalid credentials',
-                'message': 'Incorrect password. Please check your password and try again.',
-                'field': 'password'
-            }), 401
+        if "@" in login_field:
+            user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+        else:
+            user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
         
-        if not user.active:  # Changed from is_active to active to match Supabase schema
-            return jsonify({
-                'error': 'Account deactivated',
-                'message': 'Your account has been deactivated. Please contact support for assistance.',
-                'field': 'account'
-            }), 401
+        if not user_result.data:
+            return error_response(
+                error="Invalid credentials",
+                message="No account found with this email or phone number. Please check your credentials or sign up for a new account.",
+                status_code=401
+            )
         
-        # Update last login
-        user.last_login = datetime.utcnow()
-        db.session.commit()
+        user = user_result.data[0]
         
-        # Create access token
-        access_token = create_access_token(
-            identity=user.id,
-            expires_delta=timedelta(hours=24)
+        if not check_password_hash(user["password_hash"], password):
+            return error_response(
+                error="Invalid credentials",
+                message="Incorrect password. Please check your password and try again.",
+                status_code=401
+            )
+        
+        if not user.get("active", True):
+            return error_response(
+                error="Account deactivated",
+                message="Your account has been deactivated. Please contact support for assistance.",
+                status_code=401
+            )
+        
+        supabase.table("users").update({"last_login": datetime.now().isoformat()}).eq("id", user["id"]).execute()
+        
+        access_token = create_access_token(identity=user["id"])
+        
+        return success_response(
+            message="Login successful",
+            data={
+                "access_token": access_token,
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "phone": user["phone"],
+                    "first_name": user["first_name"],
+                    "last_name": user["last_name"],
+                    "business_name": user["business_name"],
+                    "role": user["role"],
+                    "subscription_plan": user["subscription_plan"],
+                    "subscription_status": user["subscription_status"]
+                }
+            }
         )
         
-        return jsonify({
-            'message': 'Login successful',
-            'user': user.to_dict(),
-            'access_token': access_token
-        }), 200
-        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(
+            error=str(e),
+            message=f"An error occurred during login: {str(e)}",
+            status_code=500
+        )
 
-@auth_bp.route('/profile', methods=['GET'])
+@auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def get_profile():
-    """Get current user profile"""
     try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
         
-        return jsonify({'user': user.to_dict()}), 200
+        user = user_result.data[0]
+        
+        return success_response(
+            data={
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "phone": user["phone"],
+                    "first_name": user["first_name"],
+                    "last_name": user["last_name"],
+                    "business_name": user["business_name"],
+                    "role": user["role"],
+                    "subscription_plan": user["subscription_plan"],
+                    "subscription_status": user["subscription_status"],
+                    "referral_code": user["referral_code"],
+                    "trial_ends_at": user["trial_ends_at"]
+                }
+            }
+        )
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), status_code=500)
 
-@auth_bp.route('/profile', methods=['PUT'])
+@auth_bp.route("/profile", methods=["PUT"])
 @jwt_required()
 def update_profile():
-    """Update current user profile"""
     try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
         
+        user = user_result.data[0]
         data = request.get_json()
         
-        # Update allowed fields - removed username-related fields
-        allowed_fields = [
-            'first_name', 'last_name', 'phone', 'business_name'
-        ]
+        update_data = {"updated_at": datetime.now().isoformat()}
         
-        for field in allowed_fields:
-            if field in data:
-                # Check for phone uniqueness if updating phone
-                if field == 'phone' and data[field] != user.phone:
-                    existing_phone = User.query.filter_by(phone=data[field]).first()
-                    if existing_phone:
-                        return jsonify({
-                            'error': 'Phone number already exists',
-                            'message': 'This phone number is already associated with another account.',
-                            'field': 'phone'
-                        }), 400
-                
-                setattr(user, field, data[field])
+        if data.get("first_name"):
+            update_data["first_name"] = data["first_name"]
+        if data.get("last_name"):
+            update_data["last_name"] = data["last_name"]
+        if data.get("phone"):
+            if data["phone"] != user["phone"]:
+                existing_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
+                if existing_phone.data:
+                    return error_response(
+                        error="Phone number already exists",
+                        message="This phone number is already associated with another account.",
+                        status_code=400
+                    )
+            update_data["phone"] = data["phone"]
+        if data.get("business_name"):
+            update_data["business_name"] = data["business_name"]
         
-        # Handle password change
-        if data.get('new_password'):
-            if not data.get('current_password'):
-                return jsonify({'error': 'Current password is required'}), 400
+        if data.get("new_password"):
+            if not data.get("current_password"):
+                return error_response("Current password is required", status_code=400)
             
-            if not user.check_password(data['current_password']):
-                return jsonify({'error': 'Current password is incorrect'}), 400
+            if not check_password_hash(user["password_hash"], data["current_password"]):
+                return error_response("Current password is incorrect", status_code=400)
             
-            user.set_password(data['new_password'])
+            update_data["password_hash"] = generate_password_hash(data["new_password"])
         
-        db.session.commit()
+        supabase.table("users").update(update_data).eq("id", user_id).execute()
         
-        return jsonify({
-            'message': 'Profile updated successfully',
-            'user': user.to_dict()
-        }), 200
+        updated_user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        updated_user = updated_user_result.data[0]
+
+        return success_response(
+            message="Profile updated successfully",
+            data={
+                "user": {
+                    "id": updated_user["id"],
+                    "email": updated_user["email"],
+                    "phone": updated_user["phone"],
+                    "first_name": updated_user["first_name"],
+                    "last_name": updated_user["last_name"],
+                    "business_name": updated_user["business_name"],
+                    "role": updated_user["role"],
+                    "subscription_plan": updated_user["subscription_plan"],
+                    "subscription_status": updated_user["subscription_status"],
+                    "referral_code": updated_user["referral_code"],
+                    "trial_ends_at": updated_user["trial_ends_at"]
+                }
+            }
+        )
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), status_code=500)
 
-@auth_bp.route('/change-password', methods=['POST'])
+@auth_bp.route("/change-password", methods=["POST"])
 @jwt_required()
 def change_password():
-    """Change user password"""
     try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
         
+        user = user_result.data[0]
         data = request.get_json()
         
-        if not data.get('current_password') or not data.get('new_password'):
-            return jsonify({'error': 'Current password and new password are required'}), 400
+        if not data.get("current_password") or not data.get("new_password"):
+            return error_response("Current password and new password are required", status_code=400)
         
-        if not user.check_password(data['current_password']):
-            return jsonify({'error': 'Current password is incorrect'}), 400
+        if not check_password_hash(user["password_hash"], data["current_password"]):
+            return error_response("Current password is incorrect", status_code=400)
         
-        user.set_password(data['new_password'])
-        db.session.commit()
+        supabase.table("users").update({
+            "password_hash": generate_password_hash(data["new_password"]),
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", user_id).execute()
         
-        return jsonify({'message': 'Password changed successfully'}), 200
+        return success_response("Password changed successfully")
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return error_response(str(e), status_code=500)
+
+

@@ -1,287 +1,253 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+import uuid
 
-from src.models.product import Product
-from src.models.user import db
-from src.services.cloudinary_service import CloudinaryService
+product_bp = Blueprint("product", __name__)
 
-product_bp = Blueprint("product_bp", __name__)
+def success_response(data=None, message="Success", status_code=200):
+    return jsonify({
+        "success": True,
+        "data": data,
+        "message": message
+    }), status_code
+
+def error_response(error, message="Error", status_code=400):
+    return jsonify({
+        "success": False,
+        "error": error,
+        "message": message
+    }), status_code
 
 @product_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_products():
-    """Get all products for the authenticated user"""
-    user_id = get_jwt_identity()
-    
-    # Get query parameters for filtering
-    category = request.args.get('category')
-    search = request.args.get('search')
-    active_only = request.args.get('active_only', 'true').lower() == 'true'
-    
-    query = Product.query.filter_by(user_id=user_id)
-    
-    if active_only:
-        query = query.filter_by(is_active=True)
-    
-    if category:
-        query = query.filter_by(category=category)
-    
-    if search:
-        query = query.filter(Product.name.contains(search) | Product.sku.contains(search))
-    
-    products = query.order_by(Product.created_at.desc()).all()
-    return jsonify([product.to_dict() for product in products])
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        
+        query = supabase.table("products").select("*").eq("user_id", user_id)
+        
+        category = request.args.get("category")
+        search = request.args.get("search")
+        active_only = request.args.get("active_only", "true").lower() == "true"
+        
+        if active_only:
+            query = query.eq("active", True)
+        
+        if category:
+            query = query.eq("category", category)
+        
+        if search:
+            query = query.ilike("name", f"%{search}%").ilike("sku", f"%{search}%")
+        
+        products = query.order("created_at", desc=True).execute()
+        
+        return success_response(
+            data={
+                "products": products.data
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
 
-@product_bp.route("/<int:product_id>", methods=["GET"])
+@product_bp.route("/<product_id>", methods=["GET"])
 @jwt_required()
 def get_product(product_id):
-    """Get a specific product by ID"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-    
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-    
-    return jsonify(product.to_dict())
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        
+        if not product.data:
+            return error_response("Product not found", status_code=404)
+        
+        return success_response(
+            data={
+                "product": product.data
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
 
 @product_bp.route("/", methods=["POST"])
 @jwt_required()
 def create_product():
-    """Create a new product"""
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    
-    # Validate required fields
-    required_fields = ['name', 'unit_price']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return jsonify({"error": f"{field} is required"}), 400
-    
     try:
-        product = Product(
-            user_id=user_id,
-            name=data['name'],
-            description=data.get('description', ''),
-            sku=data.get('sku', ''),
-            category=data.get('category', ''),
-            unit_price=float(data['unit_price']),
-            cost_price=float(data.get('cost_price', 0)),
-            quantity_in_stock=int(data.get('quantity_in_stock', 0)),
-            minimum_stock_level=int(data.get('minimum_stock_level', 0)),
-            unit_of_measure=data.get('unit_of_measure', 'piece'),
-            tax_rate=float(data.get('tax_rate', 0)),
-            is_service=data.get('is_service', False),
-            barcode=data.get('barcode', ''),
-            supplier_info=data.get('supplier_info', '')
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        required_fields = ["name", "price"]
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", status_code=400)
+        
+        product_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "name": data["name"],
+            "description": data.get("description", ""),
+            "price": float(data["price"]),
+            "cost_price": float(data.get("cost_price", 0)),
+            "quantity": int(data.get("quantity", 0)),
+            "low_stock_threshold": int(data.get("low_stock_threshold", 5)),
+            "category": data.get("category", ""),
+            "sku": data.get("sku", ""),
+            "active": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        result = supabase.table("products").insert(product_data).execute()
+        
+        return success_response(
+            message="Product created successfully",
+            data={
+                "product": result.data[0]
+            },
+            status_code=201
         )
         
-        db.session.add(product)
-        db.session.commit()
-        
-        return jsonify(product.to_dict()), 201
-        
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"error": "SKU already exists"}), 400
-    except ValueError as e:
-        return jsonify({"error": f"Invalid data: {str(e)}"}), 400
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to create product: {str(e)}"}), 500
+        return error_response(str(e), status_code=500)
 
-@product_bp.route("/<int:product_id>", methods=["PUT"])
+@product_bp.route("/<product_id>", methods=["PUT"])
 @jwt_required()
 def update_product(product_id):
-    """Update an existing product"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-    
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-    
-    data = request.get_json()
-    
     try:
-        # Update fields if provided
-        if 'name' in data:
-            product.name = data['name']
-        if 'description' in data:
-            product.description = data['description']
-        if 'sku' in data:
-            product.sku = data['sku']
-        if 'category' in data:
-            product.category = data['category']
-        if 'unit_price' in data:
-            product.unit_price = float(data['unit_price'])
-        if 'cost_price' in data:
-            product.cost_price = float(data['cost_price'])
-        if 'quantity_in_stock' in data:
-            product.quantity_in_stock = int(data['quantity_in_stock'])
-        if 'minimum_stock_level' in data:
-            product.minimum_stock_level = int(data['minimum_stock_level'])
-        if 'unit_of_measure' in data:
-            product.unit_of_measure = data['unit_of_measure']
-        if 'tax_rate' in data:
-            product.tax_rate = float(data['tax_rate'])
-        if 'is_service' in data:
-            product.is_service = data['is_service']
-        if 'is_active' in data:
-            product.is_active = data['is_active']
-        if 'barcode' in data:
-            product.barcode = data['barcode']
-        if 'supplier_info' in data:
-            product.supplier_info = data['supplier_info']
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        data = request.get_json()
         
-        db.session.commit()
-        return jsonify(product.to_dict())
+        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        if not product.data:
+            return error_response("Product not found", status_code=404)
         
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"error": "SKU already exists"}), 400
-    except ValueError as e:
-        return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+        update_data = {
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        if data.get("name"):
+            update_data["name"] = data["name"]
+        if data.get("description"):
+            update_data["description"] = data["description"]
+        if data.get("price"):
+            update_data["price"] = float(data["price"])
+        if data.get("cost_price"):
+            update_data["cost_price"] = float(data["cost_price"])
+        if data.get("quantity"):
+            update_data["quantity"] = int(data["quantity"])
+        if data.get("category"):
+            update_data["category"] = data["category"]
+        if data.get("sku"):
+            update_data["sku"] = data["sku"]
+        if data.get("active") is not None:
+            update_data["active"] = data["active"]
+        
+        supabase.table("products").update(update_data).eq("id", product_id).execute()
+        
+        return success_response(
+            message="Product updated successfully"
+        )
+        
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to update product: {str(e)}"}), 500
+        return error_response(str(e), status_code=500)
 
-@product_bp.route("/<int:product_id>", methods=["DELETE"])
+@product_bp.route("/<product_id>", methods=["DELETE"])
 @jwt_required()
 def delete_product(product_id):
-    """Delete a product (soft delete by setting is_active to False)"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-    
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-    
     try:
-        # Soft delete - set is_active to False
-        product.is_active = False
-        db.session.commit()
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
         
-        return jsonify({"message": "Product deleted successfully"})
+        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        if not product.data:
+            return error_response("Product not found", status_code=404)
+        
+        supabase.table("products").update({
+            "active": False,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", product_id).execute()
+        
+        return success_response(
+            message="Product deleted successfully"
+        )
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to delete product: {str(e)}"}), 500
+        return error_response(str(e), status_code=500)
 
 @product_bp.route("/categories", methods=["GET"])
 @jwt_required()
 def get_categories():
-    """Get all unique categories for the user's products"""
-    user_id = get_jwt_identity()
-    
-    categories = db.session.query(Product.category).filter_by(
-        user_id=user_id, 
-        is_active=True
-    ).distinct().all()
-    
-    # Extract category names and filter out empty ones
-    category_list = [cat[0] for cat in categories if cat[0]]
-    
-    return jsonify(category_list)
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        
+        products = supabase.table("products").select("category").eq("user_id", user_id).eq("active", True).execute()
+        
+        categories = list(set([p["category"] for p in products.data if p["category"]]))
+        
+        return success_response(
+            data={
+                "categories": categories
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
 
 @product_bp.route("/low-stock", methods=["GET"])
 @jwt_required()
 def get_low_stock_products():
-    """Get products that are low on stock"""
-    user_id = get_jwt_identity()
-    
-    products = Product.query.filter_by(user_id=user_id, is_active=True).all()
-    low_stock_products = [product for product in products if product.is_low_stock()]
-    
-    return jsonify([product.to_dict() for product in low_stock_products])
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        
+        products = supabase.table("products").select("*").eq("user_id", user_id).eq("active", True).execute()
+        
+        low_stock_products = [p for p in products.data if p["quantity"] <= p["low_stock_threshold"]]
+        
+        return success_response(
+            data={
+                "low_stock_products": low_stock_products
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
 
-@product_bp.route("/<int:product_id>/stock", methods=["PUT"])
+@product_bp.route("/<product_id>/stock", methods=["PUT"])
 @jwt_required()
 def update_stock(product_id):
-    """Update product stock quantity"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-    
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-    
-    if product.is_service:
-        return jsonify({"error": "Cannot update stock for services"}), 400
-    
-    data = request.get_json()
-    
-    if 'quantity_change' not in data:
-        return jsonify({"error": "quantity_change is required"}), 400
-    
     try:
-        quantity_change = int(data['quantity_change'])
-        product.update_stock(quantity_change)
-        db.session.commit()
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
         
-        return jsonify({
-            "message": "Stock updated successfully",
-            "product": product.to_dict()
-        })
+        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        if not product.data:
+            return error_response("Product not found", status_code=404)
         
-    except ValueError:
-        return jsonify({"error": "Invalid quantity_change value"}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to update stock: {str(e)}"}), 500
-
-@product_bp.route("/<int:product_id>/upload-image", methods=["POST"])
-@jwt_required()
-def upload_product_image(product_id):
-    """Upload product image to Cloudinary"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    try:
-        # Delete old image if exists
-        if product.image_public_id:
-            CloudinaryService.delete_image(product.image_public_id)
+        data = request.get_json()
         
-        upload_result = CloudinaryService.upload_image(file, folder="product_images")
-        product.image_url = upload_result["secure_url"]
-        product.image_public_id = upload_result["public_id"]
-        db.session.commit()
+        if "quantity_change" not in data:
+            return error_response("quantity_change is required", status_code=400)
         
-        return jsonify(product.to_dict())
+        quantity_change = int(data["quantity_change"])
+        new_quantity = product.data["quantity"] + quantity_change
+        
+        supabase.table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
+        
+        return success_response(
+            message="Stock updated successfully",
+            data={
+                "product": {"id": product_id, "quantity": new_quantity}
+            }
+        )
         
     except Exception as e:
-        return jsonify({"error": f"Failed to upload image: {str(e)}"}), 500
-
-@product_bp.route("/<int:product_id>/remove-image", methods=["DELETE"])
-@jwt_required()
-def remove_product_image(product_id):
-    """Remove product image"""
-    user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=product_id, user_id=user_id).first()
-
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-
-    try:
-        # Delete image from Cloudinary if exists
-        if product.image_public_id:
-            CloudinaryService.delete_image(product.image_public_id)
-        
-        product.image_url = None
-        product.image_public_id = None
-        db.session.commit()
-        
-        return jsonify({"message": "Image removed successfully"})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to remove image: {str(e)}"}), 500
+        return error_response(str(e), status_code=500)
 
 
