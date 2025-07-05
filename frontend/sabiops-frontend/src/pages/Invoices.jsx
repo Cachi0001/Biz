@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, Eye, Download, Send } from 'lucide-react';
-import apiService from '../lib/api';
+import apiService from "../services/api";
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);

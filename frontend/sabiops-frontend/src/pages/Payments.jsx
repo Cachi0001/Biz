@@ -26,7 +26,7 @@ import {
   Clock,
   Eye
 } from 'lucide-react';
-import apiService from '../lib/api';
+import apiService from "../services/api";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);

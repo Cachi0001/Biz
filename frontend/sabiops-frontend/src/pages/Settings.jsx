@@ -28,7 +28,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from '../lib/api';
+import apiService from "../services/api";
 
 const Settings = () => {
   const { user } = useAuth();

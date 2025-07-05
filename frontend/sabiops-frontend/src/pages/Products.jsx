@@ -29,9 +29,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import apiService from '../lib/api.js';
-import toast from 'react-hot-toast';
+} from "@/components/ui/table";
+import apiService from "../services/api";
+import toast from "react-hot-toast";
 
 const Products = () => {
   const [products, setProducts] = useState([]);

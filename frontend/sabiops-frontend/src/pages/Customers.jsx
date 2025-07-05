@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, User, Phone, Mail } from 'lucide-react';
-import apiService from '../lib/api';
+import apiService from "../services/api";
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);

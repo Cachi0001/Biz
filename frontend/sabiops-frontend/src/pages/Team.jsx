@@ -21,10 +21,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import apiService from '../lib/api.js';
-import toast from 'react-hot-toast';
+} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import apiService from "../services/api";
+import toast from "react-hot-toast";
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);

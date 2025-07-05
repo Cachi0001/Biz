@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import FileUpload from '../components/FileUpload';
-import apiService from '../lib/api';
+import apiService from "../services/api";
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
