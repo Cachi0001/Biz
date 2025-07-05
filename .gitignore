@@ -124,3 +124,8 @@ coverage/
 !frontend/bizflow-frontend/src/lib/
 
 updates.md
+.env
+.env.local
+.env.example
+Comprehensive CORS Troubleshooting Report for SabiOps.md
+Comprehensive CORS Troubleshooting Report.md
