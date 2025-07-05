@@ -143,7 +143,7 @@ class NotificationService {
 
     try {
       // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // const registration = await navigator.serviceWorker.register("/sw.js");
       console.log('Service Worker registered:', registration);
       
       return true;
