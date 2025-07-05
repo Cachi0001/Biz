@@ -32,7 +32,8 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 
-CORS(app)
+# Configure CORS to allow requests from your frontend origin
+CORS(app, resources={r"/api/*": {"origins": "https://sabiops.vercel.app"}})
 jwt = JWTManager(app)
 
 # Initialize Supabase client
@@ -130,5 +131,7 @@ app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-up
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+
 
 
