@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import apiService from '../lib/api.js';
+import toast from 'react-hot-toast';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -69,8 +70,9 @@ const Products = () => {
       const response = await apiService.getProducts();
       setProducts(response.data || response);
     } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast.error('Failed to fetch products');
       setError('Failed to fetch products');
-      console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiService.request('/products/categories');
+      const response = await apiService.request({ url: '/products/categories' });
       setCategories(response.data || response);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -97,13 +99,46 @@ const Products = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error('Product name is required');
+      return;
+    }
+    if (!formData.category.trim()) {
+      toast.error('Category is required');
+      return;
+    }
+    if (!formData.unit_price || parseFloat(formData.unit_price) <= 0) {
+      toast.error('Valid unit price is required');
+      return;
+    }
+    if (formData.cost_price && parseFloat(formData.cost_price) < 0) {
+      toast.error('Cost price cannot be negative');
+      return;
+    }
+    if (formData.quantity_in_stock && parseInt(formData.quantity_in_stock) < 0) {
+      toast.error('Quantity in stock cannot be negative');
+      return;
+    }
+    if (formData.minimum_stock_level && parseInt(formData.minimum_stock_level) < 0) {
+      toast.error('Minimum stock level cannot be negative');
+      return;
+    }
+    if (formData.tax_rate && (parseFloat(formData.tax_rate) < 0 || parseFloat(formData.tax_rate) > 100)) {
+      toast.error('Tax rate must be between 0 and 100');
+      return;
+    }
+
     try {
       if (editingProduct) {
         await apiService.updateProduct(editingProduct.id, formData);
+        toast.success('Product updated successfully');
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
         await apiService.createProduct(formData);
+        toast.success('Product created successfully');
         setShowAddDialog(false);
       }
       
@@ -127,7 +162,10 @@ const Products = () => {
       fetchProducts();
       fetchCategories();
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to save product');
+      console.error('Failed to save product:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save product';
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
 

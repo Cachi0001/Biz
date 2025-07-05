@@ -22,7 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiService from '../lib/api.js';
+import toast from 'react-hot-toast';
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -38,8 +40,9 @@ const Team = () => {
     first_name: '',
     last_name: '',
     email: '',
-    username: '',
-    phone: ''
+    phone: '',
+    role: 'Salesperson',
+    password: ''
   });
 
   useEffect(() => {
@@ -49,11 +52,12 @@ const Team = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/team');
-      setTeamMembers(response.data.team_members || []);
+      const response = await apiService.getTeamMembers();
+      setTeamMembers(response.team_members || []);
     } catch (error) {
+      console.error('Failed to fetch team members:', error);
+      toast.error('Failed to fetch team members');
       setError('Failed to fetch team members');
-      console.error('Error fetching team members:', error);
     } finally {
       setLoading(false);
     }
@@ -69,15 +73,38 @@ const Team = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.first_name.trim()) {
+      toast.error('First name is required');
+      return;
+    }
+    if (!formData.last_name.trim()) {
+      toast.error('Last name is required');
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!editingMember && !formData.password.trim()) {
+      toast.error('Password is required for new team members');
+      return;
+    }
+    if (!editingMember && formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
       if (editingMember) {
-        await api.put(`/users/team/${editingMember.id}`, formData);
+        await apiService.updateTeamMember(editingMember.id, formData);
+        toast.success('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
-        const response = await api.post('/users/team', formData);
-        setTempPassword(response.data.temporary_password);
-        setShowPassword(true);
+        const response = await apiService.createTeamMember(formData);
+        toast.success('Team member created successfully');
         setShowAddDialog(false);
       }
       
@@ -86,13 +113,17 @@ const Team = () => {
         first_name: '',
         last_name: '',
         email: '',
-        username: '',
-        phone: ''
+        phone: '',
+        role: 'Salesperson',
+        password: ''
       });
       
       fetchTeamMembers();
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to save team member');
+      console.error('Failed to create team member:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save team member';
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
 
@@ -102,8 +133,9 @@ const Team = () => {
       first_name: member.first_name || '',
       last_name: member.last_name || '',
       email: member.email || '',
-      username: member.username || '',
-      phone: member.phone || ''
+      phone: member.phone || '',
+      role: member.role || 'Salesperson',
+      password: '' // Don't pre-fill password for security
     });
     setShowEditDialog(true);
   };
@@ -111,10 +143,14 @@ const Team = () => {
   const handleDelete = async (memberId) => {
     if (window.confirm('Are you sure you want to deactivate this team member?')) {
       try {
-        await api.delete(`/users/team/${memberId}`);
+        await apiService.deleteTeamMember(memberId);
+        toast.success('Team member deactivated successfully');
         fetchTeamMembers();
       } catch (error) {
-        setError('Failed to deactivate team member');
+        console.error('Failed to deactivate team member:', error);
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to deactivate team member';
+        toast.error(errorMessage);
+        setError(errorMessage);
       }
     }
   };
@@ -122,11 +158,15 @@ const Team = () => {
   const handleResetPassword = async (memberId) => {
     if (window.confirm('Are you sure you want to reset this team member\'s password?')) {
       try {
-        const response = await api.post(`/users/team/${memberId}/reset-password`);
-        setTempPassword(response.data.temporary_password);
+        const response = await apiService.resetTeamMemberPassword(memberId);
+        setTempPassword(response.temporary_password);
         setShowPassword(true);
+        toast.success('Password reset successfully');
       } catch (error) {
-        setError('Failed to reset password');
+        console.error('Failed to reset password:', error);
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to reset password';
+        toast.error(errorMessage);
+        setError(errorMessage);
       }
     }
   };
@@ -188,28 +228,64 @@ const Team = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">Username *</Label>
-          <Input
-            id="username"
-            name="username"
-            value={formData.username}
-            onChange={handleInputChange}
-            placeholder="Enter username"
-            required
-            disabled={editingMember} // Username cannot be changed
-          />
+          <Label htmlFor="role">Role *</Label>
+          <Select 
+            value={formData.role} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Salesperson">Salesperson</SelectItem>
+              <SelectItem value="Admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input
-          id="phone"
-          name="phone"
-          value={formData.phone}
-          onChange={handleInputChange}
-          placeholder="Enter phone number"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            placeholder="Enter phone number"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">
+            {editingMember ? 'New Password (leave blank to keep current)' : 'Password *'}
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder={editingMember ? "Enter new password" : "Enter password"}
+              required={!editingMember}
+              minLength={6}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end space-x-2">
