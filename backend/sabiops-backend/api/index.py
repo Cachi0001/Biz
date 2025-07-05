@@ -54,18 +54,28 @@ class DecimalEncoder(json.JSONEncoder):
 app.json_encoder = DecimalEncoder
 
 def success_response(data=None, message="Success", status_code=200):
-    return jsonify({
+    response = jsonify({
         "success": True,
         "data": data,
         "message": message
-    }), status_code
+    })
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response, status_code
 
 def error_response(error, message="Error", status_code=400):
-    return jsonify({
+    response = jsonify({
         "success": False,
         "error": error,
         "message": message
-    }), status_code
+    })
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response, status_code
 
 # ============================================================================
 # HEALTH & TEST ENDPOINTS
