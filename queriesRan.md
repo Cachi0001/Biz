@@ -345,3 +345,42 @@ CREATE TRIGGER create_transaction_from_expense_trigger
 
 -- Update existing referral codes to SabiOps format (optional)
 UPDATE public.users SET referral_code = CONCAT('SABI', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 6))) WHERE referral_code LIKE 'BIZ%';
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+ALTER TABLE public.users ALTER COLUMN referral_code 
+SET DEFAULT CONCAT('SABI', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 6)));
+
+UPDATE public.users 
+SET referral_code = CONCAT('SABI', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 6))) 
+WHERE referral_code LIKE 'BIZ%' OR referral_code IS NULL;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.users(id);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.users(id);
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'users' AND table_schema = 'public'
+ORDER BY ordinal_position;
+
+SELECT LEFT(referral_code, 4) as prefix, COUNT(*) as count
+FROM public.users 
+WHERE referral_code IS NOT NULL
+GROUP BY LEFT(referral_code, 4)
+ORDER BY prefix;
+
+SELECT 'Database schema updated successfully! Ready for deployment.' as status;

@@ -1,5 +1,5 @@
-Future Updates for Bizflow
-The following features will enhance Bizflow post-MVP to fully address Nigerian SMEs' challenges, once resources are available:
+Future Updates for SabiOps
+The following features will enhance SabiOps post-MVP to fully address Nigerian SMEs' challenges, once resources are available:
 
 Loan Connect Feature
 

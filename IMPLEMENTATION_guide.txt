@@ -2,7 +2,7 @@ Sabiops SME Nigeria - Enhanced Implementation Guide for Full-Stack AI Engineer
 Date: July 3, 2025, 10:30 PM WAT
 
 Purpose:
-This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for Bizflow—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
+This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
 
 Tech Stack:
 - Backend: Flask (Python) with Supabase (PostgreSQL)
@@ -170,11 +170,11 @@ Additional Notes:
 - Future-proofed for AI features via modular design and Supabase scalability.
 
 ============Below================
-Bizflow - Enhanced Implementation Guide for Full-Stack AI Engineer
+SabiOps - Enhanced Implementation Guide for Full-Stack AI Engineer
 Date: July 4, 2025, 05:17 AM WAT
 
 Purpose:
-This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for Bizflow—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
+This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
 
 Tech Stack:
 - Backend: Flask (Python) with Supabase (PostgreSQL)
@@ -344,9 +344,9 @@ Additional Notes:
 - Future-proofed for AI features via modular design and Supabase scalability.
 
 ///
-Bizflow - Enhanced Implementation Guide for Full-Stack AI Engineer Date: July 4, 2025, 05:17 AM WAT
+SabiOps - Enhanced Implementation Guide for Full-Stack AI Engineer Date: July 4, 2025, 05:17 AM WAT
 
-Purpose: This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for Bizflow—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
+Purpose: This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
 
 Tech Stack:
 
@@ -1064,7 +1064,7 @@ Future-proofed for AI features via modular design and Supabase scalability.
 - Aligned with existing Supabase schema
 
 #### **2. Backend Authentication Updates** ✅
-**File:** `backend/bizflow-backend/src/models/user.py`
+**File:** `backend/sabiops-backend/src/models/user.py`
 **Changes:**
 - Removed all username-related fields and methods
 - Aligned User model with Supabase schema exactly
@@ -1072,7 +1072,7 @@ Future-proofed for AI features via modular design and Supabase scalability.
 - Improved trial and subscription management
 - Enhanced error handling and validation
 
-**File:** `backend/bizflow-backend/src/routes/auth.py`
+**File:** `backend/sabiops-backend/src/routes/auth.py`
 **Changes:**
 - Updated registration route to use email/phone only
 - Fixed login logic to accept email or phone
@@ -1080,7 +1080,7 @@ Future-proofed for AI features via modular design and Supabase scalability.
 - Improved error messages and response handling
 
 #### **3. Enhanced Signup Card Layout** ✅
-**File:** `frontend/bizflow-frontend/src/pages/Register.jsx`
+**File:** `frontend/sabiops-frontend/src/pages/Register.jsx`
 **Improvements:**
 - **Side-by-side input fields** arranged in logical pairs:
   - First Name | Last Name
