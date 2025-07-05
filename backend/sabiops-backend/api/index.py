@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from supabase import create_client
+from supabase import create_client, SupabaseException
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -41,11 +41,18 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
 jwt = JWTManager(app)
 
+# Check for required environment variables
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+
+if not supabase_url or not supabase_key:
+    raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY are required environment variables. Please set them in your Vercel project settings.")
+
 # Initialize Supabase client
-supabase = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_KEY")
-)
+try:
+    supabase = create_client(supabase_url, supabase_key)
+except SupabaseException as e:
+    raise RuntimeError(f"Failed to initialize Supabase client: {e}")
 
 # Pass supabase client to blueprints
 app.config["SUPABASE_CLIENT"] = supabase
@@ -147,11 +154,6 @@ app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-up
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
 
-
-
-
-
-
 @app.before_request
 def handle_options_requests():
     if request.method == "OPTIONS":
@@ -162,9 +164,6 @@ def handle_options_requests():
         headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         return response
 
-
-
-
 @app.after_request
 def after_request(response):
     response.headers.add("Access-Control-Allow-Origin", "*")
@@ -172,7 +171,5 @@ def after_request(response):
     response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
     response.headers.add("Access-Control-Allow-Credentials", "true")
     return response
-
-
 
 
