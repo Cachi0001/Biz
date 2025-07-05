@@ -20,11 +20,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/sabiops-backend/src/main.py"
+      "dest": "backend/sabiops-backend/src/main.py"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/sabiops-frontend/dist/$1"
+      "dest": "frontend/sabiops-frontend/dist/$1"
     }
   ],
   "env": {
