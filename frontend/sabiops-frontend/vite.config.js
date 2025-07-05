@@ -25,8 +25,9 @@ export default defineConfig({
     }
   },
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
+    allowedHosts: 'all',
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
@@ -36,8 +37,9 @@ export default defineConfig({
     }
   },
   preview: {
-    host: true,
-    port: 4173
+    host: '0.0.0.0',
+    port: 4173,
+    allowedHosts: 'all'
   }
 })
 

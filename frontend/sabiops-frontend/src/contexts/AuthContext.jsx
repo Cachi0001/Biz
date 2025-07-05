@@ -16,6 +16,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Calculate trial days remaining
+  const getTrialDaysLeft = (trialEndDate) => {
+    if (!trialEndDate) return 0;
+    const endDate = new Date(trialEndDate);
+    const today = new Date();
+    const diffTime = endDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  // Enhanced user object with role and subscription data
+  const enhanceUserData = (userData) => {
+    if (!userData) return null;
+
+    return {
+      ...userData,
+      role: userData.role || 'standard_user',
+      subscription_status: userData.subscription_status || 'free_trial',
+      trial_end_date: userData.trial_end_date,
+      trial_days_left: userData.trial_end_date ? getTrialDaysLeft(userData.trial_end_date) : 14,
+      is_trial_expired: userData.trial_end_date ? new Date(userData.trial_end_date) < new Date() : false,
+      subscription_features: {
+        max_customers: userData.subscription_status === 'premium' ? -1 : userData.subscription_status === 'basic' ? 100 : 10,
+        max_products: userData.subscription_status === 'premium' ? -1 : userData.subscription_status === 'basic' ? 50 : 5,
+        advanced_reports: userData.subscription_status !== 'free_trial',
+        team_collaboration: userData.subscription_status === 'premium',
+        api_access: userData.subscription_status === 'premium',
+      }
+    };
+  };
+
   // Check if user is authenticated on app load
   useEffect(() => {
     const checkAuth = async () => {
@@ -24,14 +55,16 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           const response = await apiService.getProfile();
           // Handle different response structures
+          let userData = null;
           if (response.user) {
-            setUser(response.user);
+            userData = response.user;
           } else if (response.data && response.data.user) {
-            setUser(response.data.user);
+            userData = response.data.user;
           } else {
-            // If response structure is different, use the response itself
-            setUser(response);
+            userData = response;
           }
+          
+          setUser(enhanceUserData(userData));
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -55,19 +88,27 @@ export const AuthProvider = ({ children }) => {
       if (response.access_token) {
         try {
           const profileResponse = await apiService.getProfile();
-          setUser(profileResponse.user || profileResponse);
+          const userData = profileResponse.user || profileResponse;
+          setUser(enhanceUserData(userData));
         } catch (profileError) {
           console.error('Failed to get user profile:', profileError);
           // Set a basic user object if profile fetch fails
-          setUser({ id: 'unknown', email: credentials.username });
+          setUser(enhanceUserData({ 
+            id: 'unknown', 
+            email: credentials.username,
+            role: 'standard_user',
+            subscription_status: 'free_trial'
+          }));
         }
       } else {
         // If no token, set user from response or create basic user object
-        if (response.user) {
-          setUser(response.user);
-        } else {
-          setUser({ id: 'unknown', email: credentials.username });
-        }
+        const userData = response.user || { 
+          id: 'unknown', 
+          email: credentials.username,
+          role: 'standard_user',
+          subscription_status: 'free_trial'
+        };
+        setUser(enhanceUserData(userData));
       }
       
       return response;
@@ -75,7 +116,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Login error:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed';
       setError(errorMessage);
-      // Don't set user to null or undefined - keep it as null
       setUser(null);
       throw error;
     } finally {
@@ -93,19 +133,27 @@ export const AuthProvider = ({ children }) => {
       if (response.access_token) {
         try {
           const profileResponse = await apiService.getProfile();
-          setUser(profileResponse.user || profileResponse);
+          const userProfileData = profileResponse.user || profileResponse;
+          setUser(enhanceUserData(userProfileData));
         } catch (profileError) {
           console.error('Failed to get user profile:', profileError);
           // Set a basic user object if profile fetch fails
-          setUser({ id: 'unknown', email: userData.email });
+          setUser(enhanceUserData({ 
+            id: 'unknown', 
+            email: userData.email,
+            role: 'standard_user',
+            subscription_status: 'free_trial'
+          }));
         }
       } else {
         // If no token, set user from response or create basic user object
-        if (response.user) {
-          setUser(response.user);
-        } else {
-          setUser({ id: 'unknown', email: userData.email });
-        }
+        const userProfileData = response.user || { 
+          id: 'unknown', 
+          email: userData.email,
+          role: 'standard_user',
+          subscription_status: 'free_trial'
+        };
+        setUser(enhanceUserData(userProfileData));
       }
       
       return response;
@@ -113,7 +161,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Registration error:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed';
       setError(errorMessage);
-      // Don't set user to null or undefined - keep it as null
       setUser(null);
       throw error;
     } finally {
@@ -135,13 +182,31 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.updateProfile(userData);
       // Handle different response structures
+      let updatedUserData = null;
       if (response.user) {
-        setUser(response.user);
+        updatedUserData = response.user;
       } else if (response.data && response.data.user) {
-        setUser(response.data.user);
+        updatedUserData = response.data.user;
       } else {
-        setUser(response);
+        updatedUserData = response;
       }
+      
+      setUser(enhanceUserData(updatedUserData));
+      return response;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(errorMessage);
+      throw error;
+    }
+  };
+
+  const updateSubscription = async (subscriptionData) => {
+    try {
+      const response = await apiService.updateSubscription(subscriptionData);
+      // Refresh user data after subscription update
+      const profileResponse = await apiService.getProfile();
+      const userData = profileResponse.user || profileResponse;
+      setUser(enhanceUserData(userData));
       return response;
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -154,6 +219,22 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  // Helper functions for role and subscription checks
+  const hasRole = (requiredRole) => {
+    if (!user) return false;
+    return user.role?.toLowerCase() === requiredRole.toLowerCase();
+  };
+
+  const hasSubscription = (requiredSubscription) => {
+    if (!user) return false;
+    return user.subscription_status?.toLowerCase() === requiredSubscription.toLowerCase();
+  };
+
+  const canAccessFeature = (feature) => {
+    if (!user || !user.subscription_features) return false;
+    return user.subscription_features[feature] === true || user.subscription_features[feature] === -1;
+  };
+
   const value = {
     user,
     loading,
@@ -162,8 +243,16 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    updateSubscription,
     clearError,
+    hasRole,
+    hasSubscription,
+    canAccessFeature,
     isAuthenticated: !!user,
+    isAdmin: hasRole('admin'),
+    isPremium: hasSubscription('premium'),
+    isFreeTrial: hasSubscription('free_trial'),
+    trialDaysLeft: user?.trial_days_left || 0,
   };
 
   return (

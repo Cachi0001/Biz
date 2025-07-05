@@ -185,10 +185,110 @@ const apiService = {
     return response.data;
   },
 
-  getRevenueChart: async () => {
-    const response = await api.get('/dashboard/revenue-chart');
+  getRevenueChart: async (period = '12months') => {
+    const response = await api.get(`/dashboard/revenue-chart?period=${period}`);
+    return response.data;
+  },
+
+  getTopCustomers: async (limit = 5) => {
+    const response = await api.get(`/dashboard/top-customers?limit=${limit}`);
+    return response.data;
+  },
+
+  getTopProducts: async (limit = 5) => {
+    const response = await api.get(`/dashboard/top-products?limit=${limit}`);
+    return response.data;
+  },
+
+  getRecentActivities: async (limit = 10) => {
+    const response = await api.get(`/dashboard/recent-activities?limit=${limit}`);
+    return response.data;
+  },
+
+  // Subscription Management
+  getSubscriptionPlans: async () => {
+    const response = await api.get('/subscriptions/plans');
+    return response.data;
+  },
+
+  getCurrentSubscription: async () => {
+    const response = await api.get('/subscriptions/current');
+    return response.data;
+  },
+
+  updateSubscription: async (subscriptionData) => {
+    const response = await api.put('/subscriptions/update', subscriptionData);
+    return response.data;
+  },
+
+  cancelSubscription: async () => {
+    const response = await api.post('/subscriptions/cancel');
+    return response.data;
+  },
+
+  // Payment Integration (Paystack)
+  initializePayment: async (paymentData) => {
+    const response = await api.post('/payments/initialize', paymentData);
+    return response.data;
+  },
+
+  verifyPayment: async (reference) => {
+    const response = await api.post('/payments/verify', { reference });
+    return response.data;
+  },
+
+  getPaymentHistory: async () => {
+    const response = await api.get('/payments/history');
+    return response.data;
+  },
+
+  // Subscription Upgrade
+  upgradeSubscription: async (plan, paymentMethod = 'paystack') => {
+    const response = await api.post('/subscription-upgrade/upgrade', {
+      plan,
+      payment_method: paymentMethod
+    });
+    return response.data;
+  },
+
+  downgradeSubscription: async (plan) => {
+    const response = await api.post('/subscription-upgrade/downgrade', { plan });
+    return response.data;
+  },
+
+  // Referrals
+  getReferrals: async () => {
+    const response = await api.get('/referrals');
+    return response.data;
+  },
+
+  createReferral: async (referralData) => {
+    const response = await api.post('/referrals', referralData);
+    return response.data;
+  },
+
+  // Notifications
+  getNotifications: async () => {
+    const response = await api.get('/notifications');
+    return response.data;
+  },
+
+  markNotificationAsRead: async (notificationId) => {
+    const response = await api.put(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  // Withdrawals
+  getWithdrawals: async () => {
+    const response = await api.get('/withdrawals');
+    return response.data;
+  },
+
+  requestWithdrawal: async (withdrawalData) => {
+    const response = await api.post('/withdrawals', withdrawalData);
     return response.data;
   },
 };
 
 export default apiService;
+

@@ -5,6 +5,9 @@ import apiService from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import SubscriptionBadge from '@/components/ui/subscription-badge';
+import RoleBasedWrapper from '@/components/ui/role-based-wrapper';
+import UpgradePrompt from '@/components/ui/upgrade-prompt';
 import {
   LineChart,
   Line,
@@ -28,10 +31,13 @@ import {
   DollarSign,
   Plus,
   Eye,
+  Clock,
+  Crown,
+  Settings,
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isFreeTrial, isPremium, trialDaysLeft, canAccessFeature } = useAuth();
   const [overview, setOverview] = useState(null);
   const [revenueChart, setRevenueChart] = useState([]);
   const [topCustomers, setTopCustomers] = useState([]);
@@ -118,25 +124,61 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
+      {/* Welcome Header with Subscription Status */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Welcome back, {user?.first_name}!
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Welcome back, {user?.first_name}!
+            </h1>
+            <SubscriptionBadge 
+              subscriptionStatus={user?.subscription_status} 
+              trialDaysLeft={trialDaysLeft}
+            />
+          </div>
           <p className="text-muted-foreground">
             Here's what's happening with your business today.
           </p>
+          
+          {/* Free Trial Warning */}
+          {isFreeTrial && trialDaysLeft <= 3 && (
+            <div className="flex items-center gap-2 mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm text-yellow-800">
+                Your free trial expires in {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}. 
+                <Link to="/subscription/upgrade" className="ml-1 underline font-medium">
+                  Upgrade now
+                </Link>
+              </span>
+            </div>
+          )}
         </div>
+        
         <div className="flex space-x-2">
-          <Button asChild>
-            <Link to="/invoices/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Invoice
-            </Link>
-          </Button>
+          <RoleBasedWrapper allowedRoles={['admin', 'standard_user']}>
+            <Button asChild>
+              <Link to="/invoices/new">
+                <Plus className="mr-2 h-4 w-4" />
+                New Invoice
+              </Link>
+            </Button>
+          </RoleBasedWrapper>
+          
+          {isFreeTrial && (
+            <Button asChild variant="outline">
+              <Link to="/subscription/upgrade">
+                <Crown className="mr-2 h-4 w-4" />
+                Upgrade
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Free Trial Upgrade Prompt */}
+      {isFreeTrial && trialDaysLeft > 3 && (
+        <UpgradePrompt variant="banner" showFeatures={false} />
+      )}
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -157,7 +199,14 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Customers
+              {isFreeTrial && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({overview?.customers?.total || 0}/10)
+                </span>
+              )}
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -167,12 +216,24 @@ const Dashboard = () => {
             <p className="text-xs text-muted-foreground">
               +{overview?.customers?.new_this_month || 0} new this month
             </p>
+            {isFreeTrial && (overview?.customers?.total || 0) >= 8 && (
+              <p className="text-xs text-yellow-600 mt-1">
+                Approaching limit. Upgrade for unlimited customers.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Products
+              {isFreeTrial && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({overview?.products?.total || 0}/5)
+                </span>
+              )}
+            </CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -182,6 +243,11 @@ const Dashboard = () => {
             <p className="text-xs text-muted-foreground">
               {overview?.products?.low_stock || 0} low stock
             </p>
+            {isFreeTrial && (overview?.products?.total || 0) >= 4 && (
+              <p className="text-xs text-yellow-600 mt-1">
+                Approaching limit. Upgrade for unlimited products.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -206,28 +272,52 @@ const Dashboard = () => {
         {/* Revenue Chart */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Revenue Overview
+              {!canAccessFeature('advanced_reports') && (
+                <Badge variant="outline" className="text-xs">
+                  Basic
+                </Badge>
+              )}
+            </CardTitle>
             <CardDescription>
-              Monthly revenue for the last 12 months
+              {canAccessFeature('advanced_reports') 
+                ? 'Monthly revenue for the last 12 months'
+                : 'Basic revenue overview (upgrade for advanced analytics)'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={revenueChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [formatCurrency(value), 'Revenue']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {canAccessFeature('advanced_reports') ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={revenueChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="period" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => [formatCurrency(value), 'Revenue']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center bg-muted/20 rounded-lg">
+                <div className="text-center">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">Advanced charts available in paid plans</p>
+                  <Button asChild size="sm">
+                    <Link to="/subscription/upgrade">
+                      Upgrade Now
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -241,7 +331,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topCustomers.map((customer, index) => (
+              {topCustomers.slice(0, isFreeTrial ? 3 : 5).map((customer, index) => (
                 <div key={customer.id} className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
                     {index + 1}
@@ -264,6 +354,18 @@ const Dashboard = () => {
                   No customer data available
                 </p>
               )}
+              {isFreeTrial && topCustomers.length > 3 && (
+                <div className="text-center pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    +{topCustomers.length - 3} more customers
+                  </p>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/subscription/upgrade">
+                      Upgrade to see all
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -281,7 +383,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topProducts.map((product, index) => (
+              {topProducts.slice(0, isFreeTrial ? 3 : 5).map((product, index) => (
                 <div key={product.id} className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-sm font-medium">
                     {index + 1}
@@ -303,6 +405,18 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No product data available
                 </p>
+              )}
+              {isFreeTrial && topProducts.length > 3 && (
+                <div className="text-center pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    +{topProducts.length - 3} more products
+                  </p>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/subscription/upgrade">
+                      Upgrade to see all
+                    </Link>
+                  </Button>
+                </div>
               )}
             </div>
           </CardContent>
@@ -361,24 +475,31 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Button asChild variant="outline" className="h-20 flex-col">
-              <Link to="/customers">
-                <Users className="h-6 w-6 mb-2" />
-                Add Customer
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-20 flex-col">
-              <Link to="/products">
-                <Package className="h-6 w-6 mb-2" />
-                Add Product
-              </Link>
-            </Button>
+            <RoleBasedWrapper allowedRoles={['admin', 'standard_user']}>
+              <Button asChild variant="outline" className="h-20 flex-col">
+                <Link to="/customers">
+                  <Users className="h-6 w-6 mb-2" />
+                  Add Customer
+                </Link>
+              </Button>
+            </RoleBasedWrapper>
+            
+            <RoleBasedWrapper allowedRoles={['admin', 'standard_user']}>
+              <Button asChild variant="outline" className="h-20 flex-col">
+                <Link to="/products">
+                  <Package className="h-6 w-6 mb-2" />
+                  Add Product
+                </Link>
+              </Button>
+            </RoleBasedWrapper>
+            
             <Button asChild variant="outline" className="h-20 flex-col">
               <Link to="/invoices">
                 <FileText className="h-6 w-6 mb-2" />
                 Create Invoice
               </Link>
             </Button>
+            
             <Button asChild variant="outline" className="h-20 flex-col">
               <Link to="/payments">
                 <Eye className="h-6 w-6 mb-2" />
@@ -388,6 +509,11 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Upgrade Prompt for Free Trial Users */}
+      {isFreeTrial && trialDaysLeft <= 7 && (
+        <UpgradePrompt showFeatures={true} />
+      )}
     </div>
   );
 };
