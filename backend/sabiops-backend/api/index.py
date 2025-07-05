@@ -33,7 +33,7 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-chan
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 
 # Configure CORS to allow requests from your frontend origin
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
 jwt = JWTManager(app)
 
 # Initialize Supabase client
