@@ -7,7 +7,7 @@ const TypingAnimation = () => {
     { text: "Your Business, ", highlight: "Simplified", color: "text-primary" },
     { text: "We Are Here for you❤️", highlight: "", color: "" },
     { text: "Your feedback sef na em matter pass", highlight: "", color: "" },
-    { text: "Let's Take that business to the next ", highlight: "level", color: "text-primary" }
+    { text: "Let's Take that business to the ", highlight: "NEXT LEVEL", color: "text-primary" }
   ];
   
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);

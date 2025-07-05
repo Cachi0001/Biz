@@ -1,5 +1,5 @@
 /**
- * Toast Provider Component for Bizflow SME Nigeria
+ * Toast Provider Component for SabiOps SME Nigeria
  * Provides toast notifications throughout the app
  */
 

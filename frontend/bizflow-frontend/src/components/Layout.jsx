@@ -147,9 +147,9 @@ const Layout = ({ children }) => {
               className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">B</span>
+                <span className="text-primary-foreground font-bold">S</span>
               </div>
-              Bizflow
+              SabiOps
             </Link>
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -179,9 +179,9 @@ const Layout = ({ children }) => {
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">B</span>
+                <span className="text-primary-foreground font-bold">S</span>
               </div>
-              <span className="">Bizflow SME</span>
+              <span className="">SabiOps SME</span>
             </Link>
           </div>
           <div className="flex-1">

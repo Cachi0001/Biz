@@ -1,5 +1,5 @@
 /**
- * Notification Center Component for Bizflow SME Nigeria
+ * Notification Center Component for SabiOps SME Nigeria
  * Displays real-time notifications with bell icon and dropdown
  */
 
