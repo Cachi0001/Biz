@@ -3,6 +3,9 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
 import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -345,8 +348,49 @@ def request_password_reset():
             "expires_at": expires_at.isoformat()
         }).execute()
 
-        # In a real application, you would send this code via email
-        print(f"Password reset code for {email}: {reset_code}") # For testing purposes
+        # Email sending logic
+        smtp_server = current_app.config.get("SMTP_SERVER")
+        smtp_port = current_app.config.get("SMTP_PORT")
+        smtp_username = current_app.config.get("SMTP_USERNAME")
+        smtp_password = current_app.config.get("SMTP_PASSWORD")
+        from_email = current_app.config.get("FROM_EMAIL")
+        from_name = current_app.config.get("FROM_NAME")
+
+        if not all([smtp_server, smtp_port, smtp_username, smtp_password, from_email, from_name]):
+            print("SMTP configuration missing. Cannot send email.")
+            return error_response("Email configuration missing", message="SMTP server details are not configured.", status_code=500)
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "SabiOps Password Reset Code"
+        msg["From"] = f"{from_name} <{from_email}>"
+        msg["To"] = email
+
+        text = f"Your password reset code is: {reset_code}\nThis code is valid for 1 hour."
+        html = f"""\
+        <html>
+          <body>
+            <p>Your password reset code is: <strong>{reset_code}</strong></p>
+            <p>This code is valid for 1 hour.</p>
+            <p>If you did not request a password reset, please ignore this email.</p>
+          </body>
+        </html>
+        """
+
+        part1 = MIMEText(text, "plain")
+        part2 = MIMEText(html, "html")
+
+        msg.attach(part1)
+        msg.attach(part2)
+
+        try:
+            with smtplib.SMTP(smtp_server, int(smtp_port)) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.sendmail(from_email, email, msg.as_string())
+            print(f"Password reset code sent to {email}")
+        except Exception as mail_e:
+            print(f"Failed to send email: {mail_e}")
+            return error_response(str(mail_e), message="Failed to send password reset email.", status_code=500)
 
         return success_response("Password reset code sent successfully")
 
@@ -386,7 +430,7 @@ def reset_password():
         # Mark the token as used
         supabase.table("password_reset_tokens").update({"used": True}).eq("id", token_result.data[0]["id"]).execute()
 
-        # Update user's password
+        # Update user\'s password
         new_password_hash = generate_password_hash(new_password)
         supabase.table("users").update({"password_hash": new_password_hash, "updated_at": datetime.now().isoformat()}).eq("id", user_id).execute()
 
