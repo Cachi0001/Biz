@@ -318,6 +318,87 @@ def change_password():
     except Exception as e:
         return error_response(str(e), status_code=500)
 
+@auth_bp.route("/request-password-reset", methods=["POST"])
+def request_password_reset():
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        data = request.get_json()
+        email = data.get("email")
+
+        if not email:
+            return error_response("Email is required", status_code=400)
+
+        user_result = supabase.table("users").select("id").eq("email", email).execute()
+        if not user_result.data:
+            return error_response("User not found", message="No account found with that email address.", status_code=404)
+
+        user_id = user_result.data[0]["id"]
+        reset_code = str(uuid.uuid4()).split("-")[0] # Simple unique code
+        expires_at = datetime.now() + timedelta(hours=1) # Code valid for 1 hour
+
+        # Invalidate any existing tokens for this user
+        supabase.table("password_reset_tokens").update({"used": True}).eq("user_id", user_id).eq("used", False).execute()
+
+        supabase.table("password_reset_tokens").insert({
+            "user_id": user_id,
+            "reset_code": reset_code,
+            "expires_at": expires_at.isoformat()
+        }).execute()
+
+        # In a real application, you would send this code via email
+        print(f"Password reset code for {email}: {reset_code}") # For testing purposes
+
+        return success_response("Password reset code sent successfully")
+
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        data = request.get_json()
+        email = data.get("email")
+        reset_code = data.get("reset_code")
+        new_password = data.get("new_password")
+
+        if not all([email, reset_code, new_password]):
+            return error_response("Email, reset code, and new password are required", status_code=400)
+
+        # Find the user by email
+        user_result = supabase.table("users").select("id").eq("email", email).execute()
+        if not user_result.data:
+            return error_response("User not found", message="No account found with that email address.", status_code=404)
+        user_id = user_result.data[0]["id"]
+
+        # Validate the reset code
+        token_result = supabase.table("password_reset_tokens")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .eq("reset_code", reset_code)\
+            .eq("used", False)\
+            .gte("expires_at", datetime.now().isoformat())\
+            .execute()
+        
+        if not token_result.data:
+            return error_response("Invalid or expired reset code", message="The provided reset code is invalid or has expired.", status_code=400)
+
+        # Mark the token as used
+        supabase.table("password_reset_tokens").update({"used": True}).eq("id", token_result.data[0]["id"]).execute()
+
+        # Update user's password
+        new_password_hash = generate_password_hash(new_password)
+        supabase.table("users").update({"password_hash": new_password_hash, "updated_at": datetime.now().isoformat()}).eq("id", user_id).execute()
+
+        return success_response("Password reset successfully")
+
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+
+
+
+
 
 
 
