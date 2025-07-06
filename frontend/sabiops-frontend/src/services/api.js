@@ -70,7 +70,7 @@ const apiService = {
 
   getProfile: async () => {
     const response = await api.get('/auth/profile');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   updateProfile: async (userData) => {
@@ -93,6 +93,27 @@ const apiService = {
     return response.data;
   },
 
+  // Team Management
+  getTeamMembers: async () => {
+    const response = await api.get('/auth/team-members');
+    return response.data.data; // Ensure consistent data access
+  },
+
+  updateTeamMember: async (memberId, memberData) => {
+    const response = await api.put(`/auth/team-member/${memberId}`, memberData);
+    return response.data;
+  },
+
+  deleteTeamMember: async (memberId) => {
+    const response = await api.delete(`/auth/team-member/${memberId}`);
+    return response.data;
+  },
+
+  resetTeamMemberPassword: async (memberId) => {
+    const response = await api.post(`/auth/team-member/${memberId}/reset-password`);
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');
@@ -107,7 +128,7 @@ const apiService = {
   // Customers
   getCustomers: async () => {
     const response = await api.get('/customers');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   createCustomer: async (customerData) => {
@@ -128,7 +149,7 @@ const apiService = {
   // Products
   getProducts: async () => {
     const response = await api.get('/products');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   createProduct: async (productData) => {
@@ -148,18 +169,18 @@ const apiService = {
 
   getCategories: async () => {
     const response = await api.get('/products/categories');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   // Invoices
   getInvoices: async () => {
     const response = await api.get('/invoices');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   getInvoice: async (invoiceId) => {
     const response = await api.get(`/invoices/${invoiceId}`);
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   createInvoice: async (invoiceData) => {
@@ -195,15 +216,14 @@ const apiService = {
   // Dashboard
   getDashboardOverview: async () => {
     const response = await api.get('/dashboard/overview');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 
   getRevenueChart: async () => {
     const response = await api.get('/dashboard/revenue-chart');
-    return response.data;
+    return response.data.data; // Ensure consistent data access
   },
 };
 
 export default apiService;
-
 

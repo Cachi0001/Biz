@@ -476,3 +476,191 @@ def reset_password():
 
 
 
+
+
+@auth_bp.route("/team-member", methods=["POST"])
+@jwt_required()
+def create_team_member():
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # Required fields based on instruction.md
+        required_fields = ["first_name", "last_name", "email", "password"]
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", status_code=400)
+        
+        # Check if email already exists
+        existing_user = supabase.table("users").select("*").eq("email", data["email"]).execute()
+        if existing_user.data:
+            return error_response(
+                error="Email already exists",
+                message="A user with this email already exists",
+                status_code=400
+            )
+        
+        # Generate username from first and last name
+        username = f"{data['first_name'].lower()}{data['last_name'].lower()}"
+        
+        # Check if username exists and make it unique
+        existing_username = supabase.table("users").select("*").eq("username", username).execute()
+        counter = 1
+        original_username = username
+        while existing_username.data:
+            username = f"{original_username}{counter}"
+            existing_username = supabase.table("users").select("*").eq("username", username).execute()
+            counter += 1
+        
+        password_hash = generate_password_hash(data["password"])
+        
+        team_member_data = {
+            "id": str(uuid.uuid4()),
+            "email": data["email"],
+            "phone": data.get("phone", ""),
+            "password_hash": password_hash,
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
+            "full_name": f"{data['first_name']} {data['last_name']}",
+            "username": username,
+            "business_name": "",
+            "role": data.get("role", "Salesperson"),
+            "owner_id": owner_id,
+            "subscription_plan": "team_member",
+            "subscription_status": "active",
+            "is_active": True,
+            "active": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        result = supabase.table("users").insert(team_member_data).execute()
+        
+        return success_response(
+            message="Team member created successfully",
+            data={
+                "team_member": result.data[0]
+            },
+            status_code=201
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/team-members", methods=["GET"])
+@jwt_required()
+def get_team_members():
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        
+        team_members = supabase.table("users").select("*").eq("owner_id", owner_id).execute()
+        
+        return success_response(
+            data={
+                "team_members": team_members.data
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/team-member/<member_id>", methods=["PUT"])
+@jwt_required()
+def update_team_member(member_id):
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # Check if team member exists and belongs to the owner
+        member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()
+        if not member.data:
+            return error_response("Team member not found", status_code=404)
+        
+        update_data = {
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        if data.get("first_name"):
+            update_data["first_name"] = data["first_name"]
+        if data.get("last_name"):
+            update_data["last_name"] = data["last_name"]
+        if data.get("first_name") or data.get("last_name"):
+            first_name = data.get("first_name", member.data["first_name"])
+            last_name = data.get("last_name", member.data["last_name"])
+            update_data["full_name"] = f"{first_name} {last_name}"
+        if data.get("phone"):
+            update_data["phone"] = data["phone"]
+        if data.get("role"):
+            update_data["role"] = data["role"]
+        if data.get("password"):
+            update_data["password_hash"] = generate_password_hash(data["password"])
+        
+        supabase.table("users").update(update_data).eq("id", member_id).execute()
+        
+        return success_response(
+            message="Team member updated successfully"
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/team-member/<member_id>", methods=["DELETE"])
+@jwt_required()
+def delete_team_member(member_id):
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        
+        # Check if team member exists and belongs to the owner
+        member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()
+        if not member.data:
+            return error_response("Team member not found", status_code=404)
+        
+        # Deactivate instead of deleting
+        supabase.table("users").update({
+            "is_active": False,
+            "active": False,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", member_id).execute()
+        
+        return success_response(
+            message="Team member deactivated successfully"
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/team-member/<member_id>/reset-password", methods=["POST"])
+@jwt_required()
+def reset_team_member_password(member_id):
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        
+        # Check if team member exists and belongs to the owner
+        member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()
+        if not member.data:
+            return error_response("Team member not found", status_code=404)
+        
+        # Generate temporary password
+        temp_password = str(uuid.uuid4()).split("-")[0] + str(uuid.uuid4()).split("-")[0]
+        password_hash = generate_password_hash(temp_password)
+        
+        supabase.table("users").update({
+            "password_hash": password_hash,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", member_id).execute()
+        
+        return success_response(
+            message="Password reset successfully",
+            data={
+                "temporary_password": temp_password
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+

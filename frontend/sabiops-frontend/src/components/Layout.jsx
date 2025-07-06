@@ -140,7 +140,7 @@ const Layout = ({ children }) => {
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col w-[280px] sm:w-[320px] p-0">
+        <SheetContent side="left" className="flex flex-col w-[260px] p-0">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link
               to="/dashboard"
@@ -153,7 +153,7 @@ const Layout = ({ children }) => {
               SabiOps
             </Link>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-2">
+          <nav className="flex-1 px-3 py-4 space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
@@ -232,13 +232,17 @@ const Layout = ({ children }) => {
           </div>
           
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Social Links - Hidden on mobile */}
-            <div className="hidden sm:flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Twitter className="h-4 w-4 text-blue-500" />
+            {/* Social Links */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
+                  <Twitter className="h-4 w-4 text-blue-500" />
+                </a>
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MessageCircle className="h-4 w-4 text-green-500" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <a href="https://wa.me/2348158025887" target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4 text-green-500" />
+                </a>
               </Button>
             </div>
 
@@ -282,7 +286,7 @@ const Layout = ({ children }) => {
 
         {/* Page Content */}
         <main className="flex-1 py-4 md:py-6">
-          <div className="px-4 sm:px-6 lg:px-8">
+          <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             {children}
           </div>
         </main>

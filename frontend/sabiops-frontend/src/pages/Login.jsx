@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -36,19 +36,11 @@ const Login = () => {
 
     try {
       await login(formData);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back to SabiOps!',
-        variant: 'success',
-      });
+      toast.success('Welcome back to SabiOps!');
       navigate(from, { replace: true });
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials and try again.';
-      toast({
-        title: 'Login Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -166,5 +158,4 @@ const Login = () => {
 };
 
 export default Login;
-
 

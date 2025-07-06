@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "../components/ui/table";
 import apiService from "../services/api";
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast'; // Corrected import
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -48,11 +48,11 @@ const Products = () => {
     description: '',
     sku: '',
     category: '',
-    price: '', // Changed from unit_price to price
+    price: '',
     cost_price: '',
-    quantity: '', // Changed from quantity_in_stock to quantity
-    low_stock_threshold: '', // Changed from minimum_stock_level
-    image_url: '' // Added image_url
+    quantity: '',
+    low_stock_threshold: '',
+    image_url: ''
   });
 
   useEffect(() => {
@@ -64,14 +64,14 @@ const Products = () => {
     try {
       setLoading(true);
       const response = await apiService.getProducts();
-      setProducts(response.products || []);
+      if (response.data && response.data.products) {
+        setProducts(response.data.products);
+      } else {
+        setProducts([]);
+      }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load products."); // Corrected toast usage
       setProducts([]);
     } finally {
       setLoading(false);
@@ -80,16 +80,15 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiService.getCategories(); // Changed to use getCategories
-      setCategories(response.categories || []);
+      const response = await apiService.getCategories();
+      if (response.data && response.data.categories) {
+        setCategories(response.data.categories);
+      } else {
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load categories.",
-        variant: "destructive",
-      });
-      // Set default categories if API fails
+      toast.error("Failed to load categories."); // Corrected toast usage
       setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
     }
   };
@@ -105,51 +104,31 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation based on Backend required fields
     if (!formData.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Product name is required",
-        variant: "destructive",
-      });
+      toast.error("Product name is required"); // Corrected toast usage
       return;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast({
-        title: "Error",
-        description: "Valid selling price is required",
-        variant: "destructive",
-      });
+      toast.error("Valid selling price is required"); // Corrected toast usage
       return;
     }
     if (!formData.quantity || parseInt(formData.quantity) < 0) {
-      toast({
-        title: "Error",
-        description: "Valid stock quantity is required",
-        variant: "destructive",
-      });
+      toast.error("Valid stock quantity is required"); // Corrected toast usage
       return;
     }
 
     try {
       if (editingProduct) {
         await apiService.updateProduct(editingProduct.id, formData);
-        toast({
-          title: "Success",
-          description: "Product updated successfully!",
-        });
+        toast.success("Product updated successfully!"); // Corrected toast usage
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
         await apiService.createProduct(formData);
-        toast({
-          title: "Success",
-          description: "Product created successfully!",
-        });
+        toast.success("Product created successfully!"); // Corrected toast usage
         setShowAddDialog(false);
       }
       
-      // Reset form
       setFormData({
         name: '',
         description: '',
@@ -167,11 +146,7 @@ const Products = () => {
     } catch (error) {
       console.error('Failed to save product:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save product';
-      toast({
-        title: "Error",
-        description: `Failed to save product: ${errorMessage}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to save product: ${errorMessage}`); // Corrected toast usage
     }
   };
 
@@ -195,18 +170,11 @@ const Products = () => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         await apiService.deleteProduct(productId);
-        toast({
-          title: "Success",
-          description: "Product deleted successfully!",
-        });
+        toast.success("Product deleted successfully!"); // Corrected toast usage
         fetchProducts();
       } catch (error) {
         console.error('Failed to delete product:', error);
-        toast({
-          title: "Error",
-          description: `Failed to delete product: ${error.message || 'Unknown error'}`,
-          variant: "destructive",
-        });
+        toast.error(`Failed to delete product: ${error.message || 'Unknown error'}`); // Corrected toast usage
       }
     }
   };
@@ -565,5 +533,7 @@ const Products = () => {
 };
 
 export default Products;
+
+
 
 
