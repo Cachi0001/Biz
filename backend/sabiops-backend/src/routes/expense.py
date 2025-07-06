@@ -24,9 +24,9 @@ def error_response(error, message="Error", status_code=400):
 def get_expenses():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        query = supabase.table("expenses").select("*").eq("user_id", user_id)
+        query = supabase.table("expenses").select("*").eq("owner_id", owner_id)
         
         category = request.args.get("category")
         start_date = request.args.get("start_date")
@@ -57,7 +57,7 @@ def get_expenses():
 def create_expense():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
         required_fields = ["title", "amount", "category", "expense_date"]
@@ -67,7 +67,7 @@ def create_expense():
         
         expense_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id,
             "title": data["title"],
             "description": data.get("description", ""),
             "amount": float(data["amount"]),
@@ -101,8 +101,8 @@ def create_expense():
 def get_expense(expense_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
@@ -121,10 +121,10 @@ def get_expense(expense_id):
 def update_expense(expense_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("user_id", user_id).single().execute()
+        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
@@ -170,8 +170,8 @@ def update_expense(expense_id):
 def delete_expense(expense_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
@@ -190,7 +190,7 @@ def delete_expense(expense_id):
 def get_expense_categories():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
         # For simplicity, returning a static list of common categories.
         # In a real app, these might be stored in a Supabase table.
@@ -219,12 +219,12 @@ def get_expense_categories():
 def get_expense_stats():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
         
-        query = supabase.table("expenses").select("*").eq("user_id", user_id)
+        query = supabase.table("expenses").select("*").eq("owner_id", owner_id)
         
         if start_date:
             query = query.gte("expense_date", start_date)
@@ -265,5 +265,7 @@ def get_expense_stats():
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
+
 
 
