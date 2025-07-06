@@ -4,7 +4,11 @@ export const authService = {
   // User login
   async login(email, password) {
     try {
-      const response = await apiService.login(email, password);
+      const credentials = {
+        login: email,
+        password: password
+      };
+      const response = await apiService.login(credentials);
       if (response.data.access_token) {
         localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
