@@ -242,3 +242,13 @@ This section details the verification of specific authentication-related feature
 - Form layouts adapt to mobile screen sizes
 - Navigation and UI elements optimized for touch interaction
 
+
+
+## 8. Database Schema Updates
+
+*   **Supabase (queriesRan.md):**
+*   **Changes:** Added `first_name` and `last_name` columns to the `users` table to align with backend expectations.
+    *   `ALTER TABLE public.users ADD COLUMN first_name TEXT;`
+    *   `ALTER TABLE public.users ADD COLUMN last_name TEXT;`
+
+
