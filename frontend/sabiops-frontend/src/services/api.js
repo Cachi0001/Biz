@@ -141,6 +141,47 @@ const apiService = {
     return response.data;
   },
 
+  // Invoices
+  getInvoices: async () => {
+    const response = await api.get('/invoices');
+    return response.data;
+  },
+
+  getInvoice: async (invoiceId) => {
+    const response = await api.get(`/invoices/${invoiceId}`);
+    return response.data;
+  },
+
+  createInvoice: async (invoiceData) => {
+    const response = await api.post('/invoices', invoiceData);
+    return response.data;
+  },
+
+  updateInvoice: async (invoiceId, invoiceData) => {
+    const response = await api.put(`/invoices/${invoiceId}`, invoiceData);
+    return response.data;
+  },
+
+  deleteInvoice: async (invoiceId) => {
+    const response = await api.delete(`/invoices/${invoiceId}`);
+    return response.data;
+  },
+
+  updateInvoiceStatus: async (invoiceId, statusData) => {
+    const response = await api.put(`/invoices/${invoiceId}/status`, statusData);
+    return response.data;
+  },
+
+  sendInvoice: async (invoiceId) => {
+    const response = await api.post(`/invoices/${invoiceId}/send`);
+    return response.data;
+  },
+
+  downloadInvoicePdf: async (invoiceId) => {
+    const response = await api.get(`/invoices/${invoiceId}/send`, { responseType: 'blob' });
+    return response.data;
+  },
+
   // Dashboard
   getDashboardOverview: async () => {
     const response = await api.get('/dashboard/overview');
