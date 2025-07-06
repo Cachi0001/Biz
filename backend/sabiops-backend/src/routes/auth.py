@@ -691,3 +691,36 @@ def reset_team_member_password(member_id):
     except Exception as e:
         return error_response(str(e), status_code=500)
 
+@auth_bp.route("/team-member/<member_id>/activate", methods=["POST"])
+@jwt_required()
+def activate_team_member(member_id):
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can activate team members.", status_code=403)
+        
+        # Check if team member exists and belongs to the owner
+        member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()
+        if not member.data:
+            return error_response("Team member not found", status_code=404)
+        
+        # Activate the team member
+        supabase.table("users").update({
+            "is_active": True,
+            "active": True,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", member_id).execute()
+        
+        return success_response(
+            message="Team member activated successfully"
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+
+

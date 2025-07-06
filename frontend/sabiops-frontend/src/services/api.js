@@ -109,6 +109,11 @@ const apiService = {
     return response.data;
   },
 
+  activateTeamMember: async (memberId) => {
+    const response = await api.post(`/auth/team-member/${memberId}/activate`);
+    return response.data;
+  },
+
   resetTeamMemberPassword: async (memberId) => {
     const response = await api.post(`/auth/team-member/${memberId}/reset-password`);
     return response.data;
@@ -226,4 +231,6 @@ const apiService = {
 };
 
 export default apiService;
+
+
 

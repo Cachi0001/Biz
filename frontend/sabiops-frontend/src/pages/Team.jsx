@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Users, UserPlus, Edit, Trash2, Key, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Users, UserPlus, Edit, Trash2, Key, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -149,6 +149,21 @@ const Team = () => {
       } catch (error) {
         console.error('Failed to deactivate team member:', error);
         const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to deactivate team member';
+        toast.error(errorMessage);
+        setError(errorMessage);
+      }
+    }
+  };
+
+  const handleActivate = async (memberId) => {
+    if (window.confirm('Are you sure you want to activate this team member?')) {
+      try {
+        await apiService.activateTeamMember(memberId);
+        toast.success('Team member activated successfully');
+        fetchTeamMembers();
+      } catch (error) {
+        console.error('Failed to activate team member:', error);
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to activate team member';
         toast.error(errorMessage);
         setError(errorMessage);
       }
@@ -377,7 +392,7 @@ const Team = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Salespeople</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.role === 'salesperson').length}</p>
+                <p className="text-2xl font-bold">{teamMembers.filter(m => m.role === 'Salesperson').length}</p>
               </div>
               <Badge className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -480,13 +495,23 @@ const Team = () => {
                           >
                             <Key className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(member.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {member.is_active ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(member.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleActivate(member.id)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -549,4 +574,6 @@ const Team = () => {
 };
 
 export default Team;
+
+
 
