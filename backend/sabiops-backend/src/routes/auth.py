@@ -113,7 +113,7 @@ def login():
         else:
             user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
         
-        if not user_result.data or not user_result.data[0]:
+        if not user_result.data:
             return error_response(
                 error="Invalid credentials",
                 message="No account found with this email or phone number. Please check your credentials or sign up for a new account.",
