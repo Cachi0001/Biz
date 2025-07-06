@@ -24,9 +24,9 @@ def error_response(error, message="Error", status_code=400):
 def get_products():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        query = supabase.table("products").select("*").eq("user_id", user_id)
+        query = supabase.table("products").select("*").eq("owner_id", owner_id)
         
         category = request.args.get("category")
         search = request.args.get("search")
@@ -57,8 +57,8 @@ def get_products():
 def get_product(product_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         
         if not product.data:
             return error_response("Product not found", status_code=404)
@@ -77,25 +77,27 @@ def get_product(product_id):
 def create_product():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
-        required_fields = ["name", "price"]
+        # Required fields based on Bizflow SME Nigeria Product Creation Fields
+        required_fields = ["name", "price", "quantity"]
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
         
         product_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id,
             "name": data["name"],
             "description": data.get("description", ""),
             "price": float(data["price"]),
             "cost_price": float(data.get("cost_price", 0)),
-            "quantity": int(data.get("quantity", 0)),
+            "quantity": int(data["quantity"]),
             "low_stock_threshold": int(data.get("low_stock_threshold", 5)),
             "category": data.get("category", ""),
             "sku": data.get("sku", ""),
+            "image_url": data.get("image_url", ""), # Added image_url
             "active": True,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
@@ -119,10 +121,10 @@ def create_product():
 def update_product(product_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
@@ -144,6 +146,8 @@ def update_product(product_id):
             update_data["category"] = data["category"]
         if data.get("sku"):
             update_data["sku"] = data["sku"]
+        if data.get("image_url") is not None: # Added image_url
+            update_data["image_url"] = data["image_url"]
         if data.get("active") is not None:
             update_data["active"] = data["active"]
         
@@ -161,9 +165,9 @@ def update_product(product_id):
 def delete_product(product_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
@@ -184,9 +188,9 @@ def delete_product(product_id):
 def get_categories():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        products = supabase.table("products").select("category").eq("user_id", user_id).eq("active", True).execute()
+        products = supabase.table("products").select("category").eq("owner_id", owner_id).eq("active", True).execute()
         
         categories = list(set([p["category"] for p in products.data if p["category"]]))
         
@@ -204,9 +208,9 @@ def get_categories():
 def get_low_stock_products():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        products = supabase.table("products").select("*").eq("user_id", user_id).eq("active", True).execute()
+        products = supabase.table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
         
         low_stock_products = [p for p in products.data if p["quantity"] <= p["low_stock_threshold"]]
         
@@ -224,9 +228,9 @@ def get_low_stock_products():
 def update_stock(product_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("user_id", user_id).single().execute()
+        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
@@ -249,5 +253,6 @@ def update_stock(product_id):
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
 
 

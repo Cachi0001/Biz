@@ -328,3 +328,11 @@ CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reset_code ON public.password_reset_tokens(reset_code);
+
+-- RLS Policies for Products
+CREATE POLICY "Owners can manage their products" ON public.products FOR ALL USING (auth.uid() = owner_id);
+CREATE POLICY "Team members can view owner's products" ON public.products FOR SELECT USING (
+    auth.uid() = owner_id OR auth.uid() IN (SELECT team_member_id FROM public.team WHERE owner_id = public.products.owner_id)
+);
+
+
