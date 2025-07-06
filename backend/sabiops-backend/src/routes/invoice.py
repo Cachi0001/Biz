@@ -1,7 +1,12 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib.colors import HexColor
+import io
 
 invoice_bp = Blueprint("invoice", __name__)
 
@@ -24,9 +29,9 @@ def error_response(error, message="Error", status_code=400):
 def get_invoices():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        query = supabase.table("invoices").select("*").eq("user_id", user_id)
+        query = supabase.table("invoices").select("*").eq("owner_id", owner_id)
         
         status = request.args.get("status")
         customer_id = request.args.get("customer_id")
@@ -50,15 +55,21 @@ def get_invoices():
 
 @invoice_bp.route("/<invoice_id>", methods=["GET"])
 @jwt_required()
-def get_invoice(invoice_id):
+def get_invoice():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
         
+        invoice_items = supabase.table("invoice_items").select("*").eq("invoice_id", invoice_id).execute()
+        invoice.data["items"] = invoice_items.data
+
+        customer = supabase.table("customers").select("*").eq("id", invoice.data["customer_id"]).single().execute()
+        invoice.data["customer"] = customer.data
+
         return success_response(
             data={
                 "invoice": invoice.data
@@ -73,13 +84,13 @@ def get_invoice(invoice_id):
 def create_invoice():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
         if not data.get("customer_id"):
             return error_response("Customer ID is required", status_code=400)
         
-        customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("user_id", user_id).single().execute()
+        customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
@@ -88,7 +99,7 @@ def create_invoice():
 
         invoice_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id,
             "customer_id": data["customer_id"],
             "issue_date": issue_date,
             "due_date": due_date,
@@ -157,8 +168,8 @@ def create_invoice():
 def update_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -238,8 +249,8 @@ def update_invoice(invoice_id):
 def delete_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
@@ -262,8 +273,8 @@ def delete_invoice(invoice_id):
 def update_invoice_status(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -298,8 +309,8 @@ def update_invoice_status(invoice_id):
 def send_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -310,11 +321,84 @@ def send_invoice(invoice_id):
         if not customer_result.data or not customer_result.data["email"]:
             return error_response("Customer email is required to send invoice", status_code=400)
         
+        # Generate PDF
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+
+        # Header
+        p.setFont("Helvetica-Bold", 24)
+        p.setFillColor(HexColor("#28a745")) # Green color
+        p.drawString(inch, height - inch, "INVOICE")
+
+        p.setFont("Helvetica", 10)
+        p.setFillColor(HexColor("#343a40")) # Dark gray
+        p.drawString(inch, height - inch - 0.3 * inch, f"Invoice #: {invoice["id"][:8].upper()}")
+        p.drawString(inch, height - inch - 0.5 * inch, f"Date: {invoice["issue_date"]}")
+        p.drawString(inch, height - inch - 0.7 * inch, f"Due Date: {invoice["due_date"]}")
+
+        # Customer Info
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(inch, height - 2 * inch, "Bill To:")
+        p.setFont("Helvetica", 10)
+        p.drawString(inch, height - 2.2 * inch, customer_result.data["name"])
+        p.drawString(inch, height - 2.4 * inch, customer_result.data["email"])
+        p.drawString(inch, height - 2.6 * inch, customer_result.data["phone"])
+        p.drawString(inch, height - 2.8 * inch, customer_result.data["address"])
+
+        # Items Table Header
+        y_position = height - 3.5 * inch
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(inch, y_position, "Description")
+        p.drawString(4 * inch, y_position, "Qty")
+        p.drawString(5 * inch, y_position, "Unit Price")
+        p.drawString(6.5 * inch, y_position, "Total")
+        y_position -= 0.2 * inch
+        p.line(inch, y_position, width - inch, y_position) # Horizontal line
+        y_position -= 0.2 * inch
+
+        # Items Table Rows
+        p.setFont("Helvetica", 10)
+        for item in invoice["items"]:
+            p.drawString(inch, y_position, item["description"])
+            p.drawString(4 * inch, y_position, str(item["quantity"]))
+            p.drawString(5 * inch, y_position, f"₦{item["unit_price"]:,.2f}")
+            p.drawString(6.5 * inch, y_position, f"₦{item["total"]:,.2f}")
+            y_position -= 0.2 * inch
+
+        # Totals
+        y_position -= 0.3 * inch
+        p.line(inch, y_position, width - inch, y_position) # Horizontal line
+        y_position -= 0.2 * inch
+
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(5 * inch, y_position, "Subtotal:")
+        p.drawString(6.5 * inch, y_position, f"₦{invoice["total_amount"]:,.2f}")
+        y_position -= 0.2 * inch
+
+        if invoice["discount_amount"] > 0:
+            p.drawString(5 * inch, y_position, "Discount:")
+            p.drawString(6.5 * inch, y_position, f"-₦{invoice["discount_amount"]:,.2f}")
+            y_position -= 0.2 * inch
+
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(5 * inch, y_position, "Amount Due:")
+        p.drawString(6.5 * inch, y_position, f"₦{invoice["amount_due"]:,.2f}")
+
+        # Footer
+        p.setFont("Helvetica", 8)
+        p.setFillColor(HexColor("#6c757d")) # Light gray
+        p.drawString(inch, inch, "Thank you for your business!")
+        p.drawString(inch, inch - 0.2 * inch, invoice["terms_and_conditions"])
+
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+        
+        # Update invoice status to sent
         supabase.table("invoices").update({"status": "sent", "sent_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}).eq("id", invoice_id).execute()
         
-        return success_response(
-            message="Invoice sent successfully"
-        )
+        return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype="application/pdf")
         
     except Exception as e:
         return error_response(str(e), status_code=500)
@@ -324,9 +408,9 @@ def send_invoice(invoice_id):
 def get_invoice_stats():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        all_invoices_result = supabase.table("invoices").select("*").eq("user_id", user_id).execute()
+        all_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).execute()
         all_invoices = all_invoices_result.data
         
         total_invoices = len(all_invoices)
@@ -360,11 +444,11 @@ def get_invoice_stats():
 def get_overdue_invoices():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
         today = date.today().isoformat()
         
-        overdue_invoices_result = supabase.table("invoices").select("*").eq("user_id", user_id).neq("status", "paid").lt("due_date", today).execute()
+        overdue_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).neq("status", "paid").lt("due_date", today).execute()
         overdue_invoices = overdue_invoices_result.data
         
         for invoice in overdue_invoices:
@@ -372,7 +456,7 @@ def get_overdue_invoices():
                 supabase.table("invoices").update({"status": "overdue", "updated_at": datetime.now().isoformat()}).eq("id", invoice["id"]).execute()
         
         # Re-fetch to get updated statuses
-        overdue_invoices_result = supabase.table("invoices").select("*").eq("user_id", user_id).eq("status", "overdue").execute()
+        overdue_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).eq("status", "overdue").execute()
         overdue_invoices = overdue_invoices_result.data
 
         return success_response(
@@ -384,5 +468,6 @@ def get_overdue_invoices():
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
 
 

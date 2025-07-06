@@ -336,3 +336,20 @@ CREATE POLICY "Team members can view owner's products" ON public.products FOR SE
 );
 
 
+
+
+-- RLS Policies for Invoices
+CREATE POLICY "Owners can manage their invoices" ON public.invoices FOR ALL USING (auth.uid() = owner_id);
+CREATE POLICY "Team members can view owner's invoices" ON public.invoices FOR SELECT USING (
+    auth.uid() = owner_id OR auth.uid() IN (SELECT team_member_id FROM public.team WHERE owner_id = public.invoices.owner_id)
+);
+
+-- RLS Policies for Invoice Items
+CREATE POLICY "Owners can manage invoice items" ON public.invoice_items FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.owner_id = auth.uid())
+);
+CREATE POLICY "Team members can view invoice items" ON public.invoice_items FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.invoices WHERE invoices.id = invoice_items.invoice_id AND (invoices.owner_id = auth.uid() OR auth.uid() IN (SELECT team_member_id FROM public.team WHERE owner_id = invoices.owner_id)))
+);
+
+
