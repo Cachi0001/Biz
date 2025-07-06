@@ -53,6 +53,19 @@ def register():
         
         password_hash = generate_password_hash(data["password"])
         
+        # Handle referral code if provided
+        referred_by_id = None
+        if data.get("referral_code"):
+            referrer_result = supabase.table("users").select("id").eq("referral_code", data["referral_code"]).execute()
+            if referrer_result.data:
+                referred_by_id = referrer_result.data[0]["id"]
+            else:
+                return error_response(
+                    error="Invalid referral code",
+                    message="The referral code you entered is not valid. Please check and try again.",
+                    status_code=400
+                )
+        
         user_data = {
             "id": str(uuid.uuid4()),
             "email": data["email"],
@@ -62,6 +75,7 @@ def register():
             "last_name": data["last_name"],
             "full_name": f"{data["first_name"]} {data["last_name"]}", # Added full_name
             "business_name": data.get("business_name", ""),
+            "referred_by": referred_by_id,
             "role": "Owner",
             "subscription_plan": "weekly",
             "subscription_status": "trial",
@@ -72,6 +86,20 @@ def register():
         
         if result.data:
             user = result.data[0]
+            
+            # Create referral record if user was referred
+            if referred_by_id:
+                try:
+                    referral_data = {
+                        "referrer_id": referred_by_id,
+                        "referred_id": user["id"],
+                        "status": "pending"
+                    }
+                    supabase.table("referrals").insert(referral_data).execute()
+                except Exception as referral_error:
+                    # Log the error but don't fail the registration
+                    print(f"Failed to create referral record: {referral_error}")
+            
             access_token = create_access_token(identity=user["id"])
             
             return success_response(

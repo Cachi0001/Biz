@@ -17,6 +17,7 @@ const Register = () => {
     first_name: '',
     last_name: '',
     business_name: '',
+    referral_code: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -240,6 +241,20 @@ const Register = () => {
                     className="h-10 sm:h-11"
                   />
                   <p className="text-xs text-muted-foreground">You can add more business details later in your profile</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="referral_code" className="text-sm font-medium">Referral Code (Optional)</Label>
+                  <Input
+                    id="referral_code"
+                    name="referral_code"
+                    type="text"
+                    value={formData.referral_code}
+                    onChange={handleChange}
+                    placeholder="Enter referral code (e.g., SABIXXXXXX)"
+                    className="h-10 sm:h-11"
+                  />
+                  <p className="text-xs text-muted-foreground">Enter a referral code if you were referred by someone</p>
                 </div>
               </div>
 
