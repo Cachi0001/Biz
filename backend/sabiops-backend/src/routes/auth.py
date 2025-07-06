@@ -484,6 +484,12 @@ def create_team_member():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can create team members.", status_code=403)
+
         data = request.get_json()
         
         # Required fields based on instruction.md
@@ -502,7 +508,7 @@ def create_team_member():
             )
         
         # Generate username from first and last name
-        username = f"{data['first_name'].lower()}{data['last_name'].lower()}"
+        username = f"{data["first_name"].lower()}{data["last_name"].lower()}"
         
         # Check if username exists and make it unique
         existing_username = supabase.table("users").select("*").eq("username", username).execute()
@@ -522,7 +528,7 @@ def create_team_member():
             "password_hash": password_hash,
             "first_name": data["first_name"],
             "last_name": data["last_name"],
-            "full_name": f"{data['first_name']} {data['last_name']}",
+            "full_name": f"{data["first_name"]} {data["last_name"]}",
             "username": username,
             "business_name": "",
             "role": data.get("role", "Salesperson"),
@@ -554,6 +560,11 @@ def get_team_members():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can view team members.", status_code=403)
         
         team_members = supabase.table("users").select("*").eq("owner_id", owner_id).execute()
         
@@ -572,6 +583,12 @@ def update_team_member(member_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can update team members.", status_code=403)
+
         data = request.get_json()
         
         # Check if team member exists and belongs to the owner
@@ -613,6 +630,11 @@ def delete_team_member(member_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can deactivate team members.", status_code=403)
         
         # Check if team member exists and belongs to the owner
         member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()
@@ -639,6 +661,11 @@ def reset_team_member_password(member_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
+
+        # Check if the authenticated user is an Owner
+        owner_user = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_user.data or owner_user.data["role"] != "Owner":
+            return error_response("Unauthorized", message="Only owners can reset team member passwords.", status_code=403)
         
         # Check if team member exists and belongs to the owner
         member = supabase.table("users").select("*").eq("id", member_id).eq("owner_id", owner_id).single().execute()

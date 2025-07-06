@@ -383,3 +383,13 @@ This section details the verification of specific authentication-related feature
 - Password reset functionality for team members
 - Full alignment with instruction.md requirements
 
+
+
+### 9.9 Password Reset Restriction for Team Members
+*   **Backend Files:** `backend/sabiops-backend/src/routes/auth.py`
+*   **Changes:**
+    *   Implemented role-based access control for the `/team-member/<member_id>/reset-password` endpoint.
+    *   Only authenticated users with the `Owner` role can now reset passwords for other team members.
+    *   Added a check to verify the authenticated user's role and return a 403 Unauthorized error if the user is not an `Owner`.
+
+
