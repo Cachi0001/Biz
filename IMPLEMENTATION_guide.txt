@@ -321,3 +321,29 @@ Subscription Inheritance: Team members’ access reflects owner’s plan; subscr
 
 Disclaimer:Existing Code: Since much of the code exists, review and test each feature (e.g., referral commissions, stock restocking, account deactivation) to ensure they work as expected in production. Ensure frontend data matches backend data during communication.
 Our target audience is Nigerian SMEs, so we’ve designed this application with simplicity, reliability, and local relevance in mind—making it feel built specifically for them.
+
+My backend .env state on vercel now 
+SUPABASE_URL=My-url
+SUPABASE_KEY=my-key.
+SUPABASE_SERVICE_KEY=my-service-key
+SECRET_KEY=chukwunna-nyerem-aka
+JWT_SECRET_KEY=my-secret-key
+PAYSTACK_SECRET_KEY=sk_test_
+PAYSTACK_PUBLIC_KEY=pk_test_
+CLOUDINARY_CLOUD_NAME=name
+CLOUDINARY_API_KEY=api-key
+CLOUDINARY_API_SECRET=secret-key
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=onyemechicaleb4@gmail.com
+SMTP_PASSWORD=vapmmsbaootvgtau
+FROM_EMAIL=onyemechicaleb4@gmail.com
+FROM_NAME=SabiOps
+RATE_LIMIT_ENABLED=true
+DEFAULT_RATE_LIMIT=1000 per hour
+AUTH_RATE_LIMIT=5 per minute
+PAYMENT_RATE_LIMIT=10 per minute
+BACKUP_ENABLED=true
+BACKUP_SCHEDULE=0 2 * * *  
+MAINTENANCE_MODE=false
+
