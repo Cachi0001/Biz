@@ -119,6 +119,12 @@ const apiService = {
     return response.data;
   },
 
+  // New verifyToken method
+  verifyToken: async (token) => {
+    const response = await api.post('/auth/verify-token', { token });
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');
@@ -231,6 +237,8 @@ const apiService = {
 };
 
 export default apiService;
+
+
 
 
 

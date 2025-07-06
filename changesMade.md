@@ -364,3 +364,16 @@ This section details the verification of specific authentication-related feature
 *   **Changes:**
     *   Added 
 
+
+
+### 9.11 Authentication Token Verification Fix
+*   **Frontend Files:** `frontend/sabiops-frontend/src/services/api.js`
+*   **Changes:**
+    *   Added the missing `verifyToken` method to `apiService`.
+    *   This method is crucial for validating the authentication token received from the backend during the `checkAuth` process in `AuthContext.jsx`.
+*   **Frontend Files:** `frontend/sabiops-frontend/src/contexts/AuthContext.jsx`
+*   **Changes:**
+    *   Ensured that `apiService.verifyToken` is correctly called and awaited within the `checkAuth` function.
+*   **Result:** Resolved `TypeError: Y.verifyToken is not a function` and enabled proper authentication flow and navigation after login.
+
+
