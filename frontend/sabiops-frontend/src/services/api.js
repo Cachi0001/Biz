@@ -78,6 +78,11 @@ const apiService = {
     return response.data;
   },
 
+  createTeamMember: async (memberData) => {
+    const response = await api.post('/auth/team-member', memberData);
+    return response.data;
+  },
+
   // Health check
   healthCheck: async () => {
     const response = await api.get('/health');

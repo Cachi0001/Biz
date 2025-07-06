@@ -1,1189 +1,299 @@
-Sabiops SME Nigeria - Enhanced Implementation Guide for Full-Stack AI Engineer
-Date: July 3, 2025, 10:30 PM WAT
-
-Purpose:
-This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
-
-Tech Stack:
-- Backend: Flask (Python) with Supabase (PostgreSQL)
-  - Justification: Supabase replaces MySQL for its free tier, managed PostgreSQL, built-in authentication, real-time capabilities, and scalability—ideal for an MVP with budget constraints.
-- Frontend: React with Tailwind CSS
-  - Justification: Modern, responsive, and performant for a seamless user experience.
-- Authentication: JWT with Supabase
-- Payments: Paystack (for Nigerian payment processing)
-- Image Storage: Cloudinary (for product images and receipts)
-- Deployment: Vercel (mandatory per original spec)
-
-Core Functionalities:
-1. User Management & Authentication
-   - Email-based registration with mandatory verification
-   - Secure login with password recovery
-   - Auto-delete inactive accounts after 30 days (via Supabase scheduled function)
-2. Customer Relationship Management (CRM)
-   - Customer profiles (contact details, purchase history, interactions)
-   - Segmentation by purchase behavior
-   - Manual client input for invoices (typeable names)
-   - Edit/delete clients (Silver plan)
-3. Product/Inventory Management
-   - Add/edit/delete products (name, description, price, stock, images via Cloudinary)
-   - Auto stock reduction on sales
-   - Configurable low stock alerts (in-app toasts and push notifications)
-4. Invoice Generation & Management
-   - Create/send professional invoices (PDF export, email delivery)
-   - Status tracking (Draft, Sent, Paid, Overdue)
-   - Offline creation with sync
-5. Expense Tracking
-   - Record/categorize expenses with receipt uploads (Cloudinary)
-   - Expense reports
-   - Offline entry with sync
-6. Payment Processing
-   - Paystack integration for secure payments
-   - Auto-reconcile payments with invoices
-7. Sales Reporting & Analytics
-   - Daily sales reports (total, items sold, payment method breakdown)
-   - Downloadable as PDF/PNG
-   - Business analytics dashboard (revenue, expenses, profit)
-8. Referral System
-   - 10% commission on upgrades, ₦5,000 bonus for yearly plans
-   - Real-time tracking dashboard
-   - Withdrawal system (min ₦3,000)
-9. Subscription Plans
-   - Free: 5 invoices/expenses monthly, basic reporting
-   - Silver Weekly (₦1,400): 100 invoices/expenses weekly, advanced features
-   - Silver Monthly (₦4,500): 450 invoices/expenses monthly, ₦500 referral rewards
-   - Silver Yearly (₦50,000): 6,000 invoices/expenses yearly, team management, ₦5,000 referral rewards
-   - Gold (future teaser): AI features
-10. Offline Functionality
-    - Offline invoice creation, expense entry, product updates, customer edits
-    - Auto-sync when online with conflict resolution
-11. Transaction History
-    - "Money In" (sales) and "Money Out" (expenses) view
-    - Role-based access: Owners see all, Salespeople see sales-related only
-    - Filter by date, category, payment method
-12. Intelligent Upgrade Path
-    - Suggest upgrades based on usage (e.g., nearing invoice limits)
-    - In-app upgrade with prorated cost calculation
-
-Architecture & Best Practices:
-- Scalability: Efficient queries, caching (Redis), async processing (Celery)
-- Clean Architecture: SOC, DDD, modular design
-- Security:
-  - JWT authentication
-  - Bcrypt password hashing
-  - Input validation/sanitization
-  - Strict CORS
-  - Supabase Row-Level Security (RLS)
-  - Environment variables for sensitive data
-- Testing: Unit, integration, E2E tests (Jest, Pytest)
-- Performance: Lazy loading, code splitting, image optimization
-- Error Handling: User-friendly errors, comprehensive logging
-
-Database Schema (Supabase - PostgreSQL):
-- users: id (UUID), email (nullable, unique), phone (unique), role ('Owner', 'Salesperson', 'Admin'), subscription_tier ('Free', 'Silver'), referral_code (unique), active (boolean), last_login (timestamp)
-- customers: id (UUID), user_id (UUID), name (text), email (nullable), phone (nullable), address (text), purchase_history (JSONB), interactions (JSONB)
-- products: id (UUID), user_id (UUID), name (text), description (text), price (decimal), quantity (integer), low_stock_threshold (integer), category (text), image_url (text)
-- invoices: id (UUID), user_id (UUID), customer_id (nullable), product_id (nullable), amount (decimal), status ('Draft', 'Sent', 'Paid', 'Overdue'), due_date (timestamp)
-- expenses: id (UUID), user_id (UUID), category (text), amount (decimal), date (timestamp), receipt_url (text)
-- salespeople: id (UUID), user_id (UUID), name (text), email (text), active (boolean)
-- referrals: id (UUID), referrer_id (UUID), referred_id (UUID), reward_amount (decimal), status ('Pending', 'Claimed'), withdrawal_amount (decimal), withdrawal_status ('Pending', 'Processed')
-- transactions: id (UUID), user_id (UUID), type ('Money In', 'Money Out'), amount (decimal), category (text), payment_method (text), date (timestamp)
-- RLS Policies:
-  - salespeople: Owners only for CRUD
-  - invoices/expenses/products: Salespeople insert/update, Owners delete
-  - transactions: Owners see all, Salespeople see sales-related
-
-API Endpoints (Flask):
-- Authentication
-  - POST /api/auth/register
-  - POST /api/auth/login
-  - POST /api/auth/forgot-password
-- Users
-  - GET /api/users/{id}
-  - PUT /api/users/{id}
-- Customers
-  - POST /api/customers
-  - GET /api/customers?user_id={id}
-  - PUT /api/customers/{id}
-  - DELETE /api/customers/{id}
-- Products
-  - POST /api/products
-  - GET /api/products?user_id={id}
-  - PUT /api/products/{id}
-  - DELETE /api/products/{id}
-- Invoices
-  - POST /api/invoices
-  - GET /api/invoices?user_id={id}
-  - PUT /api/invoices/{id}
-  - DELETE /api/invoices/{id}
-- Expenses
-  - POST /api/expenses
-  - GET /api/expenses?user_id={id}
-- Salespeople
-  - POST /api/salespeople
-  - PUT /api/salespeople/{id}
-- Referrals
-  - POST /api/referrals
-  - GET /api/referrals?referrer_id={id}
-- Transactions
-  - GET /api/transactions?user_id={id}
-  - GET /api/reports/sales
-- Security: JWT, RLS, Flask-Limiter (100 req/hour)
-
-Frontend (React with Tailwind CSS):
-- Pages:
-  - Landing: "Get Started" button
-  - Register: Phone required, email optional
-  - Login: Phone or email
-  - Dashboard: Metrics, actions, trial/upgrade status
-  - Pricing: Free/Silver plans with Paystack
-  - Clients: Manage clients (Silver)
-  - Team: Manage salespeople (Silver)
-  - Stocks: Manage products/alerts
-  - Referrals: Link and earnings
-  - Transaction History: Filterable view
-- Components:
-  - Navbar: Dynamic login/logout
-  - Dashboard: Lazy-loaded analytics
-  - Stock Management: Forms, toast alerts
-  - Offline Mode: Service Workers/localStorage, sync status indicators
-- Styling: Nigerian-inspired (e.g., green/blue gradients), Naira formatting
-
-Implementation Steps:
-1. Environment Setup
-   - Clone repo: git clone [url]
-   - Install dependencies (Flask, React, Supabase, Paystack)
-2. Database
-   - Create tables and RLS in Supabase
-3. Backend
-   - Build Flask API with JWT, RLS, rate limiting
-4. Frontend
-   - Develop React pages/components with offline support
-5. Testing
-   - Unit, integration, E2E tests
-6. Deployment
-   - Deploy on Vercel with CI/CD
-
-Additional Notes:
-- Offline functionality uses Service Workers/localStorage for critical tasks, syncing with Supabase when online.
-- Transaction history provides role-based clarity, enhancing financial oversight.
-- Intelligent upgrade path ensures seamless growth with contextual prompts.
-- Future-proofed for AI features via modular design and Supabase scalability.
-
-============Below================
 SabiOps - Enhanced Implementation Guide for Full-Stack AI Engineer
-Date: July 4, 2025, 05:17 AM WAT
-
-Purpose:
-This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
-
-Tech Stack:
-- Backend: Flask (Python) with Supabase (PostgreSQL)
-  - Justification: Supabase provides a free tier, managed PostgreSQL, built-in authentication, real-time capabilities, and scalability—ideal for an MVP with budget constraints.
-- Frontend: React with Tailwind CSS
-  - Justification: Modern, responsive, and performant for a seamless user experience.
-- Authentication: JWT with Supabase
-- Payments: Paystack (for Nigerian payment processing)
-- Image Storage: Cloudinary (for product images and receipts)
-- Deployment: Vercel (mandatory per original spec)
-
-Core Functionalities:
-1. User Management & Authentication
-   - Email-based registration with mandatory verification
-   - Secure login with password recovery
-   - Auto-delete inactive accounts after 30 days (via Supabase scheduled function)
-   - Role-based access: Owners can create Admins and Salespersons with fields (name, email, password, role) while authenticated
-2. Customer Relationship Management (CRM)
-   - Customer profiles (contact details, purchase history, interactions)
-   - Segmentation by purchase behavior
-   - Manual client input for invoices (typeable names)
-   - Edit/delete clients (Silver plan)
-3. Product/Inventory Management
-   - Add/edit/delete products (name, description, price, stock, images via Cloudinary)
-   - Auto stock reduction on sales
-   - Configurable low stock alerts (in-app toasts and push notifications)
-4. Invoice Generation & Management
-   - Create/send professional invoices (PDF export, email delivery)
-   - Status tracking (Draft, Sent, Paid, Overdue)
-   - Offline creation with sync
-5. Expense Tracking
-   - Record/categorize expenses with receipt uploads (Cloudinary)
-   - Expense reports
-   - Offline entry with sync
-6. Payment Processing
-   - Paystack integration for secure payments
-   - Auto-reconcile payments with invoices
-7. Sales Reporting & Analytics
-   - Daily sales reports (total, items sold, payment method breakdown)
-   - Downloadable as PDF/PNG
-   - Business analytics dashboard (revenue, expenses, profit)
-8. Referral System
-   - 10% commission on upgrades, ₦5,000 bonus for yearly plans
-   - Real-time tracking dashboard
-   - Withdrawal system (min ₦3,000)
-9. Subscription Plans
-   - Free: 5 invoices/expenses monthly, basic reporting
-   - Silver Weekly (₦1,400): 100 invoices/expenses weekly, advanced features
-   - Silver Monthly (₦4,500): 450 invoices/expenses monthly, ₦500 referral rewards
-   - Silver Yearly (₦50,000): 6,000 invoices/expenses yearly, team management, ₦5,000 referral rewards
-   - Gold (future teaser): AI features
-10. Offline Functionality
-    - Offline invoice creation, expense entry, product updates, customer edits
-    - Auto-sync when online with conflict resolution
-11. Transaction History
-    - "Money In" (sales) and "Money Out" (expenses) view
-    - Role-based access: Owners see all, Salespeople see sales-related only, Admins see operational data
-    - Filter by date, category, payment method
-12. Intelligent Upgrade Path
-    - Suggest upgrades based on usage (e.g., nearing invoice limits)
-    - In-app upgrade with prorated cost calculation
-
-Architecture & Best Practices:
-- Scalability: Efficient queries, caching (Redis), async processing (Celery)
-- Clean Architecture: SOC, DDD, modular design
-- Security:
-  - JWT authentication
-  - Bcrypt password hashing
-  - Input validation/sanitization
-  - Strict CORS
-  - Supabase Row-Level Security (RLS)
-  - Environment variables for sensitive data
-- Testing: Unit, integration, E2E tests (Jest, Pytest)
-- Performance: Lazy loading, code splitting, image optimization
-- Error Handling: User-friendly errors, comprehensive logging
-
-Database Schema (Supabase - PostgreSQL):
-- users: id (UUID), email (nullable, unique), phone (unique), role ('Owner', 'Salesperson', 'Admin'), subscription_tier ('Free', 'Silver'), referral_code (unique), active (boolean), last_login (timestamp), password (hashed text)
-- customers: id (UUID), user_id (UUID), name (text), email (nullable), phone (nullable), address (text), purchase_history (JSONB), interactions (JSONB)
-- products: id (UUID), user_id (UUID), name (text), description (text), price (decimal), quantity (integer), low_stock_threshold (integer), category (text), image_url (text)
-- invoices: id (UUID), user_id (UUID), customer_id (nullable), product_id (nullable), amount (decimal), status ('Draft', 'Sent', 'Paid', 'Overdue'), due_date (timestamp)
-- expenses: id (UUID), user_id (UUID), category (text), amount (decimal), date (timestamp), receipt_url (text)
-- team: id (UUID), user_id (UUID), name (text), email (text), role ('Admin', 'Salesperson'), password (hashed text), active (boolean)
-- referrals: id (UUID), referrer_id (UUID), referred_id (UUID), reward_amount (decimal), status ('Pending', 'Claimed'), withdrawal_amount (decimal), withdrawal_status ('Pending', 'Processed')
-- transactions: id (UUID), user_id (UUID), type ('Money In', 'Money Out'), amount (decimal), category (text), payment_method (text), date (timestamp)
-- RLS Policies:
-  - team: Owners only for CRUD
-  - invoices/expenses/products: Salespeople insert/update, Owners/Admins delete
-  - transactions: Owners see all, Salespeople see sales-related, Admins see operational data
-
-API Endpoints (Flask):
-- Authentication
-  - POST /api/auth/register
-  - POST /api/auth/login
-  - POST /api/auth/forgot-password
-- Users
-  - GET /api/users/{id}
-  - PUT /api/users/{id}
-- Customers
-  - POST /api/customers
-  - GET /api/customers?user_id={id}
-  - PUT /api/customers/{id}
-  - DELETE /api/customers/{id}
-- Products
-  - POST /api/products
-  - GET /api/products?user_id={id}
-  - PUT /api/products/{id}
-  - DELETE /api/products/{id}
-- Invoices
-  - POST /api/invoices
-  - GET /api/invoices?user_id={id}
-  - PUT /api/invoices/{id}
-  - DELETE /api/invoices/{id}
-- Expenses
-  - POST /api/expenses
-  - GET /api/expenses?user_id={id}
-- Team
-  - POST /api/team (create Admin or Salesperson)
-  - PUT /api/team/{id}
-- Referrals
-  - POST /api/referrals
-  - GET /api/referrals?referrer_id={id}
-- Transactions
-  - GET /api/transactions?user_id={id}
-  - GET /api/reports/sales
-- Security: JWT, RLS, Flask-Limiter (100 req/hour)
+Date: January 7, 2025
+Purpose:This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is deployed with the frontend at sabiops.vercel.app and backend at sabiops-backend.vercel.app, using Supabase (project name: "sabiops") as the database. This updated guide ensures all core functionalities are fully implemented, addressing current issues where only authentication is working.
+Tech Stack:  
 
-Frontend (React with Tailwind CSS):
-- Pages:
-  - Landing: "Get Started" button
-  - Register: Phone required, email optional
-  - Login: Phone or email
-  - Dashboard: Metrics, actions, trial/upgrade status (role-based rendering)
-  - Pricing: Free/Silver plans with Paystack
-  - Clients: Manage clients (Silver)
-  - Team: Manage admins and salespeople (Owner only)
-  - Stocks: Manage products/alerts
-  - Referrals: Link and earnings
-  - Transaction History: Filterable view (role-based)
-- Components:
-  - Navbar: Dynamic login/logout, role-based options
-  - Dashboard: Lazy-loaded analytics, role-specific widgets
-  - Stock Management: Forms, toast alerts
-  - Offline Mode: Service Workers/localStorage, sync status indicators
-- Styling: Nigerian-inspired (e.g., green/blue gradients), Naira formatting
-- Role-Based Rendering: UI adapts to role (Owner: full access, Admin: operational, Salesperson: sales-focused)
+Backend: Flask (Python) with Supabase (PostgreSQL)  
+Justification: Supabase provides a free tier, managed PostgreSQL, authentication, real-time capabilities, and scalability.
 
-Implementation Steps:
-1. Environment Setup
-   - Clone repo: git clone [url]
-   - Install dependencies (Flask, React, Supabase, Paystack)
-2. Database
-   - Create tables and RLS in Supabase
-3. Backend
-   - Build Flask API with JWT, RLS, rate limiting
-4. Frontend
-   - Develop React pages/components with offline support and role-based rendering
-5. Testing
-   - Unit, integration, E2E tests
-6. Deployment
-   - Deploy on Vercel with CI/CD
 
-Additional Notes:
-- Offline functionality uses Service Workers/localStorage for critical tasks, syncing with Supabase when online.
-- Transaction history provides role-based clarity, enhancing financial oversight.
-- Intelligent upgrade path ensures seamless growth with contextual prompts.
-- Future-proofed for AI features via modular design and Supabase scalability.
+Frontend: React with Tailwind CSS  
+Justification: Modern, responsive, and performant UI.
 
-///
-SabiOps - Enhanced Implementation Guide for Full-Stack AI Engineer Date: July 4, 2025, 05:17 AM WAT
 
-Purpose: This guide outlines the development of a production-ready, scalable Minimum Viable Product (MVP) for SabiOps—a business management tool tailored for Nigerian SMEs. It addresses critical pain points, enhances financial tracking, and fosters growth with intelligent features and an intuitive UI. The solution is designed to handle high user loads, prioritizes clean code, and supports future scalability (e.g., AI features).
+Authentication: JWT with Supabase  
+Payments: Paystack  
+Image Storage: Cloudinary  
+Deployment: Vercel
 
-Tech Stack:
+Core Functionalities:  
 
+User Management & Authentication  
 
+Features:  
+Owners can create team member accounts (Admins and Salespeople) using a single form with fields: full name, email, password, and a role dropdown (Admin or Salesperson). Creation requires owner authentication.  
+Team members inherit the owner’s subscription plan and remaining trial period (e.g., if the owner has 6 days left, team members get 6 days).  
+Email-based registration with mandatory verification.  
+Secure login with password recovery via email or phone.  
+Send warning emails via Gmail before deleting inactive accounts; auto-delete after 30 days (Supabase scheduled function).  
+Role-based access: Only owners can create/deactivate team members and upgrade subscriptions.  
+Optional referral code input during sign-up (e.g., "SABIXXXXXX").
 
 
+Implementation:  
+Backend: Use Flask with Supabase auth; validate email uniqueness; link team members to owners via owner_id for subscription inheritance; implement deactivation logic.  
+Frontend: Update Register.jsx with an optional referral code field; create a team management page for owners with a single form (full name, email, password, role dropdown). Hide subscription details from Admin/Salesperson dashboards.  
+Error Handling: Return clear messages (e.g., "Email already in use").
 
-Backend: Flask (Python) with Supabase (PostgreSQL)
 
 
 
+Customer Relationship Management (CRM)  
 
+Features:  
+Customer profiles (name, email, phone, address, purchase history, interactions).  
+Segmentation by purchase behavior (e.g., frequent buyers).  
+Manual client input for invoices.  
+Edit/delete clients (Silver plan only).
 
-Justification: Supabase provides a free tier, managed PostgreSQL, built-in authentication, real-time capabilities, and scalability—ideal for an MVP with budget constraints.
 
+Implementation:  
+Backend: CRUD endpoints (/api/customers) with RLS ensuring access to owner’s data for team members.  
+Frontend: Clients page with add/edit/delete forms; display purchase history in JSONB format.
 
 
-Frontend: React with Tailwind CSS
 
 
+Product/Inventory Management  
 
+Features:  
+Add/edit/delete products (name, description, price, stock, image via Cloudinary).  
+Auto stock reduction on sales.  
+Configurable low stock alerts (in-app toasts and push notifications).  
+Role-based restocking: Owners and Admins can restock products.
 
 
-Justification: Modern, responsive, and performant for a seamless user experience.
+Implementation:  
+Backend: /api/products endpoints; trigger stock updates on sales; send notifications via Supabase real-time.  
+Frontend: Stocks page with forms and alerts; enable restocking UI for Owners and Admins only.
 
 
 
-Authentication: JWT with Supabase
 
+Invoice Generation & Management  
 
+Features:  
+Create/send professional invoices (PDF export, email delivery).  
+Status tracking (Draft, Sent, Paid, Overdue).  
+Offline creation with sync when online.
 
-Payments: Paystack (for Nigerian payment processing)
 
+Implementation:  
+Backend: /api/invoices endpoints; generate PDFs with reportlab; store offline data in localStorage.  
+Frontend: Invoice page with creation form; sync button for offline data.
 
 
-Image Storage: Cloudinary (for product images and receipts)
 
 
+Expense Tracking  
 
-Deployment: Vercel (mandatory per original spec)
+Features:  
+Record/categorize expenses with receipt uploads (Cloudinary).  
+Expense reports (monthly summaries).  
+Offline entry with sync.
 
-Core Functionalities:
 
+Implementation:  
+Backend: /api/expenses endpoints; handle Cloudinary uploads.  
+Frontend: Expenses page with form and report view; offline storage in localStorage.
 
 
 
 
-User Management & Authentication
+Payment Processing  
 
+Features:  
+Paystack integration for payments.  
+Auto-reconcile payments with invoices.
 
 
+Implementation:  
+Backend: Integrate Paystack SDK; update invoice status on payment success.  
+Frontend: Pricing page with Paystack checkout (visible only to owners); display payment status.
 
 
-Email-based registration with mandatory verification
 
 
+Sales Reporting & Analytics  
 
-Secure login with password recovery
+Features:  
+Daily sales reports (total, items sold, payment method breakdown).  
+Downloadable as PDF/PNG.  
+Analytics dashboard (revenue, expenses, profit).
 
 
+Implementation:  
+Backend: /api/reports/sales endpoint; aggregate data from transactions/sales tables.  
+Frontend: Dashboard with charts (e.g., Chart.js) and download options; hide subscription metrics for Admins/Salespeople.
 
-Auto-delete inactive accounts after 30 days (via Supabase scheduled function)
 
 
 
-Role-based access: Owners can create Admins and Salespersons with fields (name, email, password, role) while authenticated
+Referral System  
 
+Features:  
+10% commission on upgrades for monthly (₦500) and yearly (₦5,000) plans; weekly plans excluded.  
+Real-time tracking dashboard.  
+Withdrawal system (min ₦3,000 via Paystack).
 
 
-Customer Relationship Management (CRM)
+Implementation:  
+Backend: /api/referrals endpoints; calculate commissions based on plan type; integrate Paystack for withdrawals.  
+Frontend: Referrals page with earnings table and withdrawal form.
 
 
 
 
+Subscription Plans  
 
-Customer profiles (contact details, purchase history, interactions)
+Features:  
+Free: 5 invoices/expenses monthly, basic reporting.  
+Silver Weekly (₦1,400), Monthly (₦4,500), Yearly (₦50,000) with advanced features.  
+7-day free trial for weekly plan, inherited by team members based on owner’s remaining time; visual indicator (e.g., crown) on owner’s dashboard only.  
+Pro-rata upgrades mid-cycle (owner-only feature).
 
 
+Implementation:  
+Backend: Track subscription status in users table; update all team members’ access on owner upgrade via owner_id.  
+Frontend: Pricing page with upgrade options (owner-only); hide subscription details from Admin/Salesperson UI.
 
-Segmentation by purchase behavior
 
 
 
-Manual client input for invoices (typeable names)
+Offline Functionality  
 
+Features:  
+Offline invoice creation, expense entry, product updates, customer edits.  
+Auto-sync with conflict resolution when online.
 
 
-Edit/delete clients (Silver plan)
+Implementation:  
+Backend: Accept bulk sync data with timestamps for conflict resolution.  
+Frontend: Use Service Workers and localStorage; show sync status indicators.
 
 
 
-Product/Inventory Management
 
+Transaction History  
 
+Features:  
+"Money In" (sales) and "Money Out" (expenses) view.  
+Role-based access: Owners see all, Admins see operational data, Salespeople see sales only.  
+Filter by date, category, payment method.
 
 
+Implementation:  
+Backend: /api/transactions endpoint with RLS filtering.  
+Frontend: Transaction History page with filters and role-based UI.
 
-Add/edit/delete products (name, description, price, stock, images via Cloudinary)
 
 
 
-Auto stock reduction on sales
+Intelligent Upgrade Path  
 
+Features:  
+Suggest upgrades based on usage (e.g., nearing invoice limits) for owners only.  
+In-app upgrade with prorated cost calculation.
 
 
-Configurable low stock alerts (in-app toasts and push notifications)
+Implementation:  
+Backend: Monitor usage in /api/users/{id}; return upgrade prompts for owners.  
+Frontend: Dashboard alerts with upgrade buttons (owner-only).
 
 
 
-Invoice Generation & Management
 
 
+Architecture & Best Practices:  
 
+Scalability: Use efficient queries; cache with Redis; process async tasks with Celery.  
+Clean Architecture: Follow SOC, DDD, and modular design.  
+Security: JWT auth, Bcrypt hashing, input validation, strict CORS, Supabase RLS, env variables.  
+Testing: Unit (Jest, Pytest), integration, E2E tests.  
+Performance: Lazy loading, code splitting, image optimization.  
+Error Handling: Clear, user-friendly errors (e.g., "Failed to save invoice: Network error"); log comprehensively.  
+Consistency: Standardize JSON data formats (e.g., camelCase keys).
 
+Database Schema (Supabase - PostgreSQL):  
 
-Create/send professional invoices (PDF export, email delivery)
+See updated SQL queries file for full schema, including tables for users, team, customers, products, invoices, expenses, sales, referrals, transactions, notifications, and push_subscriptions, with RLS policies.
 
+API Endpoints (Flask):  
 
-
-Status tracking (Draft, Sent, Paid, Overdue)
-
-
-
-Offline creation with sync
-
-
-
-Expense Tracking
-
-
-
-
-
-Record/categorize expenses with receipt uploads (Cloudinary)
-
-
-
-Expense reports
-
-
-
-Offline entry with sync
-
-
-
-Payment Processing
-
-
-
-
-
-Paystack integration for secure payments
-
-
-
-Auto-reconcile payments with invoices
-
-
-
-Sales Reporting & Analytics
-
-
-
-
-
-Daily sales reports (total, items sold, payment method breakdown)
-
-
-
-Downloadable as PDF/PNG
-
-
-
-Business analytics dashboard (revenue, expenses, profit)
-
-
-
-Referral System
-
-
-
-
-
-10% commission on upgrades, ₦5,000 bonus for yearly plans
-
-
-
-Real-time tracking dashboard
-
-
-
-Withdrawal system (min ₦3,000)
-
-
-
-Subscription Plans
-
-
-
-
-
-Free: 5 invoices/expenses monthly, basic reporting
-
-
-
-Silver Weekly (₦1,400): 100 invoices/expenses weekly, advanced features
-
-
-
-Silver Monthly (₦4,500): 450 invoices/expenses monthly, ₦500 referral rewards
-
-
-
-Silver Yearly (₦50,000): 6,000 invoices/expenses yearly, team management, ₦5,000 referral rewards
-
-
-
-Gold (future teaser): AI features
-
-
-
-Offline Functionality
-
-
-
-
-
-Offline invoice creation, expense entry, product updates, customer edits
-
-
-
-Auto-sync when online with conflict resolution
-
-
-
-Transaction History
-
-
-
-
-
-"Money In" (sales) and "Money Out" (expenses) view
-
-
-
-Role-based access: Owners see all, Salespeople see sales-related only, Admins see operational data
-
-
-
-Filter by date, category, payment method
-
-
-
-Intelligent Upgrade Path
-
-
-
-
-
-Suggest upgrades based on usage (e.g., nearing invoice limits)
-
-
-
-In-app upgrade with prorated cost calculation
-
-Architecture & Best Practices:
-
-
-
-
-
-Scalability: Efficient queries, caching (Redis), async processing (Celery)
-
-
-
-Clean Architecture: SOC, DDD, modular design
-
-
-
-Security:
-
-
-
-
-
-JWT authentication
-
-
-
-Bcrypt password hashing
-
-
-
-Input validation/sanitization
-
-
-
-Strict CORS
-
-
-
-Supabase Row-Level Security (RLS)
-
-
-
-Environment variables for sensitive data
-
-
-
-Testing: Unit, integration, E2E tests (Jest, Pytest)
-
-
-
-Performance: Lazy loading, code splitting, image optimization
-
-
-
-Error Handling: User-friendly errors, comprehensive logging
-
-Database Schema (Supabase - PostgreSQL):
-
-
-
-
-
-users: id (UUID), email (nullable, unique), phone (unique), role ('Owner', 'Salesperson', 'Admin'), subscription_tier ('Free', 'Silver'), referral_code (unique), active (boolean), last_login (timestamp), password (hashed text)
-
-
-
-customers: id (UUID), user_id (UUID), name (text), email (nullable), phone (nullable), address (text), purchase_history (JSONB), interactions (JSONB)
-
-
-
-products: id (UUID), user_id (UUID), name (text), description (text), price (decimal), quantity (integer), low_stock_threshold (integer), category (text), image_url (text)
-
-
-
-invoices: id (UUID), user_id (UUID), customer_id (nullable), product_id (nullable), amount (decimal), status ('Draft', 'Sent', 'Paid', 'Overdue'), due_date (timestamp)
-
-
-
-expenses: id (UUID), user_id (UUID), category (text), amount (decimal), date (timestamp), receipt_url (text)
-
-
-
-team: id (UUID), user_id (UUID), name (text), email (text), role ('Admin', 'Salesperson'), password (hashed text), active (boolean)
-
-
-
-referrals: id (UUID), referrer_id (UUID), referred_id (UUID), reward_amount (decimal), status ('Pending', 'Claimed'), withdrawal_amount (decimal), withdrawal_status ('Pending', 'Processed')
-
-
-
-transactions: id (UUID), user_id (UUID), type ('Money In', 'Money Out'), amount (decimal), category (text), payment_method (text), date (timestamp)
-
-
-
-RLS Policies:
-
-
-
-
-
-team: Owners only for CRUD
-
-
-
-invoices/expenses/products: Salespeople insert/update, Owners/Admins delete
-
-
-
-transactions: Owners see all, Salespeople see sales-related, Admins see operational data
-
-API Endpoints (Flask):
-
-
-
-
-
-Authentication
-
-
-
-
-
-POST /api/auth/register
-
-
-
-POST /api/auth/login
-
-
-
-POST /api/auth/forgot-password
-
-
-
-Users
-
-
-
-
-
-GET /api/users/{id}
-
-
-
-PUT /api/users/{id}
-
-
-
-Customers
-
-
-
-
-
-POST /api/customers
-
-
-
-GET /api/customers?user_id={id}
-
-
-
-PUT /api/customers/{id}
-
-
-
-DELETE /api/customers/{id}
-
-
-
-Products
-
-
-
-
-
-POST /api/products
-
-
-
-GET /api/products?user_id={id}
-
-
-
-PUT /api/products/{id}
-
-
-
-DELETE /api/products/{id}
-
-
-
-Invoices
-
-
-
-
-
-POST /api/invoices
-
-
-
-GET /api/invoices?user_id={id}
-
-
-
-PUT /api/invoices/{id}
-
-
-
-DELETE /api/invoices/{id}
-
-
-
-Expenses
-
-
-
-
-
-POST /api/expenses
-
-
-
-GET /api/expenses?user_id={id}
-
-
-
-Team
-
-
-
-
-
-POST /api/team (create Admin or Salesperson)
-
-
-
-PUT /api/team/{id}
-
-
-
-Referrals
-
-
-
-
-
-POST /api/referrals
-
-
-
-GET /api/referrals?referrer_id={id}
-
-
-
-Transactions
-
-
-
-
-
-GET /api/transactions?user_id={id}
-
-
-
-GET /api/reports/sales
-
-
-
+Authentication: /api/auth/register, /api/auth/login, /api/auth/forgot-password  
+Users: /api/users/{id} (GET, PUT)  
+Customers: /api/customers (POST, GET), /api/customers/{id} (PUT, DELETE)  
+Products: /api/products (POST, GET), /api/products/{id} (PUT, DELETE)  
+Invoices: /api/invoices (POST, GET), /api/invoices/{id} (PUT, DELETE)  
+Expenses: /api/expenses (POST, GET)  
+Team: /api/team (POST), /api/team/{id} (PUT)  
+Referrals: /api/referrals (POST, GET)  
+Transactions: /api/transactions (GET), /api/reports/sales (GET)  
 Security: JWT, RLS, Flask-Limiter (100 req/hour)
 
-Frontend (React with Tailwind CSS):
+Frontend (React with Tailwind CSS):  
 
+Pages:  
+Landing: "Get Started" button  
+Register: Phone required, email optional, referral code optional  
+Login: Phone or email  
+Dashboard: Metrics, actions, trial/upgrade status (owner-only), crown for owners on weekly plan  
+Pricing: Subscription plans with Paystack (owner-only)  
+Clients: Manage clients (Silver)  
+Team: Manage Admins/Salespersons (owner-only)  
+Stocks: Manage products/alerts  
+Referrals: Earnings and withdrawals  
+Transaction History: Filterable (role-based)
 
 
+Components:  
+Navbar: Dynamic login/logout, role-based options  
+Dashboard: Lazy-loaded analytics, role-specific widgets, crown for owners only  
+Stock Management: Forms, toast alerts  
+Offline Mode: Sync status indicators
 
 
-Pages:
+Styling: Nigerian-inspired (green/blue gradients), Naira formatting  
+Role-Based UI: Owners see all features; Admins see operational data (no subscription info); Salespeople see sales-focused UI (no subscription info).
 
+Implementation Steps:  
 
+Environment Setup  
+Clone repos: git clone [frontend-url] and git clone [backend-url]  
+Install dependencies: npm install (frontend), pip install -r requirements.txt (backend)
 
 
+Database  
+Run updated SQL queries in Supabase.
 
-Landing: "Get Started" button
 
+Backend  
+Implement endpoints with consistent data handling; test with Postman.
 
 
-Register: Phone required, email optional
+Frontend  
+Build pages/components; ensure offline support and role-based rendering.
 
 
+Testing  
+Run unit, integration, and E2E tests; verify all functionalities.
 
-Login: Phone or email
 
+Deployment  
+Deploy via Vercel with CI/CD; monitor logs for errors.
 
 
-Dashboard: Metrics, actions, trial/upgrade status (role-based rendering)
 
+Additional Notes:  
 
+Push Notifications: Use Supabase real-time or Firebase for in-app toasts and push notifications (e.g., low stock alerts).  
+Offline Sync: Store data in localStorage; sync with backend using timestamps for conflict resolution.  
+Calculations: Ensure app handles pro-rata upgrades, referral commissions, stock updates.  
+Consistency: Frontend sends JSON matching backend expectations (e.g., { "userId": "uuid", "amount": 5000 }).  
+Error Messages: Display specific errors (e.g., "Invoice creation failed: Missing customer name").  
+Team Management: Owners create/deactivate team members with a single form; team members inherit owner’s subscription and trial period.  
+Subscription Inheritance: Team members’ access reflects owner’s plan; subscription UI hidden from their dashboards.
 
-Pricing: Free/Silver plans with Paystack
+Disclaimer:Existing Code: Since much of the code exists, review and test each feature (e.g., referral commissions, stock restocking, account deactivation) to ensure they work as expected in production. Ensure frontend data matches backend data during communication.
 
-
-
-Clients: Manage clients (Silver)
-
-
-
-Team: Manage admins and salespeople (Owner only)
-
-
-
-Stocks: Manage products/alerts
-
-
-
-Referrals: Link and earnings
-
-
-
-Transaction History: Filterable view (role-based)
-
-
-
-Components:
-
-
-
-
-
-Navbar: Dynamic login/logout, role-based options
-
-
-
-Dashboard: Lazy-loaded analytics, role-specific widgets
-
-
-
-Stock Management: Forms, toast alerts
-
-
-
-Offline Mode: Service Workers/localStorage, sync status indicators
-
-
-
-Styling: Nigerian-inspired (e.g., green/blue gradients), Naira formatting
-
-
-
-Role-Based Rendering: UI adapts to role (Owner: full access, Admin: operational, Salesperson: sales-focused)
-
-Implementation Steps:
-
-
-
-
-
-Environment Setup
-
-
-
-
-
-Clone repo: git clone [url]
-
-
-
-Install dependencies (Flask, React, Supabase, Paystack)
-
-
-
-Database
-
-
-
-
-
-Create tables and RLS in Supabase
-
-
-
-Backend
-
-
-
-
-
-Build Flask API with JWT, RLS, rate limiting
-
-
-
-Frontend
-
-
-
-
-
-Develop React pages/components with offline support and role-based rendering
-
-
-
-Testing
-
-
-
-
-
-Unit, integration, E2E tests
-
-
-
-Deployment
-
-
-
-
-
-Deploy on Vercel with CI/CD
-
-Additional Notes:
-
-
-
-
-
-Offline functionality uses Service Workers/localStorage for critical tasks, syncing with Supabase when online.
-
-
-
-Transaction history provides role-based clarity, enhancing financial oversight.
-
-
-
-Intelligent upgrade path ensures seamless growth with contextual prompts.
-
-
-
-Future-proofed for AI features via modular design and Supabase scalability.
-
-## Authentication Strategy Optimization - January 7, 2025
-
-### **CRITICAL CHANGES IMPLEMENTED**
-
-#### **1. Username Field Removal** ✅
-**Problem Solved:** Username uniqueness conflicts and unnecessary complexity
-**Solution:** Removed username field entirely from both backend and frontend
-**Impact:** 
-- Simplified authentication to email + phone only
-- Eliminated username availability checking
-- Reduced signup friction
-- Aligned with existing Supabase schema
-
-#### **2. Backend Authentication Updates** ✅
-**File:** `backend/sabiops-backend/src/models/user.py`
-**Changes:**
-- Removed all username-related fields and methods
-- Aligned User model with Supabase schema exactly
-- Fixed referral code generation with SABI prefix
-- Improved trial and subscription management
-- Enhanced error handling and validation
-
-**File:** `backend/sabiops-backend/src/routes/auth.py`
-**Changes:**
-- Updated registration route to use email/phone only
-- Fixed login logic to accept email or phone
-- Added proper validation for email and phone uniqueness
-- Improved error messages and response handling
-
-#### **3. Enhanced Signup Card Layout** ✅
-**File:** `frontend/sabiops-frontend/src/pages/Register.jsx`
-**Improvements:**
-- **Side-by-side input fields** arranged in logical pairs:
-  - First Name | Last Name
-  - Email | Phone Number
-  - Password | Confirm Password
-- **Improved visual hierarchy** with section headers
-- **Enhanced styling** with better spacing and typography
-- **Streamlined form** with only essential fields
-- **Added Terms of Service and Privacy Policy links**
-- **Better mobile responsiveness**
-
-#### **4. Authentication Strategy Benefits** ✅
-**Security:**
-- Email and phone provide strong unique identifiers
-- Reduced attack surface (no username enumeration)
-- Leverages existing verification methods (email/SMS)
-
-**User Experience:**
-- Faster signup process (fewer fields)
-- No username availability conflicts
-- Easier login (users remember email/phone better)
-- Simplified account recovery
-
-**Technical:**
-- Aligned with Supabase schema (no migration needed)
-- Reduced database complexity
-- Better error handling
-- Cleaner codebase
-
-### **IMPLEMENTATION DETAILS**
-
-#### **Database Schema Alignment**
-The User model now perfectly matches the Supabase schema:
-```sql
-CREATE TABLE public.users (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    email TEXT UNIQUE,
-    phone TEXT UNIQUE NOT NULL,
-    first_name TEXT,
-    last_name TEXT,
-    business_name TEXT,
-    -- ... other fields (no username)
-);
-```
-
-#### **Frontend Form Structure**
-```
-Personal Information:
-├── First Name | Last Name
-├── Email | Phone Number
-└── Password | Confirm Password
-
-Business Information:
-└── Business Name (Optional)
-```
-
-#### **Authentication Flow**
-1. User registers with email + phone + password
-2. Backend validates email and phone uniqueness
-3. User can login with either email or phone
-4. No username conflicts or availability checking needed
-
-### **TESTING RECOMMENDATIONS**
-
-1. **Registration Testing:**
-   - Test with valid email and phone combinations
-   - Verify uniqueness validation works
-   - Test form validation and error handling
-
-2. **Login Testing:**
-   - Test login with email
-   - Test login with phone number
-   - Verify error messages are clear
-
-3. **Mobile Responsiveness:**
-   - Test signup form on mobile devices
-   - Verify side-by-side layout works on small screens
-   - Check input field accessibility
-
-### **NEXT STEPS**
-
-1. **Pull Latest Changes:**
-   ```bash
-   cd C:\Users\DELL\Saas\Biz
-   git pull origin main
-   ```
-
-2. **Test Registration Flow:**
-   - Navigate to signup page
-   - Test form validation
-   - Verify successful registration
-
-3. **Test Login Flow:**
-   - Try logging in with email
-   - Try logging in with phone number
-   - Verify dashboard access
-
-### **MIGRATION NOTES**
-
-- **No database migration required** - schema already aligned
-- **Existing users unaffected** - email/phone authentication already supported
-- **Frontend changes are backward compatible**
-- **API endpoints remain the same**
-
-This implementation provides a cleaner, more secure, and user-friendly authentication system that aligns perfectly with your existing Supabase infrastructure.
-
+Our target audience are Nigerian SME's so remember we are trying as much as possible to make this application make it feel like it was built for them

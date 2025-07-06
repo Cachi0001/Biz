@@ -79,6 +79,12 @@ export const authService = {
     apiService.logout(); // This handles clearing local storage and redirecting
   },
 
+  // Get current user
+  getCurrentUser() {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
   // Check user role
   hasRole(roles) {
     const user = this.getCurrentUser();
