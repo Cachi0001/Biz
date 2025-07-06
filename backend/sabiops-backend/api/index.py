@@ -127,6 +127,43 @@ def test_env():
         }
     )
 
+@app.route("/api/test-login", methods=["POST"])
+def test_login():
+    try:
+        data = request.get_json()
+        print(f"Received data: {data}")
+        print(f"Data type: {type(data)}")
+        
+        if not data:
+            return error_response("No JSON data received", status_code=400)
+        
+        if not isinstance(data, dict):
+            return error_response(f"Expected dict, got {type(data)}", status_code=400)
+        
+        login_field = data.get("login")
+        password = data.get("password")
+        
+        print(f"Login field: {login_field}, Password: {'***' if password else None}")
+        
+        return success_response(
+            message="Test login endpoint working",
+            data={
+                "received_login": login_field,
+                "received_password": bool(password),
+                "data_type": str(type(data))
+            }
+        )
+        
+    except Exception as e:
+        print(f"Test login exception: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(
+            error=str(e),
+            message=f"Test login error: {str(e)}",
+            status_code=500
+        )
+
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
