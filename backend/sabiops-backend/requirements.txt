@@ -13,3 +13,6 @@ requests
 
 Flask-SQLAlchemy
 
+
+reportlab
+

@@ -38,7 +38,12 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-chan
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 
 # Configure CORS to allow requests from your frontend origin
-CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
+CORS(app, 
+     resources={r"/api/*": {"origins": "*"}},
+     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     supports_credentials=True
+)
 jwt = JWTManager(app)
 
 # Check for required environment variables
@@ -80,6 +85,19 @@ def error_response(error, message="Error", status_code=400):
         "message": message
     })
     return response, status_code
+
+# ============================================================================
+# CORS PREFLIGHT HANDLER
+# ============================================================================
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify()
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization")
+        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
+        return response
 
 # ============================================================================
 # HEALTH & TEST ENDPOINTS
