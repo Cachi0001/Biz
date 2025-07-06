@@ -42,7 +42,9 @@ const Team = () => {
     email: '',
     phone: '',
     role: 'Salesperson',
-    password: ''
+    password: '',
+    business_name: '',
+    referral_code: ''
   });
 
   useEffect(() => {
@@ -87,6 +89,10 @@ const Team = () => {
       toast.error('Email is required');
       return;
     }
+    if (!formData.phone.trim()) {
+      toast.error('Phone number is required');
+      return;
+    }
     if (!editingMember && !formData.password.trim()) {
       toast.error('Password is required for new team members');
       return;
@@ -115,7 +121,9 @@ const Team = () => {
         email: '',
         phone: '',
         role: 'Salesperson',
-        password: ''
+        password: '',
+        business_name: '',
+        referral_code: ''
       });
       
       fetchTeamMembers();
@@ -135,7 +143,9 @@ const Team = () => {
       email: member.email || '',
       phone: member.phone || '',
       role: member.role || 'Salesperson',
-      password: '' // Don't pre-fill password for security
+      password: '', // Don't pre-fill password for security
+      business_name: member.business_name || '',
+      referral_code: member.referral_code || ''
     });
     setShowEditDialog(true);
   };
@@ -261,13 +271,14 @@ const Team = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number</Label>
+          <Label htmlFor="phone">Phone Number *</Label>
           <Input
             id="phone"
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
             placeholder="Enter phone number"
+            required
           />
         </div>
 
@@ -300,6 +311,29 @@ const Team = () => {
               )}
             </Button>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="business_name">Business Name</Label>
+          <Input
+            id="business_name"
+            name="business_name"
+            value={formData.business_name}
+            onChange={handleInputChange}
+            placeholder="Enter business name"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="referral_code">Referral Code</Label>
+          <Input
+            id="referral_code"
+            name="referral_code"
+            value={formData.referral_code}
+            onChange={handleInputChange}
+            placeholder="Enter referral code"
+          />
         </div>
       </div>
 
@@ -574,6 +608,10 @@ const Team = () => {
 };
 
 export default Team;
+
+
+
+
 
 
 

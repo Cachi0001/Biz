@@ -106,7 +106,7 @@ This section details the verification of specific authentication-related feature
 
 ### 4. Uniqueness Constraints for Phone Number and Email
 
-*   **Backend (`auth.py`):**
+*   **Backend (`auth.py`):
     *   Verified that the `register` endpoint explicitly checks for existing email and phone numbers in the `users` table before creating a new account.
     *   Confirmed that appropriate error responses are returned if a duplicate email or phone number is detected.
 *   **Supabase (`queriesRan.md`):**
@@ -346,45 +346,6 @@ This section details the verification of specific authentication-related feature
     *   Implemented proper error handling for network failures
     *   Added user-friendly guidance for resolving issues
 
-## Current Application Status (Updated)
-
-### ✅ Recently Fixed:
-- Product endpoint blank page issue resolved
-- Login React errors fixed with proper toast usage
-- Social media icons re-added with correct links
-- Mobile UI spacing improved for better UX
-- Team creation fully aligned with documentation requirements
-- Browser back button navigation issues resolved
-- Error messages made more descriptive and helpful
-
-### 🔧 Technical Improvements:
-- Enhanced API service consistency across all endpoints
-- Improved error handling and user feedback
-- Better mobile responsive design implementation
-- Proper component lifecycle management
-- Consistent data access patterns throughout the application
-
-### 📱 Mobile Experience:
-- Sidebar now properly sized (260px) instead of full screen
-- Better touch targets and spacing on mobile devices
-- Improved navigation experience with proper hamburger menu spacing
-- Consistent padding and margins across all screen sizes
-
-### 🔗 Social Media Integration:
-- Twitter icon links to https://x.com/Caleb0533
-- WhatsApp icon links to https://wa.me/2348158025887
-- Icons properly positioned in header with appropriate styling
-- Links open in new tabs for better user experience
-
-### 👥 Team Management:
-- Complete team member CRUD operations implemented
-- Username auto-generation from first and last names
-- Proper role-based access control
-- Password reset functionality for team members
-- Full alignment with instruction.md requirements
-
-
-
 ### 9.9 Password Reset Restriction for Team Members
 *   **Backend Files:** `backend/sabiops-backend/src/routes/auth.py`
 *   **Changes:**
@@ -392,4 +353,14 @@ This section details the verification of specific authentication-related feature
     *   Only authenticated users with the `Owner` role can now reset passwords for other team members.
     *   Added a check to verify the authenticated user's role and return a 403 Unauthorized error if the user is not an `Owner`.
 
+### 9.10 Team Member Activation/Deactivation
+*   **Backend Files:** `backend/sabiops-backend/src/routes/auth.py`
+*   **Changes:**
+    *   Modified `DELETE /auth/team-member/<member_id>` to deactivate (set `is_active` and `active` to `False`).
+    *   Added `POST /auth/team-member/<member_id>/activate` to activate (set `is_active` and `active` to `True`).
+    *   Ensured both endpoints are restricted to `Owner` role.
+
+*   **Frontend Files:** `frontend/sabiops-frontend/src/pages/Team.jsx`, `frontend/sabiops-frontend/src/services/api.js`
+*   **Changes:**
+    *   Added 
 

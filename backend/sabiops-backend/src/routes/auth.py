@@ -21,7 +21,7 @@ def error_response(error, message="Error", status_code=400):
         "success": False,
         "error": error,
         "message": message
-    }), status_code
+    }), status_response
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -79,7 +79,11 @@ def register():
             "role": "Owner",
             "subscription_plan": "weekly",
             "subscription_status": "trial",
-            "active": True
+            "active": True,
+            "is_active": True, # Ensure is_active is set for new owners
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "trial_ends_at": (datetime.now() + timedelta(days=14)).isoformat() # Set trial end date for new owners
         }
         
         result = supabase.table("users").insert(user_data).execute()
@@ -116,7 +120,8 @@ def register():
                         "business_name": user["business_name"],
                         "role": user["role"],
                         "subscription_plan": user["subscription_plan"],
-                        "subscription_status": user["subscription_status"]
+                        "subscription_status": user["subscription_status"],
+                        "trial_ends_at": user["trial_ends_at"]
                     }
                 },
                 status_code=201
@@ -202,7 +207,8 @@ def login():
                     "business_name": user["business_name"],
                     "role": user["role"],
                     "subscription_plan": user["subscription_plan"],
-                    "subscription_status": user["subscription_status"]
+                    "subscription_status": user["subscription_status"],
+                    "trial_ends_at": user.get("trial_ends_at") # Include trial_ends_at in login response
                 }
             }
         )
@@ -241,7 +247,7 @@ def get_profile():
                     "subscription_plan": user["subscription_plan"],
                     "subscription_status": user["subscription_status"],
                     "referral_code": user["referral_code"],
-                    "trial_ends_at": user["trial_ends_at"]
+                    "trial_ends_at": user.get("trial_ends_at") # Ensure trial_ends_at is returned
                 }
             }
         )
@@ -311,7 +317,7 @@ def update_profile():
                     "subscription_plan": updated_user["subscription_plan"],
                     "subscription_status": updated_user["subscription_status"],
                     "referral_code": updated_user["referral_code"],
-                    "trial_ends_at": updated_user["trial_ends_at"]
+                    "trial_ends_at": updated_user.get("trial_ends_at") # Ensure trial_ends_at is returned
                 }
             }
         )
@@ -458,7 +464,7 @@ def reset_password():
         # Mark the token as used
         supabase.table("password_reset_tokens").update({"used": True}).eq("id", token_result.data[0]["id"]).execute()
 
-        # Update user\'s password
+        # Update user\\'s password
         new_password_hash = generate_password_hash(new_password)
         supabase.table("users").update({"password_hash": new_password_hash, "updated_at": datetime.now().isoformat()}).eq("id", user_id).execute()
 
@@ -493,20 +499,29 @@ def create_team_member():
         data = request.get_json()
         
         # Required fields based on instruction.md
-        required_fields = ["first_name", "last_name", "email", "password"]
+        required_fields = ["first_name", "last_name", "email", "phone", "password"]
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
         
         # Check if email already exists
-        existing_user = supabase.table("users").select("*").eq("email", data["email"]).execute()
-        if existing_user.data:
+        existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
+        if existing_user_email.data:
             return error_response(
                 error="Email already exists",
                 message="A user with this email already exists",
                 status_code=400
             )
         
+        # Check if phone already exists
+        existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
+        if existing_user_phone.data:
+            return error_response(
+                error="Phone number already exists",
+                message="A user with this phone number already exists",
+                status_code=400
+            )
+
         # Generate username from first and last name
         username = f"{data["first_name"].lower()}{data["last_name"].lower()}"
         
@@ -524,7 +539,7 @@ def create_team_member():
         team_member_data = {
             "id": str(uuid.uuid4()),
             "email": data["email"],
-            "phone": data.get("phone", ""),
+            "phone": data["phone"],
             "password_hash": password_hash,
             "first_name": data["first_name"],
             "last_name": data["last_name"],
@@ -721,6 +736,10 @@ def activate_team_member(member_id):
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
+
+
+
 
 
 
