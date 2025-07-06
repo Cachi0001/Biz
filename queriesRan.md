@@ -315,3 +315,16 @@ $$ LANGUAGE 'plpgsql';
 CREATE TRIGGER create_transaction_from_expense_trigger
     AFTER INSERT ON public.expenses
     FOR EACH ROW EXECUTE FUNCTION create_transaction_from_expense();
+
+
+-- Password reset tokens table (already executed)
+CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    reset_code TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    used BOOLEAN DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS idx_reset_code ON public.password_reset_tokens(reset_code);
