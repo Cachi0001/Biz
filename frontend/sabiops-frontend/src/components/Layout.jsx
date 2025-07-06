@@ -134,33 +134,36 @@ const Layout = ({ children }) => {
           <Button
             variant="outline"
             size="icon"
-            className="shrink-0 md:hidden fixed top-4 left-4 z-50"
+            className="shrink-0 md:hidden fixed top-4 left-4 z-50 bg-background shadow-md"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col">
-          <nav className="grid gap-2 text-lg font-medium">
+        <SheetContent side="left" className="flex flex-col w-[280px] sm:w-[320px] p-0">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link
               to="/dashboard"
-              className="flex items-center gap-2 text-lg font-semibold mb-4"
+              className="flex items-center gap-2 text-lg font-semibold"
+              onClick={() => setSidebarOpen(false)}
             >
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold">S</span>
               </div>
               SabiOps
             </Link>
+          </div>
+          <nav className="flex-1 px-4 py-4 space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground ${
                     location.pathname === item.href
-                      ? 'bg-muted text-foreground'
-                      : ''
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground'
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -212,27 +215,30 @@ const Layout = ({ children }) => {
       <div className="flex flex-col md:ml-64">
         {/* Header */}
         <div className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+          {/* Mobile spacing for hamburger menu */}
+          <div className="md:hidden w-10"></div>
+          
           <div className="w-full flex-1">
             <form>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <input
                   type="search"
-                  placeholder="Search..."
-                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-input px-3 py-1 text-sm"
+                  placeholder="Search customers, products, invoices..."
+                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-input px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
             </form>
           </div>
           
-          <div className="flex items-center gap-4">
-            {/* Social Links */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Twitter className="h-5 w-5 text-blue-500" />
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Social Links - Hidden on mobile */}
+            <div className="hidden sm:flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Twitter className="h-4 w-4 text-blue-500" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <MessageCircle className="h-5 w-5 text-green-500" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MessageCircle className="h-4 w-4 text-green-500" />
               </Button>
             </div>
 
@@ -275,7 +281,7 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Page Content */}
-        <main className="py-6">
+        <main className="flex-1 py-4 md:py-6">
           <div className="px-4 sm:px-6 lg:px-8">
             {children}
           </div>
@@ -286,3 +292,4 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
+

@@ -348,11 +348,17 @@ const Invoices = () => {
               <SelectValue placeholder="Select a customer" />
             </SelectTrigger>
             <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
+              {customers.length === 0 ? (
+                <SelectItem value="" disabled>
+                  No customers available. Please add a customer first.
                 </SelectItem>
-              ))}
+              ) : (
+                customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -410,11 +416,17 @@ const Invoices = () => {
                     <SelectValue placeholder="Select product (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
+                    {products.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No products available. Please add a product first.
                       </SelectItem>
-                    ))}
+                    ) : (
+                      products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -674,5 +686,6 @@ const Invoices = () => {
 };
 
 export default Invoices;
+
 
 

@@ -13,6 +13,7 @@ def success_response(data=None, message="Success", status_code=200):
     }), status_code
 
 def error_response(error, message="Error", status_code=400):
+    print(f"API Error: {message} - {error}") # Added detailed error logging
     return jsonify({
         "success": False,
         "error": error,
@@ -253,6 +254,7 @@ def update_stock(product_id):
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
 
 
 
