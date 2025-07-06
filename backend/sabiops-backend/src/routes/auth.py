@@ -99,10 +99,17 @@ def login():
         data = request.get_json()
         
         # Validate that data is actually a dictionary
-        if not data or not isinstance(data, dict):
+        if data is None:
             return error_response(
-                error="Invalid JSON data",
-                message="Request must contain valid JSON data",
+                error="No JSON data",
+                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
+                status_code=400
+            )
+        
+        if not isinstance(data, dict):
+            return error_response(
+                error="Invalid JSON format",
+                message=f"Expected JSON object, received {type(data).__name__}: {str(data)[:100]}",
                 status_code=400
             )
         
