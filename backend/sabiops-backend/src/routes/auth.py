@@ -98,6 +98,14 @@ def login():
         supabase = current_app.config["SUPABASE_CLIENT"]
         data = request.get_json()
         
+        # Validate that data is actually a dictionary
+        if not data or not isinstance(data, dict):
+            return error_response(
+                error="Invalid JSON data",
+                message="Request must contain valid JSON data",
+                status_code=400
+            )
+        
         if not data.get("login") or not data.get("password"):
             return error_response(
                 error="Login credentials required",
@@ -159,9 +167,6 @@ def login():
         )
         
     except Exception as e:
-        print(f"Login exception: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return error_response(
             error=str(e),
             message=f"An error occurred during login: {str(e)}",
