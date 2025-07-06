@@ -35,27 +35,15 @@ const Register = () => {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: 'Registration Error',
-        description: 'Passwords do not match',
-        variant: 'destructive',
-      });
+      toast.error('Passwords do not match');
       return false;
     }
     if (formData.password.length < 6) {
-      toast({
-        title: 'Registration Error',
-        description: 'Password must be at least 6 characters long',
-        variant: 'destructive',
-      });
+      toast.error('Password must be at least 6 characters long');
       return false;
     }
-    if (!formData.email || !formData.phone) {
-      toast({
-        title: 'Registration Error',
-        description: 'Email and phone number are required',
-        variant: 'destructive',
-      });
+    if (!formData.email || !formData.phone || !formData.first_name || !formData.last_name) {
+      toast.error('Email, phone number, first name, and last name are required');
       return false;
     }
     return true;
@@ -73,19 +61,11 @@ const Register = () => {
     try {
       const { confirmPassword, ...registrationData } = formData;
       await register(registrationData);
-      toast({
-        title: 'Registration Successful',
-        description: 'Your account has been created!',
-        variant: 'success',
-      });
+      toast.success('Your account has been created!');
       navigate('/dashboard');
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please check your information and try again.';
-      toast({
-        title: 'Registration Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
