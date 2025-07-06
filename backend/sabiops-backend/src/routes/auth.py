@@ -57,6 +57,7 @@ def register():
             "password_hash": password_hash,
             "first_name": data["first_name"],
             "last_name": data["last_name"],
+            "full_name": f"{data["first_name"]} {data["last_name"]}", # Added full_name
             "business_name": data.get("business_name", ""),
             "role": "Owner",
             "subscription_plan": "weekly",
@@ -80,6 +81,7 @@ def register():
                         "phone": user["phone"],
                         "first_name": user["first_name"],
                         "last_name": user["last_name"],
+                        "full_name": user["full_name"], # Added full_name
                         "business_name": user["business_name"],
                         "role": user["role"],
                         "subscription_plan": user["subscription_plan"],
@@ -165,6 +167,7 @@ def login():
                     "phone": user["phone"],
                     "first_name": user["first_name"],
                     "last_name": user["last_name"],
+                    "full_name": user["full_name"], # Added full_name
                     "business_name": user["business_name"],
                     "role": user["role"],
                     "subscription_plan": user["subscription_plan"],
@@ -201,6 +204,7 @@ def get_profile():
                     "phone": user["phone"],
                     "first_name": user["first_name"],
                     "last_name": user["last_name"],
+                    "full_name": user["full_name"], # Added full_name
                     "business_name": user["business_name"],
                     "role": user["role"],
                     "subscription_plan": user["subscription_plan"],
@@ -270,6 +274,7 @@ def update_profile():
                     "phone": updated_user["phone"],
                     "first_name": updated_user["first_name"],
                     "last_name": updated_user["last_name"],
+                    "full_name": updated_user["full_name"], # Added full_name
                     "business_name": updated_user["business_name"],
                     "role": updated_user["role"],
                     "subscription_plan": updated_user["subscription_plan"],
@@ -312,6 +317,8 @@ def change_password():
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
+
 
 
 
