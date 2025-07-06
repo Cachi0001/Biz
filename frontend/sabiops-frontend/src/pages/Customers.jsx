@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, User, Phone, Mail } from 'lucide-react';
 import apiService from "../services/api";
+import { useToast } from "../components/ui/use-toast"; // Assuming you have a toast component
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -16,6 +17,7 @@ const Customers = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const { toast } = useToast();
 
   const [newCustomer, setNewCustomer] = useState({
     name: '',
@@ -32,10 +34,16 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
+      setLoading(true);
       const response = await apiService.getCustomers();
       setCustomers(response.customers || []);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load customers.",
+        variant: "destructive",
+      });
       setCustomers([]);
     } finally {
       setLoading(false);
@@ -47,9 +55,8 @@ const Customers = () => {
       setLoading(true);
       const response = await apiService.createCustomer(newCustomer);
       
-      // Immediately add the new customer to the list for real-time feedback
-      const createdCustomer = response.customer || response;
-      setCustomers(prevCustomers => [createdCustomer, ...prevCustomers]);
+      // Add the new customer to the list and sort by creation date (optional)
+      setCustomers(prevCustomers => [response.customer, ...prevCustomers]);
       
       setIsCreateDialogOpen(false);
       setNewCustomer({
@@ -61,15 +68,18 @@ const Customers = () => {
         notes: ''
       });
       
-      // Show success message (you can add toast here)
-      console.log('Customer created successfully!');
+      toast({
+        title: "Success",
+        description: "Customer created successfully!",
+      });
       
-      // Refresh to ensure data consistency
-      await fetchCustomers();
     } catch (error) {
       console.error('Failed to create customer:', error);
-      // Show error message (you can add toast here)
-      alert('Failed to create customer. Please try again.');
+      toast({
+        title: "Error",
+        description: `Failed to create customer: ${error.message || 'Unknown error'}`, 
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -80,25 +90,27 @@ const Customers = () => {
       setLoading(true);
       const response = await apiService.updateCustomer(selectedCustomer.id, selectedCustomer);
       
-      // Immediately update the customer in the list for real-time feedback
-      const updatedCustomer = response.customer || response;
       setCustomers(prevCustomers => 
         prevCustomers.map(customer => 
-          customer.id === selectedCustomer.id ? updatedCustomer : customer
+          customer.id === selectedCustomer.id ? response.customer : customer
         )
       );
       
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
       
-      // Show success message
-      console.log('Customer updated successfully!');
+      toast({
+        title: "Success",
+        description: "Customer updated successfully!",
+      });
       
-      // Refresh to ensure data consistency
-      await fetchCustomers();
     } catch (error) {
       console.error('Failed to update customer:', error);
-      alert('Failed to update customer. Please try again.');
+      toast({
+        title: "Error",
+        description: `Failed to update customer: ${error.message || 'Unknown error'}`, 
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -110,18 +122,22 @@ const Customers = () => {
         setLoading(true);
         await apiService.deleteCustomer(id);
         
-        // Immediately remove the customer from the list for real-time feedback
         setCustomers(prevCustomers => 
           prevCustomers.filter(customer => customer.id !== id)
         );
         
-        console.log('Customer deleted successfully!');
+        toast({
+          title: "Success",
+          description: "Customer deleted successfully!",
+        });
         
-        // Refresh to ensure data consistency
-        await fetchCustomers();
       } catch (error) {
         console.error('Failed to delete customer:', error);
-        alert('Failed to delete customer. Please try again.');
+        toast({
+          title: "Error",
+          description: `Failed to delete customer: ${error.message || 'Unknown error'}`, 
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -428,4 +444,5 @@ const Customers = () => {
 };
 
 export default Customers;
+
 
