@@ -49,3 +49,4 @@ Never hallucinate libraries or functions – only use known, verified Python pac
 Always confirm file paths and module names exist before referencing them in code or tests.
 Never delete or overwrite existing code unless explicitly instructed to or if part of a task from Task.md
 
+Always update the changesMade.md file once you make any change or update
