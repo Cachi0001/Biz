@@ -71,10 +71,6 @@ def success_response(data=None, message="Success", status_code=200):
         "data": data,
         "message": message
     })
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
     return response, status_code
 
 def error_response(error, message="Error", status_code=400):
@@ -83,10 +79,6 @@ def error_response(error, message="Error", status_code=400):
         "error": error,
         "message": message
     })
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
     return response, status_code
 
 # ============================================================================
@@ -154,22 +146,6 @@ app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-up
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
 
-@app.before_request
-def handle_options_requests():
-    if request.method == "OPTIONS":
-        response = app.make_default_options_response()
-        headers = response.headers
-        headers["Access-Control-Allow-Origin"] = "*"
-        headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        return response
 
-@app.after_request
-def after_request(response):
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
-    return response
 
 
