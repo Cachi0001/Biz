@@ -24,13 +24,35 @@ def error_response(error, message="Error", status_code=400):
 def get_customers():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        customers = supabase.table("customers").select("*").eq("user_id", user_id).execute()
+        # Fetch customers associated with the owner_id
+        customers = supabase.table("customers").select("*").eq("owner_id", owner_id).execute()
         
         return success_response(
             data={
                 "customers": customers.data
+            }
+        )
+        
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@customer_bp.route("/<customer_id>", methods=["GET"])
+@jwt_required()
+def get_customer_by_id(customer_id):
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        owner_id = get_jwt_identity()
+        
+        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
+        
+        if not customer.data:
+            return error_response("Customer not found", status_code=404)
+        
+        return success_response(
+            data={
+                "customer": customer.data[0]
             }
         )
         
@@ -42,7 +64,7 @@ def get_customers():
 def create_customer():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
         required_fields = ["name"]
@@ -52,7 +74,7 @@ def create_customer():
         
         customer_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id, # Use owner_id here
             "name": data["name"],
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
@@ -82,10 +104,10 @@ def create_customer():
 def update_customer(customer_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
-        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("user_id", user_id).execute()
+        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
@@ -116,9 +138,9 @@ def update_customer(customer_id):
 def delete_customer(customer_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("user_id", user_id).execute()
+        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
@@ -130,5 +152,6 @@ def delete_customer(customer_id):
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
 
 

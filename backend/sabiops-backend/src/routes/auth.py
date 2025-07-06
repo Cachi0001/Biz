@@ -102,7 +102,7 @@ def login():
         if data is None:
             return error_response(
                 error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
+                message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
                 status_code=400
             )
         
