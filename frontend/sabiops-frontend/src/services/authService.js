@@ -33,6 +33,26 @@ export const authService = {
     }
   },
 
+  // Request password reset code
+  async requestPasswordReset(email) {
+    try {
+      const response = await apiService.requestPasswordReset({ email });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Failed to request password reset' };
+    }
+  },
+
+  // Reset password with code
+  async resetPassword(email, resetCode, newPassword) {
+    try {
+      const response = await apiService.resetPassword({ email, reset_code: resetCode, new_password: newPassword });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Failed to reset password' };
+    }
+  },
+
   // Create team member (Owner/Admin only)
   async createTeamMember(memberData) {
     try {
@@ -109,5 +129,4 @@ export const authService = {
     return user && roles.includes(user.role);
   }
 };
-
 

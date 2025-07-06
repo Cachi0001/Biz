@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast'; // Import useToast
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -15,11 +15,11 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast(); // Initialize useToast
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -29,26 +29,27 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
     try {
       await login(formData);
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back to SabiOps!',
+        variant: 'success',
+      });
       navigate(from, { replace: true });
     } catch (error) {
-      // Handle detailed error messages from backend
-      if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.response?.data?.error) {
-        setError(error.response.data.error);
-      } else {
-        setError(error.message || 'Login failed. Please check your credentials and try again.');
-      }
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials and try again.';
+      toast({
+        title: 'Login Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -80,12 +81,6 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="username">Phone Number or Email</Label>
                 <Input
@@ -101,7 +96,15 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-primary hover:text-primary/80"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -164,4 +167,5 @@ const Login = () => {
 };
 
 export default Login;
+
 

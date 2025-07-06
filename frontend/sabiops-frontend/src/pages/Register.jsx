@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast'; // Import useToast
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -21,10 +21,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast(); // Initialize useToast
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,20 +32,31 @@ const Register = () => {
       ...prev,
       [name]: value
     }));
-    setError('');
   };
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      toast({
+        title: 'Registration Error',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      toast({
+        title: 'Registration Error',
+        description: 'Password must be at least 6 characters long',
+        variant: 'destructive',
+      });
       return false;
     }
     if (!formData.email || !formData.phone) {
-      setError('Email and phone number are required');
+      toast({
+        title: 'Registration Error',
+        description: 'Email and phone number are required',
+        variant: 'destructive',
+      });
       return false;
     }
     return true;
@@ -54,7 +65,6 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
     if (!validateForm()) {
       setIsLoading(false);
@@ -64,16 +74,19 @@ const Register = () => {
     try {
       const { confirmPassword, ...registrationData } = formData;
       await register(registrationData);
+      toast({
+        title: 'Registration Successful',
+        description: 'Your account has been created!',
+        variant: 'success',
+      });
       navigate('/dashboard');
     } catch (error) {
-      // Handle detailed error messages from backend
-      if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.response?.data?.error) {
-        setError(error.response.data.error);
-      } else {
-        setError(error.message || 'Registration failed. Please check your information and try again.');
-      }
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please check your information and try again.';
+      toast({
+        title: 'Registration Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -104,12 +117,6 @@ const Register = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               {/* Personal Information Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Personal Information</h3>
@@ -301,4 +308,5 @@ const Register = () => {
 };
 
 export default Register;
+
 
