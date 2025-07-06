@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await authService.login(credentials.username, credentials.password);
+      const response = await authService.login(credentials.login, credentials.password);
       
       // After successful login, get user profile
       if (response.access_token) {
@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
           // Set a basic user object if profile fetch fails
           setUser(enhanceUserData({ 
             id: 'unknown', 
-            email: credentials.username,
+            email: credentials.login,
             role: 'standard_user',
             subscription_status: 'free_trial'
           }));
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
         // If no token, set user from response or create basic user object
         const userData = response.user || { 
           id: 'unknown', 
-          email: credentials.username,
+          email: credentials.login,
           role: 'standard_user',
           subscription_status: 'free_trial'
         };

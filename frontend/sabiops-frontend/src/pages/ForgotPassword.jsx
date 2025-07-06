@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; // Import useToast
+import toast from 'react-hot-toast';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -16,28 +16,17 @@ const ForgotPassword = () => {
   const [step, setStep] = useState(1); // 1: Request reset, 2: Reset password
   const [isLoading, setIsLoading] = useState(false);
 
-  const { requestPasswordReset, resetPassword } = useAuth();
-  const { toast } = useToast(); // Initialize useToast
-
   const handleRequestReset = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await requestPasswordReset(email);
-      toast({
-        title: 'Password Reset',
-        description: 'A password reset code has been sent to your email.',
-        variant: 'success',
-      });
+      await authService.requestPasswordReset(email);
+      toast.success('A password reset code has been sent to your email.');
       setStep(2); // Move to reset password step
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to send reset code. Please try again.';
-      toast({
-        title: 'Password Reset Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      const errorMessage = err.message || 'Failed to send reset code. Please try again.';
+      toast.error(errorMessage);
     }
     setIsLoading(false);
   };
@@ -47,30 +36,18 @@ const ForgotPassword = () => {
     setIsLoading(true);
 
     if (newPassword !== confirmNewPassword) {
-      toast({
-        title: 'Password Reset Error',
-        description: 'New passwords do not match.',
-        variant: 'destructive',
-      });
+      toast.error('New passwords do not match.');
       setIsLoading(false);
       return;
     }
 
     try {
-      await resetPassword(email, resetCode, newPassword);
-      toast({
-        title: 'Password Reset Successful',
-        description: 'Your password has been reset successfully. You can now log in.',
-        variant: 'success',
-      });
+      await authService.resetPassword(email, resetCode, newPassword);
+      toast.success('Your password has been reset successfully. You can now log in.');
       setStep(3); // Indicate completion
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to reset password. Please check the code and try again.';
-      toast({
-        title: 'Password Reset Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      const errorMessage = err.message || 'Failed to reset password. Please check the code and try again.';
+      toast.error(errorMessage);
     }
     setIsLoading(false);
   };

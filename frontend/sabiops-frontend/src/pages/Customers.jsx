@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, User, Phone, Mail } from 'lucide-react';
 import apiService from "../services/api";
-import { useToast } from "../components/ui/use-toast"; // Assuming you have a toast component
+import toast from 'react-hot-toast';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -17,7 +17,6 @@ const Customers = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const { toast } = useToast();
 
   const [newCustomer, setNewCustomer] = useState({
     name: '',
@@ -39,11 +38,7 @@ const Customers = () => {
       setCustomers(response.customers || []);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load customers.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load customers.");
       setCustomers([]);
     } finally {
       setLoading(false);
@@ -68,18 +63,11 @@ const Customers = () => {
         notes: ''
       });
       
-      toast({
-        title: "Success",
-        description: "Customer created successfully!",
-      });
+      toast.success("Customer created successfully!");
       
     } catch (error) {
       console.error('Failed to create customer:', error);
-      toast({
-        title: "Error",
-        description: `Failed to create customer: ${error.message || 'Unknown error'}`, 
-        variant: "destructive",
-      });
+      toast.error(`Failed to create customer: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -99,18 +87,11 @@ const Customers = () => {
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
       
-      toast({
-        title: "Success",
-        description: "Customer updated successfully!",
-      });
+      toast.success("Customer updated successfully!");
       
     } catch (error) {
       console.error('Failed to update customer:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update customer: ${error.message || 'Unknown error'}`, 
-        variant: "destructive",
-      });
+      toast.error(`Failed to update customer: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -122,22 +103,12 @@ const Customers = () => {
         setLoading(true);
         await apiService.deleteCustomer(id);
         
-        setCustomers(prevCustomers => 
-          prevCustomers.filter(customer => customer.id !== id)
-        );
-        
-        toast({
-          title: "Success",
-          description: "Customer deleted successfully!",
-        });
-        
+        setCustomers(customers.filter(customer => customer.id !== id));
+        toast.success("Customer deleted successfully!");
+        fetchCustomers();
       } catch (error) {
         console.error('Failed to delete customer:', error);
-        toast({
-          title: "Error",
-          description: `Failed to delete customer: ${error.message || 'Unknown error'}`, 
-          variant: "destructive",
-        });
+        toast.error(`Failed to delete customer: ${error.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -188,7 +159,7 @@ const Customers = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name *</Label>
                   <Input
@@ -208,7 +179,7 @@ const Customers = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -271,7 +242,7 @@ const Customers = () => {
           </DialogHeader>
           {selectedCustomer && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_name">Full Name *</Label>
                   <Input
@@ -291,7 +262,7 @@ const Customers = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_email">Email</Label>
                   <Input
@@ -373,13 +344,14 @@ const Customers = () => {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Business</TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden sm:table-cell">Business</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Address</TableHead>
+                  <TableHead className="hidden md:table-cell">Address</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -394,13 +366,13 @@ const Customers = () => {
                         <span>{customer.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{customer.business_name || '-'}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{customer.business_name || '-'}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {customer.email && (
                           <div className="flex items-center space-x-1 text-sm">
                             <Mail className="h-3 w-3" />
-                            <span>{customer.email}</span>
+                            <span className="truncate">{customer.email}</span>
                           </div>
                         )}
                         {customer.phone && (
@@ -411,7 +383,7 @@ const Customers = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="hidden md:table-cell max-w-xs truncate">
                       {customer.address || '-'}
                     </TableCell>
                     <TableCell>
@@ -436,6 +408,7 @@ const Customers = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

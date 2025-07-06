@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "../components/ui/table";
 import apiService from "../services/api";
-import { useToast } from "../components/ui/use-toast";
+import toast from 'react-hot-toast';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -42,7 +42,6 @@ const Products = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -481,11 +480,11 @@ const Products = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead className="hidden sm:table-cell">SKU</TableHead>
+                    <TableHead className="hidden md:table-cell">Category</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Stock</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -502,12 +501,12 @@ const Products = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <code className="text-sm bg-muted px-1 py-0.5 rounded">
                           {product.sku || 'N/A'}
                         </code>
                       </TableCell>
-                      <TableCell>{product.category || 'Uncategorized'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.category || 'Uncategorized'}</TableCell>
                       <TableCell>₦{product.price?.toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -517,7 +516,7 @@ const Products = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <Badge variant={getStockBadgeVariant(product)}>
                           {getStockStatus(product)}
                         </Badge>

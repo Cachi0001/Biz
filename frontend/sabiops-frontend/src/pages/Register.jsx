@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; // Import useToast
+import toast from 'react-hot-toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,7 +24,6 @@ const Register = () => {
 
   const { register } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast(); // Initialize useToast
 
   const handleChange = (e) => {
     const { name, value } = e.target;

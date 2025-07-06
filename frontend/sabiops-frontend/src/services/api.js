@@ -78,6 +78,16 @@ const apiService = {
     return response.data;
   },
 
+  requestPasswordReset: async (data) => {
+    const response = await api.post('/auth/request-password-reset', data);
+    return response.data;
+  },
+
+  resetPassword: async (data) => {
+    const response = await api.post('/auth/reset-password', data);
+    return response.data;
+  },
+
   createTeamMember: async (memberData) => {
     const response = await api.post('/auth/team-member', memberData);
     return response.data;

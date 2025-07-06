@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; // Import useToast
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    login: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +19,6 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast(); // Initialize useToast
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -82,14 +81,14 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Phone Number or Email</Label>
+                <Label htmlFor="login">Phone Number or Email</Label>
                 <Input
-                  id="username"
-                  name="username"
+                  id="login"
+                  name="login"
                   type="text"
                   autoComplete="username"
                   required
-                  value={formData.username}
+                  value={formData.login}
                   onChange={handleChange}
                   placeholder="Enter your username or email"
                 />

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, Eye, Download, Send } from 'lucide-react';
 import apiService from "../services/api";
-import { useToast } from "../components/ui/use-toast";
+import toast from 'react-hot-toast';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -21,7 +21,6 @@ const Invoices = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     customer_id: '',
