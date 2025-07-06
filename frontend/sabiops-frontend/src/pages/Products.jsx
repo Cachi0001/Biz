@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Package, AlertTriangle, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Textarea } from '../components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '../components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../components/ui/select';
 import {
   Table,
   TableBody,
@@ -29,34 +29,31 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../components/ui/table";
 import apiService from "../services/api";
-import toast from "react-hot-toast";
+import { useToast } from "../components/ui/use-toast";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     sku: '',
     category: '',
-    unit_price: '',
+    price: '', // Changed from unit_price to price
     cost_price: '',
-    quantity_in_stock: '',
-    minimum_stock_level: '',
-    unit_of_measure: 'piece',
-    tax_rate: '',
-    is_service: false,
-    barcode: '',
-    supplier_info: ''
+    quantity: '', // Changed from quantity_in_stock to quantity
+    low_stock_threshold: '', // Changed from minimum_stock_level
+    image_url: '' // Added image_url
   });
 
   useEffect(() => {
@@ -68,11 +65,15 @@ const Products = () => {
     try {
       setLoading(true);
       const response = await apiService.getProducts();
-      setProducts(response.data || response);
+      setProducts(response.products || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast.error('Failed to fetch products');
-      setError('Failed to fetch products');
+      toast({
+        title: "Error",
+        description: "Failed to load products.",
+        variant: "destructive",
+      });
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -80,65 +81,72 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiService.request({ url: '/products/categories' });
-      setCategories(response.data || response);
+      const response = await apiService.getCategories(); // Changed to use getCategories
+      setCategories(response.categories || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories.",
+        variant: "destructive",
+      });
       // Set default categories if API fails
       setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
+    // Validation based on Backend required fields
     if (!formData.name.trim()) {
-      toast.error('Product name is required');
+      toast({
+        title: "Error",
+        description: "Product name is required",
+        variant: "destructive",
+      });
       return;
     }
-    if (!formData.category.trim()) {
-      toast.error('Category is required');
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast({
+        title: "Error",
+        description: "Valid selling price is required",
+        variant: "destructive",
+      });
       return;
     }
-    if (!formData.unit_price || parseFloat(formData.unit_price) <= 0) {
-      toast.error('Valid unit price is required');
-      return;
-    }
-    if (formData.cost_price && parseFloat(formData.cost_price) < 0) {
-      toast.error('Cost price cannot be negative');
-      return;
-    }
-    if (formData.quantity_in_stock && parseInt(formData.quantity_in_stock) < 0) {
-      toast.error('Quantity in stock cannot be negative');
-      return;
-    }
-    if (formData.minimum_stock_level && parseInt(formData.minimum_stock_level) < 0) {
-      toast.error('Minimum stock level cannot be negative');
-      return;
-    }
-    if (formData.tax_rate && (parseFloat(formData.tax_rate) < 0 || parseFloat(formData.tax_rate) > 100)) {
-      toast.error('Tax rate must be between 0 and 100');
+    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+      toast({
+        title: "Error",
+        description: "Valid stock quantity is required",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       if (editingProduct) {
         await apiService.updateProduct(editingProduct.id, formData);
-        toast.success('Product updated successfully');
+        toast({
+          title: "Success",
+          description: "Product updated successfully!",
+        });
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
         await apiService.createProduct(formData);
-        toast.success('Product created successfully');
+        toast({
+          title: "Success",
+          description: "Product created successfully!",
+        });
         setShowAddDialog(false);
       }
       
@@ -148,15 +156,11 @@ const Products = () => {
         description: '',
         sku: '',
         category: '',
-        unit_price: '',
+        price: '',
         cost_price: '',
-        quantity_in_stock: '',
-        minimum_stock_level: '',
-        unit_of_measure: 'piece',
-        tax_rate: '',
-        is_service: false,
-        barcode: '',
-        supplier_info: ''
+        quantity: '',
+        low_stock_threshold: '',
+        image_url: ''
       });
       
       fetchProducts();
@@ -164,8 +168,11 @@ const Products = () => {
     } catch (error) {
       console.error('Failed to save product:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save product';
-      toast.error(errorMessage);
-      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: `Failed to save product: ${errorMessage}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -176,15 +183,11 @@ const Products = () => {
       description: product.description || '',
       sku: product.sku || '',
       category: product.category || '',
-      unit_price: product.unit_price || '',
+      price: product.price || '',
       cost_price: product.cost_price || '',
-      quantity_in_stock: product.quantity_in_stock || '',
-      minimum_stock_level: product.minimum_stock_level || '',
-      unit_of_measure: product.unit_of_measure || 'piece',
-      tax_rate: product.tax_rate || '',
-      is_service: product.is_service || false,
-      barcode: product.barcode || '',
-      supplier_info: product.supplier_info || ''
+      quantity: product.quantity || '',
+      low_stock_threshold: product.low_stock_threshold || '',
+      image_url: product.image_url || ''
     });
     setShowEditDialog(true);
   };
@@ -193,40 +196,41 @@ const Products = () => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         await apiService.deleteProduct(productId);
+        toast({
+          title: "Success",
+          description: "Product deleted successfully!",
+        });
         fetchProducts();
       } catch (error) {
-        setError('Failed to delete product');
+        console.error('Failed to delete product:', error);
+        toast({
+          title: "Error",
+          description: `Failed to delete product: ${error.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
       }
     }
   };
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   const getStockStatus = (product) => {
-    if (product.is_service) return 'Service';
-    if (product.quantity_in_stock <= product.minimum_stock_level) return 'Low Stock';
+    if (product.quantity <= product.low_stock_threshold) return 'Low Stock';
     return 'In Stock';
   };
 
   const getStockBadgeVariant = (product) => {
-    if (product.is_service) return 'secondary';
-    if (product.quantity_in_stock <= product.minimum_stock_level) return 'destructive';
+    if (product.quantity <= product.low_stock_threshold) return 'destructive';
     return 'default';
   };
 
   const ProductForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name *</Label>
@@ -290,13 +294,13 @@ const Products = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="unit_price">Selling Price (₦) *</Label>
+          <Label htmlFor="price">Selling Price (₦) *</Label>
           <Input
-            id="unit_price"
-            name="unit_price"
+            id="price"
+            name="price"
             type="number"
             step="0.01"
-            value={formData.unit_price}
+            value={formData.price}
             onChange={handleInputChange}
             placeholder="0.00"
             required
@@ -319,75 +323,40 @@ const Products = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="quantity_in_stock">Stock Quantity *</Label>
+          <Label htmlFor="quantity">Stock Quantity *</Label>
           <Input
-            id="quantity_in_stock"
-            name="quantity_in_stock"
+            id="quantity"
+            name="quantity"
             type="number"
-            value={formData.quantity_in_stock}
+            value={formData.quantity}
             onChange={handleInputChange}
             placeholder="0"
             required
-            disabled={formData.is_service}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="minimum_stock_level">Low Stock Alert</Label>
+          <Label htmlFor="low_stock_threshold">Low Stock Alert</Label>
           <Input
-            id="minimum_stock_level"
-            name="minimum_stock_level"
+            id="low_stock_threshold"
+            name="low_stock_threshold"
             type="number"
-            value={formData.minimum_stock_level}
+            value={formData.low_stock_threshold}
             onChange={handleInputChange}
             placeholder="0"
-            disabled={formData.is_service}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="unit_of_measure">Unit of Measure</Label>
-          <Select value={formData.unit_of_measure} onValueChange={(value) => setFormData(prev => ({ ...prev, unit_of_measure: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="piece">Piece</SelectItem>
-              <SelectItem value="kg">Kilogram</SelectItem>
-              <SelectItem value="liter">Liter</SelectItem>
-              <SelectItem value="meter">Meter</SelectItem>
-              <SelectItem value="box">Box</SelectItem>
-              <SelectItem value="pack">Pack</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-          <Input
-            id="tax_rate"
-            name="tax_rate"
-            type="number"
-            step="0.01"
-            value={formData.tax_rate}
-            onChange={handleInputChange}
-            placeholder="0.00"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="is_service"
-          name="is_service"
-          checked={formData.is_service}
+      <div className="space-y-2">
+        <Label htmlFor="image_url">Image URL</Label>
+        <Input
+          id="image_url"
+          name="image_url"
+          value={formData.image_url}
           onChange={handleInputChange}
-          className="rounded border-gray-300"
+          placeholder="Enter image URL (optional)"
         />
-        <Label htmlFor="is_service">This is a service (no inventory tracking)</Label>
       </div>
 
       <div className="flex justify-end space-x-2">
@@ -539,18 +508,14 @@ const Products = () => {
                         </code>
                       </TableCell>
                       <TableCell>{product.category || 'Uncategorized'}</TableCell>
-                      <TableCell>₦{product.unit_price?.toLocaleString()}</TableCell>
+                      <TableCell>₦{product.price?.toLocaleString()}</TableCell>
                       <TableCell>
-                        {product.is_service ? (
-                          'Service'
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span>{product.quantity_in_stock}</span>
-                            {product.quantity_in_stock <= product.minimum_stock_level && (
-                              <AlertTriangle className="h-4 w-4 text-destructive" />
-                            )}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span>{product.quantity}</span>
+                          {product.quantity <= product.low_stock_threshold && (
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStockBadgeVariant(product)}>
@@ -601,4 +566,5 @@ const Products = () => {
 };
 
 export default Products;
+
 

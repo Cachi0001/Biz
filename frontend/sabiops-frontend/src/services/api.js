@@ -136,6 +136,11 @@ const apiService = {
     return response.data;
   },
 
+  getCategories: async () => {
+    const response = await api.get('/products/categories');
+    return response.data;
+  },
+
   // Dashboard
   getDashboardOverview: async () => {
     const response = await api.get('/dashboard/overview');
