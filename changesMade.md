@@ -691,3 +691,77 @@ This section details the verification of specific authentication-related feature
 ### Testing Results:
 - ❌ Backend health endpoint still returns 500 error.
 
+
+
+## 18. Attempted Fix: WSGI Entry Point (Reverted)
+
+### Issues Addressed:
+- Persistent `FUNCTION_INVOCATION_FAILED` errors on Vercel, exploring alternative entry point configurations.
+
+### Changes Made:
+- Created `wsgi.py` file at the root of the backend directory.
+- Configured `vercel.json` to use `wsgi.py` as the entry point for the Flask application.
+- **Reverted**: This change was reverted as it did not resolve the issue and `api/index.py` is the intended entry point.
+
+### Current Status:
+❌ **Still Issues**.
+
+## 19. Attempted Fix: Added `__init__.py` to `api` directory
+
+### Issues Addressed:
+- Persistent `FUNCTION_INVOCATION_FAILED` errors on Vercel, potentially due to Python module recognition issues within the `api` directory.
+
+### Changes Made:
+- Added an empty `__init__.py` file to the `api` directory to ensure it's treated as a Python package.
+- Reverted `vercel.json` to use `api/index.py` as the entry point.
+
+### Current Status:
+❌ **Still Issues**.
+
+## 20. Attempted Fix: Added Basic Logging to Flask App
+
+### Issues Addressed:
+- Inability to diagnose `FUNCTION_INVOCATION_FAILED` errors due to lack of detailed logs from Vercel.
+
+### Changes Made:
+- Added `logging` configuration to `api/index.py` to write errors to `app_errors.log`.
+- Integrated `current_app.logger.error` calls in the `health_check` endpoint to capture exceptions.
+
+### Current Status:
+❌ **Still Issues**:
+- Backend deployment still failing with "FUNCTION_INVOCATION_FAILED" on Vercel.
+- Login functionality not working due to persistent backend errors.
+- The root cause of the Vercel `FUNCTION_INVOCATION_FAILED` error remains elusive.
+
+### Next Steps Needed (for next person/AI):
+1. **Vercel Build Logs**: **Crucially, gain access to detailed Vercel build logs.** The `FUNCTION_INVOCATION_FAILED` error indicates a problem during the build or runtime on Vercel's serverless environment. Without these logs, diagnosing the exact cause is extremely difficult.
+2. **Environment Variable Verification**: Double-check that all required environment variables (especially `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `JWT_SECRET_KEY`) are correctly configured in Vercel's project settings and are accessible by the deployed function.
+3. **Dependency Compatibility**: Investigate if any of the Python packages in `requirements.txt` have compatibility issues with Vercel's specific Python runtime environment (Python 3.11).
+4. **Vercel Project Settings**: Review all Vercel project settings, including build commands, root directory, and any advanced configurations, for potential conflicts.
+5. **Minimal Reproducible Example**: If the issue persists, try deploying an even simpler Flask application to Vercel to isolate whether the problem is with the project's complexity or a fundamental Vercel configuration.
+6. **Alternative Deployment Strategy**: If Vercel continues to be a blocker, consider exploring alternative serverless deployment platforms (e.g., AWS Lambda, Google Cloud Functions) or traditional VPS hosting.
+
+### Testing Results:
+- ❌ Backend health endpoint still returns 500 error after all attempts.
+
+
+
+## 21. Explanation for SQLAlchemy Model Removal
+
+### Rationale:
+During the troubleshooting process, it was identified that the backend application was attempting to use two conflicting database access patterns:
+
+1.  **SQLAlchemy ORM (Object-Relational Mapper) models**: These were defined in the `src/models` directory and are typically used to interact with relational databases (like PostgreSQL) in an object-oriented way.
+2.  **Supabase Python Client**: The application was also making direct API calls to Supabase using its Python client, which is designed to interact with Supabase's API directly, bypassing traditional ORMs.
+
+This dual approach led to several issues:
+-   **Architectural Conflict**: SQLAlchemy expects to manage database schema and connections, while Supabase provides its own client for these operations. Having both created unnecessary complexity and potential conflicts.
+-   **Redundancy**: The application was effectively maintaining two ways of interacting with the database, leading to redundant code and increased maintenance overhead.
+-   **Import Errors**: Specifically, an `ImportError` related to `InvoiceItem` was encountered, which was a symptom of the SQLAlchemy models being out of sync or incorrectly used alongside the Supabase client.
+-   **Simplification**: Since the application was already heavily leveraging the Supabase client in its API routes, simplifying the architecture to use *pure Supabase client operations* was the most logical and efficient path forward. This eliminates a layer of abstraction (SQLAlchemy) that was not fully integrated or necessary given the Supabase-centric approach.
+
+### Decision:
+Given the existing use of the Supabase client and the conflicts arising from the presence of SQLAlchemy, the decision was made to **remove all SQLAlchemy models and related dependencies**. This streamlines the backend architecture, reduces complexity, and aligns the application more cleanly with a Supabase-first approach for database interactions.
+
+This change was implemented in **Section 13: Removal of SQLAlchemy and Pure Supabase Implementation** of this document.
+
