@@ -1,3 +1,9 @@
+import logging
+
+# Configure logging
+logging.basicConfig(filename="app_errors.log", level=logging.ERROR, 
+                    format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -94,6 +100,7 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat()
         })
     except Exception as e:
+        current_app.logger.error(f"Health check failed: {e}")
         return jsonify({
             "status": "unhealthy", 
             "message": f"Database connection failed: {str(e)}",
