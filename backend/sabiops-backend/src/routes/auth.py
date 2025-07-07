@@ -262,7 +262,7 @@ def verify_token():
         user_id = get_jwt_identity()
         
         # Get user information from database
-        user_result = get_supabase().table("users").select("*").eq("id", user_id).execute()
+        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
         
         if not user_result.data:
             return error_response(

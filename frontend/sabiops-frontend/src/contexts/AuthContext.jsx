@@ -58,16 +58,13 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         localStorage.setItem('token', response.token);
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
-        toast.success('Login successful!');
         return { success: true };
       } else {
-        toast.error(response.message || 'Login failed');
         return { success: false, message: response.message };
       }
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error.response?.data?.message || 'An unexpected error occurred during login.';
-      toast.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
@@ -78,16 +75,13 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         localStorage.setItem('token', response.token);
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
-        toast.success('Registration successful!');
         return { success: true };
       } else {
-        toast.error(response.message || 'Registration failed');
         return { success: false, message: response.message };
       }
     } catch (error) {
       console.error('Registration error:', error);
       const errorMessage = error.response?.data?.message || 'An unexpected error occurred during registration.';
-      toast.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };

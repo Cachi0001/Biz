@@ -60,9 +60,13 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...registrationData } = formData;
-      await register(registrationData);
-      toast.success('Your account has been created!');
-      navigate('/dashboard');
+      const result = await register(registrationData);
+      if (result && result.success) {
+        toast.success('Your account has been created!');
+        navigate('/dashboard');
+      } else {
+        toast.error(result?.message || 'Registration failed. Please check your information and try again.');
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please check your information and try again.';
       toast.error(errorMessage);
