@@ -21,7 +21,7 @@ def error_response(error, message="Error", status_code=400):
         "success": False,
         "error": error,
         "message": message
-    }), status_response
+    }), status_code
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -736,6 +736,65 @@ def activate_team_member(member_id):
         
     except Exception as e:
         return error_response(str(e), status_code=500)
+
+@auth_bp.route("/verify-token", methods=["POST"])
+@jwt_required()
+def verify_token():
+    """
+    Verify JWT token and return user information.
+    This endpoint is called by the frontend to check if the user's token is still valid.
+    """
+    try:
+        supabase = current_app.config["SUPABASE_CLIENT"]
+        user_id = get_jwt_identity()
+        
+        # Get user information from database
+        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if not user_result.data:
+            return error_response(
+                error="User not found",
+                message="The user associated with this token no longer exists.",
+                status_code=404
+            )
+        
+        user = user_result.data[0]
+        
+        # Check if user is still active
+        if not user.get("active", True) or not user.get("is_active", True):
+            return error_response(
+                error="Account deactivated",
+                message="Your account has been deactivated. Please contact support for assistance.",
+                status_code=401
+            )
+        
+        return success_response(
+            message="Token is valid",
+            data={
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "phone": user["phone"],
+                    "first_name": user["first_name"],
+                    "last_name": user["last_name"],
+                    "full_name": user["full_name"],
+                    "business_name": user["business_name"],
+                    "role": user["role"],
+                    "subscription_plan": user["subscription_plan"],
+                    "subscription_status": user["subscription_status"],
+                    "referral_code": user.get("referral_code"),
+                    "trial_ends_at": user.get("trial_ends_at"),
+                    "owner_id": user.get("owner_id")
+                }
+            }
+        )
+        
+    except Exception as e:
+        return error_response(
+            error=str(e),
+            message="Token verification failed",
+            status_code=401
+        )
 
 
 

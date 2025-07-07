@@ -1,5 +1,5 @@
 🔄 Project Awareness & Context
-Always read IMPLEMENTATION_guide.txt and queriesRan.md at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
+Always read IMPLEMENTATION_guide.txt,C:\Users\DELL\Saas\Biz\changesMade.md and queriesRan.md at the start of a new conversation to understand the project's architecture, goals, style,existing functionalities and constraints.
 Check Task.md before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
 Use consistent naming conventions, file structure, and architecture patterns as described in IMPLEMENTATION_guide.md
 🧱 Code Structure & Modularity
@@ -8,7 +8,6 @@ Organize code into clearly separated modules, grouped by feature or responsibili
 agent.py - Main agent definition and execution logic
 tools.py - Tool functions used by the agent
 prompts.py - System prompts
-Use clear, consistent imports (prefer relative imports within packages).
 Use clear, consistent imports (prefer relative imports within packages).
 Use python_dotenv and load_env() for environment variables.
 🧪 Testing & Reliability
@@ -49,3 +48,9 @@ Always confirm file paths and module names exist before referencing them in code
 Never delete or overwrite existing code unless explicitly instructed to or if part of a task from Task.md
 
 Always update the changesMade.md file once you make any change or update
+
+**Disclaimer this project is already deployed on vercel frontend at 'sabiops.vercel.app' and backend at 'sabiops-backend.vercel.app'
+
+Ensure you follow all the rules , source directory 'C:\Users\DELL\Saas\Biz\*' frontend source code 'C:\Users\DELL\Saas\Biz\frontend\sabiops-frontend' backend source code 'C:\Users\DELL\Saas\Biz\backend\sabiops-backend' .
+
+Anytime i make a request to you as a user always , i mean always reference this file and at the start of the conversation ensure you analyze the project, to understand project state

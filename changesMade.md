@@ -376,4 +376,18 @@ This section details the verification of specific authentication-related feature
     *   Ensured that `apiService.verifyToken` is correctly called and awaited within the `checkAuth` function.
 *   **Result:** Resolved `TypeError: Y.verifyToken is not a function` and enabled proper authentication flow and navigation after login.
 
+## 10. Latest Critical Fixes (Current Session - January 2025)
+
+### 10.1 Missing Verify Token Endpoint Fix
+
+*   **Issue:** Frontend was calling `/api/auth/verify-token` endpoint which didn't exist, causing 404 errors during authentication checks.
+*   **File:** `backend/sabiops-backend/src/routes/auth.py`
+*   **Changes:** 
+    - Fixed typo in `error_response` function (changed `status_response` to `status_code`)
+    - Added missing `/verify-token` POST endpoint with JWT authentication
+    - Endpoint verifies token validity and returns user information
+    - Includes proper error handling for deactivated accounts and missing users
+*   **Date:** January 2025
+*   **Result:** Resolved 404 errors when frontend attempts to verify authentication tokens, enabling proper login flow.
+
 
