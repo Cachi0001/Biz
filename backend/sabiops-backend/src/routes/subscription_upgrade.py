@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 subscription_upgrade_bp = Blueprint('subscription_upgrade', __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 @subscription_upgrade_bp.route('/upgrade', methods=['POST'])
 @jwt_required()
 def upgrade_subscription():

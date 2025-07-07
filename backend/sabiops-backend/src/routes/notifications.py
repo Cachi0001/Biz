@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 
 notifications_bp = Blueprint('notifications', __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 @notifications_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_notifications():

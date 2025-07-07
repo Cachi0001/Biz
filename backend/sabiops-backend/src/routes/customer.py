@@ -5,6 +5,10 @@ import uuid
 
 customer_bp = Blueprint("customer", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -27,7 +31,7 @@ def get_customers():
         owner_id = get_jwt_identity()
         
         # Fetch customers associated with the owner_id
-        customers = supabase.table("customers").select("*").eq("owner_id", owner_id).execute()
+        customers = get_supabase().table("customers").select("*").eq("owner_id", owner_id).execute()
         
         return success_response(
             data={
@@ -45,7 +49,7 @@ def get_customer_by_id(customer_id):
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
+        customer = get_supabase().table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
         
         if not customer.data:
             return error_response("Customer not found", status_code=404)
@@ -86,7 +90,7 @@ def create_customer():
             "updated_at": datetime.now().isoformat()
         }
         
-        result = supabase.table("customers").insert(customer_data).execute()
+        result = get_supabase().table("customers").insert(customer_data).execute()
         
         return success_response(
             message="Customer created successfully",
@@ -107,7 +111,7 @@ def update_customer(customer_id):
         owner_id = get_jwt_identity()
         data = request.get_json()
         
-        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
+        customer = get_supabase().table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
@@ -124,7 +128,7 @@ def update_customer(customer_id):
         if data.get("address"):
             update_data["address"] = data["address"]
         
-        supabase.table("customers").update(update_data).eq("id", customer_id).execute()
+        get_supabase().table("customers").update(update_data).eq("id", customer_id).execute()
         
         return success_response(
             message="Customer updated successfully"
@@ -140,11 +144,11 @@ def delete_customer(customer_id):
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
+        customer = get_supabase().table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
-        supabase.table("customers").delete().eq("id", customer_id).execute()
+        get_supabase().table("customers").delete().eq("id", customer_id).execute()
         
         return success_response(
             message="Customer deleted successfully"

@@ -56,96 +56,49 @@ if not supabase_url or not supabase_key:
 # Initialize Supabase client
 try:
     supabase = create_client(supabase_url, supabase_key)
+    # Make supabase client available to all routes
+    app.config['SUPABASE'] = supabase
 except SupabaseException as e:
     raise RuntimeError(f"Failed to initialize Supabase client: {e}")
-
-# Pass supabase client to blueprints
-app.config["SUPABASE_CLIENT"] = supabase
-
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
-
-app.json_encoder = DecimalEncoder
-
-def success_response(data=None, message="Success", status_code=200):
-    response = jsonify({
-        "success": True,
-        "data": data,
-        "message": message
-    })
-    return response, status_code
-
-def error_response(error, message="Error", status_code=400):
-    response = jsonify({
-        "success": False,
-        "error": error,
-        "message": message
-    })
-    return response, status_code
-
-# ============================================================================
-# CORS PREFLIGHT HANDLER
-# ============================================================================
 
 @app.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
         response = jsonify()
-        response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
-        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With,Access-Control-Allow-Credentials")
-        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "*")
+        response.headers.add('Access-Control-Allow-Methods', "*")
+        response.headers.add('Access-Control-Allow-Credentials', "true")
         return response
 
-# ============================================================================
-# HEALTH & TEST ENDPOINTS
-# ============================================================================
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in ["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"]:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
-@app.route("/api/health", methods=["GET"])
-def health():
-    return success_response(
-        message="SabiOps SME Nigeria API is running",
-        data={
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "version": "1.0.0"
-        }
-    )
-
-@app.route("/api/test-db", methods=["GET"])
-def test_database():
+# Health check endpoint
+@app.route('/api/health')
+def health_check():
     try:
-        result = supabase.table("users").select("*").limit(1).execute()
-        return success_response(
-            message="Database connection working!",
-            data={
-                "tables_accessible": True
-            }
-        )
+        # Test Supabase connection
+        result = supabase.table("users").select("count", count="exact").limit(1).execute()
+        return jsonify({
+            "status": "healthy",
+            "message": "Backend is running",
+            "database": "connected",
+            "timestamp": datetime.utcnow().isoformat()
+        })
     except Exception as e:
-        return error_response(
-            error=str(e),
-            message="Database connection failed",
-            status_code=500
-        )
-
-@app.route("/api/test-env", methods=["GET"])
-def test_env():
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
-    jwt_secret_key = os.getenv("JWT_SECRET_KEY")
-    
-    return success_response(
-        data={
-            "SUPABASE_URL": supabase_url if supabase_url else "Not Set",
-            "SUPABASE_SERVICE_KEY": "Set" if supabase_service_key else "Not Set",
-            "JWT_SECRET_KEY": "Set" if jwt_secret_key else "Not Set"
-        }
-    )
-
+        return jsonify({
+            "status": "unhealthy", 
+            "message": f"Database connection failed: {str(e)}",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -165,7 +118,4 @@ app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-up
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
-
-
-
 

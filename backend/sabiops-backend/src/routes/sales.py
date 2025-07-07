@@ -5,6 +5,10 @@ import uuid
 
 sales_bp = Blueprint("sales", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -26,7 +30,7 @@ def get_sales():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        query = supabase.table("sales").select("*, customers(*), products(*)").eq("owner_id", owner_id)
+        query = get_supabase().table("sales").select("*, customers(*), products(*)").eq("owner_id", owner_id)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -70,7 +74,7 @@ def create_sale():
                 return error_response(f"{field} is required", status_code=400)
         
         # Check if product exists and has enough stock
-        product_result = supabase.table("products").select("quantity").eq("id", data["product_id"]).eq("owner_id", owner_id).single().execute()
+        product_result = get_supabase().table("products").select("quantity").eq("id", data["product_id"]).eq("owner_id", owner_id).single().execute()
         if not product_result.data:
             return error_response("Product not found", status_code=404)
         
@@ -92,11 +96,11 @@ def create_sale():
             "updated_at": datetime.now().isoformat()
         }
         
-        result = supabase.table("sales").insert(sale_data).execute()
+        result = get_supabase().table("sales").insert(sale_data).execute()
         
         # Update product stock
         new_quantity = product_result.data["quantity"] - int(data["quantity"])
-        supabase.table("products").update({"quantity": new_quantity}).eq("id", data["product_id"]).execute()
+        get_supabase().table("products").update({"quantity": new_quantity}).eq("id", data["product_id"]).execute()
         
         return success_response(
             message="Sale created successfully",
@@ -119,7 +123,7 @@ def get_sales_stats():
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
         
-        query = supabase.table("sales").select("*").eq("owner_id", owner_id)
+        query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
         
         if start_date:
             query = query.gte("sale_date", start_date)
@@ -142,7 +146,7 @@ def get_sales_stats():
         
         # Fetch product names for better readability
         product_ids = list(product_sales.keys())
-        products_result = supabase.table("products").select("id, name").in_("id", product_ids).execute().data
+        products_result = get_supabase().table("products").select("id, name").in_("id", product_ids).execute().data
         product_map = {p["id"]: p["name"] for p in products_result}
         
         top_selling_products = sorted(

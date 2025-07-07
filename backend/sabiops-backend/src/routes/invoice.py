@@ -10,6 +10,10 @@ import io
 
 invoice_bp = Blueprint("invoice", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -31,7 +35,7 @@ def get_invoices():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        query = supabase.table("invoices").select("*").eq("owner_id", owner_id)
+        query = get_supabase().table("invoices").select("*").eq("owner_id", owner_id)
         
         status = request.args.get("status")
         customer_id = request.args.get("customer_id")
@@ -59,15 +63,15 @@ def get_invoice():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
         
-        invoice_items = supabase.table("invoice_items").select("*").eq("invoice_id", invoice_id).execute()
+        invoice_items = get_supabase().table("invoice_items").select("*").eq("invoice_id", invoice_id).execute()
         invoice.data["items"] = invoice_items.data
 
-        customer = supabase.table("customers").select("*").eq("id", invoice.data["customer_id"]).single().execute()
+        customer = get_supabase().table("customers").select("*").eq("id", invoice.data["customer_id"]).single().execute()
         invoice.data["customer"] = customer.data
 
         return success_response(
@@ -90,7 +94,7 @@ def create_invoice():
         if not data.get("customer_id"):
             return error_response("Customer ID is required", status_code=400)
         
-        customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
+        customer = get_supabase().table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
@@ -144,13 +148,13 @@ def create_invoice():
         invoice_data["total_amount"] = total_amount
         invoice_data["amount_due"] = total_amount - float(invoice_data["discount_amount"])
 
-        result = supabase.table("invoices").insert(invoice_data).execute()
+        result = get_supabase().table("invoices").insert(invoice_data).execute()
         
         if result.data and invoice_items_data:
             invoice_id = result.data[0]["id"]
             for item in invoice_items_data:
                 item["invoice_id"] = invoice_id
-            supabase.table("invoice_items").insert(invoice_items_data).execute()
+            get_supabase().table("invoice_items").insert(invoice_items_data).execute()
 
         return success_response(
             message="Invoice created successfully",
@@ -169,7 +173,7 @@ def update_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -200,7 +204,7 @@ def update_invoice(invoice_id):
         
         if "items" in data:
             # Delete existing items
-            supabase.table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
+            get_supabase().table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
             
             # Add new items and recalculate total_amount
             new_invoice_items_data = []
@@ -231,11 +235,11 @@ def update_invoice(invoice_id):
                 })
                 new_total_amount += item_total
             
-            supabase.table("invoice_items").insert(new_invoice_items_data).execute()
+            get_supabase().table("invoice_items").insert(new_invoice_items_data).execute()
             update_data["total_amount"] = new_total_amount
             update_data["amount_due"] = new_total_amount - update_data.get("discount_amount", invoice["discount_amount"])
 
-        supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
+        get_supabase().table("invoices").update(update_data).eq("id", invoice_id).execute()
         
         return success_response(
             message="Invoice updated successfully"
@@ -250,7 +254,7 @@ def delete_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
@@ -258,8 +262,8 @@ def delete_invoice(invoice_id):
         if invoice.data["status"] == "paid":
             return error_response("Cannot delete paid invoice", status_code=400)
         
-        supabase.table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
-        supabase.table("invoices").delete().eq("id", invoice_id).execute()
+        get_supabase().table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
+        get_supabase().table("invoices").delete().eq("id", invoice_id).execute()
         
         return success_response(
             message="Invoice deleted successfully"
@@ -274,7 +278,7 @@ def update_invoice_status(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -295,7 +299,7 @@ def update_invoice_status(invoice_id):
             update_data["amount_due"] = 0
             update_data["paid_at"] = datetime.now().isoformat()
         
-        supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
+        get_supabase().table("invoices").update(update_data).eq("id", invoice_id).execute()
         
         return success_response(
             message="Invoice status updated successfully"
@@ -310,14 +314,14 @@ def send_invoice(invoice_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
         
         invoice = invoice_result.data
         
-        customer_result = supabase.table("customers").select("email").eq("id", invoice["customer_id"]).single().execute()
+        customer_result = get_supabase().table("customers").select("email").eq("id", invoice["customer_id"]).single().execute()
         if not customer_result.data or not customer_result.data["email"]:
             return error_response("Customer email is required to send invoice", status_code=400)
         
@@ -396,7 +400,7 @@ def send_invoice(invoice_id):
         buffer.seek(0)
         
         # Update invoice status to sent
-        supabase.table("invoices").update({"status": "sent", "sent_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}).eq("id", invoice_id).execute()
+        get_supabase().table("invoices").update({"status": "sent", "sent_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}).eq("id", invoice_id).execute()
         
         return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype="application/pdf")
         
@@ -410,7 +414,7 @@ def get_invoice_stats():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        all_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).execute()
+        all_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).execute()
         all_invoices = all_invoices_result.data
         
         total_invoices = len(all_invoices)
@@ -448,15 +452,15 @@ def get_overdue_invoices():
         
         today = date.today().isoformat()
         
-        overdue_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).neq("status", "paid").lt("due_date", today).execute()
+        overdue_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).neq("status", "paid").lt("due_date", today).execute()
         overdue_invoices = overdue_invoices_result.data
         
         for invoice in overdue_invoices:
             if invoice["status"] != "overdue":
-                supabase.table("invoices").update({"status": "overdue", "updated_at": datetime.now().isoformat()}).eq("id", invoice["id"]).execute()
+                get_supabase().table("invoices").update({"status": "overdue", "updated_at": datetime.now().isoformat()}).eq("id", invoice["id"]).execute()
         
         # Re-fetch to get updated statuses
-        overdue_invoices_result = supabase.table("invoices").select("*").eq("owner_id", owner_id).eq("status", "overdue").execute()
+        overdue_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).eq("status", "overdue").execute()
         overdue_invoices = overdue_invoices_result.data
 
         return success_response(

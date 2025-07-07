@@ -5,6 +5,10 @@ import uuid
 
 expense_bp = Blueprint("expense", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -26,7 +30,7 @@ def get_expenses():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        query = supabase.table("expenses").select("*").eq("owner_id", owner_id)
+        query = get_supabase().table("expenses").select("*").eq("owner_id", owner_id)
         
         category = request.args.get("category")
         start_date = request.args.get("start_date")
@@ -83,7 +87,7 @@ def create_expense():
             "updated_at": datetime.now().isoformat()
         }
         
-        result = supabase.table("expenses").insert(expense_data).execute()
+        result = get_supabase().table("expenses").insert(expense_data).execute()
         
         return success_response(
             message="Expense created successfully",
@@ -102,7 +106,7 @@ def get_expense(expense_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
+        expense = get_supabase().table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
@@ -124,7 +128,7 @@ def update_expense(expense_id):
         owner_id = get_jwt_identity()
         data = request.get_json()
         
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
+        expense = get_supabase().table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
@@ -156,7 +160,7 @@ def update_expense(expense_id):
         if data.get("status"):
             update_data["status"] = data["status"]
         
-        supabase.table("expenses").update(update_data).eq("id", expense_id).execute()
+        get_supabase().table("expenses").update(update_data).eq("id", expense_id).execute()
         
         return success_response(
             message="Expense updated successfully"
@@ -171,12 +175,12 @@ def delete_expense(expense_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
+        expense = get_supabase().table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
             return error_response("Expense not found", status_code=404)
         
-        supabase.table("expenses").delete().eq("id", expense_id).execute()
+        get_supabase().table("expenses").delete().eq("id", expense_id).execute()
         
         return success_response(
             message="Expense deleted successfully"
@@ -224,7 +228,7 @@ def get_expense_stats():
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
         
-        query = supabase.table("expenses").select("*").eq("owner_id", owner_id)
+        query = get_supabase().table("expenses").select("*").eq("owner_id", owner_id)
         
         if start_date:
             query = query.gte("expense_date", start_date)

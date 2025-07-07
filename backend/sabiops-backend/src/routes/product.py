@@ -5,6 +5,10 @@ import uuid
 
 product_bp = Blueprint("product", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -27,7 +31,7 @@ def get_products():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        query = supabase.table("products").select("*").eq("owner_id", owner_id)
+        query = get_supabase().table("products").select("*").eq("owner_id", owner_id)
         
         category = request.args.get("category")
         search = request.args.get("search")
@@ -59,7 +63,7 @@ def get_product(product_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
-        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+        product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         
         if not product.data:
             return error_response("Product not found", status_code=404)
@@ -104,7 +108,7 @@ def create_product():
             "updated_at": datetime.now().isoformat()
         }
         
-        result = supabase.table("products").insert(product_data).execute()
+        result = get_supabase().table("products").insert(product_data).execute()
         
         return success_response(
             message="Product created successfully",
@@ -125,7 +129,7 @@ def update_product(product_id):
         owner_id = get_jwt_identity()
         data = request.get_json()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+        product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
@@ -152,7 +156,7 @@ def update_product(product_id):
         if data.get("active") is not None:
             update_data["active"] = data["active"]
         
-        supabase.table("products").update(update_data).eq("id", product_id).execute()
+        get_supabase().table("products").update(update_data).eq("id", product_id).execute()
         
         return success_response(
             message="Product updated successfully"
@@ -168,11 +172,11 @@ def delete_product(product_id):
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+        product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
-        supabase.table("products").update({
+        get_supabase().table("products").update({
             "active": False,
             "updated_at": datetime.now().isoformat()
         }).eq("id", product_id).execute()
@@ -191,7 +195,7 @@ def get_categories():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        products = supabase.table("products").select("category").eq("owner_id", owner_id).eq("active", True).execute()
+        products = get_supabase().table("products").select("category").eq("owner_id", owner_id).eq("active", True).execute()
         
         categories = list(set([p["category"] for p in products.data if p["category"]]))
         
@@ -211,7 +215,7 @@ def get_low_stock_products():
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        products = supabase.table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
+        products = get_supabase().table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
         
         low_stock_products = [p for p in products.data if p["quantity"] <= p["low_stock_threshold"]]
         
@@ -231,7 +235,7 @@ def update_stock(product_id):
         supabase = current_app.config["SUPABASE_CLIENT"]
         owner_id = get_jwt_identity()
         
-        product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+        product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
         
@@ -243,7 +247,7 @@ def update_stock(product_id):
         quantity_change = int(data["quantity_change"])
         new_quantity = product.data["quantity"] + quantity_change
         
-        supabase.table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
+        get_supabase().table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
         
         return success_response(
             message="Stock updated successfully",

@@ -1,9 +1,13 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import User, db
 from datetime import datetime, timedelta
 
 subscription_bp = Blueprint('subscription', __name__)
+
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
 
 @subscription_bp.route('/status', methods=['GET'])
 @jwt_required()

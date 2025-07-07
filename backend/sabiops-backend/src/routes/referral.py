@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import db, User
 from src.models.referral import ReferralWithdrawal, ReferralEarning
@@ -7,6 +7,10 @@ from datetime import datetime
 from sqlalchemy import func
 
 referral_bp = Blueprint('referral', __name__)
+
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
 
 @referral_bp.route('/stats', methods=['GET'])
 @jwt_required()

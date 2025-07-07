@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import User, db
 from werkzeug.security import generate_password_hash
@@ -6,6 +6,10 @@ import secrets
 import string
 
 user_bp = Blueprint('user', __name__)
+
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
 
 @user_bp.route('/', methods=['GET'])
 @jwt_required()

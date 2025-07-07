@@ -9,6 +9,10 @@ from email.mime.multipart import MIMEMultipart
 
 auth_bp = Blueprint("auth", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -34,8 +38,8 @@ def register():
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
         
-        existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
-        existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
+        existing_user_email = get_supabase().table("users").select("*").eq("email", data["email"]).execute()
+        existing_user_phone = get_supabase().table("users").select("*").eq("phone", data["phone"]).execute()
         
         if existing_user_email.data:
             return error_response(
@@ -56,7 +60,7 @@ def register():
         # Handle referral code if provided
         referred_by_id = None
         if data.get("referral_code"):
-            referrer_result = supabase.table("users").select("id").eq("referral_code", data["referral_code"]).execute()
+            referrer_result = get_supabase().table("users").select("id").eq("referral_code", data["referral_code"]).execute()
             if referrer_result.data:
                 referred_by_id = referrer_result.data[0]["id"]
             else:
@@ -83,7 +87,7 @@ def register():
             "trial_ends_at": (datetime.now() + timedelta(days=7)).isoformat()
         }
         
-        result = supabase.table("users").insert(user_data).execute()
+        result = get_supabase().table("users").insert(user_data).execute()
         
         if result.data:
             user = result.data[0]
@@ -96,7 +100,7 @@ def register():
                         "referred_id": user["id"],
                         "status": "pending"
                     }
-                    supabase.table("referrals").insert(referral_data).execute()
+                    get_supabase().table("referrals").insert(referral_data).execute()
                 except Exception as referral_error:
                     # Log the error but don't fail the registration
                     print(f"Failed to create referral record: {referral_error}")
@@ -157,9 +161,9 @@ def login():
         password = data["password"]
         
         if "@" in login_field:
-            user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+            user_result = get_supabase().table("users").select("*").eq("email", login_field).execute()
         else:
-            user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
+            user_result = get_supabase().table("users").select("*").eq("phone", login_field).execute()
         
         if not user_result.data or len(user_result.data) == 0:
             return error_response(
@@ -184,7 +188,7 @@ def login():
                 status_code=401
             )
         
-        supabase.table("users").update({"last_login": datetime.now().isoformat()}).eq("id", user["id"]).execute()
+        get_supabase().table("users").update({"last_login": datetime.now().isoformat()}).eq("id", user["id"]).execute()
         
         access_token = create_access_token(identity=user["id"])
         
@@ -219,7 +223,7 @@ def get_profile():
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        user_result = get_supabase().table("users").select("*").eq("id", user_id).execute()
         
         if not user_result.data:
             return error_response("User not found", status_code=404)
@@ -258,7 +262,7 @@ def verify_token():
         user_id = get_jwt_identity()
         
         # Get user information from database
-        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        user_result = get_supabase().table("users").select("*").eq("id", user_id).execute()
         
         if not user_result.data:
             return error_response(

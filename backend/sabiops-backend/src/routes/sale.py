@@ -6,6 +6,10 @@ from collections import defaultdict
 
 sale_bp = Blueprint("sale", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -27,7 +31,7 @@ def get_sales():
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
         
-        query = supabase.table("sales").select("*").eq("user_id", user_id)
+        query = get_supabase().table("sales").select("*").eq("user_id", user_id)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -103,11 +107,11 @@ def create_sale():
             total_amount += item_total
             
             if item_data.get("product_id"):
-                product_result = supabase.table("products").select("*").eq("id", item_data["product_id"]).single().execute()
+                product_result = get_supabase().table("products").select("*").eq("id", item_data["product_id"]).single().execute()
                 if product_result.data:
                     current_quantity = product_result.data["quantity"]
                     new_quantity = max(0, current_quantity - quantity)
-                    supabase.table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", item_data["product_id"]).execute()
+                    get_supabase().table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", item_data["product_id"]).execute()
         
         sale_data = {
             "id": str(uuid.uuid4()),
@@ -133,7 +137,7 @@ def create_sale():
         else:
             sale_data["commission_amount"] = 0
         
-        result = supabase.table("sales").insert(sale_data).execute()
+        result = get_supabase().table("sales").insert(sale_data).execute()
         
         return success_response(
             message="Sale created successfully",
@@ -152,7 +156,7 @@ def get_sale(sale_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        sale = supabase.table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -172,7 +176,7 @@ def update_sale(sale_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        sale = supabase.table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -188,7 +192,7 @@ def update_sale(sale_id):
         if "notes" in data:
             update_data["notes"] = data["notes"]
         
-        supabase.table("sales").update(update_data).eq("id", sale_id).execute()
+        get_supabase().table("sales").update(update_data).eq("id", sale_id).execute()
         
         return success_response(
             message="Sale updated successfully"
@@ -207,7 +211,7 @@ def get_daily_sales_report():
         
         report_date = datetime.strptime(report_date_str, "%Y-%m-%d").date()
         
-        sales_result = supabase.table("sales").select("*").eq("user_id", user_id).gte("sale_date", report_date.isoformat()).lte("sale_date", (report_date + timedelta(days=1)).isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("user_id", user_id).gte("sale_date", report_date.isoformat()).lte("sale_date", (report_date + timedelta(days=1)).isoformat()).execute()
         sales = sales_result.data
         
         total_sales = len(sales)
@@ -273,7 +277,7 @@ def get_sales_analytics():
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=int(period))
         
-        sales_result = supabase.table("sales").select("*").eq("user_id", user_id).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("user_id", user_id).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
         sales = sales_result.data
         
         total_revenue = sum(float(sale["net_amount"]) for sale in sales)
@@ -296,7 +300,7 @@ def get_sales_analytics():
             if sale.get("customer_id"):
                 customer_id = sale["customer_id"]
                 if customer_revenue[customer_id]["customer"] is None:
-                    customer_result = supabase.table("customers").select("*").eq("id", customer_id).single().execute()
+                    customer_result = get_supabase().table("customers").select("*").eq("id", customer_id).single().execute()
                     if customer_result.data:
                         customer_revenue[customer_id]["customer"] = customer_result.data
                 customer_revenue[customer_id]["total_revenue"] += float(sale["net_amount"])
@@ -346,10 +350,10 @@ def get_team_performance():
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=int(period))
         
-        team_members_result = supabase.table("salespeople").select("salesperson_user_id").eq("user_id", user_id).execute()
+        team_members_result = get_supabase().table("salespeople").select("salesperson_user_id").eq("user_id", user_id).execute()
         team_member_ids = [member["salesperson_user_id"] for member in team_members_result.data] + [user_id]
         
-        sales_result = supabase.table("sales").select("*").in_("salesperson_id", team_member_ids).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").in_("salesperson_id", team_member_ids).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
         sales = sales_result.data
         
         performance = defaultdict(lambda: {
@@ -363,7 +367,7 @@ def get_team_performance():
         for sale in sales:
             salesperson_id = sale["salesperson_id"]
             if performance[salesperson_id]["salesperson"] is None:
-                salesperson_user_result = supabase.table("users").select("id", "first_name", "last_name", "email").eq("id", salesperson_id).single().execute()
+                salesperson_user_result = get_supabase().table("users").select("id", "first_name", "last_name", "email").eq("id", salesperson_id).single().execute()
                 if salesperson_user_result.data:
                     performance[salesperson_id]["salesperson"] = {
                         "id": salesperson_user_result.data["id"],

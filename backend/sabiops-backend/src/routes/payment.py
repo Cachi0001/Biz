@@ -7,6 +7,10 @@ import uuid
 
 payment_bp = Blueprint("payment", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -28,7 +32,7 @@ def get_payments():
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
         
-        query = supabase.table("payments").select("*").eq("user_id", user_id)
+        query = get_supabase().table("payments").select("*").eq("user_id", user_id)
         
         status = request.args.get("status")
         if status:
@@ -51,7 +55,7 @@ def get_payment(payment_id):
     try:
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
-        payment = supabase.table("payments").select("*").eq("id", payment_id).eq("user_id", user_id).single().execute()
+        payment = get_supabase().table("payments").select("*").eq("id", payment_id).eq("user_id", user_id).single().execute()
         
         if not payment.data:
             return error_response("Payment not found", status_code=404)
@@ -80,7 +84,7 @@ def initialize_payment():
         
         invoice = None
         if data.get("invoice_id"):
-            invoice_result = supabase.table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
+            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
             if not invoice_result.data:
                 return error_response("Invoice not found", status_code=404)
             invoice = invoice_result.data
@@ -101,7 +105,7 @@ def initialize_payment():
             "updated_at": datetime.now().isoformat()
         }
         
-        payment_result = supabase.table("payments").insert(payment_data).execute()
+        payment_result = get_supabase().table("payments").insert(payment_data).execute()
         payment = payment_result.data[0]
         
         PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
@@ -159,7 +163,7 @@ def verify_payment(reference):
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
         
-        payment_result = supabase.table("payments").select("*").eq("id", reference).eq("user_id", user_id).single().execute()
+        payment_result = get_supabase().table("payments").select("*").eq("id", reference).eq("user_id", user_id).single().execute()
         
         if not payment_result.data:
             return error_response("Payment not found", status_code=404)
@@ -192,10 +196,10 @@ def verify_payment(reference):
                     "paid_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat()
                 }
-                supabase.table("payments").update(update_data).eq("id", payment["id"]).execute()
+                get_supabase().table("payments").update(update_data).eq("id", payment["id"]).execute()
                 
                 if payment["invoice_id"]:
-                    invoice_result = supabase.table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()
+                    invoice_result = get_supabase().table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()
                     if invoice_result.data:
                         invoice = invoice_result.data
                         new_amount_paid = invoice.get("amount_paid", 0) + payment["amount"]
@@ -204,7 +208,7 @@ def verify_payment(reference):
                             invoice_update_data["status"] = "paid"
                             invoice_update_data["amount_due"] = 0
                             invoice_update_data["paid_at"] = datetime.now().isoformat()
-                        supabase.table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
+                        get_supabase().table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
                 
                 return success_response(
                     message="Payment verified successfully",
@@ -219,7 +223,7 @@ def verify_payment(reference):
                     "gateway_response": str(paystack_response["data"]),
                     "updated_at": datetime.now().isoformat()
                 }
-                supabase.table("payments").update(update_data).eq("id", payment["id"]).execute()
+                get_supabase().table("payments").update(update_data).eq("id", payment["id"]).execute()
                 
                 return error_response(
                     "Payment verification failed",
@@ -244,7 +248,7 @@ def paystack_webhook():
         if data["event"] == "charge.success":
             reference = data["data"]["reference"]
             
-            payment_result = supabase.table("payments").select("*").eq("id", reference).single().execute()
+            payment_result = get_supabase().table("payments").select("*").eq("id", reference).single().execute()
             
             if payment_result.data and payment_result.data["status"] == "pending":
                 payment = payment_result.data
@@ -257,10 +261,10 @@ def paystack_webhook():
                     "paid_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat()
                 }
-                supabase.table("payments").update(update_data).eq("id", payment["id"]).execute()
+                get_supabase().table("payments").update(update_data).eq("id", payment["id"]).execute()
                 
                 if payment["invoice_id"]:
-                    invoice_result = supabase.table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()
+                    invoice_result = get_supabase().table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()
                     if invoice_result.data:
                         invoice = invoice_result.data
                         new_amount_paid = invoice.get("amount_paid", 0) + payment["amount"]
@@ -269,7 +273,7 @@ def paystack_webhook():
                             invoice_update_data["status"] = "paid"
                             invoice_update_data["amount_due"] = 0
                             invoice_update_data["paid_at"] = datetime.now().isoformat()
-                        supabase.table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
+                        get_supabase().table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
         
         return jsonify({"status": "success"}), 200
         
@@ -291,7 +295,7 @@ def record_manual_payment():
         
         invoice = None
         if data.get("invoice_id"):
-            invoice_result = supabase.table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
+            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
             if not invoice_result.data:
                 return error_response("Invoice not found", status_code=404)
             invoice = invoice_result.data
@@ -314,7 +318,7 @@ def record_manual_payment():
             "updated_at": datetime.now().isoformat()
         }
         
-        payment_result = supabase.table("payments").insert(payment_data).execute()
+        payment_result = get_supabase().table("payments").insert(payment_data).execute()
         payment = payment_result.data[0]
         
         if invoice:
@@ -324,7 +328,7 @@ def record_manual_payment():
                 invoice_update_data["status"] = "paid"
                 invoice_update_data["amount_due"] = 0
                 invoice_update_data["paid_at"] = datetime.now().isoformat()
-            supabase.table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
+            get_supabase().table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
         
         return success_response(
             message="Manual payment recorded successfully",
@@ -344,7 +348,7 @@ def get_payment_stats():
         supabase = current_app.config["SUPABASE_CLIENT"]
         user_id = get_jwt_identity()
         
-        all_payments_result = supabase.table("payments").select("*").eq("user_id", user_id).execute()
+        all_payments_result = get_supabase().table("payments").select("*").eq("user_id", user_id).execute()
         all_payments = all_payments_result.data
         
         total_payments = len(all_payments)
@@ -356,7 +360,7 @@ def get_payment_stats():
         total_revenue = sum(float(p["amount"]) for p in successful_payment_records)
         total_fees = sum(float(p.get("fees", 0)) for p in successful_payment_records)
         
-        recent_payments = supabase.table("payments").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(5).execute().data
+        recent_payments = get_supabase().table("payments").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(5).execute().data
         
         return success_response(
             data={

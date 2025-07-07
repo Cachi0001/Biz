@@ -4,6 +4,10 @@ from datetime import datetime, timedelta
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
@@ -26,13 +30,13 @@ def get_overview():
         owner_id = get_jwt_identity()
 
         # Fetch owner's data to ensure they exist and get their business_name if needed
-        owner_data = supabase.table("users").select("business_name").eq("id", owner_id).single().execute()
+        owner_data = get_supabase().table("users").select("business_name").eq("id", owner_id).single().execute()
         if not owner_data.data:
             return error_response("Owner not found", status_code=404)
 
         # Revenue (simplified for now, assuming invoices are linked to owner_id)
         # In a real app, this would involve more complex joins/aggregations
-        invoices_result = supabase.table("invoices").select("total_amount", "status", "created_at").eq("owner_id", owner_id).execute()
+        invoices_result = get_supabase().table("invoices").select("total_amount", "status", "created_at").eq("owner_id", owner_id).execute()
         total_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] == "paid")
         outstanding_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] != "paid")
 
@@ -44,7 +48,7 @@ def get_overview():
         )
 
         # Customers
-        customers_result = supabase.table("customers").select("id", "created_at").eq("owner_id", owner_id).execute()
+        customers_result = get_supabase().table("customers").select("id", "created_at").eq("owner_id", owner_id).execute()
         total_customers = len(customers_result.data)
         new_customers_this_month = sum(
             1 for cust in customers_result.data
@@ -52,7 +56,7 @@ def get_overview():
         )
 
         # Products
-        products_result = supabase.table("products").select("id", "stock_quantity").eq("owner_id", owner_id).execute()
+        products_result = get_supabase().table("products").select("id", "stock_quantity").eq("owner_id", owner_id).execute()
         total_products = len(products_result.data)
         low_stock_products = sum(1 for prod in products_result.data if prod["stock_quantity"] < 10) # Example threshold
 
@@ -93,12 +97,12 @@ def get_revenue_chart():
         period = request.args.get("period", "12months") # Default to 12 months
 
         # Fetch owner's data to ensure they exist
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
+        owner_data = get_supabase().table("users").select("id").eq("id", owner_id).single().execute()
         if not owner_data.data:
             return error_response("Owner not found", status_code=404)
 
         # Fetch all paid invoices for the owner
-        invoices_result = supabase.table("invoices").select("total_amount", "created_at").eq("owner_id", owner_id).eq("status", "paid").execute()
+        invoices_result = get_supabase().table("invoices").select("total_amount", "created_at").eq("owner_id", owner_id).eq("status", "paid").execute()
         
         # Aggregate revenue by month
         revenue_by_month = {}
@@ -131,14 +135,14 @@ def get_top_customers():
         limit = int(request.args.get("limit", 5))
 
         # Fetch owner's data to ensure they exist
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
+        owner_data = get_supabase().table("users").select("id").eq("id", owner_id).single().execute()
         if not owner_data.data:
             return error_response("Owner not found", status_code=404)
 
         # This is a simplified approach. A real solution would involve database views or functions
         # to get aggregated customer data efficiently.
-        customers_result = supabase.table("customers").select("id", "name").eq("owner_id", owner_id).execute()
-        all_invoices = supabase.table("invoices").select("customer_id", "total_amount", "status").eq("owner_id", owner_id).eq("status", "paid").execute()
+        customers_result = get_supabase().table("customers").select("id", "name").eq("owner_id", owner_id).execute()
+        all_invoices = get_supabase().table("invoices").select("customer_id", "total_amount", "status").eq("owner_id", owner_id).eq("status", "paid").execute()
 
         customer_revenue = {}
         customer_invoice_count = {}
@@ -177,14 +181,14 @@ def get_top_products():
         limit = int(request.args.get("limit", 5))
 
         # Fetch owner's data to ensure they exist
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
+        owner_data = get_supabase().table("users").select("id").eq("id", owner_id).single().execute()
         if not owner_data.data:
             return error_response("Owner not found", status_code=404)
 
         # Simplified approach. In a real solution, this would involve database views or functions.
-        products_result = supabase.table("products").select("id", "name").eq("owner_id", owner_id).execute()
-        invoice_items_result = supabase.table("invoice_items").select("product_id", "quantity", "unit_price").execute()
-        all_invoices = supabase.table("invoices").select("id", "owner_id", "status").eq("owner_id", owner_id).eq("status", "paid").execute()
+        products_result = get_supabase().table("products").select("id", "name").eq("owner_id", owner_id).execute()
+        invoice_items_result = get_supabase().table("invoice_items").select("product_id", "quantity", "unit_price").execute()
+        all_invoices = get_supabase().table("invoices").select("id", "owner_id", "status").eq("owner_id", owner_id).eq("status", "paid").execute()
         
         paid_invoice_ids = {inv["id"] for inv in all_invoices.data}
 
@@ -260,14 +264,14 @@ def get_recent_activities():
         limit = int(request.args.get("limit", 10))
 
         # Fetch owner's data to ensure they exist
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
+        owner_data = get_supabase().table("users").select("id").eq("id", owner_id).single().execute()
         if not owner_data.data:
             return error_response("Owner not found", status_code=404)
 
         # This is a placeholder. A real activity log would likely be a dedicated table
         # or a more complex aggregation of various events (invoice creation, payment, customer add, etc.)
         # For now, let's simulate some activities based on invoices.
-        invoices_result = supabase.table("invoices").select("id", "total_amount", "status", "created_at").eq("owner_id", owner_id).order("created_at", desc=True).limit(limit).execute()
+        invoices_result = get_supabase().table("invoices").select("id", "total_amount", "status", "created_at").eq("owner_id", owner_id).order("created_at", desc=True).limit(limit).execute()
         
         activities = []
         for inv in invoices_result.data:

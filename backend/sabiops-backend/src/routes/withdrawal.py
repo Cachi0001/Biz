@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 withdrawal_bp = Blueprint('withdrawal', __name__)
 
+def get_supabase():
+    """Get Supabase client from Flask app config"""
+    return current_app.config['SUPABASE']
+
 # Nigerian banks supported by Paystack
 NIGERIAN_BANKS = {
     "044": "Access Bank",
