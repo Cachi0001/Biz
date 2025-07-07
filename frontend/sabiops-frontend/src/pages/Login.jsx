@@ -35,9 +35,13 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(formData);
-      toast.success('Welcome back to SabiOps!');
-      navigate(from, { replace: true });
+      const result = await login(formData);
+      if (result && result.success) {
+        toast.success('Welcome back to SabiOps!');
+        navigate(from, { replace: true });
+      } else {
+        toast.error(result?.message || 'Login failed. Please check your credentials and try again.');
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials and try again.';
       toast.error(errorMessage);
