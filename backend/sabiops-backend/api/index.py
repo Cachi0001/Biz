@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, current_app
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from supabase import create_client, SupabaseException
+from supabase import create_client
 
 from datetime import datetime, timedelta
 import uuid
@@ -64,7 +64,7 @@ try:
     supabase = create_client(supabase_url, supabase_key)
     # Make supabase client available to all routes
     app.config['SUPABASE'] = supabase
-except SupabaseException as e:
+except Exception as e:
     raise RuntimeError(f"Failed to initialize Supabase client: {e}")
 
 @app.before_request

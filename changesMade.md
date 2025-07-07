@@ -847,3 +847,52 @@ This change was implemented in **Section 13: Removal of SQLAlchemy and Pure Supa
 
 This session focused on critical backend consistency fixes and mobile responsiveness improvements to ensure a stable, working MVP for Nigerian SMEs.
 
+
+## 23. Authentication Backend Deployment Fix (Current Session)
+
+### Issues Identified:
+1. **Vercel Deployment Failure**: Backend was failing with `OSError: [Errno 30] Read-only file system` due to attempting to create log files in a serverless environment
+2. **CORS Policy Errors**: Frontend was blocked by CORS policy with "No 'Access-Control-Allow-Origin' header" errors
+3. **Inconsistent Supabase Client Access**: Multiple `get_supabase()` calls in auth routes causing potential issues
+
+### Root Cause:
+The primary issue was the logging configuration in `api/index.py` trying to write to a file (`app_errors.log`) in Vercel's read-only serverless environment, causing the entire backend to fail during initialization.
+
+### Changes Made:
+
+#### Backend Fixes:
+1. **Logging Configuration Fix**:
+   - **File**: `backend/sabiops-backend/api/index.py`
+   - **Change**: Removed `filename="app_errors.log"` from `logging.basicConfig()` to use console logging instead of file logging
+   - **Reason**: Vercel's serverless environment has a read-only file system, preventing file creation
+
+2. **Health Check Endpoint Fix**:
+   - **File**: `backend/sabiops-backend/api/index.py`
+   - **Change**: Updated health check to properly use `current_app.config.get('SUPABASE')` with null checking
+   - **Reason**: Ensures proper Supabase client access and error handling
+
+3. **Auth Routes Consistency**:
+   - **File**: `backend/sabiops-backend/src/routes/auth.py`
+   - **Changes**: 
+     - Fixed duplicate `get_supabase()` calls in register, login, and profile functions
+     - Ensured consistent use of the `supabase` variable throughout each function
+     - Removed redundant function calls that could cause performance issues
+
+### Expected Results:
+- ✅ Backend should now deploy successfully on Vercel without file system errors
+- ✅ Authentication endpoints should be accessible and respond properly
+- ✅ CORS issues should be resolved with proper backend initialization
+- ✅ Login and registration should work without "unexpected error" messages
+
+### Testing Instructions:
+1. Wait 1-2 minutes for Vercel to deploy the changes
+2. Try logging in with credentials: `onyemechicaleb4@gmail.com` / `111111`
+3. Try registering a new account to test the registration flow
+4. Check browser console for any remaining CORS or network errors
+
+### Files Modified:
+- `backend/sabiops-backend/api/index.py` - Fixed logging and health check
+- `backend/sabiops-backend/src/routes/auth.py` - Fixed Supabase client consistency
+
+This fix addresses the core deployment issue that was preventing the backend from starting properly in Vercel's serverless environment.
+
