@@ -641,3 +641,28 @@ This section details the verification of specific authentication-related feature
 ### Testing Results:
 - ❌ Backend health endpoint still returns 500 error.
 
+
+
+## 16. Attempted Fix: WSGI Entry Point
+
+### Issues Addressed:
+- Persistent `FUNCTION_INVOCATION_FAILED` errors on Vercel, potentially due to incorrect entry point configuration.
+
+### Changes Made:
+- Created `wsgi.py` file at the root of the backend directory.
+- Configured `vercel.json` to use `wsgi.py` as the entry point for the Flask application.
+
+### Current Status:
+❌ **Still Issues**:
+- Backend deployment still failing with "FUNCTION_INVOCATION_FAILED" on Vercel.
+- Login functionality not working due to persistent backend errors.
+- The root cause of the Vercel `FUNCTION_INVOCATION_FAILED` error remains elusive.
+
+### Next Steps Needed:
+1. **Deep Dive into Vercel Deployment**: Re-investigate Vercel-specific deployment nuances for Flask/Python applications, focusing on environment variables, build configurations, and entry point handling.
+2. **Vercel Build Logs**: If possible, gain access to detailed Vercel build logs to pinpoint the exact failure point during the build process.
+3. **Alternative Deployment Strategy (if Vercel persists)**: Consider suggesting an alternative deployment method if Vercel continues to be a blocker.
+
+### Testing Results:
+- ❌ Backend health endpoint still returns 500 error.
+
