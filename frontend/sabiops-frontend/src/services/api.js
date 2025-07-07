@@ -120,8 +120,8 @@ const apiService = {
   },
 
   // New verifyToken method
-  verifyToken: async (token) => {
-    const response = await api.post('/auth/verify-token', { token });
+  verifyToken: async () => {
+    const response = await api.post('/auth/verify-token');
     return response.data;
   },
 
