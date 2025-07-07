@@ -72,20 +72,26 @@ except Exception as e:
 def handle_preflight():
     if request.method == "OPTIONS":
         response = jsonify()
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "*")
-        response.headers.add('Access-Control-Allow-Methods', "*")
+        origin = request.headers.get('Origin')
+        if origin in ["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"]:
+            response.headers.add("Access-Control-Allow-Origin", origin)
+        else:
+            response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With")
+        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
         response.headers.add('Access-Control-Allow-Credentials', "true")
         return response
 
 @app.after_request
 def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin in ["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"]:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
+    # Only add CORS headers if they haven't been added already
+    if 'Access-Control-Allow-Origin' not in response.headers:
+        origin = request.headers.get('Origin')
+        if origin in ["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"]:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
 # Health check endpoint
