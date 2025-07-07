@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, SupabaseException
 import os
-from dotenv import load_dotenv
+
 from datetime import datetime, timedelta
 import uuid
 from decimal import Decimal

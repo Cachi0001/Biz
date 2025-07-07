@@ -617,3 +617,27 @@ This section details the verification of specific authentication-related feature
 - ❌ Login fails due to persistent backend `FUNCTION_INVOCATION_FAILED` on Vercel.
 - ❌ Backend health endpoint returns 500 error.
 
+
+
+## 15. Attempted Fix: Removed `load_dotenv()`
+
+### Issues Addressed:
+- Potential conflict with Vercel's environment variable injection by removing explicit `load_dotenv()` call.
+
+### Changes Made:
+- Removed `load_dotenv()` from `api/index.py`.
+
+### Current Status:
+❌ **Still Issues**:
+- Backend deployment still failing with "FUNCTION_INVOCATION_FAILED" on Vercel.
+- Login functionality not working due to persistent backend errors.
+- The root cause of the Vercel `FUNCTION_INVOCATION_FAILED` error remains elusive.
+
+### Next Steps Needed:
+1. **Deep Dive into Vercel Deployment**: Re-investigate Vercel-specific deployment nuances for Flask/Python applications, focusing on environment variables, build configurations, and entry point handling.
+2. **Vercel Build Logs**: If possible, gain access to detailed Vercel build logs to pinpoint the exact failure point during the build process.
+3. **Alternative Deployment Strategy (if Vercel persists)**: Consider suggesting an alternative deployment method if Vercel continues to be a blocker.
+
+### Testing Results:
+- ❌ Backend health endpoint still returns 500 error.
+
