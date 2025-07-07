@@ -337,9 +337,9 @@ def send_invoice(invoice_id):
 
         p.setFont("Helvetica", 10)
         p.setFillColor(HexColor("#343a40")) # Dark gray
-        p.drawString(inch, height - inch - 0.3 * inch, f"Invoice #: {invoice["id"][:8].upper()}")
-        p.drawString(inch, height - inch - 0.5 * inch, f"Date: {invoice["issue_date"]}")
-        p.drawString(inch, height - inch - 0.7 * inch, f"Due Date: {invoice["due_date"]}")
+        p.drawString(inch, height - inch - 0.3 * inch, f"Invoice #: {invoice['id'][:8].upper()}")
+        p.drawString(inch, height - inch - 0.5 * inch, f"Date: {invoice['issue_date']}")
+        p.drawString(inch, height - inch - 0.7 * inch, f"Due Date: {invoice['due_date']}")
 
         # Customer Info
         p.setFont("Helvetica-Bold", 12)
@@ -366,8 +366,8 @@ def send_invoice(invoice_id):
         for item in invoice["items"]:
             p.drawString(inch, y_position, item["description"])
             p.drawString(4 * inch, y_position, str(item["quantity"]))
-            p.drawString(5 * inch, y_position, f"₦{item["unit_price"]:,.2f}")
-            p.drawString(6.5 * inch, y_position, f"₦{item["total"]:,.2f}")
+            p.drawString(5 * inch, y_position, f"₦{item['unit_price']:,.2f}")
+            p.drawString(6.5 * inch, y_position, f"₦{item['total']:,.2f}")
             y_position -= 0.2 * inch
 
         # Totals
@@ -377,17 +377,17 @@ def send_invoice(invoice_id):
 
         p.setFont("Helvetica-Bold", 10)
         p.drawString(5 * inch, y_position, "Subtotal:")
-        p.drawString(6.5 * inch, y_position, f"₦{invoice["total_amount"]:,.2f}")
+        p.drawString(6.5 * inch, y_position, f"₦{invoice['total_amount']:,.2f}")
         y_position -= 0.2 * inch
 
         if invoice["discount_amount"] > 0:
             p.drawString(5 * inch, y_position, "Discount:")
-            p.drawString(6.5 * inch, y_position, f"-₦{invoice["discount_amount"]:,.2f}")
+            p.drawString(6.5 * inch, y_position, f"-₦{invoice['discount_amount']:,.2f}")
             y_position -= 0.2 * inch
 
         p.setFont("Helvetica-Bold", 12)
         p.drawString(5 * inch, y_position, "Amount Due:")
-        p.drawString(6.5 * inch, y_position, f"₦{invoice["amount_due"]:,.2f}")
+        p.drawString(6.5 * inch, y_position, f"₦{invoice['amount_due']:,.2f}")
 
         # Footer
         p.setFont("Helvetica", 8)

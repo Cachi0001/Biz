@@ -277,7 +277,7 @@ def get_recent_activities():
         for inv in invoices_result.data:
             activities.append({
                 "type": "invoice",
-                "description": f"Invoice #{inv["id"][:8]} created",
+                "description": f"Invoice #{inv['id'][:8]} created",
                 "date": inv["created_at"],
                 "amount": inv["total_amount"],
                 "status": inv["status"]
