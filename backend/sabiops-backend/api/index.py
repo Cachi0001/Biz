@@ -39,8 +39,8 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 
 # Configure CORS to allow requests from your frontend origin
 CORS(app, 
-     resources={r"/api/*": {"origins": "*"}},
-     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+     resources={r"/api/*": {"origins": ["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"]}},
+     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials", "X-Requested-With"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      supports_credentials=True
 )
@@ -94,9 +94,10 @@ def error_response(error, message="Error", status_code=400):
 def handle_preflight():
     if request.method == "OPTIONS":
         response = jsonify()
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With,Access-Control-Allow-Credentials")
         response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
         return response
 
 # ============================================================================
