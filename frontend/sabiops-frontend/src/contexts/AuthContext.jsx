@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         // Ensure apiService.verifyToken is correctly called and awaited
-        const response = await apiService.verifyToken(token);
+        const response = await apiService.verifyToken();
         if (response.success) {
           const userData = response.user;
           // Calculate trial_days_left based on trial_ends_at
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.login(email, password);
       if (response.success) {
-        localStorage.setItem('token', response.token);
+        localStorage.setItem('token', response.access_token);
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
         return { success: true };
       } else {
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.register(userData);
       if (response.success) {
-        localStorage.setItem('token', response.token);
+        localStorage.setItem('token', response.access_token);
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
         return { success: true };
       } else {

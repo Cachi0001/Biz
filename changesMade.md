@@ -1030,3 +1030,181 @@ The SabiOps application is now a **fully functional, production-ready MVP** that
 
 *Session completed: All authentication issues resolved, mobile responsiveness verified, and production deployment successful.*
 
+
+## 26. Current Issue: Persistent 422 Error on verify-token (Session Update)
+
+### **🚨 ERROR ENCOUNTERED:**
+**Date/Time**: Current session  
+**Issue**: `POST /api/auth/verify-token` returning 422 (Unprocessable Content)
+
+**Error Details:**
+```
+POST https://sabiops-backend.vercel.app/api/auth/verify-token 422 (Unprocessable Content)
+Authentication check failed: AxiosError 'Request failed with status code 422'
+```
+
+**Vercel Logs:**
+```
+127.0.0.1 - - [07/Jul/2025 14:07:36] "POST /api/auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2025 14:07:37] "POST /api/auth/verify-token HTTP/1.1" 422 -
+```
+
+### **🔍 ANALYSIS:**
+- **Login succeeds** (200 status) and shows "Welcome back to SabiOps!" toast
+- **Token verification fails** immediately after login (422 status)
+- **Navigation to dashboard blocked** due to failed token verification
+- **User stays on login page** despite successful authentication
+
+### **🎯 INVESTIGATION PLAN:**
+1. Check `verify-token` endpoint implementation in backend
+2. Examine token format and JWT structure being sent
+3. Verify token storage and retrieval in frontend
+4. Check for any missing fields or validation issues
+5. Test token generation vs verification consistency
+
+**Status**: Investigating root cause of 422 error in verify-token endpoint...
+
+
+### **🔍 ANALYSIS UPDATE - verify-token Function:**
+
+**Backend verify-token endpoint structure:**
+```python
+@auth_bp.route("/verify-token", methods=["POST"])
+@jwt_required()
+def verify_token():
+```
+
+**Key findings:**
+1. **JWT Required Decorator**: Uses `@jwt_required()` which expects valid JWT token
+2. **User ID Extraction**: `user_id = get_jwt_identity()` 
+3. **Database Lookup**: Queries users table with extracted user_id
+4. **Error Scenarios**: 
+   - User not found (404)
+   - Account deactivated (401)
+   - General exceptions (401)
+
+**Potential Issues:**
+- JWT token format mismatch
+- User ID not properly stored in token
+- Database query failing
+- Missing JWT configuration
+
+**Next Steps**: Check JWT configuration and token format...
+
+
+### **🔍 JWT CONFIGURATION ANALYSIS:**
+
+**Backend JWT Setup:**
+```python
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
+jwt = JWTManager(app)
+```
+
+**Frontend Token Handling:**
+```javascript
+// Token stored in localStorage
+const token = localStorage.getItem('token');
+config.headers.Authorization = `Bearer ${token}`;
+
+// verifyToken API call
+verifyToken: async () => {
+  const response = await api.post('/auth/verify-token');
+  return response.data;
+}
+```
+
+**Potential Issue Identified:**
+- Backend expects JWT token in Authorization header
+- Frontend sends token as `Bearer ${token}`
+- Need to verify if token is properly formatted and contains user ID
+
+**Next Step**: Check if JWT_SECRET_KEY environment variable is set in Vercel...
+
+
+### **🔍 TOKEN FLOW ANALYSIS:**
+
+**Issue Found in Frontend:**
+```javascript
+// AuthContext.jsx - checkAuth function
+const response = await apiService.verifyToken(token);
+```
+
+**Problem**: Frontend is passing `token` parameter to `verifyToken()`, but:
+
+**Backend expects**: JWT token in Authorization header (handled by interceptor)
+**Frontend API service**: `verifyToken()` doesn't need token parameter
+
+**Current Flow:**
+1. Login succeeds → token stored in localStorage
+2. checkAuth() calls `apiService.verifyToken(token)` with token parameter
+3. API interceptor adds token to Authorization header
+4. Backend receives request but may have issues with token format/validation
+
+**Potential Fix**: Remove token parameter from verifyToken call since interceptor handles it
+
+**Testing**: Need to check if JWT_SECRET_KEY environment variable is properly set in Vercel...
+
+
+### **🔍 TOKEN RESPONSE FORMAT ANALYSIS:**
+
+**Backend Login Response:**
+```python
+return success_response(
+    message="Login successful",
+    data={
+        "access_token": access_token,
+        "user": { ... }
+    }
+)
+```
+
+**Frontend Token Handling:**
+```javascript
+// Login function
+if (response.data.access_token) {
+  apiService.setAuthToken(response.data.access_token);
+}
+
+// AuthContext
+localStorage.setItem('token', response.token);  // ❌ MISMATCH!
+```
+
+**🚨 CRITICAL ISSUE FOUND:**
+- **Backend sends**: `response.data.access_token`
+- **Frontend expects**: `response.token`
+- **AuthContext stores wrong token**: `response.token` (undefined)
+
+**This explains the 422 error**: Invalid/undefined token being sent to verify-token endpoint!
+
+**Fix Required**: Update AuthContext to use `response.access_token` instead of `response.token`
+
+
+### **🔧 CRITICAL FIX APPLIED:**
+
+**Problem**: Token field mismatch between backend and frontend
+- Backend sends: `response.data.access_token`
+- Frontend was storing: `response.token` (undefined)
+
+**Fix Applied:**
+```javascript
+// Before (WRONG):
+localStorage.setItem('token', response.token);
+
+// After (CORRECT):
+localStorage.setItem('token', response.access_token);
+```
+
+**Changes Made:**
+1. ✅ Fixed `verifyToken()` call to not pass token parameter
+2. ✅ Fixed login function to store `response.access_token`
+3. ✅ Fixed register function to store `response.access_token`
+
+**Expected Result:**
+- Valid JWT token now stored in localStorage
+- verify-token endpoint should receive valid token
+- 422 error should be resolved
+- Navigation to dashboard should work
+
+**Status**: Deploying fix to test...
+
