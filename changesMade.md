@@ -530,3 +530,90 @@ This section details the verification of specific authentication-related feature
 - ❌ Login fails due to backend CORS/deployment issues
 - ❌ Backend health endpoint returns 500 error
 
+
+
+## 13. Removal of SQLAlchemy and Pure Supabase Implementation
+
+### Issues Addressed:
+- Conflicting database access patterns (SQLAlchemy ORM and Supabase client)
+- Persistent `ImportError` related to `InvoiceItem` after previous fixes
+
+### Changes Made:
+- **Removed SQLAlchemy**: All SQLAlchemy models and dependencies have been completely removed from the backend.
+- **Updated `requirements.txt`**: Cleaned to only include necessary packages for a pure Supabase setup.
+- **Deleted `src/models` directory**: All model files were removed as they are no longer needed.
+- **Refactored `api/index.py`**: Removed all SQLAlchemy-related imports and initialization. Ensured `supabase` client is initialized and accessible via `app.config["SUPABASE"]`.
+- **Updated all route files**: Modified all route files to retrieve the `supabase` client using `current_app.config["SUPABASE"]` via a `get_supabase()` helper function, replacing direct `supabase.` calls.
+- **Removed `debug_startup.py` and `api/test.py`**: Cleaned up unnecessary files.
+
+### Current Status:
+✅ **Completed**:
+- Data model consistency (now purely Supabase-driven)
+- Frontend field updates
+- Mobile responsiveness verified
+- CORS configuration updated
+- Backend architecture simplified to pure Supabase operations
+- `ImportError: cannot import name 'InvoiceItem'` resolved
+
+❌ **Still Issues**:
+- Backend deployment still failing with "FUNCTION_INVOCATION_FAILED" on Vercel.
+- Login functionality not working due to backend errors.
+- The root cause of the Vercel `FUNCTION_INVOCATION_FAILED` error remains elusive, even with a minimal Flask app.
+
+### Next Steps Needed:
+1. **Deep Dive into Vercel Deployment**: Investigate Vercel-specific deployment nuances for Flask/Python applications beyond code-level issues. This might involve looking into Vercel build logs (if accessible), environment variable parsing, or specific Vercel runtime behaviors.
+2. **Alternative Deployment Strategy (if Vercel persists)**: Consider suggesting an alternative deployment method if Vercel continues to be a blocker.
+3. **Final Testing**: Once backend is stable, proceed with comprehensive testing of all functionalities.
+
+### Testing Results:
+- ✅ Frontend loads correctly.
+- ✅ Registration form shows correct fields (`full_name`).
+- ✅ Mobile responsive design verified.
+- ❌ Login fails due to persistent backend `FUNCTION_INVOCATION_FAILED` on Vercel.
+- ❌ Backend health endpoint returns 500 error.
+
+
+
+## 14. Final Backend Cleanup and Supabase Integration
+
+### Issues Addressed:
+- Conflicting database access patterns (SQLAlchemy ORM and Supabase client).
+- Persistent `FUNCTION_INVOCATION_FAILED` errors due to underlying architectural conflicts and import issues.
+
+### Changes Made:
+- **Complete SQLAlchemy Removal**: All SQLAlchemy models, dependencies, and related code have been entirely purged from the backend. This includes:
+    - Removing `Flask-SQLAlchemy` and `psycopg2-binary` from `requirements.txt`.
+    - Deleting the entire `src/models` directory.
+    - Removing all SQLAlchemy-related imports and initializations from `api/index.py`.
+- **Pure Supabase Integration**: The backend now exclusively uses the Supabase Python client for all database operations.
+    - The `supabase` client is initialized once in `api/index.py` and made accessible to all blueprints via `app.config["SUPABASE"]`.
+    - All route files (`src/routes/*.py`) have been updated to use a `get_supabase()` helper function, which retrieves the Supabase client from `current_app.config["SUPABASE"]`, ensuring consistent and correct access.
+- **Environment Variable Handling**: Removed `load_dotenv()` call from `api/index.py` as Vercel directly injects environment variables.
+- **Codebase Cleanup**: Removed `debug_startup.py` and `api/test.py` (the temporary test file).
+
+### Current Status:
+✅ **Completed**:
+- Data model consistency (now purely Supabase-driven).
+- Frontend field updates.
+- Mobile responsiveness verified.
+- CORS configuration updated.
+- Backend architecture simplified to pure Supabase operations.
+- `ImportError: cannot import name 'InvoiceItem'` resolved.
+- All SQLAlchemy-related conflicts and dependencies removed.
+
+❌ **Still Issues**:
+- Backend deployment still failing with "FUNCTION_INVOCATION_FAILED" on Vercel.
+- Login functionality not working due to persistent backend errors.
+- The root cause of the Vercel `FUNCTION_INVOCATION_FAILED` error, despite extensive code cleanup and architectural simplification, remains to be definitively identified.
+
+### Next Steps Needed:
+1. **Deep Dive into Vercel Deployment**: Investigate Vercel-specific deployment nuances for Flask/Python applications beyond code-level issues. This might involve looking into Vercel build logs (if accessible), environment variable parsing, or specific Vercel runtime behaviors.
+2. **Final Testing**: Once backend is stable, proceed with comprehensive testing of all functionalities.
+
+### Testing Results:
+- ✅ Frontend loads correctly.
+- ✅ Registration form shows correct fields (`full_name`).
+- ✅ Mobile responsive design verified.
+- ❌ Login fails due to persistent backend `FUNCTION_INVOCATION_FAILED` on Vercel.
+- ❌ Backend health endpoint returns 500 error.
+

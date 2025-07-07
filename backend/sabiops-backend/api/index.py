@@ -31,7 +31,7 @@ from src.routes.withdrawal import withdrawal_bp
 from src.routes.user import user_bp
 from src.routes.subscription_upgrade import subscription_upgrade_bp
 
-load_dotenv()
+
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
