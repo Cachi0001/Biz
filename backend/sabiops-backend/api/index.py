@@ -1,15 +1,16 @@
 import logging
+import sys
+import os
 
-# Configure logging
-logging.basicConfig(filename="app_errors.log", level=logging.ERROR, 
+# Configure logging for Vercel (no file logging in serverless environment)
+logging.basicConfig(level=logging.ERROR, 
                     format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, current_app
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, SupabaseException
-import os
 
 from datetime import datetime, timedelta
 import uuid
@@ -17,7 +18,6 @@ from decimal import Decimal
 import json
 
 # Add current directory to Python path for module imports
-import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
 
@@ -92,6 +92,14 @@ def after_request(response):
 def health_check():
     try:
         # Test Supabase connection
+        supabase = current_app.config.get('SUPABASE')
+        if not supabase:
+            return jsonify({
+                "status": "unhealthy",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.utcnow().isoformat()
+            }), 500
+            
         result = supabase.table("users").select("count", count="exact").limit(1).execute()
         return jsonify({
             "status": "healthy",
