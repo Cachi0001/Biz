@@ -129,7 +129,7 @@ const Dashboard = () => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.first_name}!
+              Welcome back, {user?.full_name?.split(' ')[0] || user?.full_name}!
             </h1>
             <SubscriptionBadge 
               subscriptionStatus={user?.subscription_status} 

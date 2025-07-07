@@ -14,8 +14,7 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    first_name: '',
-    last_name: '',
+    full_name: '',
     business_name: '',
     referral_code: '',
   });
@@ -43,8 +42,8 @@ const Register = () => {
       toast.error('Password must be at least 6 characters long');
       return false;
     }
-    if (!formData.email || !formData.phone || !formData.first_name || !formData.last_name) {
-      toast.error('Email, phone number, first name, and last name are required');
+    if (!formData.email || !formData.phone || !formData.full_name) {
+      toast.error('Email, phone number, and full name are required');
       return false;
     }
     return true;
@@ -101,41 +100,25 @@ const Register = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Personal Information</h3>
                 
-                {/* First Name and Last Name - Side by Side */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name" className="text-xs sm:text-sm font-medium">First Name *</Label>
-                    <Input
-                      id="first_name"
-                      name="first_name"
-                      type="text"
-                      required
-                      value={formData.first_name}
-                      onChange={handleChange}
-                      placeholder="First name"
-                      className="h-9 sm:h-11 text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name" className="text-xs sm:text-sm font-medium">Last Name *</Label>
-                    <Input
-                      id="last_name"
-                      name="last_name"
-                      type="text"
-                      required
-                      value={formData.last_name}
-                      onChange={handleChange}
-                      placeholder="Last name"
-                      className="h-9 sm:h-11 text-sm"
-                    />
-                  </div>
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="full_name" className="text-sm font-medium">Full Name *</Label>
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    className="h-10 sm:h-11"
+                  />
                 </div>
 
                 {/* Email and Phone - Side by Side */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs sm:text-sm font-medium">Email Address *</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
                     <Input
                       id="email"
                       name="email"
@@ -143,13 +126,13 @@ const Register = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="Email"
-                      className="h-9 sm:h-11 text-sm"
+                      placeholder="Enter your email"
+                      className="h-10 sm:h-11"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-xs sm:text-sm font-medium">Phone Number *</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
                     <Input
                       id="phone"
                       name="phone"
@@ -157,16 +140,16 @@ const Register = () => {
                       required
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="Phone"
-                      className="h-9 sm:h-11 text-sm"
+                      placeholder="Enter your phone number"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
 
                 {/* Password and Confirm Password - Side by Side */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Password *</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -175,27 +158,27 @@ const Register = () => {
                         required
                         value={formData.password}
                         onChange={handleChange}
-                        placeholder="Password"
-                        className="h-9 sm:h-11 pr-8 text-sm"
+                        placeholder="Create password"
+                        className="h-10 sm:h-11 pr-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 py-2 hover:bg-transparent"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <EyeOff className="h-4 w-4" />
                         ) : (
-                          <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Eye className="h-4 w-4" />
                         )}
                       </Button>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium">Confirm Password *</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
@@ -204,20 +187,20 @@ const Register = () => {
                         required
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        placeholder="Confirm"
-                        className="h-9 sm:h-11 pr-8 text-sm"
+                        placeholder="Confirm password"
+                        className="h-10 sm:h-11 pr-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-2 py-2 hover:bg-transparent"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <EyeOff className="h-4 w-4" />
                         ) : (
-                          <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Eye className="h-4 w-4" />
                         )}
                       </Button>
                     </div>
@@ -302,5 +285,4 @@ const Register = () => {
 };
 
 export default Register;
-
 

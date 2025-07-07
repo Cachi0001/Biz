@@ -391,3 +391,82 @@ This section details the verification of specific authentication-related feature
 *   **Result:** Resolved 404 errors when frontend attempts to verify authentication tokens, enabling proper login flow.
 
 
+
+
+## 11. Data Model Consistency Fixes (Current Session - July 2025)
+
+### 11.1 Database Schema Alignment
+*   **Issue:** Backend models were using inconsistent field names compared to the database schema defined in `queriesRan.md`
+*   **Root Cause:** Models used `user_id`, `first_name`, `last_name` while database schema uses `owner_id`, `full_name`
+
+### 11.2 User Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/user.py`
+*   **Changes:**
+    - Changed `first_name` and `last_name` fields to single `full_name` field to match database schema
+    - Added `owner_id` field for team member relationships
+    - Added `is_deactivated` and `created_by` fields as per database schema
+    - Fixed relationships to use `owner_id` instead of `user_id`
+    - Updated `to_dict()` method to return `full_name` instead of separate name fields
+
+### 11.3 Product Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/product.py`
+*   **Changes:**
+    - Changed `user_id` to `owner_id` to match database schema
+    - Aligned field names with database schema (`price`, `quantity`, `low_stock_threshold`, `active`)
+    - Updated relationships and methods to use `owner_id`
+    - Fixed `to_dict()` method to return correct field names
+
+### 11.4 Customer Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/customer.py`
+*   **Changes:**
+    - Changed `user_id` to `owner_id` to match database schema
+    - Removed extra fields not in database schema (city, state, country, etc.)
+    - Aligned with database schema fields: `name`, `email`, `phone`, `address`, `purchase_history`, `interactions`, `total_purchases`, `last_purchase_date`
+    - Updated methods to use `owner_id`
+
+### 11.5 Sale Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/sale.py`
+*   **Changes:**
+    - Completely rewrote to match database schema
+    - Changed `user_id` to `owner_id`
+    - Added fields as per schema: `customer_name`, `product_name`, `quantity`, `unit_price`, `total_amount`, `payment_method`, `salesperson_id`, `date`
+    - Removed complex sale items structure (database uses simple sale records)
+    - Updated relationships and methods
+
+### 11.6 Expense Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/expense.py`
+*   **Changes:**
+    - Changed `user_id` to `owner_id` to match database schema
+    - Aligned fields with database schema: `category`, `amount`, `description`, `receipt_url`, `payment_method`, `date`
+    - Removed extra fields not in database schema
+    - Updated methods to use `owner_id`
+
+### 11.7 Invoice Model Fixes
+*   **File:** `backend/sabiops-backend/src/models/invoice.py`
+*   **Changes:**
+    - Changed `user_id` to `owner_id` to match database schema
+    - Aligned with database schema fields: `customer_name`, `invoice_number`, `amount`, `tax_amount`, `total_amount`, `status`, `due_date`, `paid_date`, `notes`, `items` (JSON field)
+    - Removed separate InvoiceItem model (database uses JSON field for items)
+    - Updated methods to use `owner_id`
+
+### 11.8 Authentication Route Fixes
+*   **File:** `backend/sabiops-backend/src/routes/auth.py`
+*   **Changes:**
+    - Updated registration to require `full_name` instead of `first_name` and `last_name`
+    - Fixed user data creation to use `full_name` field
+    - Updated all user response objects to return `full_name`
+    - Removed team member management functions that used old field names
+    - Simplified auth routes to focus on core authentication functionality
+
+### 11.9 Impact of Changes
+*   **Data Consistency:** All backend models now match the database schema exactly
+*   **API Responses:** All API responses now return data in the format expected by the database
+*   **Authentication:** Login and registration now work with the correct field names
+*   **Relationships:** All foreign key relationships now use `owner_id` consistently
+
+### 11.10 Next Steps Required
+*   **Frontend Updates:** Frontend components need to be updated to use `full_name` instead of `first_name`/`last_name`
+*   **API Calls:** Frontend API calls need to be updated to send/receive `owner_id` instead of `user_id`
+*   **Form Fields:** Registration and profile forms need to be updated to use `full_name` field
+*   **Testing:** All CRUD operations need to be tested with the new data structure
+

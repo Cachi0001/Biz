@@ -16,13 +16,13 @@ class User(db.Model):
     id = get_id_column()
     email = db.Column(db.String(120), unique=True, nullable=True, index=True)  # Nullable as per Supabase
     phone = db.Column(db.String(20), unique=True, nullable=False)  # Required and unique as per Supabase
-    first_name = db.Column(db.String(50), nullable=True)
-    last_name = db.Column(db.String(50), nullable=True)
+    full_name = db.Column(db.String(100), nullable=False)  # Changed to match database schema
     business_name = db.Column(db.String(100))
-    password_hash = db.Column(db.String(255), nullable=True)  # Add this field to Supabase if needed
+    password_hash = db.Column(db.String(255), nullable=False)  # Required for authentication
     
     # Trial and Subscription Management - Aligned with Supabase schema
     role = db.Column(db.String(20), default='Owner')  # 'Owner', 'Salesperson', 'Admin'
+    owner_id = db.Column(GUID(), db.ForeignKey('users.id'))  # Links team members to owner
     subscription_plan = db.Column(db.String(20), default='weekly')  # 'free', 'weekly', 'monthly', 'yearly'
     subscription_status = db.Column(db.String(20), default='trial')  # 'trial', 'active', 'expired', 'cancelled'
     trial_ends_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
@@ -33,6 +33,8 @@ class User(db.Model):
     
     # Account Management - Aligned with Supabase schema
     active = db.Column(db.Boolean, default=True)  # Changed from is_active to active
+    is_deactivated = db.Column(db.Boolean, default=False)  # Tracks deactivation status
+    created_by = db.Column(GUID(), db.ForeignKey('users.id'))  # Tracks who created the account
     
     # Timestamps - Aligned with Supabase schema
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
@@ -41,8 +43,8 @@ class User(db.Model):
     
     # Relationships - Simplified for Supabase compatibility
     referrals = db.relationship('User', backref=db.backref('referrer', remote_side=[id]), foreign_keys=[referred_by])
-    customers = db.relationship('Customer', backref='user', lazy=True, cascade='all, delete-orphan')
-    products = db.relationship('Product', backref='user', lazy=True, cascade='all, delete-orphan')
+    customers = db.relationship('Customer', backref='owner', lazy=True, cascade='all, delete-orphan', foreign_keys='Customer.owner_id')
+    products = db.relationship('Product', backref='owner', lazy=True, cascade='all, delete-orphan', foreign_keys='Product.owner_id')
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -95,8 +97,7 @@ class User(db.Model):
     def to_dict(self):
         return {
             'id': str(self.id),
-            'first_name': self.first_name,
-            'last_name': self.last_name,
+            'full_name': self.full_name,
             'email': self.email,
             'phone': self.phone,
             'business_name': self.business_name,
@@ -114,3 +115,4 @@ class User(db.Model):
     
     def __repr__(self):
         return f'<User {self.email}>'
+
