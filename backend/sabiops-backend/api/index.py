@@ -30,12 +30,13 @@ from src.routes.expense import expense_bp
 from src.routes.invoice import invoice_bp
 from src.routes.payment import payment_bp
 from src.routes.dashboard import dashboard_bp
-from src.routes.referral import referral_bp
 from src.routes.notifications import notifications_bp
-from src.routes.subscription import subscription_bp
-from src.routes.withdrawal import withdrawal_bp
-from src.routes.user import user_bp
-from src.routes.subscription_upgrade import subscription_upgrade_bp
+# Temporarily disabled routes that depend on missing models:
+# from src.routes.referral import referral_bp
+# from src.routes.subscription import subscription_bp
+# from src.routes.withdrawal import withdrawal_bp
+# from src.routes.user import user_bp
+# from src.routes.subscription_upgrade import subscription_upgrade_bp
 
 
 
@@ -124,12 +125,13 @@ app.register_blueprint(expense_bp, url_prefix="/api/expenses")
 app.register_blueprint(invoice_bp, url_prefix="/api/invoices")
 app.register_blueprint(payment_bp, url_prefix="/api/payments")
 app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
-app.register_blueprint(referral_bp, url_prefix="/api/referrals")
 app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
-app.register_blueprint(subscription_bp, url_prefix="/api/subscriptions")
-app.register_blueprint(withdrawal_bp, url_prefix="/api/withdrawals")
-app.register_blueprint(user_bp, url_prefix="/api/users")
-app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-upgrade")
+# Temporarily disabled blueprint registrations:
+# app.register_blueprint(referral_bp, url_prefix="/api/referrals")
+# app.register_blueprint(subscription_bp, url_prefix="/api/subscriptions")
+# app.register_blueprint(withdrawal_bp, url_prefix="/api/withdrawals")
+# app.register_blueprint(user_bp, url_prefix="/api/users")
+# app.register_blueprint(subscription_upgrade_bp, url_prefix="/api/subscription-upgrade")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
