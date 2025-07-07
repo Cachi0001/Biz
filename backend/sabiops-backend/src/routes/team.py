@@ -28,7 +28,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def create_team_member():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
 
@@ -103,7 +103,7 @@ def create_team_member():
 @jwt_required()
 def get_team_members():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
 
         team_members = get_supabase().table("users").select("*").eq("owner_id", owner_id).execute()
@@ -121,7 +121,7 @@ def get_team_members():
 @jwt_required()
 def update_team_member(team_member_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
 
@@ -161,7 +161,7 @@ def update_team_member(team_member_id):
 @jwt_required()
 def delete_team_member(team_member_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
 
         # Check if the current user is an Owner

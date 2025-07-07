@@ -27,7 +27,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_sales():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         query = get_supabase().table("sales").select("*, customers(*), products(*)").eq("owner_id", owner_id)
@@ -64,7 +64,7 @@ def get_sales():
 @jwt_required()
 def create_sale():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -117,7 +117,7 @@ def create_sale():
 @jwt_required()
 def get_sales_stats():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         start_date = request.args.get("start_date")

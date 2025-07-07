@@ -27,7 +27,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_customers():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         # Fetch customers associated with the owner_id
@@ -46,7 +46,7 @@ def get_customers():
 @jwt_required()
 def get_customer_by_id(customer_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         customer = get_supabase().table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
@@ -67,7 +67,7 @@ def get_customer_by_id(customer_id):
 @jwt_required()
 def create_customer():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -107,7 +107,7 @@ def create_customer():
 @jwt_required()
 def update_customer(customer_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -141,7 +141,7 @@ def update_customer(customer_id):
 @jwt_required()
 def delete_customer(customer_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         customer = get_supabase().table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()

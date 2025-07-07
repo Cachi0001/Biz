@@ -29,7 +29,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_payments():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         
         query = get_supabase().table("payments").select("*").eq("user_id", user_id)
@@ -53,7 +53,7 @@ def get_payments():
 @jwt_required()
 def get_payment(payment_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         payment = get_supabase().table("payments").select("*").eq("id", payment_id).eq("user_id", user_id).single().execute()
         
@@ -73,7 +73,7 @@ def get_payment(payment_id):
 @jwt_required()
 def initialize_payment():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         data = request.get_json()
         
@@ -160,7 +160,7 @@ def initialize_payment():
 @jwt_required()
 def verify_payment(reference):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         
         payment_result = get_supabase().table("payments").select("*").eq("id", reference).eq("user_id", user_id).single().execute()
@@ -241,7 +241,7 @@ def verify_payment(reference):
 @payment_bp.route("/webhook", methods=["POST"])
 def paystack_webhook():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         
         data = request.get_json()
         
@@ -284,7 +284,7 @@ def paystack_webhook():
 @jwt_required()
 def record_manual_payment():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         data = request.get_json()
         
@@ -345,7 +345,7 @@ def record_manual_payment():
 @jwt_required()
 def get_payment_stats():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         
         all_payments_result = get_supabase().table("payments").select("*").eq("user_id", user_id).execute()

@@ -28,7 +28,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_sales():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         
         query = get_supabase().table("sales").select("*").eq("user_id", user_id)
@@ -69,7 +69,7 @@ def get_sales():
 @jwt_required()
 def create_sale():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         data = request.get_json()
         
@@ -154,7 +154,7 @@ def create_sale():
 @jwt_required()
 def get_sale(sale_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
         
@@ -174,7 +174,7 @@ def get_sale(sale_id):
 @jwt_required()
 def update_sale(sale_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
         
@@ -205,7 +205,7 @@ def update_sale(sale_id):
 @jwt_required()
 def get_daily_sales_report():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         report_date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
         
@@ -270,7 +270,7 @@ def get_daily_sales_report():
 @jwt_required()
 def get_sales_analytics():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         period = request.args.get("period", "30")
         
@@ -343,7 +343,7 @@ def get_sales_analytics():
 @jwt_required()
 def get_team_performance():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         period = request.args.get("period", "30")
         

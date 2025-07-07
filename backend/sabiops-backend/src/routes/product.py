@@ -28,7 +28,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_products():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         query = get_supabase().table("products").select("*").eq("owner_id", owner_id)
@@ -61,7 +61,7 @@ def get_products():
 @jwt_required()
 def get_product(product_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         
@@ -81,7 +81,7 @@ def get_product(product_id):
 @jwt_required()
 def create_product():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -125,7 +125,7 @@ def create_product():
 @jwt_required()
 def update_product(product_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -169,7 +169,7 @@ def update_product(product_id):
 @jwt_required()
 def delete_product(product_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
@@ -192,7 +192,7 @@ def delete_product(product_id):
 @jwt_required()
 def get_categories():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         products = get_supabase().table("products").select("category").eq("owner_id", owner_id).eq("active", True).execute()
@@ -212,7 +212,7 @@ def get_categories():
 @jwt_required()
 def get_low_stock_products():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         products = get_supabase().table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
@@ -232,7 +232,7 @@ def get_low_stock_products():
 @jwt_required()
 def update_stock(product_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()

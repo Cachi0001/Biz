@@ -32,7 +32,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_invoices():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         query = get_supabase().table("invoices").select("*").eq("owner_id", owner_id)
@@ -61,7 +61,7 @@ def get_invoices():
 @jwt_required()
 def get_invoice():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -87,7 +87,7 @@ def get_invoice():
 @jwt_required()
 def create_invoice():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -171,7 +171,7 @@ def create_invoice():
 @jwt_required()
 def update_invoice(invoice_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -252,7 +252,7 @@ def update_invoice(invoice_id):
 @jwt_required()
 def delete_invoice(invoice_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -276,7 +276,7 @@ def delete_invoice(invoice_id):
 @jwt_required()
 def update_invoice_status(invoice_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -312,7 +312,7 @@ def update_invoice_status(invoice_id):
 @jwt_required()
 def send_invoice(invoice_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -411,7 +411,7 @@ def send_invoice(invoice_id):
 @jwt_required()
 def get_invoice_stats():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         all_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).execute()
@@ -447,7 +447,7 @@ def get_invoice_stats():
 @jwt_required()
 def get_overdue_invoices():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         today = date.today().isoformat()

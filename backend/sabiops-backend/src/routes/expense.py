@@ -27,7 +27,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_expenses():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         query = get_supabase().table("expenses").select("*").eq("owner_id", owner_id)
@@ -60,7 +60,7 @@ def get_expenses():
 @jwt_required()
 def create_expense():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -104,7 +104,7 @@ def create_expense():
 @jwt_required()
 def get_expense(expense_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         expense = get_supabase().table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
@@ -124,7 +124,7 @@ def get_expense(expense_id):
 @jwt_required()
 def update_expense(expense_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         data = request.get_json()
         
@@ -173,7 +173,7 @@ def update_expense(expense_id):
 @jwt_required()
 def delete_expense(expense_id):
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         expense = get_supabase().table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
@@ -193,7 +193,7 @@ def delete_expense(expense_id):
 @jwt_required()
 def get_expense_categories():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         # For simplicity, returning a static list of common categories.
@@ -222,7 +222,7 @@ def get_expense_categories():
 @jwt_required()
 def get_expense_stats():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         
         start_date = request.args.get("start_date")

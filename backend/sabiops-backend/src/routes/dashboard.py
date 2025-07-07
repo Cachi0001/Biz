@@ -26,7 +26,7 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_overview():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
 
         # Fetch owner's data to ensure they exist and get their business_name if needed
@@ -92,7 +92,7 @@ def get_overview():
 @jwt_required()
 def get_revenue_chart():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         period = request.args.get("period", "12months") # Default to 12 months
 
@@ -130,7 +130,7 @@ def get_revenue_chart():
 @jwt_required()
 def get_top_customers():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         limit = int(request.args.get("limit", 5))
 
@@ -176,7 +176,7 @@ def get_top_customers():
 @jwt_required()
 def get_top_products():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         limit = int(request.args.get("limit", 5))
 
@@ -259,7 +259,7 @@ def get_top_products():
 @jwt_required()
 def get_recent_activities():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         owner_id = get_jwt_identity()
         limit = int(request.args.get("limit", 10))
 

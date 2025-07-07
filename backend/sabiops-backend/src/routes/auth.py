@@ -30,7 +30,7 @@ def error_response(error, message="Error", status_code=400):
 @auth_bp.route("/register", methods=["POST"])
 def register():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         data = request.get_json()
         
         required_fields = ["email", "phone", "password", "full_name"]
@@ -132,7 +132,7 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         data = request.get_json()
         
         # Validate that data is actually a dictionary
@@ -221,7 +221,7 @@ def login():
 @jwt_required()
 def get_profile():
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         user_result = get_supabase().table("users").select("*").eq("id", user_id).execute()
         
@@ -258,7 +258,7 @@ def verify_token():
     This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
-        supabase = current_app.config["SUPABASE_CLIENT"]
+        supabase = get_supabase()
         user_id = get_jwt_identity()
         
         # Get user information from database

@@ -351,8 +351,8 @@ const Customers = () => {
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden sm:table-cell">Business</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead className="hidden md:table-cell">Address</TableHead>
-                  <TableHead>Actions</TableHead>
+                    <TableHead className="hidden lg:table-cell">Address</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -363,7 +363,12 @@ const Customers = () => {
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <User className="h-4 w-4 text-primary" />
                         </div>
-                        <span>{customer.name}</span>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{customer.name}</div>
+                          <div className="text-sm text-muted-foreground sm:hidden">
+                            {customer.business_name}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{customer.business_name || '-'}</TableCell>
@@ -371,27 +376,28 @@ const Customers = () => {
                       <div className="space-y-1">
                         {customer.email && (
                           <div className="flex items-center space-x-1 text-sm">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate">{customer.email}</span>
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-none">{customer.email}</span>
                           </div>
                         )}
                         {customer.phone && (
                           <div className="flex items-center space-x-1 text-sm">
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-3 w-3 flex-shrink-0" />
                             <span>{customer.phone}</span>
                           </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell max-w-xs truncate">
+                    <TableCell className="hidden lg:table-cell max-w-xs truncate">
                       {customer.address || '-'}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-1">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => openEditDialog(customer)}
+                          className="h-8 w-8 p-0"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -399,6 +405,7 @@ const Customers = () => {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleDeleteCustomer(customer.id)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

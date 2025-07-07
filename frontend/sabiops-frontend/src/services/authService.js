@@ -109,15 +109,14 @@ export const authService = {
         id: user.id,
         email: user.email,
         phone: user.phone,
-        first_name: user.first_name,
-        last_name: user.last_name,
+        full_name: user.full_name, // Changed from first_name/last_name to full_name
         business_name: user.business_name,
         role: user.role,
         subscription_plan: user.subscription_plan,
         subscription_status: user.subscription_status,
-        // Add other fields if they are consistently returned by backend on login/register
-        // referral_code: user.referral_code, // Only available from getProfile
-        // trial_ends_at: user.trial_ends_at, // Only available from getProfile
+        trial_ends_at: user.trial_ends_at,
+        referral_code: user.referral_code,
+        owner_id: user.owner_id
       };
     }
     return null;
