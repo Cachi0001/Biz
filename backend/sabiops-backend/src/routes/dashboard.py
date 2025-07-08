@@ -252,7 +252,7 @@ def get_recent_activities():
         for inv in invoices_result.data:
             activities.append({
                 "type": "invoice",
-                "description": f"Invoice #{inv["id"][:8]} created",
+                "description": f"Invoice #{inv['id'][:8]} created",
                 "date": inv["created_at"],
                 "amount": inv["total_amount"],
                 "status": inv["status"]
@@ -261,7 +261,7 @@ def get_recent_activities():
         for pay in payments_result.data:
             activities.append({
                 "type": "payment",
-                "description": f"Payment of {pay["amount"]} received",
+                "description": f"Payment of {pay['amount']} received",
                 "date": pay["created_at"],
                 "amount": pay["amount"],
                 "status": pay["status"]
@@ -270,7 +270,7 @@ def get_recent_activities():
         for cust in customers_result.data:
             activities.append({
                 "type": "customer",
-                "description": f"New customer {cust["name"]} added",
+                "description": f"New customer {cust['name']} added",
                 "date": cust["created_at"],
                 "amount": 0, # No amount for customer activity
                 "status": "active"
