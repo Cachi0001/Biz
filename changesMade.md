@@ -86,3 +86,45 @@ This persistent bug is challenging due to its nature in minified production code
   - Added `console.log` statements to `Register.jsx` and `Login.jsx` to log API results and errors for better debugging.
 
 
+
+# Authentication & Backend Deployment Debugging Log (July 2025)
+
+## Major Errors Faced
+
+1. **CORS Errors**
+   - CORS preflight (OPTIONS) requests failed, blocking frontend requests to backend.
+   - Fix: Updated Flask-CORS config to explicitly allow the Vercel frontend domain and all necessary headers/methods.
+
+2. **405 Method Not Allowed**
+   - POST requests to `/api/auth/login` and `/api/auth/register` returned 405 errors.
+   - Cause: Flask did not see a matching POST route due to path mismatch.
+   - Fix: Confirmed blueprint registration and endpoint paths; added debug logging to backend routes.
+
+3. **404 Not Found for All API Routes**
+   - All requests to `/api/auth/login`, `/api/auth/register`, `/api/debug`, etc. returned 404 and hit the catch-all debug route.
+   - Cause: Vercel was passing `/api/...` to Flask, but Flask expected `/auth/...` (without `/api`).
+   - Initial Attempt: Added a `before_request` handler to strip `/api` prefix, but this was too late in the request lifecycle.
+
+4. **Catch-All Route Always Triggered**
+   - All requests matched the catch-all route, never the real Flask routes.
+   - Cause: Path rewriting was not happening before Flask routing.
+
+5. **Final Solution: WSGI Middleware**
+   - Added a WSGI middleware (`StripApiPrefixMiddleware`) to strip `/api` from the path before Flask routing.
+   - This allowed Flask to match `/auth/login`, `/auth/register`, etc. as intended.
+
+## Key Fixes Applied
+
+- Restricted CORS to only allow the production frontend domain in Flask-CORS config.
+- Removed insecure preflight handler and duplicate CORS configs.
+- Ensured all blueprints are registered at the correct prefixes in `api/index.py`.
+- Removed the `if __name__ == "__main__"` block for Vercel serverless compatibility.
+- Added debug routes and route listing for deep diagnosis.
+- Implemented a WSGI middleware to strip `/api` prefix for all incoming requests.
+- Confirmed backend now matches and serves all intended routes for authentication and API usage.
+
+---
+
+**All major authentication and deployment routing issues are now resolved.**
+
+
