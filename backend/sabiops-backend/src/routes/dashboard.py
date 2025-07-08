@@ -1,12 +1,38 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
+import pytz
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
 def get_supabase():
     """Get Supabase client from Flask app config"""
     return current_app.config["SUPABASE"]
+
+def parse_supabase_datetime(datetime_str):
+    """
+    Parse datetime string from Supabase and ensure it's timezone-aware.
+    Handles various formats that Supabase might return.
+    """
+    if not datetime_str:
+        return None
+    
+    try:
+        # Handle ISO format with 'Z' suffix (UTC)
+        if datetime_str.endswith('Z'):
+            datetime_str = datetime_str.replace('Z', '+00:00')
+        
+        # Parse the datetime string
+        dt = datetime.fromisoformat(datetime_str)
+        
+        # If it's naive, assume UTC
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        return dt
+    except (ValueError, TypeError) as e:
+        print(f"Error parsing datetime '{datetime_str}': {e}")
+        return None
 
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({"success": True, "data": data, "message": message}), status_code
@@ -30,17 +56,20 @@ def get_overview():
         total_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] == "paid")
         outstanding_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] != "paid")
 
-        current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Use UTC timezone for consistent datetime comparisons
+        utc = pytz.UTC
+        current_month_start = datetime.now(utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
         revenue_this_month = sum(
             inv["total_amount"] for inv in invoices_result.data
-            if inv["status"] == "paid" and datetime.fromisoformat(inv["created_at"]) >= current_month_start
+            if inv["status"] == "paid" and parse_supabase_datetime(inv["created_at"]) and parse_supabase_datetime(inv["created_at"]) >= current_month_start
         )
 
         customers_result = supabase.table("customers").select("id", "created_at").eq("owner_id", owner_id).execute()
         total_customers = len(customers_result.data)
         new_customers_this_month = sum(
             1 for cust in customers_result.data
-            if datetime.fromisoformat(cust["created_at"]) >= current_month_start
+            if parse_supabase_datetime(cust["created_at"]) and parse_supabase_datetime(cust["created_at"]) >= current_month_start
         )
 
         products_result = supabase.table("products").select("id", "quantity").eq("owner_id", owner_id).execute()
@@ -88,16 +117,19 @@ def get_revenue_chart():
 
         invoices_result = supabase.table("invoices").select("total_amount", "created_at").eq("owner_id", owner_id).eq("status", "paid").execute()
         
+        # Use UTC timezone for consistent datetime comparisons
+        utc = pytz.UTC
         revenue_by_month = {}
         for i in range(12):
-            month = (datetime.now() - timedelta(days=30*i)).strftime("%Y-%m")
+            month = (datetime.now(utc) - timedelta(days=30*i)).strftime("%Y-%m")
             revenue_by_month[month] = 0
 
         for inv in invoices_result.data:
-            invoice_date = datetime.fromisoformat(inv["created_at"])
-            month_key = invoice_date.strftime("%Y-%m")
-            if month_key in revenue_by_month:
-                revenue_by_month[month_key] += inv["total_amount"]
+            invoice_date = parse_supabase_datetime(inv["created_at"])
+            if invoice_date:
+                month_key = invoice_date.strftime("%Y-%m")
+                if month_key in revenue_by_month:
+                    revenue_by_month[month_key] += inv["total_amount"]
 
         chart_data = []
         for month_key in sorted(revenue_by_month.keys()):

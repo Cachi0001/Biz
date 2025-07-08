@@ -1609,3 +1609,97 @@ This session successfully migrated the backend deployment to Railway and updated
 
 *Session completed: Database schema alignment successfully implemented across all backend files.*
 
+
+## 37. Datetime Comparison Error Fix (Current Session - July 2025)
+
+### Issues Addressed:
+- **Critical Error**: `can't compare offset-naive and offset-aware datetimes` causing dashboard overview failures
+- **Timezone Inconsistency**: Mixing naive and timezone-aware datetime objects in comparisons
+- **Supabase Integration**: Improper handling of timezone-aware datetime strings from database
+
+### Root Cause Analysis:
+- Dashboard code was using `datetime.now()` which creates timezone-naive datetime objects
+- Supabase returns datetime strings with timezone information (ISO format with 'Z' suffix)
+- When comparing naive datetime (from `datetime.now()`) with timezone-aware datetime (from Supabase), Python raises TypeError
+- The error occurred specifically in dashboard overview calculations for monthly revenue and customer counts
+
+### Changes Made:
+
+#### Backend Route Fixes:
+1. **File**: `backend/sabiops-backend/src/routes/dashboard.py`
+   - **Added**: `import pytz` for timezone handling
+   - **Added**: `parse_supabase_datetime()` helper function for consistent datetime parsing
+   - **Changed**: `datetime.now()` to `datetime.now(utc)` for timezone-aware current time
+   - **Updated**: All datetime comparisons to use timezone-aware objects
+   - **Fixed**: Revenue calculation logic in `get_overview()` function
+   - **Fixed**: Customer count calculation logic in `get_overview()` function
+   - **Fixed**: Revenue chart datetime parsing in `get_revenue_chart()` function
+
+#### Dependency Updates:
+2. **File**: `backend/sabiops-backend/requirements.txt`
+   - **Added**: `pytz==2023.3` for timezone support
+
+### Technical Implementation:
+
+#### New Helper Function:
+```python
+def parse_supabase_datetime(datetime_str):
+    """
+    Parse datetime string from Supabase and ensure it's timezone-aware.
+    Handles various formats that Supabase might return.
+    """
+    if not datetime_str:
+        return None
+    
+    try:
+        # Handle ISO format with 'Z' suffix (UTC)
+        if datetime_str.endswith('Z'):
+            datetime_str = datetime_str.replace('Z', '+00:00')
+        
+        # Parse the datetime string
+        dt = datetime.fromisoformat(datetime_str)
+        
+        # If it's naive, assume UTC
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        return dt
+    except (ValueError, TypeError) as e:
+        print(f"Error parsing datetime '{datetime_str}': {e}")
+        return None
+```
+
+#### Updated Comparison Logic:
+- **Before**: `datetime.now().replace(day=1, ...)` (naive) vs `datetime.fromisoformat(inv["created_at"])` (aware)
+- **After**: `datetime.now(utc).replace(day=1, ...)` (aware) vs `parse_supabase_datetime(inv["created_at"])` (aware)
+
+### Verification Results:
+- ✅ **Datetime Parsing**: All Supabase datetime formats handled correctly
+- ✅ **Timezone Consistency**: All datetime objects are timezone-aware (UTC)
+- ✅ **Comparison Logic**: No more TypeError exceptions in datetime comparisons
+- ✅ **Dashboard Logic**: Revenue and customer calculations work correctly
+- ✅ **Error Reproduction**: Original error scenario confirmed and fixed
+
+### Expected Outcomes:
+- ✅ Dashboard overview API call should work without datetime comparison errors
+- ✅ Monthly revenue calculations should function correctly
+- ✅ New customer count calculations should work properly
+- ✅ Revenue chart data generation should handle timezones correctly
+- ✅ All datetime operations should be timezone-aware and consistent
+
+### Files Modified:
+- `backend/sabiops-backend/src/routes/dashboard.py`
+- `backend/sabiops-backend/requirements.txt`
+
+### Testing:
+- Created comprehensive test script (`test_datetime_simple.py`) to verify all changes
+- All tests passed confirming proper timezone handling
+- Original error scenario reproduced and confirmed fixed
+- Dashboard logic tested with mock data
+
+**This fix resolves the critical "can't compare offset-naive and offset-aware datetimes" error that was preventing the dashboard from loading properly.**
+
+---
+
+*Session completed: Datetime comparison error successfully resolved with timezone-aware handling.*
+
