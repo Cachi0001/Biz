@@ -1208,3 +1208,80 @@ localStorage.setItem('token', response.access_token);
 
 **Status**: Deploying fix to test...
 
+
+
+## 27. Backend Deployment to Railway & Frontend API Update (Current Session)
+
+### Issues Addressed:
+- Persistent Vercel deployment failures for the backend.
+- Frontend unable to communicate with the backend due to incorrect API URL.
+
+### Changes Made:
+
+#### Backend Deployment to Railway:
+- **Environment Variables**: Added `NIXPACKS_APP_DIR`, `NIXPACKS_BUILD_CMD`, `NIXPACKS_START_CMD`, `NIXPACKS_PYTHON_VERSION`, and `NIXPACKS_BUILDPACK` to Railway project settings to correctly build and run the Python Flask backend.
+- **Dockerfile Fix**: Corrected a syntax error in the `Dockerfile` (commented out problematic `COPY` instruction related to frontend build).
+- **Gunicorn Worker**: Changed Gunicorn worker type to `sync` in `Dockerfile` to resolve `gevent` dependency issues.
+- **Gunicorn Entry Point**: Updated Gunicorn start command to `gunicorn --worker-class sync --bind 0.0.0.0:5000 --workers 4 api.index:app` to correctly point to the Flask application entry point.
+- **Root Directory**: Set the Railway service root directory to `backend/sabiops-backend` to ensure only the backend is built and deployed.
+
+#### Frontend API URL Update:
+- **File**: `frontend/sabiops-frontend/src/services/api.js`
+- **Change**: Updated `baseURL` to `https://biz-production-d0b2.up.railway.app/api` to point to the newly deployed Railway backend.
+
+### Current Status:
+✅ **Backend**: Successfully deployed and active on Railway.
+✅ **Frontend**: Updated to communicate with the Railway backend.
+
+### Next Steps for User:
+1. **Test the Application**: Login with the provided credentials and verify all functionalities work correctly.
+2. **Monitor Railway Usage**: Keep an eye on your Railway dashboard for resource consumption.
+
+This session successfully migrated the backend deployment to Railway and updated the frontend to ensure seamless communication, resolving the long-standing deployment issues.
+
+
+
+
+## 28. Persistent JWT Validation Error: "Not enough segments" (Current Session)
+
+### **🚨 ERROR ENCOUNTERED:**
+**Date/Time**: Current session
+**Issue**: `POST /api/auth/verify-token` still returning 422 (Unprocessable Content)
+
+**Detailed Error Message from Backend Response (via Browser Network Tab):**
+```json
+{
+  "message": "Not enough segments"
+}
+```
+
+### **🔍 ANALYSIS:**
+- The error `"Not enough segments"` is a specific message from Flask-JWT-Extended, indicating that the JWT received by the backend is malformed or incomplete.
+- A valid JWT typically has three parts (header, payload, signature) separated by dots. This error suggests one or more parts are missing or corrupted.
+- This confirms the issue is with the structure or content of the token itself as it reaches the backend, rather than a `JWT_SECRET_KEY` mismatch or database connection problem.
+- Despite enabling `DEBUG=True` and `JWT_ERROR_MESSAGE_KEY="message"` in `api/index.py`, and making the JWT error handler more generic in `src/routes/auth.py`, this specific error message was not visible in the Railway logs, but was found directly in the browser's network response.
+
+### **🎯 DEBUGGING STEPS ATTEMPTED (leading to this error):**
+- Verified `JWT_SECRET_KEY` consistency between local and Railway environments.
+- Resolved `gevent` worker issue by forcing `sync` worker in Gunicorn.
+- Fixed `Dockerfile` syntax error.
+- Ensured `NIXPACKS_APP_DIR`, `NIXPACKS_BUILD_CMD`, `NIXPACKS_START_CMD`, `NIXPACKS_PYTHON_VERSION`, and `NIXPACKS_BUILDPACK` are correctly set on Railway.
+- Updated `NIXPACKS_BUILD_CMD` to `python3 -m pip install -r requirements.txt`.
+- Added `NIXPACKS_NO_INSTALL_FRONTEND=true`.
+- Set Railway service root directory to `backend/sabiops-backend`.
+- Fixed `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY` credentials on Railway.
+- Refactored `verify_token` endpoint in `src/routes/auth.py` to correctly use `@jwt_required()`.
+- Explicitly set `app.config["JWT_ERROR_MESSAGE_KEY"] = "message"` and `app.config["DEBUG"] = True` in `api/index.py`.
+- Changed logging level to `DEBUG` in `api/index.py`.
+
+### **➡️ NEXT STEPS FOR FUTURE AI ASSISTANT:**
+1.  **Investigate JWT Generation on Frontend**: Examine the frontend code (`src/services/api.js`, `src/contexts/AuthContext.jsx`, and related login/registration components) to understand how the JWT is being created and stored after successful login.
+2.  **Inspect Token Before Sending**: If possible, log the actual JWT string on the frontend *before* it's sent in the `Authorization` header to the `/verify-token` endpoint. This can be done via browser console logs.
+3.  **Verify Token Structure**: Once the token string is obtained, use a tool like [jwt.io](https://jwt.io/) to paste the token and check if it's a valid, well-formed JWT with three segments.
+4.  **Backend Token Parsing**: If the token appears valid on the frontend, investigate the backend's Flask-JWT-Extended configuration and any custom logic that might be interfering with the token parsing before `jwt_required()` is fully applied.
+5.  **Consider `Authorization` Header**: Confirm that the `Authorization` header is correctly formatted as `Bearer <token>` and that the token itself is not being truncated or altered during transmission.
+
+**The primary focus should be on why the JWT is malformed or incomplete when it reaches the backend, leading to the "Not enough segments" error.**
+
+
+
