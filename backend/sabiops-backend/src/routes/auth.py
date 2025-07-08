@@ -6,6 +6,7 @@ import uuid
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import pytz
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -82,9 +83,9 @@ def register():
             "subscription_plan": "weekly",
             "subscription_status": "trial",
             "active": True,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "trial_ends_at": (datetime.now() + timedelta(days=7)).isoformat()
+            "created_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
+            "updated_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
+            "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
         }
         
         result = supabase.table("users").insert(user_data).execute()
@@ -188,7 +189,7 @@ def login():
                 status_code=401
             )
         
-        supabase.table("users").update({"last_login": datetime.now().isoformat()}).eq("id", user["id"]).execute()
+        supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
         
         access_token = create_access_token(identity=user["id"])
         
