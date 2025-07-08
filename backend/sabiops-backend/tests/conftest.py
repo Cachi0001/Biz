@@ -77,8 +77,8 @@ def sample_product_data():
         'sku': 'TEST-001',
         'description': 'A test product for unit testing',
         'price': 1000.00,
-        'stock_quantity': 50,
-        'low_stock_alert': 10,
+        'quantity': 50,
+        'low_stock_threshold': 10,
         'category': 'Test Category',
         'status': 'active'
     }

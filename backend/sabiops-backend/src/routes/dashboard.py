@@ -43,9 +43,9 @@ def get_overview():
             if datetime.fromisoformat(cust["created_at"]) >= current_month_start
         )
 
-        products_result = supabase.table("products").select("id", "stock_quantity").eq("owner_id", owner_id).execute()
+        products_result = supabase.table("products").select("id", "quantity").eq("owner_id", owner_id).execute()
         total_products = len(products_result.data)
-        low_stock_products = sum(1 for prod in products_result.data if prod["stock_quantity"] < 10)
+        low_stock_products = sum(1 for prod in products_result.data if prod["quantity"] < 10)
 
         overdue_invoices = sum(1 for inv in invoices_result.data if inv["status"] == "overdue")
 

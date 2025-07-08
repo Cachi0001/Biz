@@ -286,17 +286,17 @@ class ExcelService:
                 price_cell.alignment = self.right_alignment
                 
                 # Stock quantity
-                stock_cell = worksheet.cell(row=row, column=6, value=product.get('stock_quantity', 0))
+                stock_cell = worksheet.cell(row=row, column=6, value=product.get('quantity', 0))
                 stock_cell.alignment = self.right_alignment
                 
                 # Low stock alert threshold
-                alert_cell = worksheet.cell(row=row, column=7, value=product.get('low_stock_alert', 0))
+                alert_cell = worksheet.cell(row=row, column=7, value=product.get('low_stock_threshold', 0))
                 alert_cell.alignment = self.right_alignment
                 
                 worksheet.cell(row=row, column=8, value=product.get('status', '').title())
                 
                 # Highlight low stock items
-                if product.get('stock_quantity', 0) <= product.get('low_stock_alert', 0):
+                if product.get('quantity', 0) <= product.get('low_stock_threshold', 0):
                     for col in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col)
                         cell.fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
@@ -311,7 +311,7 @@ class ExcelService:
             
             total_products = len(products_data)
             active_products = len([p for p in products_data if p.get('status') == 'active'])
-            low_stock_products = len([p for p in products_data if p.get('stock_quantity', 0) <= p.get('low_stock_alert', 0)])
+            low_stock_products = len([p for p in products_data if p.get('quantity', 0) <= p.get('low_stock_threshold', 0)])
             
             worksheet.cell(row=summary_row + 1, column=1, value="Total Products:")
             worksheet.cell(row=summary_row + 1, column=2, value=total_products)
@@ -322,7 +322,7 @@ class ExcelService:
             worksheet.cell(row=summary_row + 3, column=1, value="Low Stock Products:")
             worksheet.cell(row=summary_row + 3, column=2, value=low_stock_products)
             
-            total_inventory_value = sum(p.get('price', 0) * p.get('stock_quantity', 0) for p in products_data)
+            total_inventory_value = sum(p.get('price', 0) * p.get('quantity', 0) for p in products_data)
             worksheet.cell(row=summary_row + 4, column=1, value="Total Inventory Value:")
             inventory_value_cell = worksheet.cell(row=summary_row + 4, column=2, value=total_inventory_value)
             inventory_value_cell.number_format = '₦#,##0.00'

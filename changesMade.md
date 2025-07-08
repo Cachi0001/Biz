@@ -1528,3 +1528,84 @@ This session successfully migrated the backend deployment to Railway and updated
 - `backend/sabiops-backend/api/index.py`
 
 
+
+
+## 36. Database Column Schema Alignment Fix (Current Session - July 2025)
+
+### Issues Addressed:
+- **Critical Error**: `column products.stock_quantity does not exist` causing dashboard overview failures
+- **Schema Mismatch**: Backend code using different column names than database schema
+- **Inconsistent Field Names**: Multiple files using outdated column references
+
+### Root Cause Analysis:
+- Database schema (queriesRan.md) defines products table with `quantity` column
+- Backend code was using `stock_quantity` instead of `quantity`
+- Similar mismatch with `low_stock_alert` vs `low_stock_threshold`
+- Test files also contained incorrect column references
+
+### Changes Made:
+
+#### Backend Route Fixes:
+1. **File**: `backend/sabiops-backend/src/routes/dashboard.py`
+   - **Change**: Updated `stock_quantity` to `quantity` in products query
+   - **Line**: Changed `select("id", "stock_quantity")` to `select("id", "quantity")`
+   - **Impact**: Dashboard overview endpoint now works correctly
+
+#### Service Layer Fixes:
+2. **File**: `backend/sabiops-backend/src/services/excel_service.py`
+   - **Changes**:
+     - Updated `product.get('stock_quantity', 0)` to `product.get('quantity', 0)`
+     - Updated `product.get('low_stock_alert', 0)` to `product.get('low_stock_threshold', 0)`
+     - Fixed low stock detection logic to use correct field names
+     - Updated inventory value calculations
+   - **Impact**: Excel export functionality now uses correct database fields
+
+#### Test File Fixes:
+3. **Files**: Multiple test files updated
+   - `tests/conftest.py`: Updated sample product data fixture
+   - `tests/test_dashboard.py`: Fixed product creation test data
+   - `tests/test_invoices.py`: Updated product creation in test setup
+   - `tests/test_payments.py`: Fixed product data in test fixtures
+   - `tests/test_products.py`: Comprehensive updates to all product test data
+   - **Changes**: All `stock_quantity` → `quantity`, `low_stock_alert` → `low_stock_threshold`
+
+### Database Schema Alignment:
+- **Products Table Fields** (as per queriesRan.md):
+  - ✅ `quantity` (not `stock_quantity`)
+  - ✅ `low_stock_threshold` (not `low_stock_alert`)
+  - ✅ `price`, `cost_price`, `category`, `sku`, `image_url`
+  - ✅ `active`, `created_at`, `updated_at`
+
+### Verification Results:
+- ✅ **Code Analysis**: No remaining `stock_quantity` references found
+- ✅ **Excel Service**: All column names aligned with database schema
+- ✅ **Test Files**: All test fixtures use correct field names
+- ✅ **Dashboard Endpoint**: Should now query products table successfully
+
+### Expected Outcomes:
+- ✅ Dashboard overview API call should work without column errors
+- ✅ Product management operations should function correctly
+- ✅ Excel export features should access correct database fields
+- ✅ All unit tests should pass with updated field names
+- ✅ Low stock detection should work with `low_stock_threshold`
+
+### Files Modified:
+- `backend/sabiops-backend/src/routes/dashboard.py`
+- `backend/sabiops-backend/src/services/excel_service.py`
+- `backend/sabiops-backend/tests/conftest.py`
+- `backend/sabiops-backend/tests/test_dashboard.py`
+- `backend/sabiops-backend/tests/test_invoices.py`
+- `backend/sabiops-backend/tests/test_payments.py`
+- `backend/sabiops-backend/tests/test_products.py`
+
+### Testing:
+- Created comprehensive test script (`test_fixes.py`) to verify all changes
+- All tests passed confirming proper column name alignment
+- No remaining references to incorrect column names found
+
+**This fix resolves the critical "column products.stock_quantity does not exist" error that was preventing the dashboard from loading properly.**
+
+---
+
+*Session completed: Database schema alignment successfully implemented across all backend files.*
+

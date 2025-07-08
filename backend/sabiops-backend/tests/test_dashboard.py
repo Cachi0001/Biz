@@ -26,9 +26,9 @@ class TestDashboardRoutes:
         
         # Create products
         products_data = [
-            {'name': 'Product 1', 'sku': 'PROD-001', 'price': 1000.00, 'stock_quantity': 50},
-            {'name': 'Product 2', 'sku': 'PROD-002', 'price': 2000.00, 'stock_quantity': 30},
-            {'name': 'Product 3', 'sku': 'PROD-003', 'price': 500.00, 'stock_quantity': 5}  # Low stock
+            {'name': 'Product 1', 'sku': 'PROD-001', 'price': 1000.00, 'quantity': 50},
+            {'name': 'Product 2', 'sku': 'PROD-002', 'price': 2000.00, 'quantity': 30},
+            {'name': 'Product 3', 'sku': 'PROD-003', 'price': 500.00, 'quantity': 5}  # Low stock
         ]
         
         product_ids = []

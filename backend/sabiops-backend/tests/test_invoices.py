@@ -23,7 +23,7 @@ class TestInvoiceRoutes:
             'name': 'Test Product',
             'sku': 'TEST-001',
             'price': 1000.00,
-            'stock_quantity': 50
+            'quantity': 50
         }, headers=auth_headers)
         product_id = product_response.get_json()['product']['id']
         

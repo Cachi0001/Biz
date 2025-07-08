@@ -157,9 +157,9 @@ class TestProductRoutes:
         """Test product search by name."""
         # Create multiple products
         products = [
-            {'name': 'Laptop Computer', 'sku': 'LAP-001', 'price': 50000, 'stock_quantity': 10},
-            {'name': 'Desktop Computer', 'sku': 'DES-001', 'price': 40000, 'stock_quantity': 5},
-            {'name': 'Mobile Phone', 'sku': 'MOB-001', 'price': 20000, 'stock_quantity': 20}
+            {'name': 'Laptop Computer', 'sku': 'LAP-001', 'price': 50000, 'quantity': 10},
+            {'name': 'Desktop Computer', 'sku': 'DES-001', 'price': 40000, 'quantity': 5},
+            {'name': 'Mobile Phone', 'sku': 'MOB-001', 'price': 20000, 'quantity': 20}
         ]
         
         for product in products:
@@ -209,8 +209,8 @@ class TestProductRoutes:
     def test_get_low_stock_products(self, client, auth_headers):
         """Test retrieval of low stock products."""
         # Create products with different stock levels
-        low_stock = {'name': 'Low Stock Product', 'sku': 'LOW-001', 'price': 1000, 'stock_quantity': 5, 'low_stock_alert': 10}
-        normal_stock = {'name': 'Normal Stock Product', 'sku': 'NOR-001', 'price': 1000, 'stock_quantity': 50, 'low_stock_alert': 10}
+        low_stock = {'name': 'Low Stock Product', 'sku': 'LOW-001', 'price': 1000, 'quantity': 5, 'low_stock_threshold': 10}
+        normal_stock = {'name': 'Normal Stock Product', 'sku': 'NOR-001', 'price': 1000, 'quantity': 50, 'low_stock_threshold': 10}
         
         client.post('/api/products', json=low_stock, headers=auth_headers)
         client.post('/api/products', json=normal_stock, headers=auth_headers)
@@ -233,13 +233,13 @@ class TestProductRoutes:
         
         # Update stock
         response = client.patch(f'/api/products/{product_id}/stock', 
-                              json={'stock_quantity': 100}, 
+                              json={'quantity': 100}, 
                               headers=auth_headers)
         
         assert response.status_code == 200
         data = response.get_json()
         assert data['message'] == 'Stock updated successfully'
-        assert data['product']['stock_quantity'] == 100
+        assert data['product']['quantity'] == 100
     
     def test_products_unauthorized_access(self, client):
         """Test accessing product routes without authentication."""
