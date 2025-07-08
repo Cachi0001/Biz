@@ -153,7 +153,6 @@ app.register_blueprint(expense_bp, url_prefix='/expenses')
 app.register_blueprint(team_bp, url_prefix='/team')
 app.register_blueprint(payment_bp, url_prefix='/payments')
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+# Vercel expects the Flask app to be exported as 'app'.
+# Remove the '__main__' block for serverless compatibility.
 
