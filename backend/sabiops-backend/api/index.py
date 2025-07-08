@@ -156,3 +156,12 @@ app.register_blueprint(payment_bp, url_prefix='/payments')
 # Vercel expects the Flask app to be exported as 'app'.
 # Remove the '__main__' block for serverless compatibility.
 
+@app.route('/debug', methods=['GET'])
+def debug():
+    return 'Debug route is working!', 200
+
+# Print all registered routes for debugging
+print('Registered routes:')
+for rule in app.url_map.iter_rules():
+    print(rule)
+
