@@ -41,7 +41,13 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Initialize extensions
-CORS(app, origins=["https://sabiops.vercel.app"])
+CORS(
+    app,
+    origins=["https://sabiops.vercel.app"],
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
 jwt = JWTManager(app)
 
 # Check for required environment variables
@@ -131,6 +137,11 @@ def api_info():
         },
         'health': '/health'
     })
+
+# Add a global OPTIONS handler for all routes (for Vercel compatibility)
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    return '', 204
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
