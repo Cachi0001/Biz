@@ -56,17 +56,18 @@ const Dashboard = () => {
           activitiesData,
         ] = await Promise.all([
           apiService.getDashboardOverview(),
-          apiService.getRevenueChart('12months'),
-          apiService.getTopCustomers(5),
-          apiService.getTopProducts(5),
-          apiService.getRecentActivities(10),
+          apiService.getRevenueChart(), // Removed '12months' as it's not a parameter in api.js
+          apiService.getCustomers(), // Changed from getTopCustomers to getCustomers
+          apiService.getProducts(), // Changed from getTopProducts to getProducts
+          // apiService.getRecentActivities(10), // This method does not exist in api.js
         ]);
 
         setOverview(overviewData);
         setRevenueChart(revenueData.chart_data || []);
-        setTopCustomers(customersData.top_customers || []);
-        setTopProducts(productsData.top_products || []);
-        setRecentActivities(activitiesData.activities || []);
+        // Filter top customers and products on the frontend for now
+        setTopCustomers(customersData.slice(0, 5) || []); 
+        setTopProducts(productsData.slice(0, 5) || []);
+        setRecentActivities(activitiesData.activities || []); // Keep this if getRecentActivities is added later
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -519,4 +520,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 

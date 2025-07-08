@@ -1395,3 +1395,32 @@ This session successfully migrated the backend deployment to Railway and updated
 ### Files Modified:
 - `frontend/sabiops-frontend/src/contexts/AuthContext.jsx`
 
+
+
+## 31. Dashboard Data Fetching Fixes
+
+### Issues Addressed:
+- Blank dashboard page after successful login.
+- Console errors indicating missing API methods or incorrect parameters.
+
+### Root Cause:
+- The `Dashboard.jsx` component was calling `apiService` methods that either didn't exist (`getTopCustomers`, `getTopProducts`, `getRecentActivities`) or were being called with incorrect parameters (`getRevenueChart`).
+
+### Changes Made:
+- **File**: `frontend/sabiops-frontend/src/pages/Dashboard.jsx`
+- **Changes**:
+    - Modified `apiService.getRevenueChart("12months")` to `apiService.getRevenueChart()`.
+    - Changed `apiService.getTopCustomers(5)` to `apiService.getCustomers()`.
+    - Changed `apiService.getTopProducts(5)` to `apiService.getProducts()`.
+    - Commented out `apiService.getRecentActivities(10)` as this method does not exist in `api.js`.
+    - Implemented client-side slicing for `topCustomers` and `topProducts` to display only the top 5, as the backend now returns all customers/products.
+- **Reason**: To align the frontend API calls with the available methods in `api.js` and prevent errors that caused the dashboard to render blank.
+
+### Expected Results:
+- ✅ Dashboard should now display data for revenue, customers, and products.
+- ✅ No more console errors related to missing API methods.
+
+### Files Modified:
+- `frontend/sabiops-frontend/src/pages/Dashboard.jsx`
+
+
