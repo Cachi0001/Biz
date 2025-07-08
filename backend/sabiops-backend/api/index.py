@@ -41,7 +41,7 @@ from src.routes.notifications import notifications_bp
 
 
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "a_very_strong_and_consistent_secret_key_for_jwt_verification") # Changed default key
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 app.config["JWT_ERROR_MESSAGE_KEY"] = "message" # Explicitly set for detailed error messages
 app.config["DEBUG"] = False # Disable debug mode for production
@@ -143,6 +143,8 @@ app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+
 
 
 
