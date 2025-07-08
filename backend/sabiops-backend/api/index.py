@@ -92,6 +92,12 @@ def load_user():
     g.supabase = supabase
     g.mock_db = app.config.get('MOCK_DB')
 
+@app.before_request
+def strip_api_prefix():
+    if request.path.startswith('/api/'):
+        # Remove '/api' from the path for routing
+        request.environ['PATH_INFO'] = request.path[4:] or '/'
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
