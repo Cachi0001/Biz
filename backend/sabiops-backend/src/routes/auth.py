@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
 import uuid
@@ -11,7 +11,7 @@ auth_bp = Blueprint("auth", __name__)
 
 def get_supabase():
     """Get Supabase client from Flask app config"""
-    return current_app.config['SUPABASE']
+    return current_app.config["SUPABASE"]
 
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
@@ -251,20 +251,29 @@ def get_profile():
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/verify-token", methods=["POST"])
-@jwt_required()
 def verify_token():
     """
     Verify JWT token and return user information.
     This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
+        # Attempt to get JWT identity, which will trigger jwt_required() validation
+        print(f"[DEBUG] verify_token: Request headers: {request.headers}")
+        try:
+            user_id = get_jwt_identity()
+            print(f"[DEBUG] verify_token: JWT Identity: {user_id}")
+        except Exception as jwt_error:
+            print(f"[DEBUG] verify_token: JWT validation failed: {jwt_error}")
+            # Re-raise the exception so Flask-JWT-Extended can handle it and return appropriate error
+            raise
+
         supabase = get_supabase()
-        user_id = get_jwt_identity()
         
         # Get user information from database
         user_result = supabase.table("users").select("*").eq("id", user_id).execute()
         
         if not user_result.data:
+            print(f"[DEBUG] verify_token: User not found for ID: {user_id}")
             return error_response(
                 error="User not found",
                 message="The user associated with this token no longer exists.",
@@ -275,12 +284,14 @@ def verify_token():
         
         # Check if user is still active
         if not user.get("active", True):
+            print(f"[DEBUG] verify_token: User account deactivated for ID: {user_id}")
             return error_response(
                 error="Account deactivated",
                 message="Your account has been deactivated. Please contact support for assistance.",
                 status_code=401
             )
         
+        print(f"[DEBUG] verify_token: Token valid for user: {user_id}")
         return success_response(
             message="Token is valid",
             data={
@@ -301,9 +312,19 @@ def verify_token():
         )
         
     except Exception as e:
+        print(f"[DEBUG] verify_token: General exception: {e}")
         return error_response(
             error=str(e),
             message="Token verification failed",
             status_code=401
         )
+
+# Error handler for JWT errors
+@auth_bp.app_errorhandler(401)
+def handle_auth_error(e):
+    if isinstance(e, (JWTManager.ExpiredSignatureError, JWTManager.InvalidTokenError, JWTManager.DecodeError, JWTManager.NoAuthorizationError)):
+        print(f"[DEBUG] JWT Error Handler: {e}")
+        return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
+    return error_response(str(e), message="Authentication failed", status_code=401)
+
 
