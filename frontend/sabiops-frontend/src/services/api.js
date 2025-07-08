@@ -46,19 +46,31 @@ export const removeAuthToken = () => localStorage.removeItem('token');
 
 // Authentication endpoints
 export const register = async (userData) => {
-  const response = await api.post('/auth/register', userData);
-  if (response.data.access_token) {
-    setAuthToken(response.data.access_token);
+  try {
+    const response = await api.post("/auth/register", userData);
+    if (response.data.access_token) {
+      setAuthToken(response.data.access_token);
+    }
+    console.log("[DEBUG] Register success:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] Register failed:", error.response ? error.response.data : error.message);
+    throw error;
   }
-  return response.data;
 };
 
 export const login = async (credentials) => {
-  const response = await api.post('/auth/login', credentials);
-  if (response.data.access_token) {
-    setAuthToken(response.data.access_token);
+  try {
+    const response = await api.post("/auth/login", credentials);
+    if (response.data.access_token) {
+      setAuthToken(response.data.access_token);
+    }
+    console.log("[DEBUG] Login success:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] Login failed:", error.response ? error.response.data : error.message);
+    throw error;
   }
-  return response.data;
 };
 
 export const logout = async () => {
@@ -119,8 +131,14 @@ export const resetTeamMemberPassword = async (memberId) => {
 
 // New verifyToken method
 export const verifyToken = async () => {
-  const response = await api.post('/auth/verify-token');
-  return response.data;
+  try {
+    const response = await api.post("/auth/verify-token");
+    console.log("[DEBUG] verifyToken success:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] verifyToken failed:", error.response ? error.response.data : error.message);
+    throw error; // Re-throw the error so it can be caught by the calling component
+  }
 };
 
 // Health check

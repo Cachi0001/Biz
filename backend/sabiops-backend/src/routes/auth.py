@@ -18,9 +18,10 @@ def success_response(data=None, message="Success", status_code=200):
     }), status_code
 
 def error_response(error, message="Error", status_code=400):
+    print(f"[ERROR] {message}: {error}") # Added for debugging
     return jsonify({
         "success": False,
-        "error": error,
+        "error": str(error), # Ensure error is a string
         "message": message
     }), status_code
 
@@ -175,7 +176,7 @@ def login():
         if data is None:
             return error_response(
                 error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
+                message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
                 status_code=400
             )
         
@@ -264,6 +265,7 @@ def login():
         )
         
     except Exception as e:
+        print(f"[ERROR] Login failed: {e}") # Added for debugging
         # Ensure the error message is a string and not an object like 'SUPABASE'
         error_message = str(e)
         if "object has no attribute" in error_message and "supabase" in error_message.lower():
@@ -273,7 +275,6 @@ def login():
             message=f"An error occurred during login: {error_message}",
             status_code=500
         )
-
 @auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def get_profile():
@@ -321,7 +322,7 @@ def get_profile():
 def verify_token():
     """
     Verify JWT token and return user information.
-    This endpoint is called by the frontend to check if the user's token is still valid.
+    This endpoint is called by the frontend to check if the user\'s token is still valid.
     """
     try:
         print(f"[DEBUG] verify_token: Request headers: {request.headers}")
@@ -375,7 +376,7 @@ def verify_token():
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
                     "owner_id": user.get("owner_id"),
-                    "active": user.get("active", True) # Ensure 'active' is always returned
+                    "active": user.get("active", True) # Ensure \'active\' is always returned
                 }
             }
         )
@@ -395,6 +396,8 @@ def handle_auth_error(e):
         return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
     # Catch any other exception that might lead to a 401
     return error_response(str(e), message="Authentication failed", status_code=401)
+
+
 
 
 

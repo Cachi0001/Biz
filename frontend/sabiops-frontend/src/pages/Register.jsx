@@ -61,6 +61,7 @@ const Register = () => {
     try {
       const { confirmPassword, ...registrationData } = formData;
       const result = await register(registrationData);
+      console.log("[DEBUG] Register.jsx - API result:", result); // Added for debugging
       if (result && result.success) {
         toast.success('Your account has been created!');
         navigate('/dashboard');

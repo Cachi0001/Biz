@@ -63,3 +63,26 @@ This persistent bug is challenging due to its nature in minified production code
   - Need to investigate backend logs for more details on this registration error.
 
 
+
+
+## July 8, 2025 - Authentication Fixes and Enhanced Logging
+
+- **Backend `auth.py` fixes:**
+  - Modified `error_response` function to ensure `error` is always a string and added `print` statements for debugging.
+  - Added `print` statements with `[ERROR]` prefix to `register` and `login` routes for more detailed error logging.
+  - Ensured `message` in `error_response` for registration includes a generic error message.
+
+
+
+
+- **Frontend `api.js` fixes:**
+  - Added `try-catch` blocks and `console.log` statements to `register`, `login`, and `verifyToken` functions for enhanced debugging.
+  - Ensured consistent error handling and logging for API calls.
+
+
+
+
+- **Enhanced Logging in Frontend Components:**
+  - Added `console.log` statements to `Register.jsx` and `Login.jsx` to log API results and errors for better debugging.
+
+
