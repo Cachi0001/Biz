@@ -120,7 +120,7 @@ def register():
                         "role": user["role"],
                         "subscription_plan": user["subscription_plan"],
                         "subscription_status": user["subscription_status"],
-                        "trial_ends_at": user["trial_ends_at"]
+                        "trial_ends_at": user.get("trial_ends_at") # Use .get() for safety
                     }
                 },
                 status_code=201
@@ -241,7 +241,7 @@ def get_profile():
                     "role": user["role"],
                     "subscription_plan": user["subscription_plan"],
                     "subscription_status": user["subscription_status"],
-                    "referral_code": user["referral_code"],
+                    "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at")
                 }
             }
@@ -301,7 +301,8 @@ def verify_token():
                     "subscription_status": user["subscription_status"],
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
-                    "owner_id": user.get("owner_id")
+                    "owner_id": user.get("owner_id"),
+                    "active": user.get("active", True) # Ensure 'active' is always returned
                 }
             }
         )
@@ -322,6 +323,8 @@ def handle_auth_error(e):
         return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
     # Catch any other exception that might lead to a 401
     return error_response(str(e), message="Authentication failed", status_code=401)
+
+
 
 
 
