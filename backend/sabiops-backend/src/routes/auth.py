@@ -251,21 +251,16 @@ def get_profile():
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/verify-token", methods=["POST"])
+@jwt_required()
 def verify_token():
     """
     Verify JWT token and return user information.
     This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
-        # Attempt to get JWT identity, which will trigger jwt_required() validation
         print(f"[DEBUG] verify_token: Request headers: {request.headers}")
-        try:
-            user_id = get_jwt_identity()
-            print(f"[DEBUG] verify_token: JWT Identity: {user_id}")
-        except Exception as jwt_error:
-            print(f"[DEBUG] verify_token: JWT validation failed: {jwt_error}")
-            # Re-raise the exception so Flask-JWT-Extended can handle it and return appropriate error
-            raise
+        user_id = get_jwt_identity()
+        print(f"[DEBUG] verify_token: JWT Identity: {user_id}")
 
         supabase = get_supabase()
         
