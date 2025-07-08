@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        // Ensure apiService.verifyToken is correctly called and awaited
+        console.log('Token from localStorage before verifyToken:', token); // Added log
         const response = await apiService.verifyToken();
         if (response.success) {
           const userData = response.user;
@@ -101,7 +101,5 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-
 
 
