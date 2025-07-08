@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from "../services/api";
+import { getInvoices, getExpenses, getSales, getPayments } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,10 +61,10 @@ const Transactions = () => {
       
       // Fetch data from multiple sources
       const [invoicesRes, expensesRes, salesRes, paymentsRes] = await Promise.all([
-        apiService.getInvoices().catch(() => ({ invoices: [] })),
-        apiService.getExpenses().catch(() => ({ expenses: [] })),
-        apiService.getSales().catch(() => ({ sales: [] })),
-        apiService.getPayments().catch(() => ({ payments: [] }))
+        getInvoices().catch(() => ({ invoices: [] })),
+        getExpenses().catch(() => ({ expenses: [] })),
+        getSales().catch(() => ({ sales: [] })),
+        getPayments().catch(() => ({ payments: [] }))
       ]);
 
       // Combine all transactions
@@ -493,3 +493,4 @@ const Transactions = () => {
 };
 
 export default Transactions;
+

@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import FileUpload from '../components/FileUpload';
-import apiService from "../services/api";
+import { getExpenses, createExpense, updateExpense, deleteExpense, getCategories as getExpenseCategories, post } from "../services/api";
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -52,8 +52,8 @@ const Expenses = () => {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/expenses');
-      setExpenses(response.data.expenses || []);
+      const response = await getExpenses();
+      setExpenses(response || []);
     } catch (err) {
       setError('Failed to fetch expenses');
       console.error('Error fetching expenses:', err);
@@ -64,8 +64,8 @@ const Expenses = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/expenses/categories');
-      setCategories(response.data.categories || []);
+      const response = await getExpenseCategories();
+      setCategories(response || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
     }
@@ -82,9 +82,9 @@ const Expenses = () => {
       };
 
       if (editingExpense) {
-        await api.put(`/expenses/${editingExpense.id}`, expenseData);
+        await updateExpense(editingExpense.id, expenseData);
       } else {
-        await api.post('/expenses', expenseData);
+        await createExpense(expenseData);
       }
 
       await fetchExpenses();
@@ -101,7 +101,7 @@ const Expenses = () => {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
     
     try {
-      await api.delete(`/expenses/${expenseId}`);
+      await deleteExpense(expenseId);
       await fetchExpenses();
     } catch (err) {
       setError('Failed to delete expense');
@@ -116,7 +116,7 @@ const Expenses = () => {
       const formData = new FormData();
       formData.append('receipt', file);
 
-      await api.post(`/expenses/upload-receipt/${expenseId}`, formData, {
+      await post(`/expenses/upload-receipt/${expenseId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -534,4 +534,5 @@ const Expenses = () => {
 };
 
 export default Expenses;
+
 

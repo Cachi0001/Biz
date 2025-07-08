@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, Eye, Download, Send } from 'lucide-react';
-import apiService from "../services/api";
+import { getInvoices, getCustomers, getProducts, updateInvoice, createInvoice, getInvoice, deleteInvoice, downloadInvoicePdf, sendInvoice } from "../services/api";
 import toast from 'react-hot-toast';
 
 const Invoices = () => {
@@ -43,7 +43,7 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getInvoices();
+      const response = await getInvoices();
       setInvoices(response.invoices || []);
     } catch (error) {
       console.error('Failed to fetch invoices:', error);
@@ -60,7 +60,7 @@ const Invoices = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await apiService.getCustomers();
+      const response = await getCustomers();
       setCustomers(response.customers || []);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
@@ -75,7 +75,7 @@ const Invoices = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await apiService.getProducts();
+      const response = await getProducts();
       setProducts(response.products || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -169,14 +169,14 @@ const Invoices = () => {
       };
 
       if (selectedInvoice) {
-        await apiService.updateInvoice(selectedInvoice.id, invoiceData);
+        await updateInvoice(selectedInvoice.id, invoiceData);
         toast({
           title: "Success",
           description: "Invoice updated successfully!",
         });
         setIsEditDialogOpen(false);
       } else {
-        await apiService.createInvoice(invoiceData);
+        await createInvoice(invoiceData);
         toast({
           title: "Success",
           description: "Invoice created successfully!",
@@ -213,7 +213,7 @@ const Invoices = () => {
 
   const handleEdit = async (invoiceId) => {
     try {
-      const response = await apiService.getInvoice(invoiceId);
+      const response = await getInvoice(invoiceId);
       const invoice = response.invoice;
       setSelectedInvoice(invoice);
       setFormData({
@@ -248,7 +248,7 @@ const Invoices = () => {
   const handleDelete = async (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
-        await apiService.deleteInvoice(invoiceId);
+        await deleteInvoice(invoiceId);
         toast({
           title: "Success",
           description: "Invoice deleted successfully!",
@@ -268,7 +268,7 @@ const Invoices = () => {
 
   const handleDownloadPdf = async (invoiceId) => {
     try {
-      const response = await apiService.downloadInvoicePdf(invoiceId);
+      const response = await downloadInvoicePdf(invoiceId);
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
       link.href = url;
@@ -294,7 +294,7 @@ const Invoices = () => {
   const handleSendInvoice = async (invoiceId) => {
     if (window.confirm('Are you sure you want to send this invoice?')) {
       try {
-        await apiService.sendInvoice(invoiceId);
+        await sendInvoice(invoiceId);
         toast({
           title: "Success",
           description: "Invoice sent successfully!",
@@ -686,6 +686,5 @@ const Invoices = () => {
 };
 
 export default Invoices;
-
 
 

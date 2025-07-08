@@ -9,15 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  CreditCard, 
-  Banknote, 
-  Smartphone, 
-  Building, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  Building,
   TrendingUp,
   TrendingDown,
   Calendar,
@@ -26,7 +26,7 @@ import {
   Clock,
   Eye
 } from 'lucide-react';
-import apiService from "../services/api";
+import { getPayments, recordPayment } from "../services/api";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -107,14 +107,14 @@ const Payments = () => {
     try {
       setLoading(true);
       // For now, use sample data since backend might not be ready
-      setTimeout(() => {
-        setPayments(samplePayments);
-        setLoading(false);
-      }, 1000);
+      // setTimeout(() => {
+      //   setPayments(samplePayments);
+      //   setLoading(false);
+      // }, 1000);
       
       // Uncomment when backend is ready
-      // const response = await apiService.request('/payments');
-      // setPayments(response.payments || response || []);
+      const response = await getPayments();
+      setPayments(response || []);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
       setPayments(samplePayments); // Fallback to sample data
@@ -138,20 +138,17 @@ const Payments = () => {
       };
 
       // For now, add to local state since backend might not be ready
-      const newPaymentRecord = {
-        id: Date.now(),
-        ...paymentData,
-        customer_name: newPayment.customer_name || 'Walk-in Customer'
-      };
+      // const newPaymentRecord = {
+      //   id: Date.now(),
+      //   ...paymentData,
+      //   customer_name: newPayment.customer_name || 'Walk-in Customer'
+      // };
       
-      setPayments(prev => [newPaymentRecord, ...prev]);
+      // setPayments(prev => [newPaymentRecord, ...prev]);
       
       // Uncomment when backend is ready
-      // const response = await apiService.request('/payments', {
-      //   method: 'POST',
-      //   body: JSON.stringify(paymentData)
-      // });
-      // setPayments(prev => [response.payment || response, ...prev]);
+      const response = await recordPayment(paymentData);
+      setPayments(prev => [response || response, ...prev]);
       
       // Reset form and close dialog
       setNewPayment({
@@ -270,10 +267,10 @@ const Payments = () => {
                   <Label htmlFor="invoice_number">Invoice Number (Optional)</Label>
                   <Input
                     id="invoice_number"
-                    value={newPayment.invoice_number}
+                    value={newPayment.invoice_id}
                     onChange={(e) => setNewPayment(prev => ({
                       ...prev,
-                      invoice_number: e.target.value
+                      invoice_id: e.target.value
                     }))}
                     placeholder="INV-001"
                   />
@@ -515,7 +512,7 @@ const Payments = () => {
                     <TableCell className="font-medium">
                       {payment.customer_name}
                     </TableCell>
-                    <TableCell>{payment.invoice_number || '-'}</TableCell>
+                    <TableCell>{payment.invoice_id || '-'}</TableCell>
                     <TableCell className="font-medium">
                       ₦{payment.amount.toLocaleString()}
                     </TableCell>
@@ -568,7 +565,7 @@ const Payments = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Invoice</Label>
-                  <p className="text-sm">{selectedPayment.invoice_number || 'N/A'}</p>
+                  <p className="text-sm">{selectedPayment.invoice_id || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Amount</Label>

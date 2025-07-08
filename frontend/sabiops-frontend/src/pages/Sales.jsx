@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Download, Eye, Edit, Trash2, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Plus, Search, Calendar, Download, Eye, Edit, Trash2, ShoppingCart, TrendingUp, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import apiService from "../services/api";
+import { get, post, getProducts, getCustomers, getSalesReport as apiGetSalesReport } from "../services/api";
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -54,15 +54,15 @@ const Sales = () => {
 
   useEffect(() => {
     fetchSales();
-    fetchProducts();
-    fetchCustomers();
+    fetchProductsData();
+    fetchCustomersData();
     fetchDailyReport();
   }, [selectedDate]);
 
   const fetchSales = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/sales/', {
+      const response = await get('/sales/', {
         params: {
           start_date: selectedDate,
           end_date: selectedDate
@@ -77,19 +77,19 @@ const Sales = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProductsData = async () => {
     try {
-      const response = await api.get('/products/');
-      setProducts(response.data);
+      const response = await getProducts();
+      setProducts(response);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomersData = async () => {
     try {
-      const response = await api.get('/customers/');
-      setCustomers(response.data);
+      const response = await getCustomers();
+      setCustomers(response);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
@@ -97,10 +97,8 @@ const Sales = () => {
 
   const fetchDailyReport = async () => {
     try {
-      const response = await api.get('/sales/daily-report', {
-        params: { date: selectedDate }
-      });
-      setDailyReport(response.data);
+      const response = await apiGetSalesReport({ date: selectedDate });
+      setDailyReport(response);
     } catch (error) {
       console.error('Error fetching daily report:', error);
     }
@@ -150,7 +148,7 @@ const Sales = () => {
         sale_items: saleItems.filter(item => item.product_name && item.quantity > 0)
       };
 
-      await api.post('/sales/', saleData);
+      await post('/sales/', saleData);
       setShowAddDialog(false);
       
       // Reset form
@@ -173,12 +171,9 @@ const Sales = () => {
 
   const downloadReport = async (format) => {
     try {
-      const response = await api.get('/sales/daily-report', {
-        params: { date: selectedDate, format },
-        responseType: 'blob'
-      });
+      const response = await apiGetSalesReport({ date: selectedDate, format }, format);
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `sales-report-${selectedDate}.${format}`);
@@ -433,7 +428,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
-                  <p className="text-2xl font-bold">{dailyReport.summary.total_sales}</p>
+                  <p className="text-2xl font-bold">{dailyReport.total_sales}</p>
                 </div>
                 <ShoppingCart className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -445,7 +440,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">₦{dailyReport.summary.total_amount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₦{dailyReport.total_amount.toLocaleString()}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -457,7 +452,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
-                  <p className="text-2xl font-bold">{dailyReport.summary.total_quantity}</p>
+                  <p className="text-2xl font-bold">{dailyReport.total_quantity}</p>
                 </div>
                 <Package className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -469,7 +464,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Avg. Sale</p>
-                  <p className="text-2xl font-bold">₦{dailyReport.summary.average_sale.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₦{dailyReport.average_sale.toLocaleString()}</p>
                 </div>
                 <Calculator className="h-8 w-8 text-muted-foreground" />
               </div>

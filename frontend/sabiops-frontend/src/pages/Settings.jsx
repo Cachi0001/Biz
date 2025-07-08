@@ -10,14 +10,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  User, 
-  Settings as SettingsIcon, 
-  Users, 
-  Bell, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  User,
+  Settings as SettingsIcon,
+  Users,
+  Bell,
   Shield,
   CreditCard,
   Building,
@@ -28,7 +28,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from "../services/api";
+import { getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, updateProfile, put } from "../services/api";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -45,8 +45,7 @@ const Settings = () => {
     business_phone: user?.business_phone || '',
     business_address: user?.business_address || '',
     business_description: '',
-    business_website: '',
-    business_logo: ''
+    business_website: ''
   });
 
   // Team Member Form State
@@ -84,7 +83,7 @@ const Settings = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getTeamMembers();
+      const response = await getTeamMembers();
       setTeamMembers(response.team_members || response || []);
     } catch (error) {
       console.error('Failed to fetch team members:', error);
@@ -97,7 +96,7 @@ const Settings = () => {
   const handleCreateTeamMember = async () => {
     try {
       setLoading(true);
-      const response = await apiService.createTeamMember(newTeamMember);
+      const response = await createTeamMember(newTeamMember);
       
       // Add the new team member to the list
       setTeamMembers(prev => [...prev, response.team_member || response]);
@@ -131,7 +130,7 @@ const Settings = () => {
   const handleEditTeamMember = async () => {
     try {
       setLoading(true);
-      const response = await apiService.updateTeamMember(editingMember.id, editingMember);
+      const response = await updateTeamMember(editingMember.id, editingMember);
       
       // Update the team member in the list
       setTeamMembers(prev => 
@@ -153,7 +152,7 @@ const Settings = () => {
   const handleDeleteTeamMember = async (memberId) => {
     if (window.confirm('Are you sure you want to remove this team member?')) {
       try {
-        await apiService.deleteTeamMember(memberId);
+        await deleteTeamMember(memberId);
         setTeamMembers(prev => prev.filter(member => member.id !== memberId));
       } catch (error) {
         console.error('Failed to delete team member:', error);
@@ -166,10 +165,7 @@ const Settings = () => {
     try {
       setLoading(true);
       // Update business profile via API
-      await apiService.request('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify(businessProfile)
-      });
+      await updateProfile(businessProfile);
       alert('Business profile updated successfully!');
     } catch (error) {
       console.error('Failed to update business profile:', error);
@@ -183,10 +179,8 @@ const Settings = () => {
     try {
       setLoading(true);
       // Update notification settings via API
-      await apiService.request('/users/notifications', {
-        method: 'PUT',
-        body: JSON.stringify(notificationSettings)
-      });
+      // Assuming there's an endpoint for notification settings update, using generic 'put' for now
+      await put('/users/notifications', notificationSettings);
       alert('Notification settings updated successfully!');
     } catch (error) {
       console.error('Failed to update notification settings:', error);
@@ -661,4 +655,5 @@ const Settings = () => {
 };
 
 export default Settings;
+
 

@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import apiService from "../services/api";
+import { getProducts, getCategories, updateProduct, createProduct, deleteProduct } from "../services/api";
 import { toast } from 'react-hot-toast'; // Corrected import
 
 const Products = () => {
@@ -63,7 +63,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getProducts();
+      const response = await getProducts();
       if (response.data && response.data.products) {
         setProducts(response.data.products);
       } else {
@@ -80,7 +80,7 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiService.getCategories();
+      const response = await getCategories();
       if (response.data && response.data.categories) {
         setCategories(response.data.categories);
       } else {
@@ -119,12 +119,12 @@ const Products = () => {
 
     try {
       if (editingProduct) {
-        await apiService.updateProduct(editingProduct.id, formData);
+        await updateProduct(editingProduct.id, formData);
         toast.success("Product updated successfully!"); // Corrected toast usage
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
-        await apiService.createProduct(formData);
+        await createProduct(formData);
         toast.success("Product created successfully!"); // Corrected toast usage
         setShowAddDialog(false);
       }
@@ -169,7 +169,7 @@ const Products = () => {
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await apiService.deleteProduct(productId);
+        await deleteProduct(productId);
         toast.success("Product deleted successfully!"); // Corrected toast usage
         fetchProducts();
       } catch (error) {
@@ -533,7 +533,5 @@ const Products = () => {
 };
 
 export default Products;
-
-
 
 

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, User, Phone, Mail } from 'lucide-react';
-import apiService from "../services/api";
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from "../services/api";
 import toast from 'react-hot-toast';
 
 const Customers = () => {
@@ -34,7 +34,7 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getCustomers();
+      const response = await getCustomers();
       setCustomers(response.customers || []);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
@@ -48,7 +48,7 @@ const Customers = () => {
   const handleCreateCustomer = async () => {
     try {
       setLoading(true);
-      const response = await apiService.createCustomer(newCustomer);
+      const response = await createCustomer(newCustomer);
       
       // Add the new customer to the list and sort by creation date (optional)
       setCustomers(prevCustomers => [response.customer, ...prevCustomers]);
@@ -76,7 +76,7 @@ const Customers = () => {
   const handleEditCustomer = async () => {
     try {
       setLoading(true);
-      const response = await apiService.updateCustomer(selectedCustomer.id, selectedCustomer);
+      const response = await updateCustomer(selectedCustomer.id, selectedCustomer);
       
       setCustomers(prevCustomers => 
         prevCustomers.map(customer => 
@@ -101,7 +101,7 @@ const Customers = () => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
         setLoading(true);
-        await apiService.deleteCustomer(id);
+        await deleteCustomer(id);
         
         setCustomers(customers.filter(customer => customer.id !== id));
         toast.success("Customer deleted successfully!");

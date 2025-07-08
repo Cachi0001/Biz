@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import apiService from "../services/api";
+import { getTeamMembers, updateTeamMember, createTeamMember, deleteTeamMember, activateTeamMember, resetTeamMemberPassword } from "../services/api";
 import toast from "react-hot-toast";
 
 const Team = () => {
@@ -54,7 +54,7 @@ const Team = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getTeamMembers();
+      const response = await getTeamMembers();
       setTeamMembers(response.team_members || []);
     } catch (error) {
       console.error('Failed to fetch team members:', error);
@@ -104,12 +104,12 @@ const Team = () => {
 
     try {
       if (editingMember) {
-        await apiService.updateTeamMember(editingMember.id, formData);
+        await updateTeamMember(editingMember.id, formData);
         toast.success('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
-        const response = await apiService.createTeamMember(formData);
+        const response = await createTeamMember(formData);
         toast.success('Team member created successfully');
         setShowAddDialog(false);
       }
@@ -153,7 +153,7 @@ const Team = () => {
   const handleDelete = async (memberId) => {
     if (window.confirm('Are you sure you want to deactivate this team member?')) {
       try {
-        await apiService.deleteTeamMember(memberId);
+        await deleteTeamMember(memberId);
         toast.success('Team member deactivated successfully');
         fetchTeamMembers();
       } catch (error) {
@@ -168,7 +168,7 @@ const Team = () => {
   const handleActivate = async (memberId) => {
     if (window.confirm('Are you sure you want to activate this team member?')) {
       try {
-        await apiService.activateTeamMember(memberId);
+        await activateTeamMember(memberId);
         toast.success('Team member activated successfully');
         fetchTeamMembers();
       } catch (error) {
@@ -183,7 +183,7 @@ const Team = () => {
   const handleResetPassword = async (memberId) => {
     if (window.confirm('Are you sure you want to reset this team member\'s password?')) {
       try {
-        const response = await apiService.resetTeamMemberPassword(memberId);
+        const response = await resetTeamMemberPassword(memberId);
         setTempPassword(response.temporary_password);
         setShowPassword(true);
         toast.success('Password reset successfully');
@@ -608,10 +608,5 @@ const Team = () => {
 };
 
 export default Team;
-
-
-
-
-
 
 

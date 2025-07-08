@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from "../services/api";
+import { getSalesReport, downloadSalesReport } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +48,7 @@ const SalesReport = () => {
         params = dateRange;
       }
       
-      const response = await apiService.getSalesReport(params);
+      const response = await getSalesReport(params);
       setSalesData(response);
     } catch (error) {
       console.error('Failed to fetch sales report:', error);
@@ -69,7 +69,7 @@ const SalesReport = () => {
         params = dateRange;
       }
       
-      const blob = await apiService.downloadSalesReport(params, format);
+      const blob = await downloadSalesReport(params, format);
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -384,3 +384,4 @@ const SalesReport = () => {
 };
 
 export default SalesReport;
+
