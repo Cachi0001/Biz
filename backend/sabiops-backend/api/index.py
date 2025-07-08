@@ -138,6 +138,22 @@ def api_info():
         'health': '/health'
     })
 
+@app.route('/', methods=['GET'])
+def root():
+    return 'Root route is working!', 200
+
+@app.route('/routes', methods=['GET'])
+def list_routes():
+    output = []
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods)
+        output.append(f"{rule} [{methods}]")
+    return '\n'.join(output), 200, {'Content-Type': 'text/plain'}
+
+@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+def catch_all(path):
+    return f"[DEBUG] You hit: /{path} with method {request.method}", 404
+
 # Add a global OPTIONS handler for all routes (for Vercel compatibility)
 @app.route('/<path:path>', methods=['OPTIONS'])
 def options_handler(path):
