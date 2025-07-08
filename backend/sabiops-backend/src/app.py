@@ -8,7 +8,8 @@ from datetime import timedelta
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Restrict CORS to only allow the production frontend domain
+    CORS(app, resources={r"/*": {"origins": ["https://sabiops.vercel.app"]}})
 
     app.config["JWT_SECRET_KEY"] = config("JWT_SECRET_KEY", default="super-secret")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)

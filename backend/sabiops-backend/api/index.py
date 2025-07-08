@@ -41,7 +41,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Initialize extensions
-CORS(app, origins=["http://localhost:3000", "http://localhost:5173", "https://sabiops.vercel.app"])
+CORS(app, origins=["https://sabiops.vercel.app"])
 jwt = JWTManager(app)
 
 # Check for required environment variables
@@ -77,14 +77,7 @@ if not supabase:
         'settings': {}
     }
 
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = jsonify()
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add('Access-Control-Allow-Headers', "*")
-        response.headers.add('Access-Control-Allow-Methods', "*")
-        return response
+# Remove the insecure preflight handler for OPTIONS requests
 
 @app.before_request
 def load_user():
