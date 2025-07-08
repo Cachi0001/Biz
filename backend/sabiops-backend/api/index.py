@@ -44,7 +44,7 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 app.config["JWT_ERROR_MESSAGE_KEY"] = "message" # Explicitly set for detailed error messages
-app.config["DEBUG"] = True # Enable debug mode
+app.config["DEBUG"] = False # Disable debug mode for production
 
 # Configure CORS to allow requests from your frontend origin
 CORS(app, 

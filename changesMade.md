@@ -1450,3 +1450,28 @@ This session successfully migrated the backend deployment to Railway and updated
 ### Files Modified:
 - `frontend/sabiops-frontend/src/services/api.js`
 
+
+
+## 33. Backend Stability Fix - Disable Flask Debug Mode
+
+### Issues Addressed:
+- Backend container stopping/crashing after initial dashboard load.
+- "Stopping Container" messages in logs.
+
+### Root Cause:
+- Flask `DEBUG` mode was enabled in `api/index.py`.
+- Running Flask in debug mode in a production environment (like Railway) can lead to instability, memory leaks, and unexpected restarts.
+
+### Changes Made:
+- **File**: `backend/sabiops-backend/api/index.py`
+- **Change**: Set `app.config["DEBUG"] = False`.
+- **Reason**: To improve the stability and performance of the Flask application in the production environment.
+
+### Expected Results:
+- ✅ Backend container should remain stable and not crash.
+- ✅ Dashboard should load and remain visible.
+
+### Files Modified:
+- `backend/sabiops-backend/api/index.py`
+
+
