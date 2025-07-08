@@ -29,6 +29,9 @@ const NotificationCenter = () => {
       setUnreadCount(data.unread_count || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+      // Set empty state on error to prevent crashes
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 

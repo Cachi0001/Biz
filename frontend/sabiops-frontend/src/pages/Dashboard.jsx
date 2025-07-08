@@ -48,26 +48,40 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [
-          overviewData,
-          revenueData,
-          customersData,
-          productsData,
-          activitiesData,
-        ] = await Promise.all([
-          apiService.getDashboardOverview(),
-          apiService.getRevenueChart(), // Removed '12months' as it's not a parameter in api.js
-          apiService.getCustomers(), // Changed from getTopCustomers to getCustomers
-          apiService.getProducts(), // Changed from getTopProducts to getProducts
-          // apiService.getRecentActivities(10), // This method does not exist in api.js
-        ]);
-
+        // Fetch overview data
+        const overviewData = await apiService.getDashboardOverview();
         setOverview(overviewData);
-        setRevenueChart(revenueData.chart_data || []);
-        // Filter top customers and products on the frontend for now
-        setTopCustomers(customersData.slice(0, 5) || []); 
-        setTopProducts(productsData.slice(0, 5) || []);
-        setRecentActivities(activitiesData.activities || []); // Keep this if getRecentActivities is added later
+
+        // Fetch revenue chart data
+        try {
+          const revenueData = await apiService.getRevenueChart();
+          setRevenueChart(revenueData?.chart_data || []);
+        } catch (error) {
+          console.error('Failed to fetch revenue chart:', error);
+          setRevenueChart([]);
+        }
+
+        // Fetch customers data
+        try {
+          const customersData = await apiService.getCustomers();
+          setTopCustomers(Array.isArray(customersData) ? customersData.slice(0, 5) : []);
+        } catch (error) {
+          console.error('Failed to fetch customers:', error);
+          setTopCustomers([]);
+        }
+
+        // Fetch products data
+        try {
+          const productsData = await apiService.getProducts();
+          setTopProducts(Array.isArray(productsData) ? productsData.slice(0, 5) : []);
+        } catch (error) {
+          console.error('Failed to fetch products:', error);
+          setTopProducts([]);
+        }
+
+        // Set empty recent activities for now (endpoint doesn't exist yet)
+        setRecentActivities([]);
+
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {

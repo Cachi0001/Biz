@@ -1,13 +1,36 @@
-from flask import Blueprint, request, jsonify, current_app
+"""
+Dashboard routes for SabiOps backend
+Provides overview statistics and analytics data
+"""
+
+from flask import Blueprint, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import pytz
 
-dashboard_bp = Blueprint("dashboard", __name__)
+# Create blueprint
+dashboard_bp = Blueprint('dashboard', __name__)
 
 def get_supabase():
-    """Get Supabase client from Flask app config"""
-    return current_app.config["SUPABASE"]
+    """Get Supabase client from app config"""
+    return current_app.config.get('SUPABASE')
+
+def success_response(message="Success", data=None):
+    """Standard success response format"""
+    response = {
+        "success": True,
+        "message": message
+    }
+    if data is not None:
+        response["data"] = data
+    return jsonify(response), 200
+
+def error_response(message="An error occurred", status_code=400):
+    """Standard error response format"""
+    return jsonify({
+        "success": False,
+        "message": message
+    }), status_code
 
 def parse_supabase_datetime(datetime_str):
     """
@@ -34,256 +57,233 @@ def parse_supabase_datetime(datetime_str):
         print(f"Error parsing datetime '{datetime_str}': {e}")
         return None
 
-def success_response(data=None, message="Success", status_code=200):
-    return jsonify({"success": True, "data": data, "message": message}), status_code
-
-def error_response(error, message="Error", status_code=400):
-    return jsonify({"success": False, "error": error, "message": message}), status_code
-
-@dashboard_bp.route("/overview", methods=["GET"])
+@dashboard_bp.route('/overview', methods=['GET'])
 @jwt_required()
 def get_overview():
+    """Get dashboard overview statistics"""
     try:
+        user_id = get_jwt_identity()
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
-
-        owner_data = supabase.table("users").select("business_name").eq("id", owner_id).single().execute()
-        if not owner_data.data:
-            return error_response("Owner not found", status_code=404)
-
-        invoices_result = supabase.table("invoices").select("total_amount", "status", "created_at").eq("owner_id", owner_id).execute()
         
-        total_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] == "paid")
-        outstanding_revenue = sum(inv["total_amount"] for inv in invoices_result.data if inv["status"] != "paid")
-
-        # Use UTC timezone for consistent datetime comparisons
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Get current date in UTC
         utc = pytz.UTC
-        current_month_start = datetime.now(utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        now = datetime.now(utc)
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
-        revenue_this_month = sum(
-            inv["total_amount"] for inv in invoices_result.data
-            if inv["status"] == "paid" and parse_supabase_datetime(inv["created_at"]) and parse_supabase_datetime(inv["created_at"]) >= current_month_start
-        )
-
-        customers_result = supabase.table("customers").select("id", "created_at").eq("owner_id", owner_id).execute()
-        total_customers = len(customers_result.data)
-        new_customers_this_month = sum(
-            1 for cust in customers_result.data
-            if parse_supabase_datetime(cust["created_at"]) and parse_supabase_datetime(cust["created_at"]) >= current_month_start
-        )
-
-        products_result = supabase.table("products").select("id", "quantity").eq("owner_id", owner_id).execute()
-        total_products = len(products_result.data)
-        low_stock_products = sum(1 for prod in products_result.data if prod["quantity"] < 10)
-
-        overdue_invoices = sum(1 for inv in invoices_result.data if inv["status"] == "overdue")
-
-        overview_data = {
-            "revenue": {
-                "total": total_revenue,
-                "this_month": revenue_this_month,
-                "outstanding": outstanding_revenue
-            },
-            "customers": {
-                "total": total_customers,
-                "new_this_month": new_customers_this_month
-            },
-            "products": {
-                "total": total_products,
-                "low_stock": low_stock_products
-            },
-            "invoices": {
-                "overdue": overdue_invoices
-            }
+        # Initialize overview data
+        overview = {
+            "revenue": {"total": 0, "this_month": 0, "outstanding": 0},
+            "customers": {"total": 0, "new_this_month": 0},
+            "products": {"total": 0, "low_stock": 0},
+            "invoices": {"overdue": 0}
         }
-
-        return success_response(data=overview_data)
-
+        
+        # Get total revenue from sales
+        sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', user_id).execute()
+        if sales_result.data:
+            total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
+            overview["revenue"]["total"] = total_revenue
+            
+            # Calculate this month's revenue
+            this_month_revenue = 0
+            for sale in sales_result.data:
+                sale_date = parse_supabase_datetime(sale.get('date'))
+                if sale_date and sale_date >= current_month_start:
+                    this_month_revenue += float(sale.get('total_amount', 0))
+            overview["revenue"]["this_month"] = this_month_revenue
+        
+        # Get outstanding revenue from invoices
+        invoices_result = supabase.table('invoices').select('total_amount, status, due_date').eq('owner_id', user_id).execute()
+        if invoices_result.data:
+            outstanding = 0
+            overdue_count = 0
+            for invoice in invoices_result.data:
+                if invoice.get('status') in ['sent', 'pending']:
+                    outstanding += float(invoice.get('total_amount', 0))
+                    
+                    # Check if overdue
+                    due_date = parse_supabase_datetime(invoice.get('due_date'))
+                    if due_date and due_date < now:
+                        overdue_count += 1
+            
+            overview["revenue"]["outstanding"] = outstanding
+            overview["invoices"]["overdue"] = overdue_count
+        
+        # Get customer statistics
+        customers_result = supabase.table('customers').select('id, created_at').eq('owner_id', user_id).execute()
+        if customers_result.data:
+            overview["customers"]["total"] = len(customers_result.data)
+            
+            # Count new customers this month
+            new_this_month = 0
+            for customer in customers_result.data:
+                created_date = parse_supabase_datetime(customer.get('created_at'))
+                if created_date and created_date >= current_month_start:
+                    new_this_month += 1
+            overview["customers"]["new_this_month"] = new_this_month
+        
+        # Get product statistics
+        products_result = supabase.table('products').select('id, quantity, low_stock_threshold').eq('owner_id', user_id).execute()
+        if products_result.data:
+            overview["products"]["total"] = len(products_result.data)
+            
+            # Count low stock products
+            low_stock_count = 0
+            for product in products_result.data:
+                quantity = int(product.get('quantity', 0))
+                threshold = int(product.get('low_stock_threshold', 0))
+                if quantity <= threshold:
+                    low_stock_count += 1
+            overview["products"]["low_stock"] = low_stock_count
+        
+        return success_response("Dashboard overview fetched successfully", overview)
+        
     except Exception as e:
-        print(f"Error fetching dashboard overview: {e}")
-        return error_response(str(e), message="Failed to fetch dashboard overview", status_code=500)
+        current_app.logger.error(f"Error fetching dashboard overview: {str(e)}")
+        return error_response("Failed to fetch dashboard overview", 500)
 
-@dashboard_bp.route("/revenue-chart", methods=["GET"])
+@dashboard_bp.route('/revenue-chart', methods=['GET'])
 @jwt_required()
 def get_revenue_chart():
+    """Get revenue chart data for the last 12 months"""
     try:
+        user_id = get_jwt_identity()
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
-        period = request.args.get("period", "12months")
-
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
-        if not owner_data.data:
-            return error_response("Owner not found", status_code=404)
-
-        invoices_result = supabase.table("invoices").select("total_amount", "created_at").eq("owner_id", owner_id).eq("status", "paid").execute()
         
-        # Use UTC timezone for consistent datetime comparisons
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Get current date in UTC
         utc = pytz.UTC
-        revenue_by_month = {}
-        for i in range(12):
-            month = (datetime.now(utc) - timedelta(days=30*i)).strftime("%Y-%m")
-            revenue_by_month[month] = 0
-
-        for inv in invoices_result.data:
-            invoice_date = parse_supabase_datetime(inv["created_at"])
-            if invoice_date:
-                month_key = invoice_date.strftime("%Y-%m")
-                if month_key in revenue_by_month:
-                    revenue_by_month[month_key] += inv["total_amount"]
-
+        now = datetime.now(utc)
+        
+        # Calculate 12 months ago
+        twelve_months_ago = now.replace(day=1) - timedelta(days=365)
+        
+        # Get sales data for the last 12 months
+        sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', user_id).gte('date', twelve_months_ago.isoformat()).execute()
+        
+        # Initialize chart data for 12 months
         chart_data = []
-        for month_key in sorted(revenue_by_month.keys()):
-            chart_data.append({"period": month_key, "revenue": revenue_by_month[month_key]})
-
-        return success_response(data={"chart_data": chart_data})
-
+        for i in range(12):
+            month_date = now.replace(day=1) - timedelta(days=30 * (11 - i))
+            chart_data.append({
+                "period": month_date.strftime("%b %Y"),
+                "revenue": 0
+            })
+        
+        # Process sales data
+        if sales_result.data:
+            for sale in sales_result.data:
+                sale_date = parse_supabase_datetime(sale.get('date'))
+                if sale_date:
+                    # Find the corresponding month in chart_data
+                    month_key = sale_date.strftime("%b %Y")
+                    for data_point in chart_data:
+                        if data_point["period"] == month_key:
+                            data_point["revenue"] += float(sale.get('total_amount', 0))
+                            break
+        
+        return success_response("Revenue chart data fetched successfully", {
+            "chart_data": chart_data
+        })
+        
     except Exception as e:
-        print(f"Error fetching revenue chart: {e}")
-        return error_response(str(e), message="Failed to fetch revenue chart data", status_code=500)
+        current_app.logger.error(f"Error fetching revenue chart: {str(e)}")
+        return error_response("Failed to fetch revenue chart data", 500)
 
-@dashboard_bp.route("/top-customers", methods=["GET"])
+@dashboard_bp.route('/top-customers', methods=['GET'])
 @jwt_required()
 def get_top_customers():
+    """Get top customers by revenue"""
     try:
+        user_id = get_jwt_identity()
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
-        limit = int(request.args.get("limit", 5))
-
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
-        if not owner_data.data:
-            return error_response("Owner not found", status_code=404)
-
-        # Fetch customers and their associated paid invoices
-        # This requires a more complex query or a database view/function for efficiency
-        # For now, we'll fetch all customers and invoices and process in Python
-        customers_result = supabase.table("customers").select("id", "name").eq("owner_id", owner_id).execute()
-        invoices_result = supabase.table("invoices").select("customer_id", "total_amount", "status").eq("owner_id", owner_id).eq("status", "paid").execute()
-
-        customer_data = {}
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Get customers with their sales data
+        customers_result = supabase.table('customers').select('*').eq('owner_id', user_id).execute()
+        
+        if not customers_result.data:
+            return success_response("Top customers fetched successfully", [])
+        
+        # Calculate revenue for each customer
+        top_customers = []
         for customer in customers_result.data:
-            customer_data[customer["id"]] = {
-                "name": customer["name"],
-                "total_revenue": 0,
-                "invoice_count": 0
-            }
-
-        for invoice in invoices_result.data:
-            customer_id = invoice["customer_id"]
-            if customer_id in customer_data:
-                customer_data[customer_id]["total_revenue"] += invoice["total_amount"]
-                customer_data[customer_id]["invoice_count"] += 1
-
-        top_customers_list = sorted(
-            customer_data.values(),
-            key=lambda x: x["total_revenue"], reverse=True
-        )[:limit]
-
-        return success_response(data={"top_customers": top_customers_list})
-
+            customer_sales = supabase.table('sales').select('total_amount').eq('owner_id', user_id).eq('customer_name', customer.get('name')).execute()
+            
+            total_revenue = 0
+            invoice_count = 0
+            if customer_sales.data:
+                total_revenue = sum(float(sale.get('total_amount', 0)) for sale in customer_sales.data)
+                invoice_count = len(customer_sales.data)
+            
+            top_customers.append({
+                "id": customer.get('id'),
+                "name": customer.get('name'),
+                "email": customer.get('email'),
+                "total_revenue": total_revenue,
+                "invoice_count": invoice_count
+            })
+        
+        # Sort by revenue and get top 10
+        top_customers.sort(key=lambda x: x['total_revenue'], reverse=True)
+        top_customers = top_customers[:10]
+        
+        return success_response("Top customers fetched successfully", top_customers)
+        
     except Exception as e:
-        print(f"Error fetching top customers: {e}")
-        return error_response(str(e), message="Failed to fetch top customers", status_code=500)
+        current_app.logger.error(f"Error fetching top customers: {str(e)}")
+        return error_response("Failed to fetch top customers", 500)
 
-@dashboard_bp.route("/top-products", methods=["GET"])
+@dashboard_bp.route('/top-products', methods=['GET'])
 @jwt_required()
 def get_top_products():
+    """Get top products by sales"""
     try:
+        user_id = get_jwt_identity()
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
-        limit = int(request.args.get("limit", 5))
-
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
-        if not owner_data.data:
-            return error_response("Owner not found", status_code=404)
-
-        # Fetch products and their associated invoice items from paid invoices
-        products_result = supabase.table("products").select("id", "name").eq("owner_id", owner_id).execute()
-        invoice_items_result = supabase.table("invoice_items").select("product_id", "quantity", "unit_price", "invoice_id").execute()
-        invoices_result = supabase.table("invoices").select("id").eq("owner_id", owner_id).eq("status", "paid").execute()
         
-        paid_invoice_ids = {inv["id"] for inv in invoices_result.data}
-
-        product_sales = {}
-        for item in invoice_items_result.data:
-            if item["invoice_id"] in paid_invoice_ids:
-                prod_id = item["product_id"]
-                revenue = item["quantity"] * item["unit_price"]
-                product_sales[prod_id] = product_sales.get(prod_id, {"total_revenue": 0, "total_quantity": 0})
-                product_sales[prod_id]["total_revenue"] += revenue
-                product_sales[prod_id]["total_quantity"] += item["quantity"]
-
-        top_products_list = []
-        for prod in products_result.data:
-            prod_id = prod["id"]
-            if prod_id in product_sales:
-                top_products_list.append({
-                    "id": prod_id,
-                    "name": prod["name"],
-                    "total_revenue": product_sales[prod_id]["total_revenue"],
-                    "total_quantity": product_sales[prod_id]["total_quantity"]
-                })
+        if not supabase:
+            return error_response("Database connection not available", 500)
         
-        top_products_list.sort(key=lambda x: x["total_revenue"], reverse=True)
-
-        return success_response(data={"top_products": top_products_list[:limit]})
-
+        # Get products with their sales data
+        products_result = supabase.table('products').select('*').eq('owner_id', user_id).execute()
+        
+        if not products_result.data:
+            return success_response("Top products fetched successfully", [])
+        
+        # Calculate sales for each product
+        top_products = []
+        for product in products_result.data:
+            product_sales = supabase.table('sales').select('quantity, total_amount').eq('owner_id', user_id).eq('product_name', product.get('name')).execute()
+            
+            total_quantity = 0
+            total_revenue = 0
+            if product_sales.data:
+                total_quantity = sum(int(sale.get('quantity', 0)) for sale in product_sales.data)
+                total_revenue = sum(float(sale.get('total_amount', 0)) for sale in product_sales.data)
+            
+            top_products.append({
+                "id": product.get('id'),
+                "name": product.get('name'),
+                "price": float(product.get('price', 0)),
+                "total_quantity": total_quantity,
+                "total_revenue": total_revenue
+            })
+        
+        # Sort by revenue and get top 10
+        top_products.sort(key=lambda x: x['total_revenue'], reverse=True)
+        top_products = top_products[:10]
+        
+        return success_response("Top products fetched successfully", top_products)
+        
     except Exception as e:
-        print(f"Error fetching top products: {e}")
-        return error_response(str(e), message="Failed to fetch top products", status_code=500)
-
-@dashboard_bp.route("/recent-activities", methods=["GET"])
-@jwt_required()
-def get_recent_activities():
-    try:
-        supabase = get_supabase()
-        owner_id = get_jwt_identity()
-        limit = int(request.args.get("limit", 10))
-
-        owner_data = supabase.table("users").select("id").eq("id", owner_id).single().execute()
-        if not owner_data.data:
-            return error_response("Owner not found", status_code=404)
-
-        # Fetch invoices and payments for recent activities
-        invoices_result = supabase.table("invoices").select("id", "total_amount", "status", "created_at").eq("owner_id", owner_id).order("created_at", desc=True).limit(limit).execute()
-        payments_result = supabase.table("payments").select("id", "amount", "status", "created_at").eq("owner_id", owner_id).order("created_at", desc=True).limit(limit).execute()
-        customers_result = supabase.table("customers").select("id", "name", "created_at").eq("owner_id", owner_id).order("created_at", desc=True).limit(limit).execute()
-
-        activities = []
-        for inv in invoices_result.data:
-            activities.append({
-                "type": "invoice",
-                "description": f"Invoice #{inv['id'][:8]} created",
-                "date": inv["created_at"],
-                "amount": inv["total_amount"],
-                "status": inv["status"]
-            })
-        
-        for pay in payments_result.data:
-            activities.append({
-                "type": "payment",
-                "description": f"Payment of {pay['amount']} received",
-                "date": pay["created_at"],
-                "amount": pay["amount"],
-                "status": pay["status"]
-            })
-
-        for cust in customers_result.data:
-            activities.append({
-                "type": "customer",
-                "description": f"New customer {cust['name']} added",
-                "date": cust["created_at"],
-                "amount": 0, # No amount for customer activity
-                "status": "active"
-            })
-
-        # Sort all activities by date and apply limit
-        activities.sort(key=lambda x: x["date"], reverse=True)
-
-        return success_response(data={"activities": activities[:limit]})
-
-    except Exception as e:
-        print(f"Error fetching recent activities: {e}")
-        return error_response(str(e), message="Failed to fetch recent activities", status_code=500)
-
-
+        current_app.logger.error(f"Error fetching top products: {str(e)}")
+        return error_response("Failed to fetch top products", 500)
 
