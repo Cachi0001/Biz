@@ -1424,3 +1424,29 @@ This session successfully migrated the backend deployment to Railway and updated
 - `frontend/sabiops-frontend/src/pages/Dashboard.jsx`
 
 
+
+## 32. Mixed Content Error Fix - HTTPS API URL
+
+### Issues Addressed:
+- Dashboard still blank after login due to Mixed Content Error.
+- Frontend (HTTPS) trying to make API calls to backend (HTTP).
+- Browser blocking HTTP requests from HTTPS pages for security.
+
+### Root Cause:
+- API base URL was using HTTP protocol: `http://biz-production-d0b2.up.railway.app/api`
+- Modern browsers block mixed content (HTTP requests from HTTPS pages)
+
+### Changes Made:
+- **File**: `frontend/sabiops-frontend/src/services/api.js`
+- **Change**: Updated API base URL from `http://` to `https://`
+- **New URL**: `https://biz-production-d0b2.up.railway.app/api`
+- **Reason**: Ensures all API calls use HTTPS protocol to match the frontend
+
+### Expected Results:
+- ✅ Dashboard should now load data successfully
+- ✅ No more Mixed Content errors in console
+- ✅ API calls should work properly
+
+### Files Modified:
+- `frontend/sabiops-frontend/src/services/api.js`
+
