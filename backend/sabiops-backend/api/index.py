@@ -3,7 +3,7 @@ import sys
 import os
 
 # Configure logging for Vercel (no file logging in serverless environment)
-logging.basicConfig(level=logging.ERROR, 
+logging.basicConfig(level=logging.DEBUG, 
                     format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
 
 from flask import Flask, request, jsonify, current_app
@@ -66,7 +66,7 @@ if not supabase_url or not supabase_key:
 try:
     supabase = create_client(supabase_url, supabase_key)
     # Make supabase client available to all routes
-    app.config["SUPABASE"] = supabase
+    app.config['SUPABASE'] = supabase
 except Exception as e:
     raise RuntimeError(f"Failed to initialize Supabase client: {e}")
 
@@ -143,6 +143,7 @@ app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
 
 
 
