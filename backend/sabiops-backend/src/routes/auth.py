@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, g
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
@@ -9,10 +9,6 @@ from email.mime.multipart import MIMEMultipart
 import pytz
 
 auth_bp = Blueprint("auth", __name__)
-
-def get_supabase():
-    """Get Supabase client from Flask app config"""
-    return current_app.config["SUPABASE"]
 
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
@@ -31,7 +27,8 @@ def error_response(error, message="Error", status_code=400):
 @auth_bp.route("/register", methods=["POST"])
 def register():
     try:
-        supabase = get_supabase()
+        supabase = g.supabase
+        mock_db = g.mock_db
         data = request.get_json()
         
         required_fields = ["email", "phone", "password", "full_name"]
@@ -39,37 +36,68 @@ def register():
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
         
-        existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
-        existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
-        
-        if existing_user_email.data:
-            return error_response(
-                error="Email already exists",
-                message="An account with this email already exists. Please use a different email or try logging in.",
-                status_code=400
-            )
+        if supabase:
+            existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
+            existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
             
-        if existing_user_phone.data:
-            return error_response(
-                error="Phone number already exists", 
-                message="An account with this phone number already exists. Please use a different phone number or try logging in.",
-                status_code=400
-            )
-        
+            if existing_user_email.data:
+                return error_response(
+                    error="Email already exists",
+                    message="An account with this email already exists. Please use a different email or try logging in.",
+                    status_code=400
+                )
+                
+            if existing_user_phone.data:
+                return error_response(
+                    error="Phone number already exists", 
+                    message="An account with this phone number already exists. Please use a different phone number or try logging in.",
+                    status_code=400
+                )
+        else:
+            # Mock DB check
+            for user in mock_db["users"]:
+                if user["email"] == data["email"]:
+                    return error_response(
+                        error="Email already exists",
+                        message="An account with this email already exists. Please use a different email or try logging in.",
+                        status_code=400
+                    )
+                if user["phone"] == data["phone"]:
+                    return error_response(
+                        error="Phone number already exists", 
+                        message="An account with this phone number already exists. Please use a different phone number or try logging in.",
+                        status_code=400
+                    )
+
         password_hash = generate_password_hash(data["password"])
         
         # Handle referral code if provided
         referred_by_id = None
         if data.get("referral_code"):
-            referrer_result = supabase.table("users").select("id").eq("referral_code", data["referral_code"]).execute()
-            if referrer_result.data:
-                referred_by_id = referrer_result.data[0]["id"]
+            if supabase:
+                referrer_result = supabase.table("users").select("id").eq("referral_code", data["referral_code"]).execute()
+                if referrer_result.data:
+                    referred_by_id = referrer_result.data[0]["id"]
+                else:
+                    return error_response(
+                        error="Invalid referral code",
+                        message="The referral code you entered is not valid. Please check and try again.",
+                        status_code=400
+                    )
             else:
-                return error_response(
-                    error="Invalid referral code",
-                    message="The referral code you entered is not valid. Please check and try again.",
-                    status_code=400
-                )
+                # Mock DB referral check
+                found_referrer = False
+                for user in mock_db["users"]:
+                    if user.get("referral_code") == data["referral_code"]:
+                        referred_by_id = user["id"]
+                        found_referrer = True
+                        break
+                if not found_referrer:
+                    return error_response(
+                        error="Invalid referral code",
+                        message="The referral code you entered is not valid. Please check and try again.",
+                        status_code=400
+                    )
         
         user_data = {
             "id": str(uuid.uuid4()),
@@ -88,44 +116,50 @@ def register():
             "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
         }
         
-        result = supabase.table("users").insert(user_data).execute()
-        
-        if result.data:
+        if supabase:
+            result = supabase.table("users").insert(user_data).execute()
             user = result.data[0]
-            
-            # Create referral record if user was referred
-            if referred_by_id:
-                try:
-                    referral_data = {
-                        "referrer_id": referred_by_id,
-                        "referred_id": user["id"],
-                        "status": "pending"
-                    }
+        else:
+            # Mock DB insert
+            mock_db["users"].append(user_data)
+            user = user_data
+        
+        # Create referral record if user was referred
+        if referred_by_id:
+            try:
+                referral_data = {
+                    "referrer_id": referred_by_id,
+                    "referred_id": user["id"],
+                    "status": "pending"
+                }
+                if supabase:
                     supabase.table("referrals").insert(referral_data).execute()
-                except Exception as referral_error:
-                    # Log the error but don't fail the registration
-                    print(f"Failed to create referral record: {referral_error}")
-            
-            access_token = create_access_token(identity=user["id"])
-            
-            return success_response(
-                message="User registered successfully",
-                data={
-                    "access_token": access_token,
-                    "user": {
-                        "id": user["id"],
-                        "email": user["email"],
-                        "phone": user["phone"],
-                        "full_name": user["full_name"],
-                        "business_name": user["business_name"],
-                        "role": user["role"],
-                        "subscription_plan": user["subscription_plan"],
-                        "subscription_status": user["subscription_status"],
-                        "trial_ends_at": user.get("trial_ends_at") # Use .get() for safety
-                    }
-                },
-                status_code=201
-            )
+                else:
+                    mock_db["referrals"].append(referral_data) # Assuming referrals in mock_db
+            except Exception as referral_error:
+                # Log the error but don\"t fail the registration
+                print(f"Failed to create referral record: {referral_error}")
+        
+        access_token = create_access_token(identity=user["id"])
+        
+        return success_response(
+            message="User registered successfully",
+            data={
+                "access_token": access_token,
+                "user": {
+                    "id": user["id"],
+                    "email": user["email"],
+                    "phone": user["phone"],
+                    "full_name": user["full_name"],
+                    "business_name": user["business_name"],
+                    "role": user["role"],
+                    "subscription_plan": user["subscription_plan"],
+                    "subscription_status": user["subscription_status"],
+                    "trial_ends_at": user.get("trial_ends_at") # Use .get() for safety
+                }
+            },
+            status_code=201
+        )
             
     except Exception as e:
         return error_response(str(e), status_code=500)
@@ -133,7 +167,8 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
-        supabase = get_supabase()
+        supabase = g.supabase
+        mock_db = g.mock_db
         data = request.get_json()
         
         # Validate that data is actually a dictionary
@@ -161,19 +196,29 @@ def login():
         login_field = data["login"]
         password = data["password"]
         
-        if "@" in login_field:
-            user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+        user = None
+        if supabase:
+            if "@" in login_field:
+                user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+            else:
+                user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
+            
+            if user_result.data and len(user_result.data) > 0:
+                user = user_result.data[0]
         else:
-            user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
-        
-        if not user_result.data or len(user_result.data) == 0:
+            # Mock DB lookup
+            for u in mock_db["users"]:
+                if ("@" in login_field and u["email"] == login_field) or \
+                   ("@" not in login_field and u["phone"] == login_field):
+                    user = u
+                    break
+
+        if not user:
             return error_response(
                 error="Invalid credentials",
                 message="No account found with this email or phone number. Please check your credentials or sign up for a new account.",
                 status_code=401
             )
-        
-        user = user_result.data[0]
         
         if not check_password_hash(user["password_hash"], password):
             return error_response(
@@ -189,7 +234,14 @@ def login():
                 status_code=401
             )
         
-        supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
+        if supabase:
+            supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
+        else:
+            # Update last_login in mock_db
+            for i, u in enumerate(mock_db["users"]):
+                if u["id"] == user["id"]:
+                    mock_db["users"][i]["last_login"] = pytz.UTC.localize(datetime.utcnow()).isoformat()
+                    break
         
         access_token = create_access_token(identity=user["id"])
         
@@ -212,9 +264,13 @@ def login():
         )
         
     except Exception as e:
+        # Ensure the error message is a string and not an object like 'SUPABASE'
+        error_message = str(e)
+        if "object has no attribute" in error_message and "supabase" in error_message.lower():
+            error_message = "Supabase client not initialized. Running in mock mode."
         return error_response(
-            error=str(e),
-            message=f"An error occurred during login: {str(e)}",
+            error=error_message,
+            message=f"An error occurred during login: {error_message}",
             status_code=500
         )
 
@@ -222,14 +278,23 @@ def login():
 @jwt_required()
 def get_profile():
     try:
-        supabase = get_supabase()
+        supabase = g.supabase
+        mock_db = g.mock_db
         user_id = get_jwt_identity()
-        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
         
-        if not user_result.data:
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["id"] == user_id:
+                    user = u
+                    break
+
+        if not user:
             return error_response("User not found", status_code=404)
-        
-        user = user_result.data[0]
         
         return success_response(
             data={
@@ -263,20 +328,27 @@ def verify_token():
         user_id = get_jwt_identity()
         print(f"[DEBUG] verify_token: JWT Identity: {user_id}")
 
-        supabase = get_supabase()
+        supabase = g.supabase
+        mock_db = g.mock_db
         
-        # Get user information from database
-        user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["id"] == user_id:
+                    user = u
+                    break
         
-        if not user_result.data:
+        if not user:
             print(f"[DEBUG] verify_token: User not found for ID: {user_id}")
             return error_response(
                 error="User not found",
                 message="The user associated with this token no longer exists.",
                 status_code=404
             )
-        
-        user = user_result.data[0]
         
         # Check if user is still active
         if not user.get("active", True):
@@ -309,7 +381,6 @@ def verify_token():
         )
         
     except Exception as e:
-        print(f"[DEBUG] verify_token: General exception: {e}")
         return error_response(
             error=str(e),
             message="Token verification failed",
@@ -324,6 +395,8 @@ def handle_auth_error(e):
         return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
     # Catch any other exception that might lead to a 401
     return error_response(str(e), message="Authentication failed", status_code=401)
+
+
 
 
 

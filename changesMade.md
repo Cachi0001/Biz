@@ -51,3 +51,15 @@ After logging in, the SabiOps dashboard remains blank, and the browser console d
 
 This persistent bug is challenging due to its nature in minified production code, but the current refactoring of `api.js` to use explicit named exports for all functions is the most robust solution to ensure minification compatibility.
 
+
+
+## July 8, 2025
+
+- **Backend `auth.py` fixes:**
+  - Corrected `error_response` function to use `status_code` instead of `status_response`.
+  - Attempted to fix string escaping in `error_response`.
+- **Frontend registration issue:**
+  - Encountered "An unexpected error occurred during registration" after backend fixes.
+  - Need to investigate backend logs for more details on this registration error.
+
+
