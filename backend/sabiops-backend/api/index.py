@@ -92,12 +92,6 @@ def load_user():
     g.supabase = supabase
     g.mock_db = app.config.get('MOCK_DB')
 
-@app.before_request
-def strip_api_prefix():
-    if request.path.startswith('/api/'):
-        # Remove '/api' from the path for routing
-        request.environ['PATH_INFO'] = request.path[4:] or '/'
-
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -186,4 +180,16 @@ def debug():
 print('Registered routes:')
 for rule in app.url_map.iter_rules():
     print(rule)
+
+# Add WSGI middleware to strip '/api' prefix before Flask routing
+class StripApiPrefixMiddleware:
+    def __init__(self, app):
+        self.app = app
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        if path.startswith('/api/'):
+            environ['PATH_INFO'] = path[4:] or '/'
+        return self.app(environ, start_response)
+
+app.wsgi_app = StripApiPrefixMiddleware(app.wsgi_app)
 
