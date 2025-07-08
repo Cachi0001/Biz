@@ -4,7 +4,7 @@
  */
 
 import { toast } from 'react-hot-toast';
-import apiService from './api';
+import { post, get, put } from './api';
 
 class NotificationService {
   constructor() {
@@ -195,7 +195,7 @@ class NotificationService {
       this.pushSubscription = subscription;
 
       // Send subscription to backend
-      await apiService.post('/notifications/push/subscribe', {
+      await post('/notifications/push/subscribe', {
         endpoint: subscription.endpoint,
         keys: {
           p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
@@ -215,7 +215,7 @@ class NotificationService {
     if (this.pushSubscription) {
       try {
         await this.pushSubscription.unsubscribe();
-        await apiService.post('/notifications/push/unsubscribe');
+        await post('/notifications/push/unsubscribe');
         this.pushSubscription = null;
         this.showToast('Push notifications disabled', 'info');
         return true;
@@ -230,7 +230,7 @@ class NotificationService {
   // API Integration
   async fetchNotifications(unreadOnly = false) {
     try {
-      const response = await apiService.get(`/notifications?unread_only=${unreadOnly}`);
+      const response = await get(`/notifications?unread_only=${unreadOnly}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -240,7 +240,7 @@ class NotificationService {
 
   async markAsRead(notificationId) {
     try {
-      await apiService.put(`/notifications/${notificationId}/read`);
+      await put(`/notifications/${notificationId}/read`);
       return true;
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -250,7 +250,7 @@ class NotificationService {
 
   async sendTestNotification(title, message, type = 'info') {
     try {
-      await apiService.post('/notifications/send', { title, message, type });
+      await post('/notifications/send', { title, message, type });
       this.showToast('Test notification sent!', 'success');
       return true;
     } catch (error) {

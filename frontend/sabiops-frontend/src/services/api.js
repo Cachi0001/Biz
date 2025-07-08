@@ -236,6 +236,31 @@ const apiService = {
   },
 };
 
+export const get = api.get;
+export const post = api.post;
+export const put = api.put;
+export const del = api.delete;
+
+export const getDashboardOverview = async () => {
+  const response = await api.get('/dashboard/overview');
+  return response.data.data; // Ensure consistent data access
+};
+
+export const getRevenueChart = async () => {
+  const response = await api.get('/dashboard/revenue-chart');
+  return response.data.data; // Ensure consistent data access
+};
+
+export const getCustomers = async () => {
+  const response = await api.get('/customers');
+  return response.data.data; // Ensure consistent data access
+};
+
+export const getProducts = async () => {
+  const response = await api.get('/products');
+  return response.data.data; // Ensure consistent data access
+};
+
 export default apiService;
 
 

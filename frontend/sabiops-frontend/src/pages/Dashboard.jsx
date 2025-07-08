@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from "../services/api";
+import { getDashboardOverview, getRevenueChart, getCustomers, getProducts } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,12 +49,12 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         // Fetch overview data
-        const overviewData = await apiService.getDashboardOverview();
+        const overviewData = await getDashboardOverview();
         setOverview(overviewData);
 
         // Fetch revenue chart data
         try {
-          const revenueData = await apiService.getRevenueChart();
+          const revenueData = await getRevenueChart();
           setRevenueChart(revenueData?.chart_data || []);
         } catch (error) {
           console.error('Failed to fetch revenue chart:', error);
@@ -63,7 +63,7 @@ const Dashboard = () => {
 
         // Fetch customers data
         try {
-          const customersData = await apiService.getCustomers();
+          const customersData = await getCustomers();
           setTopCustomers(Array.isArray(customersData) ? customersData.slice(0, 5) : []);
         } catch (error) {
           console.error('Failed to fetch customers:', error);
@@ -72,7 +72,7 @@ const Dashboard = () => {
 
         // Fetch products data
         try {
-          const productsData = await apiService.getProducts();
+          const productsData = await getProducts();
           setTopProducts(Array.isArray(productsData) ? productsData.slice(0, 5) : []);
         } catch (error) {
           console.error('Failed to fetch products:', error);

@@ -40,10 +40,9 @@ const NotificationCenter = () => {
       const success = await notificationService.markAsRead(notification.id);
       if (success) {
         setNotifications(prev => 
-          prev.map(n => 
-            n.id === notification.id ? { ...n, read: true } : n
-          )
-        );
+          prev.map(notif => 
+            notif.id === notification.id ? { ...notif, read: true } : notif
+          ));
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     }
