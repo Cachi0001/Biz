@@ -29,20 +29,24 @@ export const AuthProvider = ({ children }) => {
           }
           setUser(userData);
           setIsAuthenticated(true);
+          console.log('checkAuth: isAuthenticated set to TRUE'); // Added log
         } else {
           localStorage.removeItem('token');
           setUser(null);
           setIsAuthenticated(false);
+          console.log('checkAuth: isAuthenticated set to FALSE (token invalid)'); // Added log
         }
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        console.log('checkAuth: isAuthenticated set to FALSE (no token)'); // Added log
       }
     } catch (error) {
       console.error('Authentication check failed:', error);
       localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
+      console.log('checkAuth: isAuthenticated set to FALSE (error)'); // Added log
     } finally {
       setLoading(false);
     }
