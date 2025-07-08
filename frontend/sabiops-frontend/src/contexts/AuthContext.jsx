@@ -56,11 +56,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.login(email, password);
       if (response.success) {
-        console.log('Login successful. Access Token:', response.access_token); // Added log
-        if (response.access_token) {
-          localStorage.setItem('token', response.access_token);
+        console.log('Login successful. Full API Response:', response); // Log full response
+        console.log('Login successful. Access Token from response.data:', response.data.access_token); // Added log
+        if (response.data.access_token) { // Access access_token from response.data
+          localStorage.setItem('token', response.data.access_token);
         } else {
-          console.warn('Login successful but access_token is missing from response.');
+          console.warn('Login successful but access_token is missing from response.data.');
         }
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
         return { success: true };
@@ -78,11 +79,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.register(userData);
       if (response.success) {
-        console.log('Registration successful. Access Token:', response.access_token); // Added log
-        if (response.access_token) {
-          localStorage.setItem('token', response.access_token);
+        console.log('Registration successful. Full API Response:', response); // Log full response
+        console.log('Registration successful. Access Token from response.data:', response.data.access_token); // Added log
+        if (response.data.access_token) { // Access access_token from response.data
+          localStorage.setItem('token', response.data.access_token);
         } else {
-          console.warn('Registration successful but access_token is missing from response.');
+          console.warn('Registration successful but access_token is missing from response.data.');
         }
         await checkAuth(); // Re-check auth to get updated user data including trial_days_left
         return { success: true };
