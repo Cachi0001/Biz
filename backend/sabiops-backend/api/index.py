@@ -43,6 +43,8 @@ from src.routes.notifications import notifications_bp
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
+app.config["JWT_ERROR_MESSAGE_KEY"] = "message" # Explicitly set for detailed error messages
+app.config["DEBUG"] = True # Enable debug mode
 
 # Configure CORS to allow requests from your frontend origin
 CORS(app, 
@@ -64,7 +66,7 @@ if not supabase_url or not supabase_key:
 try:
     supabase = create_client(supabase_url, supabase_key)
     # Make supabase client available to all routes
-    app.config['SUPABASE'] = supabase
+    app.config["SUPABASE"] = supabase
 except Exception as e:
     raise RuntimeError(f"Failed to initialize Supabase client: {e}")
 
@@ -141,4 +143,6 @@ app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+
 

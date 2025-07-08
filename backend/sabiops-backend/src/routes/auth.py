@@ -317,9 +317,12 @@ def verify_token():
 # Error handler for JWT errors
 @auth_bp.app_errorhandler(401)
 def handle_auth_error(e):
+    print(f"[DEBUG] JWT Error Handler: Type: {type(e).__name__}, Message: {e}")
     if isinstance(e, (JWTManager.ExpiredSignatureError, JWTManager.InvalidTokenError, JWTManager.DecodeError, JWTManager.NoAuthorizationError)):
-        print(f"[DEBUG] JWT Error Handler: {e}")
         return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
+    # Catch any other exception that might lead to a 401
     return error_response(str(e), message="Authentication failed", status_code=401)
+
+
 
 
