@@ -27,6 +27,7 @@ def error_response(error, message="Error", status_code=400):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    print("[DEBUG] /auth/register endpoint called")
     try:
         supabase = g.supabase
         mock_db = g.mock_db
@@ -167,6 +168,7 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    print("[DEBUG] /auth/login endpoint called")
     try:
         supabase = g.supabase
         mock_db = g.mock_db
