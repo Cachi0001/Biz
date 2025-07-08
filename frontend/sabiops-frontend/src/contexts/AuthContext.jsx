@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Token from localStorage before verifyToken:', token); // Added log
         const response = await apiService.verifyToken();
         if (response.success) {
-          const userData = response.user;
+          const userData = response.data.user;
           // Calculate trial_days_left based on trial_ends_at
           if (userData.trial_ends_at) {
             const trialEndDate = new Date(userData.trial_ends_at);
@@ -64,6 +64,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Login successful. Access Token from response.data:', response.data.access_token); // Added log
         if (response.data.access_token) { // Access access_token from response.data
           localStorage.setItem('token', response.data.access_token);
+          setIsAuthenticated(true); // Set isAuthenticated to true immediately on successful login
         } else {
           console.warn('Login successful but access_token is missing from response.data.');
         }
@@ -87,6 +88,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Registration successful. Access Token from response.data:', response.data.access_token); // Added log
         if (response.data.access_token) { // Access access_token from response.data
           localStorage.setItem('token', response.data.access_token);
+          setIsAuthenticated(true); // Set isAuthenticated to true immediately on successful registration
         } else {
           console.warn('Registration successful but access_token is missing from response.data.');
         }
