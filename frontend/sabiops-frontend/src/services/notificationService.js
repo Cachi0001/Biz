@@ -230,7 +230,7 @@ class NotificationService {
   // API Integration
   async fetchNotifications(unreadOnly = false) {
     try {
-      const response = await get(`/notifications?unread_only=${unreadOnly}`);
+      const response = await get(`/notifications/?unread_only=${unreadOnly}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch notifications:', error);

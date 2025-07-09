@@ -154,12 +154,12 @@ export const testDatabase = async () => {
 
 // Customers
 export const getCustomers = async () => {
-  const response = await api.get('/customers');
+  const response = await api.get('/customers/');
   return response.data.data; // Ensure consistent data access
 };
 
 export const createCustomer = async (customerData) => {
-  const response = await api.post('/customers', customerData);
+  const response = await api.post('/customers/', customerData);
   return response.data;
 };
 
@@ -175,12 +175,12 @@ export const deleteCustomer = async (customerId) => {
 
 // Products
 export const getProducts = async () => {
-  const response = await api.get('/products');
+  const response = await api.get('/products/');
   return response.data.data; // Ensure consistent data access
 };
 
 export const createProduct = async (productData) => {
-  const response = await api.post('/products', productData);
+  const response = await api.post('/products/', productData);
   return response.data;
 };
 
@@ -201,7 +201,7 @@ export const getCategories = async () => {
 
 // Invoices
 export const getInvoices = async () => {
-  const response = await api.get('/invoices');
+  const response = await api.get('/invoices/');
   return response.data.data; // Ensure consistent data access
 };
 
@@ -211,7 +211,7 @@ export const getInvoice = async (invoiceId) => {
 };
 
 export const createInvoice = async (invoiceData) => {
-  const response = await api.post('/invoices', invoiceData);
+  const response = await api.post('/invoices/', invoiceData);
   return response.data;
 };
 
@@ -242,12 +242,12 @@ export const downloadInvoicePdf = async (invoiceId) => {
 
 // Expenses
 export const getExpenses = async () => {
-  const response = await api.get('/expenses');
+  const response = await api.get('/expenses/');
   return response.data.data; // Assuming data is nested under 'data' key
 };
 
 export const createExpense = async (expenseData) => {
-  const response = await api.post('/expenses', expenseData);
+  const response = await api.post('/expenses/', expenseData);
   return response.data;
 };
 
@@ -263,23 +263,23 @@ export const deleteExpense = async (expenseId) => {
 
 // Sales (assuming these are separate from invoices for now, if needed)
 export const getSales = async () => {
-  const response = await api.get('/sales');
+  const response = await api.get('/sales/');
   return response.data.data; // Assuming data is nested under 'data' key
 };
 
 export const createSale = async (saleData) => {
-  const response = await api.post('/sales', saleData);
+  const response = await api.post('/sales/', saleData);
   return response.data;
 };
 
 // Payments (if separate from invoices/sales)
 export const getPayments = async () => {
-  const response = await api.get('/payments');
+  const response = await api.get('/payments/');
   return response.data.data; // Assuming data is nested under 'data' key
 };
 
 export const recordPayment = async (paymentData) => {
-  const response = await api.post('/payments', paymentData);
+  const response = await api.post('/payments/', paymentData);
   return response.data;
 };
 
