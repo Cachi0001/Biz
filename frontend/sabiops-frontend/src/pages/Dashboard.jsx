@@ -38,7 +38,12 @@ import {
 
 const Dashboard = () => {
   const { user, isFreeTrial, isPremium, trialDaysLeft, canAccessFeature } = useAuth();
-  const [overview, setOverview] = useState(null);
+  const [overview, setOverview] = useState({
+    revenue: { total: 0, this_month: 0, outstanding: 0 },
+    customers: { total: 0, new_this_month: 0 },
+    products: { total: 0, low_stock: 0 },
+    invoices: { overdue: 0 }
+  });
   const [revenueChart, setRevenueChart] = useState([]);
   const [topCustomers, setTopCustomers] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
@@ -47,48 +52,117 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      console.log("[DASHBOARD] Starting to fetch dashboard data...");
+      console.log("[DASHBOARD] User data:", user);
+      
       try {
         // Fetch overview data
+        console.log("[DASHBOARD] Fetching overview data...");
         const overviewData = await getDashboardOverview();
-        setOverview(overviewData);
+        console.log("[DASHBOARD] Overview data received:", overviewData);
+        
+        // Ensure we have a proper data structure
+        const safeOverviewData = {
+          revenue: {
+            total: overviewData?.revenue?.total || 0,
+            this_month: overviewData?.revenue?.this_month || 0,
+            outstanding: overviewData?.revenue?.outstanding || 0
+          },
+          customers: {
+            total: overviewData?.customers?.total || 0,
+            new_this_month: overviewData?.customers?.new_this_month || 0
+          },
+          products: {
+            total: overviewData?.products?.total || 0,
+            low_stock: overviewData?.products?.low_stock || 0
+          },
+          invoices: {
+            overdue: overviewData?.invoices?.overdue || 0
+          }
+        };
+        
+        console.log("[DASHBOARD] Safe overview data:", safeOverviewData);
+        setOverview(safeOverviewData);
+        console.log("[DASHBOARD] Overview state set to:", safeOverviewData);
 
         // Fetch revenue chart data
         try {
+          console.log("[DASHBOARD] Fetching revenue chart data...");
           const revenueData = await getRevenueChart();
-          setRevenueChart(revenueData?.chart_data || []);
+          console.log("[DASHBOARD] Revenue chart data received:", revenueData);
+          const chartData = revenueData?.chart_data || [];
+          console.log("[DASHBOARD] Chart data extracted:", chartData);
+          setRevenueChart(chartData);
+          console.log("[DASHBOARD] Revenue chart state set to:", chartData);
         } catch (error) {
-          console.error('Failed to fetch revenue chart:', error);
+          console.error('[DASHBOARD] Failed to fetch revenue chart:', error);
+          console.error('[DASHBOARD] Revenue chart error details:', error.response ? error.response.data : error.message);
           setRevenueChart([]);
         }
 
         // Fetch customers data
         try {
+          console.log("[DASHBOARD] Fetching customers data...");
           const customersData = await getCustomers();
-          setTopCustomers(Array.isArray(customersData) ? customersData.slice(0, 5) : []);
+          console.log("[DASHBOARD] Customers data received:", customersData);
+          console.log("[DASHBOARD] Is customers data an array?", Array.isArray(customersData));
+          const topCustomersData = Array.isArray(customersData) ? customersData.slice(0, 5) : [];
+          console.log("[DASHBOARD] Top customers extracted:", topCustomersData);
+          setTopCustomers(topCustomersData);
+          console.log("[DASHBOARD] Top customers state set to:", topCustomersData);
         } catch (error) {
-          console.error('Failed to fetch customers:', error);
+          console.error('[DASHBOARD] Failed to fetch customers:', error);
+          console.error('[DASHBOARD] Customers error details:', error.response ? error.response.data : error.message);
           setTopCustomers([]);
         }
 
         // Fetch products data
         try {
+          console.log("[DASHBOARD] Fetching products data...");
           const productsData = await getProducts();
-          setTopProducts(Array.isArray(productsData) ? productsData.slice(0, 5) : []);
+          console.log("[DASHBOARD] Products data received:", productsData);
+          console.log("[DASHBOARD] Is products data an array?", Array.isArray(productsData));
+          const topProductsData = Array.isArray(productsData) ? productsData.slice(0, 5) : [];
+          console.log("[DASHBOARD] Top products extracted:", topProductsData);
+          setTopProducts(topProductsData);
+          console.log("[DASHBOARD] Top products state set to:", topProductsData);
         } catch (error) {
-          console.error('Failed to fetch products:', error);
+          console.error('[DASHBOARD] Failed to fetch products:', error);
+          console.error('[DASHBOARD] Products error details:', error.response ? error.response.data : error.message);
           setTopProducts([]);
         }
 
         // Set empty recent activities for now (endpoint doesn't exist yet)
+        console.log("[DASHBOARD] Setting empty recent activities...");
         setRecentActivities([]);
 
+        console.log("[DASHBOARD] All data fetching completed successfully");
+
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+        console.error('[DASHBOARD] Failed to fetch dashboard data:', error);
+        console.error('[DASHBOARD] Main error details:', error.response ? error.response.data : error.message);
+        console.error('[DASHBOARD] Error stack:', error.stack);
+        
+        // Set default data even on error to prevent blank dashboard
+        console.log("[DASHBOARD] Setting fallback data due to error...");
+        setOverview({
+          revenue: { total: 0, this_month: 0, outstanding: 0 },
+          customers: { total: 0, new_this_month: 0 },
+          products: { total: 0, low_stock: 0 },
+          invoices: { overdue: 0 }
+        });
+        setRevenueChart([]);
+        setTopCustomers([]);
+        setTopProducts([]);
+        setRecentActivities([]);
       } finally {
+        console.log("[DASHBOARD] Setting loading to false...");
         setLoading(false);
+        console.log("[DASHBOARD] Loading state set to false");
       }
     };
 
+    console.log("[DASHBOARD] useEffect triggered, calling fetchDashboardData...");
     fetchDashboardData();
   }, []);
 
@@ -130,11 +204,37 @@ const Dashboard = () => {
   };
 
   if (loading) {
+    console.log("[DASHBOARD] Rendering loading state...");
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  console.log("[DASHBOARD] Rendering main dashboard...");
+  console.log("[DASHBOARD] Current state values:");
+  console.log("[DASHBOARD] - overview:", overview);
+  console.log("[DASHBOARD] - revenueChart:", revenueChart);
+  console.log("[DASHBOARD] - topCustomers:", topCustomers);
+  console.log("[DASHBOARD] - topProducts:", topProducts);
+  console.log("[DASHBOARD] - recentActivities:", recentActivities);
+  console.log("[DASHBOARD] - loading:", loading);
+  console.log("[DASHBOARD] - user:", user);
+  console.log("[DASHBOARD] - isFreeTrial:", isFreeTrial);
+  console.log("[DASHBOARD] - isPremium:", isPremium);
+  console.log("[DASHBOARD] - trialDaysLeft:", trialDaysLeft);
+
+  // Ensure we have valid data before rendering
+  if (!overview) {
+    console.log("[DASHBOARD] Overview is null, setting fallback...");
+    setOverview({
+      revenue: { total: 0, this_month: 0, outstanding: 0 },
+      customers: { total: 0, new_this_month: 0 },
+      products: { total: 0, low_stock: 0 },
+      invoices: { overdue: 0 }
+    });
+    return <div>Loading dashboard data...</div>;
   }
 
   return (
