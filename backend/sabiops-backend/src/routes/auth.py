@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, g
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import uuid
 import smtplib
 from email.mime.text import MIMEText
@@ -10,6 +10,8 @@ import pytz
 from secrets import token_urlsafe
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import logging
+from threading import Lock
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -156,7 +158,7 @@ def register():
                 else:
                     mock_db["referrals"].append(referral_data) # Assuming referrals in mock_db
             except Exception as referral_error:
-                # Log the error but don\"t fail the registration
+                # Log the error but don\'t fail the registration
                 print(f"Failed to create referral record: {referral_error}")
         
         access_token = create_access_token(identity=user["id"])
@@ -291,7 +293,7 @@ def login():
         
     except Exception as e:
         print(f"[ERROR] Login failed: {e}") # Added for debugging
-        # Ensure the error message is a string and not an object like 'SUPABASE'
+        # Ensure the error message is a string and not an object like \'SUPABASE\'
         error_message = str(e)
         if "object has no attribute" in error_message and "supabase" in error_message.lower():
             error_message = "Supabase client not initialized. Running in mock mode."
@@ -306,16 +308,13 @@ limiter = Limiter(key_func=get_remote_address)
 
 # --- Password Reset Endpoints ---
 
-import logging
-from threading import Lock
-
 # In-memory cooldown cache for mock_db/testing (email: last_request_time)
 reset_cooldown_cache = {}
 reset_cooldown_lock = Lock()
 RESET_COOLDOWN_SECONDS = 60
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
+@limiter.limit("5 per hour", key_func=lambda: request.json.get(\'email\') or request.form.get(\'email\') or request.args.get(\'email\', \'\'))
 def forgot_password():
     """Request a password reset code via email."""
     try:
@@ -342,7 +341,6 @@ def forgot_password():
             logging.warning(f"[DEBUG] No user found for email: {email}")
             return error_response("Email not found", message="No account with this email.", status_code=404)
         # --- Cooldown check ---
-        from datetime import timezone
         now = datetime.now(timezone.utc)
         cooldown_remaining = 0
         if supabase:
@@ -359,13 +357,9 @@ def forgot_password():
             if recent_token.data:
                 last_time = recent_token.data[0].get("created_at")
                 if last_time:
-                    # Parse as UTC (handles both 'Z' and offset)
-                    if last_time.endswith("Z"):
-                        last_time_dt = datetime.fromisoformat(last_time.replace("Z", "+00:00"))
-                    else:
-                        last_time_dt = datetime.fromisoformat(last_time)
+                    # Parse as UTC (handles both \'Z\' and offset)
+                    last_time_dt = datetime.fromisoformat(last_time).replace(tzinfo=timezone.utc)
                     delta = (now - last_time_dt).total_seconds()
-                    logging.warning(f"[DEBUG] Cooldown calculation: now={now}, last_time_dt={last_time_dt}, delta={delta}")
                     if delta < RESET_COOLDOWN_SECONDS:
                         cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
         else:
@@ -389,7 +383,7 @@ def forgot_password():
                 reset_cooldown_cache[email] = now
         # Generate code
         reset_code = token_urlsafe(6)[:6].upper()
-        expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
         logging.warning(f"[DEBUG] Generated reset code for {email}: {reset_code}")
         token_data = {
             "user_id": user["id"],
@@ -457,8 +451,8 @@ def verify_reset_code():
         if not token:
             return error_response("Invalid or expired code", status_code=400)
         # Check expiry
-        if datetime.fromisoformat(token["expires_at"]) < datetime.utcnow():
-            return error_response("Code expired", status_code=400)
+        if datetime.fromisoformat(token["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return error_response("Invalid or expired code", status_code=400)
         return success_response(message="Code is valid.")
     except Exception as e:
         return error_response(str(e), status_code=500)
@@ -497,7 +491,7 @@ def reset_password():
         if not token:
             return error_response("Invalid or expired code", status_code=400)
         # Check expiry
-        if datetime.fromisoformat(token["expires_at"]) < datetime.utcnow():
+        if datetime.fromisoformat(token["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             return error_response("Code expired", status_code=400)
         # Update password
         password_hash = generate_password_hash(new_password)
@@ -650,6 +644,8 @@ def handle_auth_error(e):
         message="Authentication failed",
         status_code=401
     )
+
+
 
 
 
