@@ -211,7 +211,8 @@ const ForgotPassword = () => {
                       {isResending ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resending...</>
                       ) : (
-                        cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
+                        cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'
+                      )}
                     </Button>
                     {cooldown > 0 && (
                       <div className="text-center text-sm text-muted-foreground mt-2">
