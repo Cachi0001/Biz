@@ -17,6 +17,7 @@ def success_response(data=None, message="Success", status_code=200):
     }), status_code
 
 def error_response(error, message="Error", status_code=400):
+    print(f"[CUSTOMER API ERROR] Status: {status_code}, Message: {message}, Error: {error}")
     return jsonify({
         "success": False,
         "error": error,
@@ -71,18 +72,22 @@ def create_customer():
         owner_id = get_jwt_identity()
         data = request.get_json()
         
+        print(f"[CUSTOMER CREATE] Owner ID: {owner_id}, Data received: {data}")
+        
         required_fields = ["name"]
         for field in required_fields:
             if not data.get(field):
+                print(f"[CUSTOMER CREATE ERROR] Missing required field: {field}")
                 return error_response(f"{field} is required", status_code=400)
         
         customer_data = {
             "id": str(uuid.uuid4()),
-            "owner_id": owner_id, # Use owner_id here
+            "owner_id": owner_id,
             "name": data["name"],
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "address": data.get("address", ""),
+            "business_name": data.get("business_name", ""),  # Added business_name
             "purchase_history": [],
             "interactions": [],
             "total_purchases": 0,
@@ -91,6 +96,8 @@ def create_customer():
         }
         
         result = get_supabase().table("customers").insert(customer_data).execute()
+        
+        print(f"[CUSTOMER CREATE SUCCESS] Customer created with ID: {result.data[0]['id']}")
         
         return success_response(
             message="Customer created successfully",
@@ -101,6 +108,7 @@ def create_customer():
         )
         
     except Exception as e:
+        print(f"[CUSTOMER CREATE EXCEPTION] {str(e)}")
         return error_response(str(e), status_code=500)
 
 @customer_bp.route("/<customer_id>", methods=["PUT"])
@@ -127,6 +135,8 @@ def update_customer(customer_id):
             update_data["phone"] = data["phone"]
         if data.get("address"):
             update_data["address"] = data["address"]
+        if data.get("business_name"):
+            update_data["business_name"] = data["business_name"]
         
         get_supabase().table("customers").update(update_data).eq("id", customer_id).execute()
         

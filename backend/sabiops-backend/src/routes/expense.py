@@ -17,6 +17,7 @@ def success_response(data=None, message="Success", status_code=200):
     }), status_code
 
 def error_response(error, message="Error", status_code=400):
+    print(f"[EXPENSE API ERROR] Status: {status_code}, Message: {message}, Error: {error}")
     return jsonify({
         "success": False,
         "error": error,
@@ -40,12 +41,12 @@ def get_expenses():
             query = query.eq("category", category)
         
         if start_date:
-            query = query.gte("expense_date", start_date)
+            query = query.gte("date", start_date)
         
         if end_date:
-            query = query.lte("expense_date", end_date)
+            query = query.lte("date", end_date)
         
-        expenses = query.order("expense_date", desc=True).execute()
+        expenses = query.order("date", desc=True).execute()
         
         return success_response(
             data={
@@ -64,30 +65,30 @@ def create_expense():
         owner_id = get_jwt_identity()
         data = request.get_json()
         
-        required_fields = ["title", "amount", "category", "expense_date"]
+        print(f"[EXPENSE CREATE] Owner ID: {owner_id}, Data received: {data}")
+        
+        required_fields = ["category", "amount", "date"]
         for field in required_fields:
             if not data.get(field):
+                print(f"[EXPENSE CREATE ERROR] Missing required field: {field}")
                 return error_response(f"{field} is required", status_code=400)
         
         expense_data = {
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
-            "title": data["title"],
-            "description": data.get("description", ""),
-            "amount": float(data["amount"]),
             "category": data["category"],
-            "payment_method": data.get("payment_method", ""),
-            "is_tax_deductible": data.get("is_tax_deductible", False),
-            "tax_category": data.get("tax_category", ""),
-            "vendor_name": data.get("vendor_name", ""),
-            "vendor_contact": data.get("vendor_contact", ""),
-            "expense_date": data["expense_date"],
-            "status": data.get("status", "pending"),
+            "amount": float(data["amount"]),
+            "description": data.get("description", ""),
+            "receipt_url": data.get("receipt_url", ""),
+            "payment_method": data.get("payment_method", "cash"),
+            "date": data["date"],
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
         
         result = get_supabase().table("expenses").insert(expense_data).execute()
+        
+        print(f"[EXPENSE CREATE SUCCESS] Expense created with ID: {result.data[0]['id']}")
         
         return success_response(
             message="Expense created successfully",
@@ -98,6 +99,7 @@ def create_expense():
         )
         
     except Exception as e:
+        print(f"[EXPENSE CREATE EXCEPTION] {str(e)}")
         return error_response(str(e), status_code=500)
 
 @expense_bp.route("/<expense_id>", methods=["GET"])
@@ -137,28 +139,18 @@ def update_expense(expense_id):
             "updated_at": datetime.now().isoformat()
         }
         
-        if data.get("title"):
-            update_data["title"] = data["title"]
+        if data.get("category"):
+            update_data["category"] = data["category"]
         if data.get("description"):
             update_data["description"] = data["description"]
         if data.get("amount"):
             update_data["amount"] = float(data["amount"])
-        if data.get("category"):
-            update_data["category"] = data["category"]
+        if data.get("receipt_url"):
+            update_data["receipt_url"] = data["receipt_url"]
         if data.get("payment_method"):
             update_data["payment_method"] = data["payment_method"]
-        if data.get("is_tax_deductible") is not None:
-            update_data["is_tax_deductible"] = data["is_tax_deductible"]
-        if data.get("tax_category"):
-            update_data["tax_category"] = data["tax_category"]
-        if data.get("vendor_name"):
-            update_data["vendor_name"] = data["vendor_name"]
-        if data.get("vendor_contact"):
-            update_data["vendor_contact"] = data["vendor_contact"]
-        if data.get("expense_date"):
-            update_data["expense_date"] = data["expense_date"]
-        if data.get("status"):
-            update_data["status"] = data["status"]
+        if data.get("date"):
+            update_data["date"] = data["date"]
         
         get_supabase().table("expenses").update(update_data).eq("id", expense_id).execute()
         
@@ -231,10 +223,10 @@ def get_expense_stats():
         query = get_supabase().table("expenses").select("*").eq("owner_id", owner_id)
         
         if start_date:
-            query = query.gte("expense_date", start_date)
+            query = query.gte("date", start_date)
         
         if end_date:
-            query = query.lte("expense_date", end_date)
+            query = query.lte("date", end_date)
         
         expenses = query.execute().data
         
@@ -251,7 +243,7 @@ def get_expense_stats():
         
         monthly_stats = {}
         for expense in expenses:
-            month_key = datetime.fromisoformat(expense["expense_date"]).strftime("%Y-%m")
+            month_key = datetime.fromisoformat(expense["date"]).strftime("%Y-%m")
             if month_key not in monthly_stats:
                 monthly_stats[month_key] = {"count": 0, "total": 0.0}
             monthly_stats[month_key]["count"] += 1

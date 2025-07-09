@@ -23,16 +23,12 @@ const Expenses = () => {
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const [formData, setFormData] = useState({
-    title: '',
+    category: '',
     description: '',
     amount: '',
-    category: '',
-    payment_method: '',
-    vendor_name: '',
-    vendor_contact: '',
-    expense_date: new Date().toISOString().split('T')[0],
-    is_tax_deductible: false,
-    tax_category: ''
+    receipt_url: '',
+    payment_method: 'cash',
+    date: new Date().toISOString().split('T')[0]
   });
 
   const paymentMethods = [

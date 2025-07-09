@@ -98,63 +98,37 @@ def create_invoice():
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
-        issue_date = data.get("issue_date", date.today().isoformat())
-        due_date = data.get("due_date")
-
+        # Generate unique invoice number
+        invoice_number = f"INV-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+        
         invoice_data = {
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
             "customer_id": data["customer_id"],
-            "issue_date": issue_date,
-            "due_date": due_date,
-            "payment_terms": data.get("payment_terms", "Net 30"),
-            "notes": data.get("notes", ""),
-            "terms_and_conditions": data.get("terms_and_conditions", ""),
-            "currency": data.get("currency", "NGN"),
-            "discount_amount": float(data.get("discount_amount", 0)),
+            "customer_name": customer.data["name"],
+            "invoice_number": invoice_number,
+            "amount": float(data.get("amount", 0)),
+            "tax_amount": float(data.get("tax_amount", 0)),
+            "total_amount": float(data.get("total_amount", 0)),
             "status": "draft",
+            "due_date": data.get("due_date"),
+            "notes": data.get("notes", ""),
+            "items": data.get("items", []),
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
         
-        invoice_items_data = []
+        # Calculate totals from items
         total_amount = 0
         if data.get("items"):
-            for item_data in data["items"]:
-                if not item_data.get("description") or not item_data.get("quantity") or not item_data.get("unit_price"):
-                    return error_response("Item description, quantity, and unit_price are required", status_code=400)
-                
-                item_quantity = int(item_data["quantity"])
-                item_unit_price = float(item_data["unit_price"])
-                item_tax_rate = float(item_data.get("tax_rate", 0))
-                item_discount_rate = float(item_data.get("discount_rate", 0))
-
-                item_total = item_quantity * item_unit_price
-                item_total -= item_total * (item_discount_rate / 100)
-                item_total += item_total * (item_tax_rate / 100)
-                
-                invoice_items_data.append({
-                    "id": str(uuid.uuid4()),
-                    "product_id": item_data.get("product_id"),
-                    "description": item_data["description"],
-                    "quantity": item_quantity,
-                    "unit_price": item_unit_price,
-                    "tax_rate": item_tax_rate,
-                    "discount_rate": item_discount_rate,
-                    "total": item_total
-                })
+            for item in data["items"]:
+                item_total = float(item.get("quantity", 0)) * float(item.get("unit_price", 0))
                 total_amount += item_total
         
-        invoice_data["total_amount"] = total_amount
-        invoice_data["amount_due"] = total_amount - float(invoice_data["discount_amount"])
+        invoice_data["amount"] = total_amount
+        invoice_data["total_amount"] = total_amount + invoice_data["tax_amount"]
 
         result = get_supabase().table("invoices").insert(invoice_data).execute()
-        
-        if result.data and invoice_items_data:
-            invoice_id = result.data[0]["id"]
-            for item in invoice_items_data:
-                item["invoice_id"] = invoice_id
-            get_supabase().table("invoice_items").insert(invoice_items_data).execute()
 
         return success_response(
             message="Invoice created successfully",

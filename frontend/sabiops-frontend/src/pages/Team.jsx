@@ -37,14 +37,10 @@ const Team = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     email: '',
-    phone: '',
     role: 'Salesperson',
-    password: '',
-    business_name: '',
-    referral_code: ''
+    password: ''
   });
 
   useEffect(() => {
@@ -77,20 +73,12 @@ const Team = () => {
     e.preventDefault();
     
     // Validation
-    if (!formData.first_name.trim()) {
-      toast.error('First name is required');
-      return;
-    }
-    if (!formData.last_name.trim()) {
-      toast.error('Last name is required');
+    if (!formData.full_name.trim()) {
+      toast.error('Full name is required');
       return;
     }
     if (!formData.email.trim()) {
       toast.error('Email is required');
-      return;
-    }
-    if (!formData.phone.trim()) {
-      toast.error('Phone number is required');
       return;
     }
     if (!editingMember && !formData.password.trim()) {
@@ -116,14 +104,10 @@ const Team = () => {
       
       // Reset form
       setFormData({
-        first_name: '',
-        last_name: '',
+        full_name: '',
         email: '',
-        phone: '',
         role: 'Salesperson',
-        password: '',
-        business_name: '',
-        referral_code: ''
+        password: ''
       });
       
       fetchTeamMembers();

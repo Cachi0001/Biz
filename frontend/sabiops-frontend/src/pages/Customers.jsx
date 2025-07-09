@@ -48,7 +48,11 @@ const Customers = () => {
   const handleCreateCustomer = async () => {
     try {
       setLoading(true);
+      console.log('[CUSTOMER CREATE] Sending data:', newCustomer);
+      
       const response = await createCustomer(newCustomer);
+      
+      console.log('[CUSTOMER CREATE SUCCESS] Response:', response);
       
       // Add the new customer to the list and sort by creation date (optional)
       setCustomers(prevCustomers => [response.customer, ...prevCustomers]);
@@ -66,7 +70,12 @@ const Customers = () => {
       toast.success("Customer created successfully!");
       
     } catch (error) {
-      console.error('Failed to create customer:', error);
+      console.error('[CUSTOMER CREATE ERROR] Failed to create customer:', error);
+      console.error('[CUSTOMER CREATE ERROR] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       toast.error(`Failed to create customer: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);

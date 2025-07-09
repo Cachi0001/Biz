@@ -24,14 +24,12 @@ const Invoices = () => {
 
   const [formData, setFormData] = useState({
     customer_id: '',
-    issue_date: new Date().toISOString().split('T')[0],
+    amount: 0,
+    tax_amount: 0,
+    total_amount: 0,
     due_date: '',
-    payment_terms: 'Net 30',
     notes: '',
-    terms_and_conditions: 'Payment is due within 30 days of invoice date.',
-    currency: 'NGN',
-    discount_amount: 0,
-    items: [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+    items: [{ description: '', quantity: 1, unit_price: 0 }],
   });
 
   useEffect(() => {
