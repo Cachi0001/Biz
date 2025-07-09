@@ -49,10 +49,17 @@ const Expenses = () => {
     try {
       setLoading(true);
       const response = await getExpenses();
-      setExpenses(response || []);
+      if (response.data && response.data.expenses) {
+        setExpenses(response.data.expenses);
+      } else if (Array.isArray(response)) {
+        setExpenses(response);
+      } else {
+        setExpenses([]);
+      }
     } catch (err) {
       setError('Failed to fetch expenses');
       console.error('Error fetching expenses:', err);
+      setExpenses([]);
     } finally {
       setLoading(false);
     }
@@ -61,9 +68,26 @@ const Expenses = () => {
   const fetchCategories = async () => {
     try {
       const response = await getExpenseCategories();
-      setCategories(response || []);
+      if (response.data && response.data.categories) {
+        setCategories(response.data.categories);
+      } else if (Array.isArray(response)) {
+        setCategories(response);
+      } else {
+        setCategories([]);
+      }
     } catch (err) {
       console.error('Error fetching categories:', err);
+      // Fallback to default categories
+      setCategories([
+        {"name": "Rent", "description": "Monthly rent for office or business space"},
+        {"name": "Utilities", "description": "Electricity, water, internet bills"},
+        {"name": "Salaries", "description": "Employee salaries and wages"},
+        {"name": "Marketing", "description": "Advertising and promotional expenses"},
+        {"name": "Supplies", "description": "Office or operational supplies"},
+        {"name": "Travel", "description": "Business travel expenses"},
+        {"name": "Maintenance", "description": "Repairs and maintenance"},
+        {"name": "Other", "description": "Miscellaneous expenses"}
+      ]);
     }
   };
 

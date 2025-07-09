@@ -128,14 +128,14 @@ export const resetPassword = async (data) => {
 };
 
 export const createTeamMember = async (memberData) => {
-  const response = await api.post('/auth/team-member', memberData);
+  const response = await api.post('/team/', memberData);
   return response.data;
 };
 
 // Team Management
 export const getTeamMembers = async () => {
   try {
-    const response = await api.get('/auth/team-members');
+    const response = await api.get('/team/');
     console.log("[DEBUG] getTeamMembers response:", response.data);
     // Backend returns {success: true, data: {...}, message: "..."}
     return response.data.data || response.data; // Handle both formats for compatibility
@@ -146,22 +146,22 @@ export const getTeamMembers = async () => {
 };
 
 export const updateTeamMember = async (memberId, memberData) => {
-  const response = await api.put(`/auth/team-member/${memberId}`, memberData);
+  const response = await api.put(`/team/${memberId}`, memberData);
   return response.data;
 };
 
 export const deleteTeamMember = async (memberId) => {
-  const response = await api.delete(`/auth/team-member/${memberId}`);
+  const response = await api.delete(`/team/${memberId}`);
   return response.data;
 };
 
 export const activateTeamMember = async (memberId) => {
-  const response = await api.post(`/auth/team-member/${memberId}/activate`);
+  const response = await api.post(`/team/${memberId}/activate`);
   return response.data;
 };
 
 export const resetTeamMemberPassword = async (memberId) => {
-  const response = await api.post(`/auth/team-member/${memberId}/reset-password`);
+  const response = await api.post(`/team/${memberId}/reset-password`);
   return response.data;
 };
 
@@ -452,6 +452,18 @@ export const getSalesReport = async (params) => {
 export const downloadSalesReport = async (params, format) => {
   const response = await api.get(`/reports/sales/download/${format}`, { params, responseType: 'blob' });
   return response.data;
+};
+
+// Expense Categories
+export const getExpenseCategories = async () => {
+  try {
+    const response = await api.get('/expenses/categories');
+    console.log("[DEBUG] getExpenseCategories response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const get = api.get;

@@ -8,7 +8,9 @@ team_bp = Blueprint("team", __name__)
 
 def get_supabase():
     """Get Supabase client from Flask app config"""
-    return current_app.config['SUPABASE']
+    if hasattr(current_app, 'config') and 'SUPABASE' in current_app.config:
+        return current_app.config['SUPABASE']
+    return None
 
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
@@ -29,11 +31,29 @@ def error_response(error, message="Error", status_code=400):
 def create_team_member():
     try:
         supabase = get_supabase()
+        if not supabase:
+            return error_response("SUPABASE", "Database not available", status_code=500)
+            
         owner_id = get_jwt_identity()
         data = request.get_json()
 
+        # For development mode without Supabase, return mock success
+        if not supabase:
+            return success_response(
+                message="Team member created successfully (mock)",
+                data={
+                    "team_member": {
+                        "id": str(uuid.uuid4()),
+                        "email": data.get("email"),
+                        "full_name": data.get("full_name"),
+                        "role": data.get("role", "Salesperson")
+                    }
+                },
+                status_code=201
+            )
+
         # Check if the current user is an Owner
-        owner_result = get_supabase().table("users").select("role, subscription_plan, trial_ends_at").eq("id", owner_id).single().execute()
+        owner_result = supabase.table("users").select("role, subscription_plan, trial_ends_at").eq("id", owner_id).single().execute()
         if not owner_result.data or owner_result.data["role"] != "Owner":
             return error_response("Only owners can create team members", status_code=403)
 
@@ -45,7 +65,7 @@ def create_team_member():
         if data["role"] not in ["Admin", "Salesperson"]:
             return error_response("Invalid role specified", status_code=400)
 
-        existing_user = get_supabase().table("users").select("*").eq("email", data["email"]).execute()
+        existing_user = supabase.table("users").select("*").eq("email", data["email"]).execute()
         if existing_user.data:
             return error_response("Email already exists", status_code=400)
 
@@ -59,6 +79,7 @@ def create_team_member():
             "full_name": data["full_name"],
             "first_name": first_name,
             "last_name": last_name,
+            "phone": data.get("phone", ""),
             "role": data["role"],
             "owner_id": owner_id,
             "subscription_plan": owner_result.data["subscription_plan"],
@@ -69,7 +90,7 @@ def create_team_member():
             "updated_at": datetime.now().isoformat()
         }
 
-        result = get_supabase().table("users").insert(team_member_data).execute()
+        result = supabase.table("users").insert(team_member_data).execute()
 
         if result.data:
             team_member = result.data[0]
@@ -81,7 +102,7 @@ def create_team_member():
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
-            get_supabase().table("team").insert(team_data).execute()
+            supabase.table("team").insert(team_data).execute()
 
             return success_response(
                 message="Team member created successfully",
@@ -104,9 +125,17 @@ def create_team_member():
 def get_team_members():
     try:
         supabase = get_supabase()
+        if not supabase:
+            # Return mock data for development
+            return success_response(
+                data={
+                    "team_members": []
+                }
+            )
+            
         owner_id = get_jwt_identity()
 
-        team_members = get_supabase().table("users").select("*").eq("owner_id", owner_id).execute()
+        team_members = supabase.table("users").select("*").eq("owner_id", owner_id).execute()
 
         return success_response(
             data={
@@ -122,15 +151,18 @@ def get_team_members():
 def update_team_member(team_member_id):
     try:
         supabase = get_supabase()
+        if not supabase:
+            return error_response("SUPABASE", "Database not available", status_code=500)
+            
         owner_id = get_jwt_identity()
         data = request.get_json()
 
         # Check if the current user is an Owner
-        owner_result = get_supabase().table("users").select("role").eq("id", owner_id).single().execute()
+        owner_result = supabase.table("users").select("role").eq("id", owner_id).single().execute()
         if not owner_result.data or owner_result.data["role"] != "Owner":
             return error_response("Only owners can update team members", status_code=403)
 
-        team_member = get_supabase().table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
+        team_member = supabase.table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
         if not team_member.data:
             return error_response("Team member not found", status_code=404)
 
@@ -147,12 +179,9 @@ def update_team_member(team_member_id):
                 return error_response("Invalid role specified", status_code=400)
             update_data["role"] = data["role"]
 
-        get_supabase().table("users").update(update_data).eq("id", team_member_id).execute()
-        get_supabase().table("team").update({"role": update_data["role"]}).eq("team_member_id", team_member_id).execute()
+        supabase.table("users").update(update_data).eq("id", team_member_id).execute()
 
-        return success_response(
-            message="Team member updated successfully"
-        )
+        return success_response(message="Team member updated successfully")
 
     except Exception as e:
         return error_response(str(e), status_code=500)
@@ -162,25 +191,28 @@ def update_team_member(team_member_id):
 def delete_team_member(team_member_id):
     try:
         supabase = get_supabase()
+        if not supabase:
+            return error_response("SUPABASE", "Database not available", status_code=500)
+            
         owner_id = get_jwt_identity()
 
         # Check if the current user is an Owner
-        owner_result = get_supabase().table("users").select("role").eq("id", owner_id).single().execute()
+        owner_result = supabase.table("users").select("role").eq("id", owner_id).single().execute()
         if not owner_result.data or owner_result.data["role"] != "Owner":
             return error_response("Only owners can delete team members", status_code=403)
 
-        team_member = get_supabase().table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
+        team_member = supabase.table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
         if not team_member.data:
             return error_response("Team member not found", status_code=404)
 
-        get_supabase().table("users").delete().eq("id", team_member_id).execute()
-        get_supabase().table("team").delete().eq("team_member_id", team_member_id).execute()
+        # Delete from team table first
+        supabase.table("team").delete().eq("team_member_id", team_member_id).execute()
+        
+        # Then delete from users table
+        supabase.table("users").delete().eq("id", team_member_id).execute()
 
-        return success_response(
-            message="Team member deleted successfully"
-        )
+        return success_response(message="Team member deleted successfully")
 
     except Exception as e:
         return error_response(str(e), status_code=500)
-
 

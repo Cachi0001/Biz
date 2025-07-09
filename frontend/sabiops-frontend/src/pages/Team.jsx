@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Users, UserPlus, Edit, Trash2, Key, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Edit, Trash2, Users, Eye, EyeOff, UserCheck, UserX, RotateCcw } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import {
   Table,
   TableBody,
@@ -21,24 +28,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getTeamMembers, updateTeamMember, createTeamMember, deleteTeamMember, activateTeamMember, resetTeamMemberPassword } from "../services/api";
-import toast from "react-hot-toast";
+} from "../components/ui/table";
+import { getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, activateTeamMember, resetTeamMemberPassword } from "../services/api";
+import { toast } from 'react-hot-toast';
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    phone: '',
     role: 'Salesperson',
     password: ''
   });
@@ -51,11 +58,17 @@ const Team = () => {
     try {
       setLoading(true);
       const response = await getTeamMembers();
-      setTeamMembers(response.team_members || []);
+      if (response.data && response.data.team_members) {
+        setTeamMembers(response.data.team_members);
+      } else if (Array.isArray(response)) {
+        setTeamMembers(response);
+      } else {
+        setTeamMembers([]);
+      }
     } catch (error) {
       console.error('Failed to fetch team members:', error);
-      toast.error('Failed to fetch team members');
-      setError('Failed to fetch team members');
+      toast.error("Failed to load team members.");
+      setTeamMembers([]);
     } finally {
       setLoading(false);
     }
@@ -81,6 +94,10 @@ const Team = () => {
       toast.error('Email is required');
       return;
     }
+    if (!formData.phone.trim()) {
+      toast.error('Phone number is required');
+      return;
+    }
     if (!editingMember && !formData.password.trim()) {
       toast.error('Password is required for new team members');
       return;
@@ -91,58 +108,64 @@ const Team = () => {
     }
 
     try {
+      setLoading(true);
       if (editingMember) {
         await updateTeamMember(editingMember.id, formData);
         toast.success('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
-        const response = await createTeamMember(formData);
+        await createTeamMember(formData);
         toast.success('Team member created successfully');
         setShowAddDialog(false);
       }
       
-      // Reset form
-      setFormData({
-        full_name: '',
-        email: '',
-        role: 'Salesperson',
-        password: ''
-      });
-      
+      resetForm();
       fetchTeamMembers();
     } catch (error) {
-      console.error('Failed to create team member:', error);
+      console.error('Failed to save team member:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save team member';
       toast.error(errorMessage);
       setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      full_name: '',
+      email: '',
+      phone: '',
+      role: 'Salesperson',
+      password: ''
+    });
+    setEditingMember(null);
+    setError('');
+    setShowPassword(false);
   };
 
   const handleEdit = (member) => {
     setEditingMember(member);
     setFormData({
-      first_name: member.first_name || '',
-      last_name: member.last_name || '',
+      full_name: member.full_name || '',
       email: member.email || '',
       phone: member.phone || '',
       role: member.role || 'Salesperson',
-      password: '', // Don't pre-fill password for security
-      business_name: member.business_name || '',
-      referral_code: member.referral_code || ''
+      password: ''
     });
     setShowEditDialog(true);
   };
 
   const handleDelete = async (memberId) => {
-    if (window.confirm('Are you sure you want to deactivate this team member?')) {
+    if (window.confirm('Are you sure you want to remove this team member?')) {
       try {
         await deleteTeamMember(memberId);
-        toast.success('Team member deactivated successfully');
+        toast.success('Team member removed successfully');
         fetchTeamMembers();
       } catch (error) {
-        console.error('Failed to deactivate team member:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to deactivate team member';
+        console.error('Failed to delete team member:', error);
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to remove team member';
         toast.error(errorMessage);
         setError(errorMessage);
       }
@@ -181,10 +204,9 @@ const Team = () => {
   };
 
   const filteredMembers = teamMembers.filter(member =>
-    member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.username.toLowerCase().includes(searchTerm.toLowerCase())
+    (member.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.phone || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const TeamMemberForm = () => (
@@ -195,30 +217,16 @@ const Team = () => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="first_name">First Name *</Label>
-          <Input
-            id="first_name"
-            name="first_name"
-            value={formData.first_name}
-            onChange={handleInputChange}
-            placeholder="Enter first name"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="last_name">Last Name *</Label>
-          <Input
-            id="last_name"
-            name="last_name"
-            value={formData.last_name}
-            onChange={handleInputChange}
-            placeholder="Enter last name"
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="full_name">Full Name *</Label>
+        <Input
+          id="full_name"
+          name="full_name"
+          value={formData.full_name}
+          onChange={handleInputChange}
+          placeholder="Enter full name"
+          required
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -298,29 +306,6 @@ const Team = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="business_name">Business Name</Label>
-          <Input
-            id="business_name"
-            name="business_name"
-            value={formData.business_name}
-            onChange={handleInputChange}
-            placeholder="Enter business name"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="referral_code">Referral Code</Label>
-          <Input
-            id="referral_code"
-            name="referral_code"
-            value={formData.referral_code}
-            onChange={handleInputChange}
-            placeholder="Enter referral code"
-          />
-        </div>
-      </div>
-
       <div className="flex justify-end space-x-2">
         <Button
           type="button"
@@ -328,20 +313,19 @@ const Team = () => {
           onClick={() => {
             setShowAddDialog(false);
             setShowEditDialog(false);
-            setEditingMember(null);
-            setError('');
+            resetForm();
           }}
         >
           Cancel
         </Button>
-        <Button type="submit">
-          {editingMember ? 'Update Team Member' : 'Add Team Member'}
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Saving...' : editingMember ? 'Update Team Member' : 'Add Team Member'}
         </Button>
       </div>
     </form>
   );
 
-  if (loading) {
+  if (loading && teamMembers.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -358,16 +342,16 @@ const Team = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Team Management</h1>
-          <p className="text-muted-foreground">Manage your sales team and permissions</p>
+          <p className="text-muted-foreground">Manage your sales team and their permissions</p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
+            <Button onClick={resetForm}>
+              <Plus className="h-4 w-4 mr-2" />
               Add Team Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Team Member</DialogTitle>
               <DialogDescription>
@@ -379,52 +363,13 @@ const Team = () => {
         </Dialog>
       </div>
 
-      {/* Team Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Team Members</p>
-                <p className="text-2xl font-bold">{teamMembers.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Members</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.is_active).length}</p>
-              </div>
-              <UserPlus className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Salespeople</p>
-                <p className="text-2xl font-bold">{teamMembers.filter(m => m.role === 'Salesperson').length}</p>
-              </div>
-              <Badge className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Search */}
       <Card>
         <CardContent className="pt-6">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search team members by name, email, or username..."
+              placeholder="Search team members by name, email, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -449,11 +394,11 @@ const Team = () => {
               <p className="text-muted-foreground mb-4">
                 {searchTerm
                   ? 'Try adjusting your search criteria'
-                  : 'Get started by adding your first team member'}
+                  : 'Start building your sales team by adding your first team member'}
               </p>
               {!searchTerm && (
                 <Button onClick={() => setShowAddDialog(true)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Your First Team Member
                 </Button>
               )}
@@ -465,10 +410,9 @@ const Team = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden sm:table-cell">Phone</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -476,25 +420,18 @@ const Team = () => {
                   {filteredMembers.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell>
-                        <div className="font-medium">
-                          {member.first_name} {member.last_name}
-                        </div>
+                        <div className="font-medium">{member.full_name}</div>
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{member.phone}</TableCell>
                       <TableCell>
-                        <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                          {member.username}
-                        </code>
-                      </TableCell>
-                      <TableCell>{member.phone || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        <Badge variant={member.role === 'Admin' ? 'default' : 'secondary'}>
+                          {member.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={member.is_active ? 'default' : 'destructive'}>
-                          {member.is_active ? 'Active' : 'Inactive'}
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant={member.active ? 'default' : 'destructive'}>
+                          {member.active ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -506,30 +443,29 @@ const Team = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResetPassword(member.id)}
-                          >
-                            <Key className="h-4 w-4" />
-                          </Button>
-                          {member.is_active ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(member.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          ) : (
+                          {!member.active && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleActivate(member.id)}
                             >
-                              <CheckCircle className="h-4 w-4" />
+                              <UserCheck className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetPassword(member.id)}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -543,7 +479,7 @@ const Team = () => {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Team Member</DialogTitle>
             <DialogDescription>
@@ -554,43 +490,28 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Password Display Dialog */}
-      <Dialog open={showPassword} onOpenChange={setShowPassword}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Temporary Password Generated</DialogTitle>
-            <DialogDescription>
-              Please share this temporary password with the team member. They should change it on first login.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <Alert>
-              <Key className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Temporary Password:</strong>
-                <div className="mt-2 p-2 bg-muted rounded font-mono text-lg">
-                  {tempPassword}
-                </div>
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex justify-end">
-              <Button onClick={() => {
-                navigator.clipboard.writeText(tempPassword);
-                setShowPassword(false);
-                setTempPassword('');
-              }}>
-                Copy Password & Close
-              </Button>
+      {/* Temporary Password Display */}
+      {tempPassword && (
+        <Dialog open={!!tempPassword} onOpenChange={() => setTempPassword('')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Temporary Password</DialogTitle>
+              <DialogDescription>
+                Please share this temporary password with the team member. They should change it upon first login.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 bg-muted rounded-lg">
+              <code className="text-lg font-mono">{tempPassword}</code>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="flex justify-end">
+              <Button onClick={() => setTempPassword('')}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
 export default Team;
-
 
