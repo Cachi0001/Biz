@@ -466,6 +466,11 @@ button color changed from green to blue.
 - **Problem:** Password reset was failing with CORS and 404 errors because the frontend was calling /auth/request-password-reset, which does not exist in the backend. This caused preflight to fail and the UI to show an error.
 - **Fix:** Updated frontend (src/services/api.js) to use the correct endpoint: /auth/forgot-password. Now matches backend and works like login.
 
+## [Date: 2025-07-09]
+### Bug: Password reset 404 persists after code fix
+- **Problem:** Password reset was still failing with 404 and CORS errors for /api/auth/request-password-reset, even after the code was updated to use /auth/forgot-password. This is likely due to a cached or stale frontend build being served.
+- **Fix:** Clear the build cache and redeploy the frontend to ensure the latest code is used. Confirmed that all code references use /auth/forgot-password and no references to /request-password-reset remain in the codebase.
+
 This `changesMade.md` now serves as a complete historical record of all debugging steps, errors encountered, and solutions implemented to get the dashboard fully functional.
 
 Authentication and dashboard now works but don't have the full functionality intended for them yet
