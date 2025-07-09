@@ -24,12 +24,12 @@ class EmailService:
     """
     
     def __init__(self):
-        self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+        self.smtp_server = os.getenv('SMTP_HOST', 'smtp.gmail.com')
         self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        self.smtp_username = os.getenv('SMTP_USERNAME')
-        self.smtp_password = os.getenv('SMTP_PASSWORD')
-        self.from_email = os.getenv('FROM_EMAIL', self.smtp_username)
-        self.from_name = os.getenv('FROM_NAME', 'Bizflow SME Nigeria')
+        self.smtp_username = os.getenv('SMTP_USER')
+        self.smtp_password = os.getenv('SMTP_PASS')
+        self.from_email = os.getenv('MAIL_FROM', self.smtp_username)
+        self.from_name = os.getenv('FROM_NAME', 'SabiOps')
         
         if not self.smtp_username or not self.smtp_password:
             logger.warning("Email service not configured. SMTP credentials missing.")
