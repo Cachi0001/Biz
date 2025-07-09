@@ -42,7 +42,8 @@ class EmailService:
             MIMEMultipart message object
         """
         message = MIMEMultipart('alternative')
-        message['From'] = f"{self.from_name} <{self.from_email}>"
+        formatted_from = formataddr((self.from_name, self.from_email))
+        message['From'] = formatted_from
         message['To'] = to_email
         message['Subject'] = subject
         
