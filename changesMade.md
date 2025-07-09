@@ -388,3 +388,5 @@ button color changed from green to blue.
 
 This `changesMade.md` now serves as a complete historical record of all debugging steps, errors encountered, and solutions implemented to get the dashboard fully functional.
 
+Authentication and dashboard now works but don't have the full functionality intended for them yet
+
