@@ -102,7 +102,7 @@ export const logout = async () => {
 
 export const getProfile = async () => {
   try {
-    const response = await api.get('/auth/profile');
+  const response = await api.get('/auth/profile');
     console.log("[DEBUG] getProfile response:", response.data);
     // Backend returns {success: true, data: {user: {...}}, message: "..."}
     return response.data.data || response.data; // Handle both formats for compatibility
@@ -267,7 +267,7 @@ export const deleteProduct = async (productId) => {
 
 export const getCategories = async () => {
   try {
-    const response = await api.get('/products/categories');
+  const response = await api.get('/products/categories');
     console.log("[DEBUG] getCategories response:", response.data);
     return response.data.data || response.data; // Handle both formats for compatibility
   } catch (error) {
@@ -290,7 +290,7 @@ export const getInvoices = async () => {
 
 export const getInvoice = async (invoiceId) => {
   try {
-    const response = await api.get(`/invoices/${invoiceId}`);
+  const response = await api.get(`/invoices/${invoiceId}`);
     console.log("[DEBUG] getInvoice response:", response.data);
     return response.data.data || response.data; // Handle both formats for compatibility
   } catch (error) {
@@ -394,7 +394,7 @@ export const recordPayment = async (paymentData) => {
 export const getDashboardOverview = async () => {
   try {
     console.log("[DEBUG] getDashboardOverview: Starting request to /dashboard/overview");
-    const response = await api.get('/dashboard/overview');
+  const response = await api.get('/dashboard/overview');
     console.log("[DEBUG] getDashboardOverview: Full response object:", response);
     console.log("[DEBUG] getDashboardOverview: Response status:", response.status);
     console.log("[DEBUG] getDashboardOverview: Response headers:", response.headers);
@@ -433,7 +433,7 @@ export const getDashboardOverview = async () => {
 
 export const getRevenueChart = async () => {
   try {
-    const response = await api.get('/dashboard/revenue-chart');
+  const response = await api.get('/dashboard/revenue-chart');
     console.log("[DEBUG] getRevenueChart response:", response.data);
     // Backend returns {success: true, data: {...}, message: "..."}
     return response.data.data || response.data; // Handle both formats for compatibility
@@ -446,7 +446,7 @@ export const getRevenueChart = async () => {
 // Sales Report
 export const getSalesReport = async (params) => {
   try {
-    const response = await api.get('/reports/sales', { params });
+  const response = await api.get('/reports/sales', { params });
     console.log("[DEBUG] getSalesReport response:", response.data);
     // Backend returns {success: true, data: {...}, message: "..."}
     return response.data.data || response.data; // Handle both formats for compatibility
