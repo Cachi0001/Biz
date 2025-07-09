@@ -15,7 +15,8 @@ const ForgotPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [step, setStep] = useState(1); // 1: Request, 2: Verify, 3: Reset, 4: Success
-  const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
   const [cooldown, setCooldown] = useState(0);
   const cooldownSeconds = 60;
@@ -42,7 +43,7 @@ const ForgotPassword = () => {
 
   const handleRequestReset = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsResending(true);
     try {
       await authService.requestPasswordReset(email);
       toast.success('A password reset code has been sent to you via this email ,onyemechicaleb4@gmail.com please check your spam folder');
@@ -69,7 +70,7 @@ const ForgotPassword = () => {
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsVerifying(true);
     try {
       await authService.verifyResetCode(email, resetCode);
       toast.success('Code verified. You can now set a new password.');
@@ -193,8 +194,8 @@ const ForgotPassword = () => {
                         placeholder="Enter the reset code"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
+                    <Button type="submit" className="w-full" disabled={isVerifying}>
+                      {isVerifying ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying Code...</>
                       ) : (
                         'Verify Code'
@@ -204,17 +205,20 @@ const ForgotPassword = () => {
                       type="button"
                       className="w-full mt-2"
                       variant="outline"
-                      disabled={cooldown > 0 || isLoading}
+                      disabled={cooldown > 0 || isResending}
                       onClick={handleRequestReset}
                     >
-                      {cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
+                      {isResending ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resending...</>
+                      ) : (
+                        cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
                     </Button>
+                    {cooldown > 0 && (
+                      <div className="text-center text-sm text-muted-foreground mt-2">
+                        Please wait <span className="font-semibold">{cooldown} second{cooldown !== 1 ? 's' : ''}</span> before requesting another reset code.
+                      </div>
+                    )}
                   </form>
-                )}
-                {cooldown > 0 && (
-                  <div className="text-center text-sm text-muted-foreground mt-2">
-                    Please wait <span className="font-semibold">{cooldown} second{cooldown !== 1 ? 's' : ''}</span> before requesting another reset code.
-                  </div>
                 )}
               </>
             )}

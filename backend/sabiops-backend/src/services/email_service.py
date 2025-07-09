@@ -7,16 +7,6 @@ from email import encoders
 from email.utils import formataddr
 from typing import List, Optional, Dict, Any
 from jinja2 import Template
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-logging.warning(f"[DEBUG] SMTP_USER: {os.environ.get('SMTP_USER')}")
-logging.warning(f"[DEBUG] SMTP_PASS: {'***' if os.environ.get('SMTP_PASS') else None}")
-logging.warning(f"[DEBUG] SMTP_HOST: {os.environ.get('SMTP_HOST')}")
-logging.warning(f"[DEBUG] SMTP_PORT: {os.environ.get('SMTP_PORT')}")
-logging.warning(f"[DEBUG] MAIL_FROM: {os.environ.get('MAIL_FROM')}")
 
 class EmailService:
     """
@@ -54,6 +44,7 @@ class EmailService:
         message['From'] = formatted_from
         message['To'] = to_email
         message['Subject'] = subject
+        message['Reply-To'] = 'noreply@sabiops.com'
         
         # Add text content
         if text_content:
@@ -128,7 +119,7 @@ class EmailService:
         Returns:
             Boolean indicating success
         """
-        subject = "Welcome to Bizflow SME Nigeria!"
+        subject = "Welcome to  SabiOps SME Nigeria!"
         
         html_template = """
         <!DOCTYPE html>
@@ -146,12 +137,12 @@ class EmailService:
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Welcome to Bizflow!</h1>
+                    <h1>Welcome to SabiOps!</h1>
                 </div>
                 <div class="content">
                     <h2>Hello {{ user_name }}!</h2>
-                    <p>Thank you for joining Bizflow SME Nigeria, your comprehensive business management platform.</p>
-                    <p>With Bizflow, you can:</p>
+                    <p>Thank you for joining SabiOps SME Nigeria, your comprehensive business management platform.</p>
+                    <p>With SabiOps, you can:</p>
                     <ul>
                         <li>Manage customers and track relationships</li>
                         <li>Handle inventory and product management</li>
@@ -178,18 +169,18 @@ class EmailService:
         html_content = template.render(user_name=user_name)
         
         text_content = f"""
-        Welcome to Bizflow SME Nigeria!
+        Welcome to SabiOps SME Nigeria!
         
         Hello {user_name}!
         
-        Thank you for joining Bizflow SME Nigeria, your comprehensive business management platform.
+        Thank you for joining SabiOps SME Nigeria, your comprehensive business management platform.
         
-        With Bizflow, you can manage customers, handle inventory, create invoices, process payments, and track business performance.
+        With SabiOps, you can manage customers, handle inventory, create invoices, process payments, and track business performance.
         
         Get started by logging into your dashboard and exploring the features.
         
         Best regards,
-        The Bizflow Team
+        The SabiOps Team
         """
         
         return self.send_email(user_email, subject, html_content, text_content)
