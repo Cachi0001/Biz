@@ -461,6 +461,11 @@ button color changed from green to blue.
 - **Fixes Implemented**: No fix was applied as this was an intentional change to ensure functionality. Customization options were provided to the user to change the color back to green or any other desired color by modifying the Tailwind CSS classes in the `SimpleButton` component.
 - **Outcome**: The button now renders reliably, and its color can be easily customized by the user.
 
+## [Date: 2025-07-09]
+### Bug: Password reset (CORS/404)
+- **Problem:** Password reset was failing with CORS and 404 errors because the frontend was calling /auth/request-password-reset, which does not exist in the backend. This caused preflight to fail and the UI to show an error.
+- **Fix:** Updated frontend (src/services/api.js) to use the correct endpoint: /auth/forgot-password. Now matches backend and works like login.
+
 This `changesMade.md` now serves as a complete historical record of all debugging steps, errors encountered, and solutions implemented to get the dashboard fully functional.
 
 Authentication and dashboard now works but don't have the full functionality intended for them yet

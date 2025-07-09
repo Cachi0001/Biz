@@ -118,7 +118,6 @@ export const updateProfile = async (userData) => {
 };
 
 export const requestPasswordReset = async (data) => {
-  // Now uses /auth/forgot-password
   const response = await api.post('/auth/forgot-password', data);
   return response.data;
 };
