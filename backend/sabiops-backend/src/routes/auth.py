@@ -343,27 +343,18 @@ def forgot_password():
             supabase.table("password_reset_tokens").insert(token_data).execute()
         else:
             mock_db.setdefault("password_reset_tokens", []).append(token_data)
-        # Send email (simple SMTP example)
+        # Send email using central email service
         try:
-            smtp_host = current_app.config.get("SMTP_HOST")
-            smtp_port = current_app.config.get("SMTP_PORT", 587)
-            smtp_user = current_app.config.get("SMTP_USER")
-            smtp_pass = current_app.config.get("SMTP_PASS")
-            from_email = current_app.config.get("MAIL_FROM", smtp_user)
-            to_email = email
+            from src.services.email_service import email_service
             subject = "SabiOps Password Reset Code"
             body = f"Your password reset code is: {reset_code}\nThis code expires in 1 hour."
-            msg = MIMEMultipart()
-            msg["From"] = from_email
-            msg["To"] = to_email
-            msg["Subject"] = subject
-            msg.attach(MIMEText(body, "plain"))
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(from_email, to_email, msg.as_string())
+            email_service.send_email(
+                to_email=email,
+                subject=subject,
+                text_content=body
+            )
         except Exception as mail_err:
-            print(f"[ERROR] Failed to send reset email: {mail_err}")
+            print(f"[ERROR] Failed to send reset email via email_service: {mail_err}")
             return error_response("Failed to send reset email. Contact support.", status_code=500)
         return success_response(message="A password reset code has been sent to your email.")
     except Exception as e:

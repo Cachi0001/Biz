@@ -1,5 +1,43 @@
 # Changes Made to SabiOps Project - Persistent Bug Analysis
 
+---
+
+## [2025-07-09] Backend Team Member Management Overhaul
+
+## [2025-07-09] Password Reset Email Bug Fix
+
+**File Changed:** `backend/src/routes/auth.py`
+
+### Bug/Issue Addressed
+- Password reset email was failing with `Failed to send reset email. Contact support.`
+- Direct SMTP logic in the route was error-prone and not using the central email service.
+
+### Fixes/Improvements
+- Switched password reset email logic to use the central `email_service` for sending emails
+- Improved error handling and added logging for easier debugging
+- Ensured implementation matches the logic in `IMPLEMENTATION_guide.txt`
+
+---
+
+**File Changed:** `backend/src/routes/team.py`
+
+### Bugs/Issues Addressed
+- No referral code support during team member creation
+- Hard deletion of team members instead of soft deactivation
+- Inconsistent subscription inheritance for team members
+- Missing or inconsistent fields (`created_by`, `referred_by`, `referral_code`, etc.)
+- Unclear or unfriendly error messages
+
+### Fixes/Improvements
+- Added referral code validation and assignment to `referred_by` field
+- Implemented soft deactivation: sets `is_deactivated` and `active` to `False` instead of deleting records
+- Ensured all subscription fields (`subscription_plan`, `subscription_status`, `trial_ends_at`) are inherited from owner
+- Populated all relevant fields for data consistency with Supabase schema and frontend expectations
+- Improved error messages for clarity and UX
+- Added docstrings and comments for maintainability
+
+---
+
 ## Summary
 Despite previous efforts to resolve frontend JavaScript errors related to minification, the `TypeError: n is not a function` error persists, preventing the dashboard from loading correctly. This document details the ongoing issue, its likely root cause, and proposed solutions.
 
