@@ -386,12 +386,40 @@ export const recordPayment = async (paymentData) => {
 // Dashboard
 export const getDashboardOverview = async () => {
   try {
+    console.log("[DEBUG] getDashboardOverview: Starting request to /dashboard/overview");
     const response = await api.get('/dashboard/overview');
-    console.log("[DEBUG] getDashboardOverview response:", response.data);
-    // Backend returns {success: true, data: {...}, message: "..."}
-    return response.data.data || response.data; // Handle both formats for compatibility
+    console.log("[DEBUG] getDashboardOverview: Full response object:", response);
+    console.log("[DEBUG] getDashboardOverview: Response status:", response.status);
+    console.log("[DEBUG] getDashboardOverview: Response headers:", response.headers);
+    console.log("[DEBUG] getDashboardOverview: Response data:", response.data);
+    
+    // Check if response has the expected structure
+    if (response.data && typeof response.data === 'object') {
+      if (response.data.success && response.data.data) {
+        console.log("[DEBUG] getDashboardOverview: Using response.data.data format");
+        console.log("[DEBUG] getDashboardOverview: Extracted data:", response.data.data);
+        return response.data.data;
+      } else if (response.data.revenue || response.data.customers || response.data.products) {
+        console.log("[DEBUG] getDashboardOverview: Using direct response.data format");
+        return response.data;
+      } else {
+        console.warn("[DEBUG] getDashboardOverview: Unexpected response structure, returning as-is");
+        return response.data;
+      }
+    } else {
+      console.warn("[DEBUG] getDashboardOverview: Response data is not an object:", typeof response.data);
+      return response.data;
+    }
   } catch (error) {
-    console.error("[ERROR] getDashboardOverview failed:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] getDashboardOverview failed:");
+    console.error("- Error object:", error);
+    console.error("- Error message:", error.message);
+    console.error("- Error response:", error.response);
+    if (error.response) {
+      console.error("- Response status:", error.response.status);
+      console.error("- Response data:", error.response.data);
+      console.error("- Response headers:", error.response.headers);
+    }
     throw error;
   }
 };

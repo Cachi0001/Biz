@@ -121,11 +121,20 @@ const DashboardHybrid = () => {
 
         if (getDashboardOverview) {
           try {
+            console.log('[HYBRID DASHBOARD] Calling getDashboardOverview...');
             const data = await getDashboardOverview();
-            console.log('[HYBRID DASHBOARD] Data received:', data);
+            console.log('[HYBRID DASHBOARD] Raw data received:', data);
+            console.log('[HYBRID DASHBOARD] Data type:', typeof data);
+            console.log('[HYBRID DASHBOARD] Data keys:', data ? Object.keys(data) : 'No keys');
             
             if (data) {
-              setOverview({
+              console.log('[HYBRID DASHBOARD] Processing data structure...');
+              console.log('[HYBRID DASHBOARD] data.revenue:', data.revenue);
+              console.log('[HYBRID DASHBOARD] data.customers:', data.customers);
+              console.log('[HYBRID DASHBOARD] data.products:', data.products);
+              console.log('[HYBRID DASHBOARD] data.invoices:', data.invoices);
+              
+              const processedOverview = {
                 revenue: {
                   total: data.revenue?.total || 0,
                   this_month: data.revenue?.this_month || 0,
@@ -142,12 +151,24 @@ const DashboardHybrid = () => {
                 invoices: {
                   overdue: data.invoices?.overdue || 0
                 }
-              });
+              };
+              
+              console.log('[HYBRID DASHBOARD] Processed overview:', processedOverview);
+              setOverview(processedOverview);
+            } else {
+              console.warn('[HYBRID DASHBOARD] No data received from API');
             }
           } catch (fetchError) {
             console.error('[HYBRID DASHBOARD] Data fetch failed:', fetchError);
+            console.error('[HYBRID DASHBOARD] Error details:', {
+              message: fetchError.message,
+              stack: fetchError.stack,
+              response: fetchError.response
+            });
             // Keep default values
           }
+        } else {
+          console.warn('[HYBRID DASHBOARD] getDashboardOverview function not available');
         }
       } catch (error) {
         console.error('[HYBRID DASHBOARD] General error:', error);
@@ -359,6 +380,37 @@ const DashboardHybrid = () => {
             </p>
           </SafeCardContent>
         </SafeCard>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Revenue Chart */}
+        <div className="p-4 border border-gray-200 rounded-lg bg-white">
+          <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
+          <div className="h-48 flex items-center justify-center bg-gray-50 rounded border-2 border-dashed border-gray-300">
+            <div className="text-center">
+              <div className="text-gray-400 mb-2">📈</div>
+              <p className="text-gray-500 text-sm">Revenue chart will be displayed here</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Total: {formatCurrency(overview?.revenue?.total || 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Growth Chart */}
+        <div className="p-4 border border-gray-200 rounded-lg bg-white">
+          <h3 className="text-lg font-semibold mb-4">Customer Growth</h3>
+          <div className="h-48 flex items-center justify-center bg-gray-50 rounded border-2 border-dashed border-gray-300">
+            <div className="text-center">
+              <div className="text-gray-400 mb-2">👥</div>
+              <p className="text-gray-500 text-sm">Customer growth chart will be displayed here</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Total: {overview?.customers?.total || 0} customers
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Status Section */}
