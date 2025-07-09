@@ -158,7 +158,7 @@ def register():
                 else:
                     mock_db["referrals"].append(referral_data) # Assuming referrals in mock_db
             except Exception as referral_error:
-                # Log the error but don\'t fail the registration
+                # Log the error but don't fail the registration
                 print(f"Failed to create referral record: {referral_error}")
         
         access_token = create_access_token(identity=user["id"])
@@ -203,7 +203,7 @@ def login():
         if data is None:
             return error_response(
                 error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
+                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
                 status_code=400
             )
         
@@ -293,7 +293,7 @@ def login():
         
     except Exception as e:
         print(f"[ERROR] Login failed: {e}") # Added for debugging
-        # Ensure the error message is a string and not an object like \'SUPABASE\'
+        # Ensure the error message is a string and not an object like 'SUPABASE'
         error_message = str(e)
         if "object has no attribute" in error_message and "supabase" in error_message.lower():
             error_message = "Supabase client not initialized. Running in mock mode."
@@ -314,7 +314,7 @@ reset_cooldown_lock = Lock()
 RESET_COOLDOWN_SECONDS = 60
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.json.get(\'email\') or request.form.get(\'email\') or request.args.get(\'email\', \'\'))
+@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
     """Request a password reset code via email."""
     try:
@@ -357,7 +357,7 @@ def forgot_password():
             if recent_token.data:
                 last_time = recent_token.data[0].get("created_at")
                 if last_time:
-                    # Parse as UTC (handles both \'Z\' and offset)
+                    # Parse as UTC (handles both 'Z' and offset)
                     last_time_dt = datetime.fromisoformat(last_time).replace(tzinfo=timezone.utc)
                     delta = (now - last_time_dt).total_seconds()
                     if delta < RESET_COOLDOWN_SECONDS:
@@ -556,7 +556,7 @@ def get_profile():
 def verify_token():
     """
     Verify JWT token and return user information.
-    This endpoint is called by the frontend to check if the user\'s token is still valid.
+    This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
         print(f"[DEBUG] verify_token: Request headers: {request.headers}")
@@ -610,7 +610,7 @@ def verify_token():
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
                     "owner_id": user.get("owner_id"),
-                    "active": user.get("active", True) # Ensure \'active\' is always returned
+                    "active": user.get("active", True) # Ensure 'active' is always returned
                 }
             }
         )
