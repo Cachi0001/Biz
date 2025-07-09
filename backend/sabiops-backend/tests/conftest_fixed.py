@@ -133,6 +133,8 @@ def app(mock_supabase):
     try:
         # Try to import the actual app
         from index import app as flask_app
+        
+        # Override config for testing
         flask_app.config['TESTING'] = True
         flask_app.config['SUPABASE'] = mock_supabase
         flask_app.config['MOCK_DB'] = {
@@ -145,12 +147,26 @@ def app(mock_supabase):
             'team': [],
             'transactions': [],
             'payments': [],
-            'settings': {}
+            'settings': {},
+            'referrals': []
         }
+        
+        # Override the before_request handler for testing
+        @flask_app.before_request
+        def load_test_data():
+            from flask import g
+            g.user = None
+            g.supabase = mock_supabase
+            g.mock_db = flask_app.config['MOCK_DB']
+        
         return flask_app
-    except ImportError:
+        
+    except ImportError as e:
+        print(f"Could not import app: {e}")
         # Create a minimal Flask app if the main app can't be imported
         from flask import Flask, g
+        from flask_jwt_extended import JWTManager
+        
         flask_app = Flask(__name__)
         flask_app.config['TESTING'] = True
         flask_app.config['SECRET_KEY'] = 'test_secret_key'
@@ -166,14 +182,23 @@ def app(mock_supabase):
             'team': [],
             'transactions': [],
             'payments': [],
-            'settings': {}
+            'settings': {},
+            'referrals': []
         }
+        
+        # Initialize JWT
+        jwt = JWTManager(flask_app)
         
         @flask_app.before_request
         def load_mock_data():
             g.user = None
             g.supabase = mock_supabase
             g.mock_db = flask_app.config['MOCK_DB']
+        
+        # Register a simple test route
+        @flask_app.route('/test')
+        def test_route():
+            return 'Test route working'
         
         return flask_app
 

@@ -12,7 +12,7 @@ class TestAuthRoutes:
     
     def test_register_success(self, client, mock_supabase):
         """Test successful user registration."""
-        response = client.post('/api/auth/register', json={
+        response = client.post('/auth/register', json={
             'full_name': 'John Doe',
             'email': 'john@example.com',
             'phone': '+2348012345678',
@@ -27,7 +27,7 @@ class TestAuthRoutes:
     
     def test_register_missing_fields(self, client):
         """Test registration with missing required fields."""
-        response = client.post('/api/auth/register', json={
+        response = client.post('/auth/register', json={
             'full_name': 'John Doe',
             'email': 'john@example.com'
             # Missing phone and password
@@ -40,7 +40,7 @@ class TestAuthRoutes:
     
     def test_register_invalid_email(self, client):
         """Test registration with invalid email format."""
-        response = client.post('/api/auth/register', json={
+        response = client.post('/auth/register', json={
             'full_name': 'John Doe',
             'email': 'invalid-email',
             'phone': '+2348012345678',
@@ -53,7 +53,7 @@ class TestAuthRoutes:
     def test_login_success(self, client, mock_supabase):
         """Test successful login."""
         # First register a user
-        register_response = client.post('/api/auth/register', json={
+        register_response = client.post('/auth/register', json={
             'full_name': 'John Doe',
             'email': 'john@example.com',
             'phone': '+2348012345678',
@@ -62,7 +62,7 @@ class TestAuthRoutes:
         
         if register_response.status_code in [200, 201]:
             # Then try to login
-            login_response = client.post('/api/auth/login', json={
+            login_response = client.post('/auth/login', json={
                 'email': 'john@example.com',
                 'password': 'password123'
             })
@@ -73,7 +73,7 @@ class TestAuthRoutes:
     def test_login_phone_number(self, client, mock_supabase):
         """Test login with phone number."""
         # Register a user first
-        register_response = client.post('/api/auth/register', json={
+        register_response = client.post('/auth/register', json={
             'full_name': 'Jane Doe',
             'email': 'jane@example.com',
             'phone': '+2348087654321',
@@ -82,7 +82,7 @@ class TestAuthRoutes:
         
         if register_response.status_code in [200, 201]:
             # Try login with phone
-            login_response = client.post('/api/auth/login', json={
+            login_response = client.post('/auth/login', json={
                 'phone': '+2348087654321',
                 'password': 'password123'
             })
@@ -91,7 +91,7 @@ class TestAuthRoutes:
     
     def test_login_invalid_credentials(self, client):
         """Test login with invalid credentials."""
-        response = client.post('/api/auth/login', json={
+        response = client.post('/auth/login', json={
             'email': 'nonexistent@example.com',
             'password': 'wrongpassword'
         })
@@ -103,7 +103,7 @@ class TestAuthRoutes:
     def test_forgot_password_flow(self, client):
         """Test forgot password functionality."""
         # Test forgot password request
-        response = client.post('/api/auth/forgot-password', json={
+        response = client.post('/auth/forgot-password', json={
             'email': 'test@example.com'
         })
         
@@ -112,7 +112,7 @@ class TestAuthRoutes:
         
     def test_protected_route_without_token(self, client):
         """Test accessing protected route without authorization."""
-        response = client.get('/api/dashboard')
+        response = client.get('/dashboard')
         
         # Should be unauthorized
         assert response.status_code in [401, 403]
