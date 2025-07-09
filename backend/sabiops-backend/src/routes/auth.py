@@ -327,8 +327,10 @@ def forgot_password():
             return error_response("Email is required", message="Please enter your email address.", status_code=400)
         # Find user
         user = None
+        logging.warning(f"[DEBUG] Password reset requested for email: {email}")
         if supabase:
             user_result = supabase.table("users").select("id").eq("email", email).execute()
+            logging.warning(f"[DEBUG] Supabase user lookup result: {user_result.data}")
             if user_result.data:
                 user = user_result.data[0]
         else:
@@ -337,6 +339,7 @@ def forgot_password():
                     user = u
                     break
         if not user:
+            logging.warning(f"[DEBUG] No user found for email: {email}")
             return error_response("Email not found", message="No account with this email.", status_code=404)
         # --- Cooldown check ---
         from datetime import timezone
@@ -352,6 +355,7 @@ def forgot_password():
                 .limit(1)
                 .execute()
             )
+            logging.warning(f"[DEBUG] Supabase recent_token result: {recent_token.data}")
             if recent_token.data:
                 last_time = recent_token.data[0].get("created_at")
                 if last_time:
@@ -361,6 +365,7 @@ def forgot_password():
                     else:
                         last_time_dt = datetime.fromisoformat(last_time)
                     delta = (now - last_time_dt).total_seconds()
+                    logging.warning(f"[DEBUG] Cooldown calculation: now={now}, last_time_dt={last_time_dt}, delta={delta}")
                     if delta < RESET_COOLDOWN_SECONDS:
                         cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
         else:
@@ -368,9 +373,11 @@ def forgot_password():
                 last_time = reset_cooldown_cache.get(email)
                 if last_time:
                     delta = (now - last_time).total_seconds()
+                    logging.warning(f"[DEBUG] Cooldown calculation (mock_db): now={now}, last_time={last_time}, delta={delta}")
                     if delta < RESET_COOLDOWN_SECONDS:
                         cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
         if cooldown_remaining > 0:
+            logging.warning(f"[DEBUG] Cooldown active for {email}: {cooldown_remaining}s remaining")
             return error_response(
                 "Please wait before requesting another reset.",
                 message=f"Please wait {cooldown_remaining} seconds before requesting another reset.",
@@ -383,6 +390,7 @@ def forgot_password():
         # Generate code
         reset_code = token_urlsafe(6)[:6].upper()
         expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        logging.warning(f"[DEBUG] Generated reset code for {email}: {reset_code}")
         token_data = {
             "user_id": user["id"],
             "reset_code": reset_code,
@@ -391,15 +399,17 @@ def forgot_password():
             "created_at": now.isoformat()  # for cooldown tracking
         }
         if supabase:
-            supabase.table("password_reset_tokens").insert(token_data).execute()
+            insert_result = supabase.table("password_reset_tokens").insert(token_data).execute()
+            logging.warning(f"[DEBUG] Supabase insert token result: {insert_result}")
         else:
             mock_db.setdefault("password_reset_tokens", []).append(token_data)
+            logging.warning(f"[DEBUG] Token appended to mock_db for {email}")
         # Send email using central email service
         try:
             from src.services.email_service import email_service
             subject = "SabiOps Password Reset Code"
             body = f"Your password reset code is: {reset_code}\nThis code expires in 1 hour."
-            logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service.")
+            logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service. Subject: {subject}, Body: {body}")
             email_service.send_email(
                 to_email=email,
                 subject=subject,
@@ -411,7 +421,7 @@ def forgot_password():
             return error_response("Failed to send reset email. Contact support.", status_code=500)
         return success_response(message="A password reset code has been sent to your email.")
     except Exception as e:
-        logging.error(f"[ERROR] Exception in forgot_password: {e}")
+        logging.error(f"[ERROR] Exception in forgot_password: {e}", exc_info=True)
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/verify-reset-code", methods=["POST"])

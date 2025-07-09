@@ -153,57 +153,70 @@ const ForgotPassword = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {step === 1 && (
-  <form onSubmit={handleRequestReset} className="space-y-4">
-    <div className="space-y-2">
-      <Label htmlFor="email">Email Address</Label>
-      <Input
-        id="email"
-        name="email"
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        disabled={isLoading || cooldown > 0}
-      />
-    </div>
-    <Button type="submit" className="w-full" disabled={isLoading || cooldown > 0}>
-      {isLoading ? (
-        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
-      ) : (
-        cooldown > 0 ? `Send Reset Code (${cooldown}s)` : 'Send Reset Code'
-      )}
-    </Button>
-    {cooldown > 0 && (
-      <div className="text-center text-sm text-muted-foreground mt-2">
-        Please wait <span className="font-semibold">{cooldown} second{cooldown !== 1 ? 's' : ''}</span> before requesting another reset code.
-      </div>
-    )}
-  </form>
-)}
-            {step === 2 && (
-              <form onSubmit={handleVerifyCode} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="resetCode">Reset Code</Label>
-                  <Input
-                    id="resetCode"
-                    name="resetCode"
-                    type="text"
-                    required
-                    value={resetCode}
-                    onChange={(e) => setResetCode(e.target.value)}
-                    placeholder="Enter the reset code"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying Code...</>
-                  ) : (
-                    'Verify Code'
-                  )}
-                </Button>
-              </form>
+            {(step === 1 || step === 2) && (
+              <>
+                {step === 1 && (
+                  <form onSubmit={handleRequestReset} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        disabled={isLoading || cooldown > 0}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading || cooldown > 0}>
+                      {isLoading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
+                      ) : (
+                        cooldown > 0 ? `Send Reset Code (${cooldown}s)` : 'Send Reset Code'
+                      )}
+                    </Button>
+                  </form>
+                )}
+                {step === 2 && (
+                  <form onSubmit={handleVerifyCode} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="resetCode">Reset Code</Label>
+                      <Input
+                        id="resetCode"
+                        name="resetCode"
+                        type="text"
+                        required
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                        placeholder="Enter the reset code"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying Code...</>
+                      ) : (
+                        'Verify Code'
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-full mt-2"
+                      variant="outline"
+                      disabled={cooldown > 0 || isLoading}
+                      onClick={handleRequestReset}
+                    >
+                      {cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
+                    </Button>
+                  </form>
+                )}
+                {cooldown > 0 && (
+                  <div className="text-center text-sm text-muted-foreground mt-2">
+                    Please wait <span className="font-semibold">{cooldown} second{cooldown !== 1 ? 's' : ''}</span> before requesting another reset code.
+                  </div>
+                )}
+              </>
             )}
             {step === 3 && (
               <form onSubmit={handleResetPassword} className="space-y-4">
