@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -24,20 +24,20 @@ export default defineConfig({
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
@@ -49,12 +49,12 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                maxAgeSeconds: 60 * 60 * 24, // 24 hours
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+                statuses: [0, 200],
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/res\.cloudinary\.com\//,
@@ -63,13 +63,13 @@ export default defineConfig({
               cacheName: 'images-cache',
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          }
-        ]
-      }
-    })
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: {
@@ -80,10 +80,13 @@ export default defineConfig({
     target: 'es2015',
     minify: 'terser',
     terserOptions: {
+      mangle: {
+        keep_fnames: true, // Preserve function names to prevent minification issues
+      },
       compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
+        drop_console: false, // Keep console logs for debugging
+        drop_debugger: true,
+      },
     },
     rollupOptions: {
       output: {
@@ -91,29 +94,29 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
           charts: ['recharts'],
-          utils: ['axios', 'date-fns', 'clsx']
-        }
-      }
+          utils: ['axios', 'date-fns', 'clsx'],
+        },
+      },
     },
     chunkSizeWarningLimit: 1000,
-    sourcemap: false
+    sourcemap: true, // Enable source maps for debugging
   },
   server: {
     port: 3000,
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5000', // Use local backend for development
         changeOrigin: true,
-        secure: false
-      }
-    }
+        secure: false,
+      },
+    },
   },
   preview: {
     port: 3000,
-    host: true
+    host: true,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'axios', 'date-fns']
-  }
-})
+    include: ['react', 'react-dom', 'axios', 'date-fns'],
+  },
+});
