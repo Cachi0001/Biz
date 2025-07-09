@@ -168,11 +168,11 @@ const ForgotPassword = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter your email"
-                        disabled={isLoading || cooldown > 0}
+                        disabled={isVerifying || cooldown > 0}
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={isLoading || cooldown > 0}>
-                      {isLoading ? (
+                    <Button type="submit" className="w-full" disabled={isVerifying || cooldown > 0}>
+                      {isVerifying ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
                       ) : (
                         cooldown > 0 ? `Send Reset Code (${cooldown}s)` : 'Send Reset Code'
@@ -249,8 +249,8 @@ const ForgotPassword = () => {
                     placeholder="Confirm your new password"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="w-full" disabled={isVerifying}>
+                  {isVerifying ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting Password...</>
                   ) : (
                     'Reset Password'
