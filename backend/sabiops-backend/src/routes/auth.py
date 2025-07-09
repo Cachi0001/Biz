@@ -339,7 +339,8 @@ def forgot_password():
         if not user:
             return error_response("Email not found", message="No account with this email.", status_code=404)
         # --- Cooldown check ---
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         cooldown_remaining = 0
         if supabase:
             # Try to get last reset request from tokens
@@ -354,7 +355,11 @@ def forgot_password():
             if recent_token.data:
                 last_time = recent_token.data[0].get("created_at")
                 if last_time:
-                    last_time_dt = datetime.fromisoformat(last_time.replace("Z", ""))
+                    # Parse as UTC (handles both 'Z' and offset)
+                    if last_time.endswith("Z"):
+                        last_time_dt = datetime.fromisoformat(last_time.replace("Z", "+00:00"))
+                    else:
+                        last_time_dt = datetime.fromisoformat(last_time)
                     delta = (now - last_time_dt).total_seconds()
                     if delta < RESET_COOLDOWN_SECONDS:
                         cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
