@@ -112,7 +112,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      checkAuth,
+      // Derived values with safe defaults
+      isFreeTrial: user?.subscription_status?.toLowerCase() === 'free_trial' || false,
+      isPremium: user?.subscription_status?.toLowerCase() === 'premium' || false,
+      isBasic: user?.subscription_status?.toLowerCase() === 'basic' || false,
+      trialDaysLeft: user?.trial_days_left || 0,
+      canAccessFeature: (feature) => {
+        if (!user) return false;
+        const subscription = user.subscription_status?.toLowerCase();
+        // Add feature access logic here
+        return subscription === 'premium' || subscription === 'basic';
+      }
+    }}>
       {children}
     </AuthContext.Provider>
   );
