@@ -11,6 +11,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+logging.warning(f"[DEBUG] SMTP_USER: {os.environ.get('SMTP_USER')}")
+logging.warning(f"[DEBUG] SMTP_PASS: {'***' if os.environ.get('SMTP_PASS') else None}")
+logging.warning(f"[DEBUG] SMTP_HOST: {os.environ.get('SMTP_HOST')}")
+logging.warning(f"[DEBUG] SMTP_PORT: {os.environ.get('SMTP_PORT')}")
+logging.warning(f"[DEBUG] MAIL_FROM: {os.environ.get('MAIL_FROM')}")
+
 class EmailService:
     """
     Comprehensive email service for sending notifications, invoices, and other business communications
