@@ -250,7 +250,7 @@ Frontend (React with Tailwind CSS)
 Pages:
 
 Landing: "Get Started" button
-Register: Phone required, email optional, referral code optional
+Register: Phone required, email, referral code optional
 Login: Phone or email
 Forgot Password: Multi-step form for email, code verification, and password update
 Dashboard: Metrics, actions, trial/upgrade status (owner-only), crown for owners on weekly plan

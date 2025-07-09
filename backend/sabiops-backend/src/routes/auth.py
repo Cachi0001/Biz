@@ -7,6 +7,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pytz
+from secrets import token_urlsafe
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -297,6 +300,166 @@ def login():
             message=f"An error occurred during login: {error_message}",
             status_code=500
         )
+
+# Setup Flask-Limiter (if not already set up elsewhere)
+limiter = Limiter(key_func=get_remote_address)
+
+# --- Password Reset Endpoints ---
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+@limiter.limit("5 per hour")
+def forgot_password():
+    """Request a password reset code via email."""
+    try:
+        supabase = g.supabase
+        mock_db = g.mock_db
+        data = request.get_json()
+        email = data.get("email")
+        if not email:
+            return error_response("Email is required", status_code=400)
+        # Find user
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("*").eq("email", email).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["email"] == email:
+                    user = u
+                    break
+        if not user:
+            return error_response("Email not found", message="No account with this email.", status_code=404)
+        # Generate code
+        reset_code = token_urlsafe(6)[:6].upper()
+        expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        token_data = {
+            "user_id": user["id"],
+            "reset_code": reset_code,
+            "expires_at": expires_at,
+            "used": False
+        }
+        if supabase:
+            supabase.table("password_reset_tokens").insert(token_data).execute()
+        else:
+            mock_db.setdefault("password_reset_tokens", []).append(token_data)
+        # Send email (simple SMTP example)
+        try:
+            smtp_host = current_app.config.get("SMTP_HOST")
+            smtp_port = current_app.config.get("SMTP_PORT", 587)
+            smtp_user = current_app.config.get("SMTP_USER")
+            smtp_pass = current_app.config.get("SMTP_PASS")
+            from_email = current_app.config.get("MAIL_FROM", smtp_user)
+            to_email = email
+            subject = "SabiOps Password Reset Code"
+            body = f"Your password reset code is: {reset_code}\nThis code expires in 1 hour."
+            msg = MIMEMultipart()
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Subject"] = subject
+            msg.attach(MIMEText(body, "plain"))
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, to_email, msg.as_string())
+        except Exception as mail_err:
+            print(f"[ERROR] Failed to send reset email: {mail_err}")
+            return error_response("Failed to send reset email. Contact support.", status_code=500)
+        return success_response(message="A password reset code has been sent to your email.")
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/verify-reset-code", methods=["POST"])
+def verify_reset_code():
+    """Verify a password reset code."""
+    try:
+        supabase = g.supabase
+        mock_db = g.mock_db
+        data = request.get_json()
+        email = data.get("email")
+        reset_code = data.get("reset_code")
+        if not email or not reset_code:
+            return error_response("Email and reset code are required", status_code=400)
+        # Find user
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("id").eq("email", email).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["email"] == email:
+                    user = u
+                    break
+        if not user:
+            return error_response("Email not found", status_code=404)
+        # Find token
+        if supabase:
+            token_result = supabase.table("password_reset_tokens").select("*").eq("user_id", user["id"]).eq("reset_code", reset_code).eq("used", False).execute()
+            token = token_result.data[0] if token_result.data else None
+        else:
+            token = next((t for t in mock_db.get("password_reset_tokens", []) if t["user_id"] == user["id"] and t["reset_code"] == reset_code and not t["used"]), None)
+        if not token:
+            return error_response("Invalid or expired code", status_code=400)
+        # Check expiry
+        if datetime.fromisoformat(token["expires_at"]) < datetime.utcnow():
+            return error_response("Code expired", status_code=400)
+        return success_response(message="Code is valid.")
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    """Reset password using code."""
+    try:
+        supabase = g.supabase
+        mock_db = g.mock_db
+        data = request.get_json()
+        email = data.get("email")
+        reset_code = data.get("reset_code")
+        new_password = data.get("new_password")
+        if not email or not reset_code or not new_password:
+            return error_response("Email, reset code, and new password are required", status_code=400)
+        # Find user
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("*").eq("email", email).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["email"] == email:
+                    user = u
+                    break
+        if not user:
+            return error_response("Email not found", status_code=404)
+        # Find token
+        if supabase:
+            token_result = supabase.table("password_reset_tokens").select("*").eq("user_id", user["id"]).eq("reset_code", reset_code).eq("used", False).execute()
+            token = token_result.data[0] if token_result.data else None
+        else:
+            token = next((t for t in mock_db.get("password_reset_tokens", []) if t["user_id"] == user["id"] and t["reset_code"] == reset_code and not t["used"]), None)
+        if not token:
+            return error_response("Invalid or expired code", status_code=400)
+        # Check expiry
+        if datetime.fromisoformat(token["expires_at"]) < datetime.utcnow():
+            return error_response("Code expired", status_code=400)
+        # Update password
+        password_hash = generate_password_hash(new_password)
+        if supabase:
+            supabase.table("users").update({"password_hash": password_hash}).eq("id", user["id"]).execute()
+            supabase.table("password_reset_tokens").update({"used": True}).eq("id", token["id"]).execute()
+        else:
+            for i, u in enumerate(mock_db["users"]):
+                if u["id"] == user["id"]:
+                    mock_db["users"][i]["password_hash"] = password_hash
+            for i, t in enumerate(mock_db.get("password_reset_tokens", [])):
+                if t["user_id"] == user["id"] and t["reset_code"] == reset_code:
+                    mock_db["password_reset_tokens"][i]["used"] = True
+        return success_response(message="Password has been reset successfully.")
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
 @auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def get_profile():

@@ -118,11 +118,19 @@ export const updateProfile = async (userData) => {
 };
 
 export const requestPasswordReset = async (data) => {
-  const response = await api.post('/auth/request-password-reset', data);
+  // Now uses /auth/forgot-password
+  const response = await api.post('/auth/forgot-password', data);
+  return response.data;
+};
+
+export const verifyResetCode = async (data) => {
+  // New endpoint for verifying code
+  const response = await api.post('/auth/verify-reset-code', data);
   return response.data;
 };
 
 export const resetPassword = async (data) => {
+  // Now uses /auth/reset-password
   const response = await api.post('/auth/reset-password', data);
   return response.data;
 };

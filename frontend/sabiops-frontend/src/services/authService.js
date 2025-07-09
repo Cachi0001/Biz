@@ -1,4 +1,4 @@
-import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken } from './api';
+import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken, verifyResetCode } from './api';
 
 export const authService = {
   // User login
@@ -37,9 +37,19 @@ export const authService = {
   async requestPasswordReset(email) {
     try {
       const response = await requestPasswordReset({ email });
-      return response.data;
+      return response; // No .data, API returns the response directly
     } catch (error) {
       throw error.response?.data || { error: "Failed to request password reset" };
+    }
+  },
+
+  // Verify reset code
+  async verifyResetCode(email, resetCode) {
+    try {
+      const response = await verifyResetCode({ email, reset_code: resetCode });
+      return response;
+    } catch (error) {
+      throw error.response?.data || { error: "Failed to verify reset code" };
     }
   },
 
@@ -47,7 +57,7 @@ export const authService = {
   async resetPassword(email, resetCode, newPassword) {
     try {
       const response = await resetPassword({ email, reset_code: resetCode, new_password: newPassword });
-      return response.data;
+      return response;
     } catch (error) {
       throw error.response?.data || { error: "Failed to reset password" };
     }
