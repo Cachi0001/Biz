@@ -28,10 +28,24 @@ def error_response(error, message="Error", status_code=400):
 @auth_bp.route("/register", methods=["POST"])
 def register():
     print("[DEBUG] /auth/register endpoint called")
+    print(f"[DEBUG] Request method: {request.method}")
+    print(f"[DEBUG] Request headers: {dict(request.headers)}")
+    print(f"[DEBUG] Request content type: {request.content_type}")
+    
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
+        
+        print(f"[DEBUG] Request data received: {data}")
+        
+        if data is None:
+            print("[ERROR] No JSON data received")
+            return error_response(
+                error="No JSON data",
+                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
+                status_code=400
+            )
         
         required_fields = ["email", "phone", "password", "full_name"]
         for field in required_fields:
@@ -169,10 +183,16 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     print("[DEBUG] /auth/login endpoint called")
+    print(f"[DEBUG] Request method: {request.method}")
+    print(f"[DEBUG] Request headers: {dict(request.headers)}")
+    print(f"[DEBUG] Request content type: {request.content_type}")
+    
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
+        
+        print(f"[DEBUG] Request data received: {data}")
         
         # Validate that data is actually a dictionary
         if data is None:
@@ -391,13 +411,27 @@ def verify_token():
         )
 
 # Error handler for JWT errors
-@auth_bp.app_errorhandler(401)
+@auth_bp.errorhandler(401)
 def handle_auth_error(e):
-    print(f"[DEBUG] JWT Error Handler: Type: {type(e).__name__}, Message: {e}")
-    if isinstance(e, (JWTManager.ExpiredSignatureError, JWTManager.InvalidTokenError, JWTManager.DecodeError, JWTManager.NoAuthorizationError)):
-        return error_response(str(e), message="Authentication failed: Invalid or expired token", status_code=401)
+    print(f"[ERROR] JWT Error Handler: Type: {type(e).__name__}, Message: {e}")
+    print(f"[ERROR] Request URL: {request.url}")
+    print(f"[ERROR] Request Headers: {dict(request.headers)}")
+    
+    # Handle specific JWT exceptions
+    from flask_jwt_extended.exceptions import JWTExtendedException
+    if isinstance(e, JWTExtendedException):
+        return error_response(
+            error=str(e),
+            message="Authentication failed: Invalid or expired token",
+            status_code=401
+        )
+    
     # Catch any other exception that might lead to a 401
-    return error_response(str(e), message="Authentication failed", status_code=401)
+    return error_response(
+        error=str(e),
+        message="Authentication failed",
+        status_code=401
+    )
 
 
 

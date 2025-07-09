@@ -47,28 +47,50 @@ export const removeAuthToken = () => localStorage.removeItem('token');
 // Authentication endpoints
 export const register = async (userData) => {
   try {
+    console.log("[DEBUG] Register request data:", userData);
     const response = await api.post("/auth/register", userData);
-    if (response.data.access_token) {
+    console.log("[DEBUG] Register response:", response);
+    console.log("[DEBUG] Register response data:", response.data);
+    
+    if (response.data.data && response.data.data.access_token) {
+      setAuthToken(response.data.data.access_token);
+      console.log("[DEBUG] Token set from response.data.data.access_token");
+    } else if (response.data.access_token) {
       setAuthToken(response.data.access_token);
+      console.log("[DEBUG] Token set from response.data.access_token");
     }
+    
     console.log("[DEBUG] Register success:", response.data);
     return response.data;
   } catch (error) {
-    console.error("[ERROR] Register failed:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] Register failed:", error);
+    console.error("[ERROR] Register error response:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] Register error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
 };
 
 export const login = async (credentials) => {
   try {
+    console.log("[DEBUG] Login request data:", credentials);
     const response = await api.post("/auth/login", credentials);
-    if (response.data.access_token) {
+    console.log("[DEBUG] Login response:", response);
+    console.log("[DEBUG] Login response data:", response.data);
+    
+    if (response.data.data && response.data.data.access_token) {
+      setAuthToken(response.data.data.access_token);
+      console.log("[DEBUG] Token set from response.data.data.access_token");
+    } else if (response.data.access_token) {
       setAuthToken(response.data.access_token);
+      console.log("[DEBUG] Token set from response.data.access_token");
     }
+    
     console.log("[DEBUG] Login success:", response.data);
     return response.data;
   } catch (error) {
-    console.error("[ERROR] Login failed:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] Login failed:", error);
+    console.error("[ERROR] Login error response:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] Login error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
 };
@@ -79,8 +101,15 @@ export const logout = async () => {
 };
 
 export const getProfile = async () => {
-  const response = await api.get('/auth/profile');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/auth/profile');
+    console.log("[DEBUG] getProfile response:", response.data);
+    // Backend returns {success: true, data: {user: {...}}, message: "..."}
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getProfile failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const updateProfile = async (userData) => {
@@ -105,8 +134,15 @@ export const createTeamMember = async (memberData) => {
 
 // Team Management
 export const getTeamMembers = async () => {
-  const response = await api.get('/auth/team-members');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/auth/team-members');
+    console.log("[DEBUG] getTeamMembers response:", response.data);
+    // Backend returns {success: true, data: {...}, message: "..."}
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getTeamMembers failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const updateTeamMember = async (memberId, memberData) => {
@@ -132,11 +168,25 @@ export const resetTeamMemberPassword = async (memberId) => {
 // New verifyToken method
 export const verifyToken = async () => {
   try {
+    console.log("[DEBUG] verifyToken called");
+    console.log("[DEBUG] Current token:", getAuthToken());
+    
     const response = await api.post("/auth/verify-token");
+    console.log("[DEBUG] verifyToken response:", response);
+    console.log("[DEBUG] verifyToken response data:", response.data);
     console.log("[DEBUG] verifyToken success:", response.data);
     return response.data;
   } catch (error) {
-    console.error("[ERROR] verifyToken failed:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] verifyToken failed:", error);
+    console.error("[ERROR] verifyToken error response:", error.response ? error.response.data : error.message);
+    console.error("[ERROR] verifyToken error status:", error.response ? error.response.status : 'No status');
+    
+    // If token verification fails, remove the invalid token
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      console.log("[DEBUG] Removing invalid token due to 401/403 error");
+      removeAuthToken();
+    }
+    
     throw error; // Re-throw the error so it can be caught by the calling component
   }
 };
@@ -154,8 +204,15 @@ export const testDatabase = async () => {
 
 // Customers
 export const getCustomers = async () => {
-  const response = await api.get('/customers/');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/customers/');
+    console.log("[DEBUG] getCustomers response:", response.data);
+    // Backend returns {success: true, data: {customers: [...]}, message: "..."}
+    return response.data.data?.customers || response.data.data || response.data; // Handle nested data structure
+  } catch (error) {
+    console.error("[ERROR] getCustomers failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const createCustomer = async (customerData) => {
@@ -175,8 +232,15 @@ export const deleteCustomer = async (customerId) => {
 
 // Products
 export const getProducts = async () => {
-  const response = await api.get('/products/');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/products/');
+    console.log("[DEBUG] getProducts response:", response.data);
+    // Backend returns {success: true, data: {products: [...]}, message: "..."}
+    return response.data.data?.products || response.data.data || response.data; // Handle nested data structure
+  } catch (error) {
+    console.error("[ERROR] getProducts failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const createProduct = async (productData) => {
@@ -195,19 +259,37 @@ export const deleteProduct = async (productId) => {
 };
 
 export const getCategories = async () => {
-  const response = await api.get('/products/categories');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/products/categories');
+    console.log("[DEBUG] getCategories response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getCategories failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 // Invoices
 export const getInvoices = async () => {
-  const response = await api.get('/invoices/');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/invoices/');
+    console.log("[DEBUG] getInvoices response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getInvoices failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const getInvoice = async (invoiceId) => {
-  const response = await api.get(`/invoices/${invoiceId}`);
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get(`/invoices/${invoiceId}`);
+    console.log("[DEBUG] getInvoice response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getInvoice failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const createInvoice = async (invoiceData) => {
@@ -242,8 +324,14 @@ export const downloadInvoicePdf = async (invoiceId) => {
 
 // Expenses
 export const getExpenses = async () => {
-  const response = await api.get('/expenses/');
-  return response.data.data; // Assuming data is nested under 'data' key
+  try {
+    const response = await api.get('/expenses/');
+    console.log("[DEBUG] getExpenses response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getExpenses failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const createExpense = async (expenseData) => {
@@ -263,8 +351,14 @@ export const deleteExpense = async (expenseId) => {
 
 // Sales (assuming these are separate from invoices for now, if needed)
 export const getSales = async () => {
-  const response = await api.get('/sales/');
-  return response.data.data; // Assuming data is nested under 'data' key
+  try {
+    const response = await api.get('/sales/');
+    console.log("[DEBUG] getSales response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getSales failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const createSale = async (saleData) => {
@@ -274,8 +368,14 @@ export const createSale = async (saleData) => {
 
 // Payments (if separate from invoices/sales)
 export const getPayments = async () => {
-  const response = await api.get('/payments/');
-  return response.data.data; // Assuming data is nested under 'data' key
+  try {
+    const response = await api.get('/payments/');
+    console.log("[DEBUG] getPayments response:", response.data);
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getPayments failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const recordPayment = async (paymentData) => {
@@ -285,19 +385,40 @@ export const recordPayment = async (paymentData) => {
 
 // Dashboard
 export const getDashboardOverview = async () => {
-  const response = await api.get('/dashboard/overview');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/dashboard/overview');
+    console.log("[DEBUG] getDashboardOverview response:", response.data);
+    // Backend returns {success: true, data: {...}, message: "..."}
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getDashboardOverview failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const getRevenueChart = async () => {
-  const response = await api.get('/dashboard/revenue-chart');
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/dashboard/revenue-chart');
+    console.log("[DEBUG] getRevenueChart response:", response.data);
+    // Backend returns {success: true, data: {...}, message: "..."}
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getRevenueChart failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 // Sales Report
 export const getSalesReport = async (params) => {
-  const response = await api.get('/reports/sales', { params });
-  return response.data.data; // Ensure consistent data access
+  try {
+    const response = await api.get('/reports/sales', { params });
+    console.log("[DEBUG] getSalesReport response:", response.data);
+    // Backend returns {success: true, data: {...}, message: "..."}
+    return response.data.data || response.data; // Handle both formats for compatibility
+  } catch (error) {
+    console.error("[ERROR] getSalesReport failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
 
 export const downloadSalesReport = async (params, format) => {
