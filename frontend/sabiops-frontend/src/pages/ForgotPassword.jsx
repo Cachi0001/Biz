@@ -17,6 +17,8 @@ const ForgotPassword = () => {
   const [step, setStep] = useState(1); // 1: Request, 2: Verify, 3: Reset, 4: Success
   const [isLoading, setIsLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownSeconds = 60;
 
   useEffect(() => {
     // If user is logged in and not Owner, block access
@@ -29,19 +31,41 @@ const ForgotPassword = () => {
     }
   }, []);
 
+  // Timer effect
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   const handleRequestReset = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await authService.requestPasswordReset(email);
-      toast.success('A password reset code has been sent to your email.');
+      toast.success('A password reset code has been sent to you via this email ,onyemechicaleb4@gmail.com please check your spam folder');
       setStep(2);
+      setCooldown(cooldownSeconds);
     } catch (err) {
-      const errorMessage = err.message || 'Failed to send reset code. Please try again.';
-      toast.error(errorMessage);
+      // Backend returns proper error messages
+      let errorMessage = err.message || 'Failed to send reset code. Please try again.';
+      if (errorMessage.includes('No account')) {
+        toast.error('No account with this email.');
+      } else if (errorMessage.includes('wait') && errorMessage.includes('seconds')) {
+        // Try to extract seconds from backend message
+        const match = errorMessage.match(/(\d+) seconds/);
+        const seconds = match ? parseInt(match[1], 10) : cooldownSeconds;
+        setCooldown(seconds);
+        toast.error(errorMessage);
+      } else {
+        toast.error(errorMessage);
+      }
     }
     setIsLoading(false);
   };
+
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
@@ -130,28 +154,34 @@ const ForgotPassword = () => {
           </CardHeader>
           <CardContent>
             {step === 1 && (
-              <form onSubmit={handleRequestReset} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
-                  ) : (
-                    'Send Reset Code'
-                  )}
-                </Button>
-              </form>
-            )}
+  <form onSubmit={handleRequestReset} className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="email">Email Address</Label>
+      <Input
+        id="email"
+        name="email"
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        disabled={isLoading || cooldown > 0}
+      />
+    </div>
+    <Button type="submit" className="w-full" disabled={isLoading || cooldown > 0}>
+      {isLoading ? (
+        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
+      ) : (
+        cooldown > 0 ? `Send Reset Code (${cooldown}s)` : 'Send Reset Code'
+      )}
+    </Button>
+    {cooldown > 0 && (
+      <div className="text-center text-sm text-muted-foreground mt-2">
+        Please wait <span className="font-semibold">{cooldown} second{cooldown !== 1 ? 's' : ''}</span> before requesting another reset code.
+      </div>
+    )}
+  </form>
+)}
             {step === 2 && (
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div className="space-y-2">

@@ -11,7 +11,7 @@ from_email = smtp_user
 # You can change to_email to another address for testing
 to_email = "passioncaleb5@gmail.com"
 
-msg = MIMEText("Test email from Python SMTP. this thing de sweet ajeh")
+msg = MIMEText("We thank God")
 msg["Subject"] = "SMTP Test"
 msg["From"] = from_email
 msg["To"] = to_email

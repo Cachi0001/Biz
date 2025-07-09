@@ -306,6 +306,14 @@ limiter = Limiter(key_func=get_remote_address)
 
 # --- Password Reset Endpoints ---
 
+import logging
+from threading import Lock
+
+# In-memory cooldown cache for mock_db/testing (email: last_request_time)
+reset_cooldown_cache = {}
+reset_cooldown_lock = Lock()
+RESET_COOLDOWN_SECONDS = 60
+
 @auth_bp.route("/forgot-password", methods=["POST"])
 @limiter.limit("5 per hour")
 def forgot_password():
@@ -316,11 +324,11 @@ def forgot_password():
         data = request.get_json()
         email = data.get("email")
         if not email:
-            return error_response("Email is required", status_code=400)
+            return error_response("Email is required", message="Please enter your email address.", status_code=400)
         # Find user
         user = None
         if supabase:
-            user_result = supabase.table("users").select("*").eq("email", email).execute()
+            user_result = supabase.table("users").select("id").eq("email", email).execute()
             if user_result.data:
                 user = user_result.data[0]
         else:
@@ -330,6 +338,43 @@ def forgot_password():
                     break
         if not user:
             return error_response("Email not found", message="No account with this email.", status_code=404)
+        # --- Cooldown check ---
+        now = datetime.utcnow()
+        cooldown_remaining = 0
+        if supabase:
+            # Try to get last reset request from tokens
+            recent_token = (
+                supabase.table("password_reset_tokens")
+                .select("created_at")
+                .eq("user_id", user["id"])
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            if recent_token.data:
+                last_time = recent_token.data[0].get("created_at")
+                if last_time:
+                    last_time_dt = datetime.fromisoformat(last_time.replace("Z", ""))
+                    delta = (now - last_time_dt).total_seconds()
+                    if delta < RESET_COOLDOWN_SECONDS:
+                        cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
+        else:
+            with reset_cooldown_lock:
+                last_time = reset_cooldown_cache.get(email)
+                if last_time:
+                    delta = (now - last_time).total_seconds()
+                    if delta < RESET_COOLDOWN_SECONDS:
+                        cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
+        if cooldown_remaining > 0:
+            return error_response(
+                "Please wait before requesting another reset.",
+                message=f"Please wait {cooldown_remaining} seconds before requesting another reset.",
+                status_code=429
+            )
+        # --- Passed cooldown, proceed ---
+        if not supabase:
+            with reset_cooldown_lock:
+                reset_cooldown_cache[email] = now
         # Generate code
         reset_code = token_urlsafe(6)[:6].upper()
         expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
@@ -337,7 +382,8 @@ def forgot_password():
             "user_id": user["id"],
             "reset_code": reset_code,
             "expires_at": expires_at,
-            "used": False
+            "used": False,
+            "created_at": now.isoformat()  # for cooldown tracking
         }
         if supabase:
             supabase.table("password_reset_tokens").insert(token_data).execute()
@@ -348,16 +394,19 @@ def forgot_password():
             from src.services.email_service import email_service
             subject = "SabiOps Password Reset Code"
             body = f"Your password reset code is: {reset_code}\nThis code expires in 1 hour."
+            logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service.")
             email_service.send_email(
                 to_email=email,
                 subject=subject,
                 text_content=body
             )
+            logging.warning(f"[DEBUG] Reset email sent successfully to {email}!")
         except Exception as mail_err:
-            print(f"[ERROR] Failed to send reset email via email_service: {mail_err}")
+            logging.error(f"[ERROR] Failed to send reset email via email_service: {mail_err}")
             return error_response("Failed to send reset email. Contact support.", status_code=500)
         return success_response(message="A password reset code has been sent to your email.")
     except Exception as e:
+        logging.error(f"[ERROR] Exception in forgot_password: {e}")
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/verify-reset-code", methods=["POST"])
