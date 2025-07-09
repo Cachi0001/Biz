@@ -315,7 +315,7 @@ reset_cooldown_lock = Lock()
 RESET_COOLDOWN_SECONDS = 60
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour")
+@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
     """Request a password reset code via email."""
     try:

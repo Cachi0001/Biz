@@ -7,6 +7,9 @@ from email import encoders
 from email.utils import formataddr
 from typing import List, Optional, Dict, Any
 from jinja2 import Template
+import logging
+
+logger = logging.getLogger(__name__)
 
 class EmailService:
     """
@@ -119,7 +122,7 @@ class EmailService:
         Returns:
             Boolean indicating success
         """
-        subject = "Welcome to  SabiOps SME Nigeria!"
+        subject = "Welcome to SabiOps SME Nigeria!"
         
         html_template = """
         <!DOCTYPE html>
