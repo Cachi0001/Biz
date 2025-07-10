@@ -174,3 +174,7 @@
 - Refactored `frontend/sabiops-frontend/src/pages/Register.jsx`, `reset-password.jsx`, `ForgotPassword.jsx`, and `email-verified.jsx` to remove all direct Supabase JS SDK usage. All authentication and verification flows now use only the backend API, as per the implementation guide.
 - Patched `backend/sabiops-backend/src/services/firebase_service.py` to load the Firebase service account from the `FIREBASE_SERVICE_ACCOUNT_JSON` environment variable if present, otherwise fallback to the file. This enables secure production deployment without storing secrets in the repo.
 
+## [DATE: YYYY-MM-DD] - Frontend updates for Edge Function integration
+- Updated `email-verified.jsx` to use query parameters and show success if `?success=true` is present, matching the Edge Function redirect.
+- Updated `reset-password.jsx` to prefill the email and resetCode fields from query parameters (`token` and `email`) if present, matching the Edge Function redirect.
+

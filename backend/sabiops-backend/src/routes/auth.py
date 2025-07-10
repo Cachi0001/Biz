@@ -181,9 +181,39 @@ def register():
                     mock_db["referrals"].append(referral_data)
             except Exception as referral_error:
                 print(f"Failed to create referral record: {referral_error}")
+        # After user is created in Supabase Auth and users table:
+        # Generate email verification token
+        token = secrets.token_urlsafe(32)
+        expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        if supabase:
+            supabase.table("email_verification_tokens").insert({
+                "user_id": user["id"],
+                "token": token,
+                "expires_at": expires_at
+            }).execute()
+        else:
+            mock_db.setdefault("email_verification_tokens", []).append({
+                "user_id": user["id"],
+                "token": token,
+                "expires_at": expires_at,
+                "used": False
+            })
+        # Send verification email with Edge Function link
+        try:
+            confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={user['email']}"
+            subject = "SabiOps Email Confirmation"
+            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+            from src.services.email_service import email_service
+            email_service.send_email(
+                to_email=user["email"],
+                subject=subject,
+                text_content=body
+            )
+        except Exception as mail_err:
+            print(f"[ERROR] Failed to send confirmation email: {mail_err}")
         access_token = create_access_token(identity=user["id"])
         return success_response(
-            message="User registered successfully",
+            message="User registered successfully. Please check your email to confirm your account.",
             data={
                 "access_token": access_token,
                 "user": {
@@ -340,6 +370,13 @@ def login():
                 status_code=401
             )
         
+        if not user.get("email_confirmed", False):
+            return error_response(
+                error="Email not confirmed",
+                message="Please confirm your email before logging in.",
+                status_code=403
+            )
+        
         if supabase:
             supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
         else:
@@ -452,6 +489,12 @@ def forgot_password():
         if not user:
             logging.warning(f"[DEBUG] No user found for email: {email}")
             return error_response("Email not found", message="No account with this email.", status_code=404)
+        if not user.get("email_confirmed", False):
+            return error_response(
+                error="Email not confirmed",
+                message="Please confirm your email before requesting a password reset.",
+                status_code=403
+            )
         # --- Cooldown check ---
         now = datetime.now(timezone.utc)
         cooldown_remaining = 0
@@ -493,9 +536,9 @@ def forgot_password():
         if not supabase:
             with reset_cooldown_lock:
                 reset_cooldown_cache[email] = now
-        # Generate code
-        reset_code = token_urlsafe(6)[:6].upper()
-        expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+        # Generate password reset token
+        reset_code = secrets.token_urlsafe(32)
+        expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
         logging.warning(f"[DEBUG] Generated reset code for {email}: {reset_code}")
         token_data = {
             "user_id": user["id"],
@@ -510,11 +553,11 @@ def forgot_password():
         else:
             mock_db.setdefault("password_reset_tokens", []).append(token_data)
             logging.warning(f"[DEBUG] Token appended to mock_db for {email}")
-        # Send email using central email service
+        # Send password reset email with Edge Function link
         try:
             from src.services.email_service import email_service
-            subject = "SabiOps Password Reset Code"
-            body = f"Your password reset code is: {reset_code}\nThis code expires in 1 hour."
+            subject = "SabiOps Password Reset"
+            body = f"You requested a password reset. Click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email."
             logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service. Subject: {subject}, Body: {body}")
             email_service.send_email(
                 to_email=email,
@@ -525,7 +568,7 @@ def forgot_password():
         except Exception as mail_err:
             logging.error(f"[ERROR] Failed to send reset email via email_service: {mail_err}")
             return error_response("Failed to send reset email. Contact support.", status_code=500)
-        return success_response(message="A password reset code has been sent to your email.")
+        return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
         logging.error(f"[ERROR] Exception in forgot_password: {e}", exc_info=True)
         return error_response(str(e), status_code=500)

@@ -402,3 +402,61 @@ ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) 
 
 -- Add sub_category to expenses
 ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS sub_category TEXT;
+
+-- Create email verification tokens table
+CREATE TABLE IF NOT EXISTS public.email_verification_tokens (
+  id bigint primary key generated always as identity,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token text not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used boolean not null default false
+);
+
+-- Create password reset tokens table (if not exists)
+CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+  id bigint primary key generated always as identity,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reset_code text not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used boolean not null default false
+);
+
+-- Add email_confirmed column to users table if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'users' 
+    AND column_name = 'email_confirmed'
+  ) THEN
+    ALTER TABLE public.users ADD COLUMN email_confirmed boolean DEFAULT false;
+  END IF;
+END $$;
+
+-- Function to generate secure random tokens
+CREATE OR REPLACE FUNCTION public.generate_secure_token(length integer DEFAULT 32)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  chars text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  result text := '';
+  i integer := 0;
+  rand_bytes bytea;
+BEGIN
+  -- Generate cryptographically secure random bytes
+  rand_bytes := gen_random_bytes(length);
+  
+  -- Convert random bytes to alphanumeric characters
+  FOR i IN 0..(length-1) LOOP
+    result := result || substr(chars, 1 + (get_byte(rand_bytes, i) % length(chars))::integer, 1);
+  END LOOP;
+  
+  RETURN result;
+END;
+$$;

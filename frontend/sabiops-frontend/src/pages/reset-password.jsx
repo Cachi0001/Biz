@@ -14,6 +14,15 @@ const ResetPassword = () => {
   const [email, setEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
 
+  useEffect(() => {
+    // Prefill from query params if present
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const emailParam = params.get('email');
+    if (token) setResetCode(token);
+    if (emailParam) setEmail(emailParam);
+  }, []);
+
   const handleReset = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {

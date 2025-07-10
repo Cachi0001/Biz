@@ -7,13 +7,10 @@ const EmailVerified = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Parse access token from URL fragment
-    const hash = window.location.hash.substr(1);
-    const params = new URLSearchParams(hash);
-    const access_token = params.get('access_token');
-
-    if (access_token) {
-      localStorage.setItem('token', access_token);
+    // Parse query params for success
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    if (success === 'true') {
       setStatus('success');
       setTimeout(() => navigate('/dashboard'), 1000);
     } else {
