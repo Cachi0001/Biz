@@ -41,9 +41,14 @@ def create_app():
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
     # Initialize extensions
+    # Enable CORS for frontend and localhost
     CORS(
         app,
-        origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],
+        origins=[
+            "https://sabiops.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ],
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
