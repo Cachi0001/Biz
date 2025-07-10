@@ -127,3 +127,4 @@ updates.md
 .env
 .env.local
 .env.example
+firebase-service-account.json
