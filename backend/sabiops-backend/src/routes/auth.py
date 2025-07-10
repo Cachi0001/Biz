@@ -77,9 +77,20 @@ def register():
             headers=headers,
             json=payload
         )
+        print(f"[DEBUG] Supabase Auth create user response status: {create_resp.status_code}")
+        print(f"[DEBUG] Supabase Auth create user response body: {create_resp.text}")
         if create_resp.status_code not in (200, 201):
             return error_response("Failed to create user in Supabase Auth.", status_code=500)
         supabase_auth_id = create_resp.json()["id"]
+        # Defensive: Check if this ID already exists in public.users
+        if supabase:
+            existing_id = supabase.table("users").select("*").eq("id", supabase_auth_id).execute()
+            if existing_id.data:
+                return error_response(
+                    error="Registration error",
+                    message="A user with this ID already exists. Please contact support.",
+                    status_code=400
+                )
         if supabase:
             existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
             existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
