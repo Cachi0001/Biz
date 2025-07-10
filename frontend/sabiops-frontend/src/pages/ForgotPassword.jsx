@@ -19,6 +19,8 @@ const ForgotPassword = () => {
   const [isResending, setIsResending] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
   const [cooldown, setCooldown] = useState(0);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const cooldownSeconds = 60;
 
   useEffect(() => {
@@ -43,6 +45,7 @@ const ForgotPassword = () => {
 
   const handleRequestReset = async (e) => {
     e.preventDefault();
+    setIsRequesting(true);
     setIsResending(true);
     try {
       await authService.requestPasswordReset(email);
@@ -64,6 +67,7 @@ const ForgotPassword = () => {
       }
     }
     setIsResending(false);
+    setIsRequesting(false);
   };
 
 
@@ -83,10 +87,12 @@ const ForgotPassword = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    setIsResetting(true);
     setIsVerifying(true);
     if (newPassword !== confirmNewPassword) {
       toast.error('New passwords do not match.');
       setIsVerifying(false);
+      setIsResetting(false);
       return;
     }
     try {
@@ -98,6 +104,7 @@ const ForgotPassword = () => {
       toast.error(errorMessage);
     }
     setIsVerifying(false);
+    setIsResetting(false);
   };
 
   if (!isOwner) {
@@ -167,11 +174,11 @@ const ForgotPassword = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter your email"
-                        disabled={isVerifying || cooldown > 0}
+                        disabled={isRequesting || isVerifying || cooldown > 0}
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={isVerifying || cooldown > 0}>
-                      {isVerifying ? (
+                    <Button type="submit" className="w-full" disabled={isRequesting || isVerifying || cooldown > 0}>
+                      {isRequesting ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Code...</>
                       ) : (
                         cooldown > 0 ? `Send Reset Code (${cooldown}s)` : 'Send Reset Code'
@@ -248,9 +255,9 @@ const ForgotPassword = () => {
                     placeholder="Confirm your new password"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isVerifying}>
-                  {isVerifying ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting Password...</>
+                <Button type="submit" className="w-full" disabled={isResetting || isVerifying}>
+                  {isResetting ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting...</>
                   ) : (
                     'Reset Password'
                   )}
