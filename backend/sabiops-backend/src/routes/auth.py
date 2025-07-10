@@ -67,12 +67,14 @@ def register():
         print(f"[DEBUG] Supabase Admin API response status: {resp.status_code}")
         print(f"[DEBUG] Supabase Admin API response body: {resp.text}")
         users_list = resp.json().get("users") if resp.status_code == 200 else None
-        if users_list and len(users_list) > 0:
-            return error_response(
-                error="Email already exists",
-                message="An account with this email already exists. Please log in or use 'Forgot Password'.",
-                status_code=400
-            )
+        if users_list:
+            for user in users_list:
+                if user.get("email", "").lower() == data["email"].lower():
+                    return error_response(
+                        error="Email already exists",
+                        message="An account with this email already exists. Please log in or use 'Forgot Password'.",
+                        status_code=400
+                    )
         # 2. Create user in Supabase Auth
         payload = {"email": data["email"], "password": data["password"]}
         create_resp = requests.post(
