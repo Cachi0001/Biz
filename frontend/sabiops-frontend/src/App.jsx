@@ -24,6 +24,7 @@ import Payments from './pages/Payments';
 import Expenses from './pages/Expenses';
 import Transactions from './pages/Transactions';
 import EmailVerified from './pages/email-verified';
+import ResetPassword from './pages/reset-password';
 
 import './App.css';
 
@@ -39,6 +40,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/email-verified" element={<EmailVerified />} />

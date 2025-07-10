@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Bizflow SME Nigeria - Production Deployment Script
+# Sabiops SME Nigeria - Production Deployment Script
 # This script automates the deployment process to Vercel
 
 set -e  # Exit on any error
@@ -48,7 +48,7 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-log "Starting Bizflow SME Nigeria deployment process..."
+log "Starting Sabiops SME Nigeria deployment process..."
 
 # Check if required tools are installed
 check_dependencies() {

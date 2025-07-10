@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 const EmailVerified = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState('verifying'); // verifying, success, error
+  const [status, setStatus] = useState('verifying');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -13,14 +13,12 @@ const EmailVerified = () => {
     const access_token = params.get('access_token');
 
     if (access_token) {
-      // Store token (for your app's auth system)
       localStorage.setItem('token', access_token);
       setStatus('success');
-      // Redirect to dashboard after a short delay
       setTimeout(() => navigate('/dashboard'), 1000);
     } else {
       setStatus('error');
-      setError('No access token found. Please try logging in.');
+      setError('Verification failed. Please try logging in.');
     }
   }, [navigate]);
 

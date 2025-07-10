@@ -120,15 +120,6 @@ const Register = () => {
           We sent a confirmation link to <span className="font-semibold text-primary">{formData.email}</span>.<br />
           Please click the link in your inbox to verify your account.
         </p>
-        <button
-          className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold shadow hover:bg-primary/90 transition mb-2 flex items-center justify-center"
-          onClick={pollForVerification}
-          disabled={polling}
-        >
-          {polling ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
-          Confirm Email
-        </button>
-        {pollError && <p className="text-red-500 mt-2">{pollError}</p>}
         <p className="text-sm text-muted-foreground mt-4">Didn’t get the email? Check your spam folder or <a href="#" className="underline">resend</a>.</p>
       </div>
     );
