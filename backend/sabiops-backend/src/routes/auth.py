@@ -64,7 +64,10 @@ def register():
             f"{SUPABASE_URL}/auth/v1/admin/users?email={data['email']}",
             headers=headers
         )
-        if resp.status_code == 200 and resp.json().get("users"):
+        print(f"[DEBUG] Supabase Admin API response status: {resp.status_code}")
+        print(f"[DEBUG] Supabase Admin API response body: {resp.text}")
+        users_list = resp.json().get("users") if resp.status_code == 200 else None
+        if users_list and len(users_list) > 0:
             return error_response(
                 error="Email already exists",
                 message="An account with this email already exists. Please log in or use 'Forgot Password'.",
