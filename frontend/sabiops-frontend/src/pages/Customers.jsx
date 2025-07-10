@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Plus, Search, Edit, Trash2, User, Phone, Mail } from 'lucide-react';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from "../services/api";
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../services/api';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -76,7 +77,7 @@ const Customers = () => {
         response: error.response?.data,
         status: error.response?.status
       });
-      toast.error(`Failed to create customer: ${error.message || 'Unknown error'}`);
+      toast.error(getErrorMessage(error, 'Failed to create customer'));
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ const Customers = () => {
       
     } catch (error) {
       console.error('Failed to update customer:', error);
-      toast.error(`Failed to update customer: ${error.message || 'Unknown error'}`);
+      toast.error(getErrorMessage(error, 'Failed to update customer'));
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ const Customers = () => {
         fetchCustomers();
       } catch (error) {
         console.error('Failed to delete customer:', error);
-        toast.error(`Failed to delete customer: ${error.message || 'Unknown error'}`);
+        toast.error(getErrorMessage(error, 'Failed to delete customer'));
       } finally {
         setLoading(false);
       }

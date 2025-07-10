@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date, timedelta
 import uuid
 from collections import defaultdict
+from src.services.supabase_service import SupabaseService
 
 sale_bp = Blueprint("sale", __name__)
 
@@ -82,6 +83,7 @@ def create_sale():
             return error_response("At least one sale item is required", status_code=400)
         
         total_amount = 0
+        total_cogs = 0
         sale_items_processed = []
         for item_data in data["sale_items"]:
             if "product_name" not in item_data or "quantity" not in item_data or "unit_price" not in item_data:
@@ -92,6 +94,15 @@ def create_sale():
             
             item_total = quantity * unit_price
             
+            # Fetch product cost_price for COGS calculation
+            cost_price = 0
+            if item_data.get("product_id"):
+                product_result = get_supabase().table("products").select("cost_price").eq("id", item_data["product_id"]).single().execute()
+                if product_result.data and product_result.data.get("cost_price") is not None:
+                    cost_price = float(product_result.data["cost_price"])
+            item_cogs = quantity * cost_price
+            total_cogs += item_cogs
+
             sale_items_processed.append({
                 "product_id": item_data.get("product_id"),
                 "product_name": item_data["product_name"],
@@ -102,7 +113,9 @@ def create_sale():
                 "discount_amount": float(item_data.get("discount_amount", 0)),
                 "tax_percentage": float(item_data.get("tax_percentage", 0)),
                 "tax_amount": float(item_data.get("tax_amount", 0)),
-                "total_amount": item_total
+                "total_amount": item_total,
+                "cost_price": cost_price,
+                "item_cogs": item_cogs
             })
             total_amount += item_total
             
@@ -112,6 +125,15 @@ def create_sale():
                     current_quantity = product_result.data["quantity"]
                     new_quantity = max(0, current_quantity - quantity)
                     get_supabase().table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", item_data["product_id"]).execute()
+                    # Trigger low stock notification if needed
+                    if new_quantity <= product_result.data.get("low_stock_threshold", 5):
+                        supa_service = SupabaseService()
+                        supa_service.notify_user(
+                            str(product_result.data["owner_id"]),
+                            "Low Stock Alert!",
+                            f"Product '{product_result.data['name']}' is low on stock (Qty: {new_quantity}). Please restock soon.",
+                            "warning"
+                        )
         
         sale_data = {
             "id": str(uuid.uuid4()),
@@ -129,7 +151,9 @@ def create_sale():
             "net_amount": total_amount - float(data.get("discount_amount", 0)) + float(data.get("tax_amount", 0)),
             "sale_items": sale_items_processed,
             "date": datetime.now().isoformat(),
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
+            "total_cogs": total_cogs,
+            "gross_profit": total_amount - total_cogs
         }
         
         if sale_data["commission_rate"] > 0:

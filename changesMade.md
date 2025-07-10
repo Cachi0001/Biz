@@ -140,3 +140,25 @@
 **Critical Issues**: 0 (All Resolved)
 **Payment System**: Fully Functional ✅
 
+## [DATE: YYYY-MM-DD] Error Message Handling Improvements
+
+### Bug/Issue
+- Error messages shown to users were inconsistent and sometimes technical. Some pages used error.message, others used error.response.data.error, and not all preferred the user-friendly 'message' field from backend responses.
+
+### Fix/Improvement
+- Added a getErrorMessage utility function in src/services/api.js to extract the most user-friendly error message from API errors.
+- Refactored all major pages (Customers, Products, Team, Referrals, Register, Login) to use getErrorMessage for all error toasts and error displays.
+- Now, users always see the most helpful, clear error message possible, improving UX and professionalism.
+
+## [DATE] Push Notification Triggers for Business Events
+- Extended SupabaseService to send push notifications via Firebase to device tokens in push_subscriptions.
+- Added notify_user helper to send both in-app and push notifications.
+- Wired up notification triggers for:
+  - Low stock (after stock update and after sale)
+  - Payment received (after payment verification and webhook)
+  - Invoice overdue (when invoice is marked overdue)
+  - Referral earnings (when processed)
+  - Expense limit exceeded (after creating an expense)
+  - Trial expiry (on subscription status check)
+- Confirmed that product stock is automatically decremented on every sale; users do not need to manually adjust stock for normal operations.
+

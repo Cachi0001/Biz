@@ -95,7 +95,7 @@ class ReferralService:
             try:
                 from flask import current_app
                 if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
-                    current_app.supabase_service.send_notification(
+                    current_app.supabase_service.notify_user(
                         str(referrer.id),
                         "Referral Earning!",
                         f"You earned ₦{earning_amount:,.0f} from referring {referred_user.first_name} {referred_user.last_name} to the {subscription_plan} plan!",

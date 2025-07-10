@@ -31,6 +31,7 @@ import {
 } from "../components/ui/table";
 import { getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, activateTeamMember, resetTeamMemberPassword } from "../services/api";
 import { toast } from 'react-hot-toast';
+import { getErrorMessage } from '../services/api';
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -124,7 +125,7 @@ const Team = () => {
       fetchTeamMembers();
     } catch (error) {
       console.error('Failed to save team member:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save team member';
+      const errorMessage = getErrorMessage(error, 'Failed to save team member');
       toast.error(errorMessage);
       setError(errorMessage);
     } finally {
@@ -165,7 +166,7 @@ const Team = () => {
         fetchTeamMembers();
       } catch (error) {
         console.error('Failed to delete team member:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to remove team member';
+        const errorMessage = getErrorMessage(error, 'Failed to remove team member');
         toast.error(errorMessage);
         setError(errorMessage);
       }
@@ -180,7 +181,7 @@ const Team = () => {
         fetchTeamMembers();
       } catch (error) {
         console.error('Failed to activate team member:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to activate team member';
+        const errorMessage = getErrorMessage(error, 'Failed to activate team member');
         toast.error(errorMessage);
         setError(errorMessage);
       }
@@ -196,7 +197,7 @@ const Team = () => {
         toast.success('Password reset successfully');
       } catch (error) {
         console.error('Failed to reset password:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to reset password';
+        const errorMessage = getErrorMessage(error, 'Failed to reset password');
         toast.error(errorMessage);
         setError(errorMessage);
       }

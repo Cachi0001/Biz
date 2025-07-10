@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timezone
 import uuid
+from src.services.firebase_service import send_push_notification
 
 # Create blueprint
 notifications_bp = Blueprint('notifications', __name__)
@@ -241,4 +242,20 @@ def mark_all_read():
     except Exception as e:
         current_app.logger.error(f"Error marking all notifications as read: {str(e)}")
         return error_response("Failed to mark all notifications as read", 500)
+
+@notifications_bp.route('/test-push', methods=['POST'])
+@jwt_required()
+def test_push():
+    data = request.get_json()
+    token = data.get('token')
+    title = data.get('title', 'SabiOps Test Notification')
+    body = data.get('body', 'This is a test push notification from SabiOps backend.')
+    extra = data.get('data', {})
+    if not token:
+        return jsonify({'success': False, 'error': 'No device token provided'}), 400
+    try:
+        response = send_push_notification(token, title, body, extra)
+        return jsonify({'success': True, 'response': response})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 

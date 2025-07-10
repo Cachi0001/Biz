@@ -4,6 +4,7 @@ import os
 import requests
 from datetime import datetime
 import uuid
+from src.services.supabase_service import SupabaseService
 
 payment_bp = Blueprint("payment", __name__)
 
@@ -197,6 +198,14 @@ def verify_payment(reference):
                     "updated_at": datetime.now().isoformat()
                 }
                 get_supabase().table("payments").update(update_data).eq("id", payment["id"]).execute()
+                # Notify owner of payment received
+                supa_service = SupabaseService()
+                supa_service.notify_user(
+                    str(owner_id),
+                    "Payment Received!",
+                    f"A payment of ₦{payment['amount']:,.2f} was received.",
+                    "success"
+                )
                 
                 if payment["invoice_id"]:
                     invoice_result = get_supabase().table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()
@@ -262,6 +271,14 @@ def paystack_webhook():
                     "updated_at": datetime.now().isoformat()
                 }
                 get_supabase().table("payments").update(update_data).eq("id", payment["id"]).execute()
+                # Notify owner of payment received (webhook)
+                supa_service = SupabaseService()
+                supa_service.notify_user(
+                    str(payment["owner_id"]),
+                    "Payment Received!",
+                    f"A payment of ₦{payment['amount']:,.2f} was received.",
+                    "success"
+                )
                 
                 if payment["invoice_id"]:
                     invoice_result = get_supabase().table("invoices").select("*").eq("id", payment["invoice_id"]).single().execute()

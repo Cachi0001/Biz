@@ -642,6 +642,66 @@ def reset_password():
     except Exception as e:
         return error_response(str(e), status_code=500)
 
+@auth_bp.route("/update-password", methods=["POST"])
+@jwt_required()
+def update_password():
+    """Authenticated Owner can update their own or a team member's password."""
+    try:
+        supabase = g.supabase
+        mock_db = g.mock_db
+        requester_id = get_jwt_identity()
+        data = request.get_json()
+        target_email = data.get("target_email")
+        new_password = data.get("new_password")
+        if not target_email or not new_password:
+            return error_response("target_email and new_password are required", status_code=400)
+        # Get requester user
+        requester = None
+        if supabase:
+            requester_result = supabase.table("users").select("*").eq("id", requester_id).execute()
+            if requester_result.data:
+                requester = requester_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["id"] == requester_id:
+                    requester = u
+                    break
+        if not requester or requester["role"].lower() != "owner":
+            return error_response("Only Owners can update passwords.", status_code=403)
+        # Get target user
+        target_user = None
+        if supabase:
+            target_result = supabase.table("users").select("*").eq("email", target_email).execute()
+            if target_result.data:
+                target_user = target_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["email"] == target_email:
+                    target_user = u
+                    break
+        if not target_user:
+            return error_response("Target user not found", status_code=404)
+        # Update password in Supabase Auth
+        try:
+            user_id = target_user["id"]
+            headers = {
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "Content-Type": "application/json"
+            }
+            resp = requests.patch(
+                f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
+                headers=headers,
+                json={"password": new_password}
+            )
+            if resp.status_code != 200:
+                return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
+        except Exception as e:
+            return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
+        return success_response(message=f"Password updated for {target_email}.")
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
 @auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def get_profile():

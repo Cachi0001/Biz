@@ -287,3 +287,77 @@ def get_top_products():
         current_app.logger.error(f"Error fetching top products: {str(e)}")
         return error_response("Failed to fetch top products", 500)
 
+@dashboard_bp.route('/financials', methods=['GET'])
+@jwt_required()
+def get_financials():
+    """
+    SabiOps Financials Endpoint - Nigerian SME P&L, Cash Flow, and Insights
+    Returns: revenue, COGS, gross/net profit, expenses, net profit, cash flow, inventory value, top products/expenses
+    All amounts in Naira (₦)
+    """
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        utc = pytz.UTC
+        now = datetime.now(utc)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Revenue & COGS (all-time & this month)
+        sales = supabase.table('sales').select('total_amount, total_cogs, gross_profit, date').eq('owner_id', user_id).execute().data or []
+        revenue = sum(float(s.get('total_amount', 0)) for s in sales)
+        cogs = sum(float(s.get('total_cogs', 0)) for s in sales)
+        gross_profit = revenue - cogs
+        revenue_month = sum(float(s.get('total_amount', 0)) for s in sales if parse_supabase_datetime(s.get('date')) and parse_supabase_datetime(s.get('date')) >= month_start)
+        cogs_month = sum(float(s.get('total_cogs', 0)) for s in sales if parse_supabase_datetime(s.get('date')) and parse_supabase_datetime(s.get('date')) >= month_start)
+        gross_profit_month = revenue_month - cogs_month
+
+        # Expenses (all-time & this month, by category)
+        expenses = supabase.table('expenses').select('amount, category, sub_category, date').eq('owner_id', user_id).execute().data or []
+        total_expenses = sum(float(e.get('amount', 0)) for e in expenses)
+        total_expenses_month = sum(float(e.get('amount', 0)) for e in expenses if parse_supabase_datetime(e.get('date')) and parse_supabase_datetime(e.get('date')) >= month_start)
+        expense_by_category = {}
+        for e in expenses:
+            cat = e.get('category', 'Other')
+            expense_by_category.setdefault(cat, 0)
+            expense_by_category[cat] += float(e.get('amount', 0))
+
+        # Net profit
+        net_profit = gross_profit - total_expenses
+        net_profit_month = gross_profit_month - total_expenses_month
+
+        # Cash flow (money in/out, net)
+        transactions = supabase.table('transactions').select('type, amount, date').eq('owner_id', user_id).execute().data or []
+        money_in = sum(float(t.get('amount', 0)) for t in transactions if t.get('type') == 'money_in')
+        money_out = sum(float(t.get('amount', 0)) for t in transactions if t.get('type') == 'money_out')
+        net_cash_flow = money_in - money_out
+
+        # Inventory value (stock * cost_price)
+        products = supabase.table('products').select('quantity, cost_price, name').eq('owner_id', user_id).execute().data or []
+        inventory_value = sum(float(p.get('quantity', 0)) * float(p.get('cost_price', 0)) for p in products)
+        low_stock = [p for p in products if int(p.get('quantity', 0)) <= int(p.get('low_stock_threshold', 0))]
+        top_products = sorted(products, key=lambda p: float(p.get('quantity', 0)), reverse=True)[:5]
+
+        # Top expenses
+        top_expenses = sorted(expense_by_category.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        return success_response(
+            message="Financials summary fetched successfully",
+            data={
+                "revenue": {"total": revenue, "this_month": revenue_month},
+                "cogs": {"total": cogs, "this_month": cogs_month},
+                "gross_profit": {"total": gross_profit, "this_month": gross_profit_month},
+                "expenses": {"total": total_expenses, "this_month": total_expenses_month, "by_category": expense_by_category},
+                "net_profit": {"total": net_profit, "this_month": net_profit_month},
+                "cash_flow": {"money_in": money_in, "money_out": money_out, "net": net_cash_flow},
+                "inventory_value": inventory_value,
+                "low_stock": [{"name": p.get('name'), "quantity": p.get('quantity')} for p in low_stock],
+                "top_products": [{"name": p.get('name'), "quantity": p.get('quantity')} for p in top_products],
+                "top_expenses": [{"category": cat, "amount": amt} for cat, amt in top_expenses]
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error fetching financials: {str(e)}")
+        return error_response("Failed to fetch financials", 500)
+

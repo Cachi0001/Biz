@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 import uuid
+from src.services.supabase_service import SupabaseService
 
 product_bp = Blueprint("product", __name__)
 
@@ -234,28 +235,30 @@ def update_stock(product_id):
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
             return error_response("Product not found", status_code=404)
-        
         data = request.get_json()
-        
         if "quantity_change" not in data:
             return error_response("quantity_change is required", status_code=400)
-        
         quantity_change = int(data["quantity_change"])
         new_quantity = product.data["quantity"] + quantity_change
-        
         get_supabase().table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
-        
+        # Trigger low stock notification if needed
+        if new_quantity <= product.data.get("low_stock_threshold", 5):
+            supa_service = SupabaseService()
+            supa_service.notify_user(
+                str(owner_id),
+                "Low Stock Alert!",
+                f"Product '{product.data['name']}' is low on stock (Qty: {new_quantity}). Please restock soon.",
+                "warning"
+            )
         return success_response(
             message="Stock updated successfully",
             data={
                 "product": {"id": product_id, "quantity": new_quantity}
             }
         )
-        
     except Exception as e:
         return error_response(str(e), status_code=500)
 
