@@ -426,7 +426,7 @@ export async function updateSubscription(subscriptionData) {
 export async function getDashboardOverview() {
   try {
     console.log("[DEBUG] getDashboardOverview: Starting request to /dashboard/overview");
-    const response = await api.get('/dashboard/overview');
+  const response = await api.get('/dashboard/overview');
     console.log("[DEBUG] getDashboardOverview: Full response object:", response);
     console.log("[DEBUG] getDashboardOverview: Response status:", response.status);
     console.log("[DEBUG] getDashboardOverview: Response headers:", response.headers);
@@ -464,7 +464,7 @@ export async function getDashboardOverview() {
 
 export async function getRevenueChart() {
   try {
-    const response = await api.get('/dashboard/revenue-chart');
+  const response = await api.get('/dashboard/revenue-chart');
     console.log("[DEBUG] getRevenueChart response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
@@ -476,7 +476,7 @@ export async function getRevenueChart() {
 // Sales Report
 export async function getSalesReport(params) {
   try {
-    const response = await api.get('/reports/sales', { params });
+  const response = await api.get('/reports/sales', { params });
     console.log("[DEBUG] getSalesReport response:", response.data);
     return response.data.data || response.data;
   } catch (error) {

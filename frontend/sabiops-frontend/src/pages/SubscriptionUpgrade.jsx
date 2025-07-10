@@ -20,11 +20,11 @@ const SubscriptionUpgrade = () => {
   }, []);
 
   const fetchPlans = async () => {
-    try {
+      try {
       setLoading(true);
       const response = await getSubscriptionPlans();
       setPlans(response.plans || {});
-    } catch (error) {
+      } catch (error) {
       console.error('Error fetching plans:', error);
       setError('Failed to load subscription plans');
     } finally {
@@ -94,7 +94,7 @@ const SubscriptionUpgrade = () => {
   };
 
   if (loading) {
-    return (
+  return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
@@ -115,27 +115,27 @@ const SubscriptionUpgrade = () => {
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Select the perfect plan for your business needs. All plans include our core features with additional benefits as you upgrade.
           </p>
-        </div>
+      </div>
 
-        {/* Current Plan Status */}
+      {/* Current Plan Status */}
         {user && (
           <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
-              <div>
+                <div>
                 <h3 className="font-medium text-blue-900">Current Plan</h3>
                 <p className="text-blue-700">
                   {user.subscription_plan ? 
                     `${user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1)} Plan` : 
                     'Free Plan'
-                  }
-                </p>
+                    }
+                  </p>
               </div>
               <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
                 {user.subscription_status || 'Free'}
               </Badge>
             </div>
           </div>
-        )}
+      )}
 
         {/* Plans Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -153,7 +153,7 @@ const SubscriptionUpgrade = () => {
               <CardHeader className="text-center pb-4">
                 <div className={`inline-flex p-3 rounded-full ${getPlanColor(planKey)} mb-4`}>
                   {getPlanIcon(planKey)}
-                </div>
+            </div>
                 <CardTitle className="text-xl">{plan.name}</CardTitle>
                 <div className="flex items-baseline justify-center gap-1">
                   <span className="text-3xl font-bold">
@@ -162,11 +162,11 @@ const SubscriptionUpgrade = () => {
                   {plan.price > 0 && (
                     <span className="text-gray-500">/{plan.duration}</span>
                   )}
-                </div>
+            </div>
                 {plan.savings && (
                   <p className="text-sm text-green-600 font-medium">{plan.savings}</p>
                 )}
-              </CardHeader>
+          </CardHeader>
 
               <CardContent className="space-y-4">
                 <ul className="space-y-2">
@@ -174,83 +174,83 @@ const SubscriptionUpgrade = () => {
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                       <span>{feature}</span>
-                    </li>
+              </li>
                   ))}
-                </ul>
+            </ul>
 
                 {plan.referral_earning > 0 && (
                   <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                     <p className="text-sm text-green-700 font-medium">
                       Referral Bonus: {formatCurrency(plan.referral_earning)}
                     </p>
-                  </div>
-                )}
+            </div>
+          )}
 
                 {plan.note && (
                   <p className="text-xs text-gray-500 italic">{plan.note}</p>
                 )}
 
-                <Button 
+            <Button 
                   className="w-full"
                   variant={plan.popular ? 'default' : 'outline'}
                   onClick={() => handlePlanSelect(planKey)}
                   disabled={planKey === 'free' || (user && user.subscription_plan === planKey)}
-                >
+            >
                   {planKey === 'free' ? 'Current Plan' : 
                    user && user.subscription_plan === planKey ? 'Current Plan' :
                    plan.price === 0 ? 'Start Free Trial' : 'Upgrade Now'}
-                </Button>
-              </CardContent>
-            </Card>
+            </Button>
+          </CardContent>
+        </Card>
           ))}
-        </div>
+      </div>
 
         {/* Referral Information */}
         {plans.referral_info && (
           <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-            <CardHeader>
+        <CardHeader>
               <CardTitle className="text-green-800">Referral Program</CardTitle>
               <CardDescription className="text-green-700">
                 Earn money by referring other businesses to our platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="font-medium text-green-800">Minimum Withdrawal</p>
                   <p className="text-green-700">{formatCurrency(plans.referral_info.minimum_withdrawal)}</p>
-                </div>
-                <div>
+          </div>
+              <div>
                   <p className="font-medium text-green-800">Earning Plans</p>
                   <p className="text-green-700">{plans.referral_info.earning_plans.join(', ')}</p>
-                </div>
-                <div>
+              </div>
+              <div>
                   <p className="font-medium text-green-800">Note</p>
                   <p className="text-green-700">{plans.referral_info.note}</p>
-                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         )}
 
         {/* Error Display */}
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700">{error}</p>
-          </div>
+              </div>
         )}
       </div>
 
       {/* Payment Modal */}
       {selectedPlan && (
-        <PaymentModal
+      <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           plan={selectedPlan.key}
           amount={selectedPlan.price}
-          onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-        />
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+      />
       )}
     </div>
   );

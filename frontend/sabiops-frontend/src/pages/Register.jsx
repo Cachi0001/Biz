@@ -7,6 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +27,9 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const [pollError, setPollError] = useState("");
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -52,29 +61,80 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
+    setPollError("");
     if (!validateForm()) {
       setIsLoading(false);
       return;
     }
-
     try {
       const { confirmPassword, ...registrationData } = formData;
-      const result = await register(registrationData);
-      console.log("[DEBUG] Register.jsx - API result:", result); // Added for debugging
-      if (result && result.success) {
-        toast.success('Your account has been created!');
-        navigate('/dashboard');
-      } else {
-        toast.error(result?.message || 'Registration failed. Please check your information and try again.');
+      // Supabase signUp
+      const { error } = await supabase.auth.signUp({
+        email: registrationData.email,
+        password: registrationData.password,
+        options: {
+          emailRedirectTo: 'https://sabiops.vercel.app/email-verified',
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
       }
+      setShowCheckEmail(true);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please check your information and try again.';
-      toast.error(errorMessage);
+      toast.error(error.message || 'Registration failed. Please check your information and try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Polling for email verification
+  const pollForVerification = async () => {
+    setPolling(true);
+    setPollError("");
+    try {
+      const { data, error } = await supabase.auth.admin.getUserByEmail(formData.email);
+      if (error) {
+        setPollError('Could not check verification status. Try again.');
+        setPolling(false);
+        return;
+      }
+      if (data?.user?.email_confirmed_at) {
+        // Redirect to /email-verified with email as query param
+        navigate(`/email-verified?email=${encodeURIComponent(formData.email)}`);
+      } else {
+        setPollError('Email not yet verified. Please check your inbox and click the confirmation link.');
+      }
+    } catch (err) {
+      setPollError('Error checking verification status.');
+    } finally {
+      setPolling(false);
+    }
+  };
+
+  if (showCheckEmail) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
+        <img src="/sabiops.jpg" alt="SabiOps Logo" className="w-20 h-20 mb-4 rounded-full shadow-lg" />
+        <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
+        <p className="text-muted-foreground mb-6 text-center max-w-md">
+          We sent a confirmation link to <span className="font-semibold text-primary">{formData.email}</span>.<br />
+          Please click the link in your inbox to verify your account.
+        </p>
+        <button
+          className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold shadow hover:bg-primary/90 transition mb-2 flex items-center justify-center"
+          onClick={pollForVerification}
+          disabled={polling}
+        >
+          {polling ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
+          Confirm Email
+        </button>
+        {pollError && <p className="text-red-500 mt-2">{pollError}</p>}
+        <p className="text-sm text-muted-foreground mt-4">Didn’t get the email? Check your spam folder or <a href="#" className="underline">resend</a>.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8 py-12">

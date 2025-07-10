@@ -209,6 +209,60 @@ def register():
             )
         return error_response(str(e), status_code=500)
 
+@auth_bp.route("/register/confirmed", methods=["POST"])
+def register_confirmed():
+    print("[DEBUG] /register/confirmed endpoint called")
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return error_response("Email is required", status_code=400)
+    supabase = g.supabase
+    # 1. Check if user already exists in public.users
+    if supabase:
+        existing_user = supabase.table("users").select("*").eq("email", email).execute()
+        if existing_user.data:
+            return success_response(message="User already exists.")
+    # 2. Check if user is verified in Supabase Auth
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json"
+    }
+    resp = requests.get(
+        f"{SUPABASE_URL}/auth/v1/admin/users?email={email}",
+        headers=headers
+    )
+    if resp.status_code != 200 or not resp.json().get("users"):
+        return error_response("User not found in Supabase Auth", status_code=404)
+    user_auth = resp.json()["users"][0]
+    if not user_auth.get("email_confirmed_at"):
+        return error_response("Email not verified yet", status_code=400)
+    # 3. Create user in public.users
+    user_data = {
+        "id": user_auth["id"],
+        "email": user_auth["email"],
+        "phone": "",  # Optionally update later
+        "password_hash": "",  # Not needed
+        "full_name": "",  # Optionally update later
+        "business_name": "",
+        "referred_by": None,
+        "role": "Owner",
+        "subscription_plan": "weekly",
+        "subscription_status": "trial",
+        "active": True,
+        "created_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
+        "updated_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
+        "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
+    }
+    if supabase:
+        result = supabase.table("users").insert(user_data).execute()
+        user = result.data[0]
+    else:
+        mock_db = g.mock_db
+        mock_db["users"].append(user_data)
+        user = user_data
+    return success_response(message="User created after email verification.", data={"user": user})
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     print("[DEBUG] /auth/login endpoint called")

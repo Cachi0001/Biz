@@ -23,6 +23,7 @@ import Settings from './pages/Settings';
 import Payments from './pages/Payments';
 import Expenses from './pages/Expenses';
 import Transactions from './pages/Transactions';
+import EmailVerified from './pages/email-verified';
 
 import './App.css';
 
@@ -40,6 +41,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/email-verified" element={<EmailVerified />} />
             
             {/* Protected routes */}
             <Route
