@@ -31,7 +31,6 @@ const Register = () => {
   const [polling, setPolling] = useState(false);
   const [pollError, setPollError] = useState("");
 
-  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {

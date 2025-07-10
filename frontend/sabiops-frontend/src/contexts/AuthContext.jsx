@@ -80,30 +80,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await apiRegister(userData);
-      if (response.success) {
-        console.log('Registration successful. Full API Response:', response); // Log full response
-        console.log('Registration successful. Access Token from response.data:', response.data.access_token); // Added log
-        if (response.data.access_token) { // Access access_token from response.data
-          localStorage.setItem('token', response.data.access_token);
-          setIsAuthenticated(true); // Set isAuthenticated to true immediately on successful registration
-        } else {
-          console.warn('Registration successful but access_token is missing from response.data.');
-        }
-        await checkAuth(); // Re-check auth to get updated user data including trial_days_left
-        return { success: true };
-      } else {
-        return { success: false, message: response.message };
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      const errorMessage = error.response?.data?.message || 'An unexpected error occurred during registration.';
-      return { success: false, message: errorMessage };
-    }
-  };
-
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
@@ -117,7 +93,6 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated, 
       loading, 
       login, 
-      register, 
       logout, 
       checkAuth,
       // Derived values with safe defaults
