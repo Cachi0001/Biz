@@ -78,6 +78,7 @@ export async function register(userData) {
   }
 }
 
+// DEPRECATED: Do not use this register function for user registration. Use Supabase Auth signUp directly in the frontend.
 export async function login(credentials) {
   try {
     console.log("[DEBUG] Login request data:", credentials);
