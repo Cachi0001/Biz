@@ -102,7 +102,7 @@ def create_sale():
                     cost_price = float(product_result.data["cost_price"])
             item_cogs = quantity * cost_price
             total_cogs += item_cogs
-
+            
             sale_items_processed.append({
                 "product_id": item_data.get("product_id"),
                 "product_name": item_data["product_name"],

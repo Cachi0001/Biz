@@ -39,7 +39,7 @@ def get_subscription_status():
                     "Your free trial has expired. Please upgrade your subscription to continue using SabiOps.",
                     "error"
                 )
-
+        
         subscription_data = {
             'subscription_plan': user.subscription_plan,
             'subscription_status': user.subscription_status,

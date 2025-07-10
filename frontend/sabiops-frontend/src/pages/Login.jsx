@@ -35,7 +35,7 @@ const Login = () => {
     } catch (err) {
       toast.error(getErrorMessage(err, 'Login failed. Please try again.'), { duration: 4000 });
     }
-    setIsLoading(false);
+      setIsLoading(false);
   };
 
   return (

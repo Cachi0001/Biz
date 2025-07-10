@@ -45,160 +45,160 @@ function NotificationPrompt() {
 function App() {
   return (
     <NotificationProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <Router>
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
             <NotificationPrompt />
-            <div className="min-h-screen bg-background">
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
+          <div className="min-h-screen bg-background">
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/email-verified" element={<EmailVerified />} />
-              
-              {/* Protected routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customers"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Customers />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/products"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Products />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/sales"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Sales />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/sales/report"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <SalesReport />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/team"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Team />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Invoices />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/new"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Invoices />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/payments"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Payments />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Settings />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/expenses"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Expenses />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/transactions"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Transactions />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* 404 fallback */}
-              <Route
-                path="*"
-                element={
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <h1 className="text-4xl font-bold">404</h1>
-                      <p className="text-muted-foreground">Page not found</p>
-                    </div>
+            
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Customers />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Products />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Sales />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/report"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SalesReport />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Team />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoices"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Invoices />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoices/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Invoices />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payments"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Payments />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Settings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Expenses />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Transactions />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* 404 fallback */}
+            <Route
+              path="*"
+              element={
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <h1 className="text-4xl font-bold">404</h1>
+                    <p className="text-muted-foreground">Page not found</p>
                   </div>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
-      </AuthProvider>
+                </div>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
     </ToastProvider>
     </NotificationProvider>
   );

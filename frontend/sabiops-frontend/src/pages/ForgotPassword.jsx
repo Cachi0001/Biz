@@ -25,7 +25,7 @@ const ForgotPassword = () => {
     try {
       const response = await requestPasswordReset({ email });
       if (response.success) {
-        setStep(2);
+      setStep(2);
         toast.success('A password reset code has been sent to your email.');
       } else {
         toast.error(response.message || 'Failed to send reset code.');

@@ -255,13 +255,13 @@ def get_subscription_plans():
         return success_response(
             message="Subscription plans fetched successfully",
             data={
-                'plans': plans,
-                'referral_info': {
-                    'minimum_withdrawal': 3000,
-                    'earning_plans': ['monthly', 'yearly'],
-                    'no_earning_plans': ['free', 'weekly'],
-                    'note': 'Referral earnings only apply to Monthly and Yearly paid subscriptions'
-                }
+            'plans': plans,
+            'referral_info': {
+                'minimum_withdrawal': 3000,
+                'earning_plans': ['monthly', 'yearly'],
+                'no_earning_plans': ['free', 'weekly'],
+                'note': 'Referral earnings only apply to Monthly and Yearly paid subscriptions'
+            }
             },
             status_code=200
         )

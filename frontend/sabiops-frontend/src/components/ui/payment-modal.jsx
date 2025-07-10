@@ -110,11 +110,11 @@ const PaymentModal = ({
 
         if (upgradeResponse.success) {
           setPaymentStatus('success');
-          
-          setTimeout(() => {
+
+        setTimeout(() => {
             if (onSuccess) onSuccess(upgradeResponse);
-            onClose();
-          }, 2000);
+          onClose();
+        }, 2000);
         } else {
           throw new Error(upgradeResponse.message || 'Failed to upgrade subscription');
         }
