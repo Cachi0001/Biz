@@ -38,14 +38,11 @@ def register():
     print(f"[DEBUG] Request method: {request.method}")
     print(f"[DEBUG] Request headers: {dict(request.headers)}")
     print(f"[DEBUG] Request content type: {request.content_type}")
-    
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
-        
         print(f"[DEBUG] Request data received: {data}")
-        
         if data is None:
             print("[ERROR] No JSON data received")
             return error_response(
@@ -53,29 +50,45 @@ def register():
                 message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
                 status_code=400
             )
-        
         required_fields = ["email", "phone", "password", "full_name"]
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
-        
-        # Ensure user is created in Supabase Auth first
-        try:
-            supabase_auth_id = ensure_user_in_supabase_auth(data["email"], data["password"])
-        except Exception as e:
-            return error_response("Failed to create user in Supabase Auth. Please try again later.", status_code=500)
-        
+        # 1. Check if user already exists in Supabase Auth
+        headers = {
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json"
+        }
+        resp = requests.get(
+            f"{SUPABASE_URL}/auth/v1/admin/users?email={data['email']}",
+            headers=headers
+        )
+        if resp.status_code == 200 and resp.json().get("users"):
+            return error_response(
+                error="Email already exists",
+                message="An account with this email already exists. Please log in or use 'Forgot Password'.",
+                status_code=400
+            )
+        # 2. Create user in Supabase Auth
+        payload = {"email": data["email"], "password": data["password"]}
+        create_resp = requests.post(
+            f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers=headers,
+            json=payload
+        )
+        if create_resp.status_code not in (200, 201):
+            return error_response("Failed to create user in Supabase Auth.", status_code=500)
+        supabase_auth_id = create_resp.json()["id"]
         if supabase:
             existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
             existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
-            
             if existing_user_email.data:
                 return error_response(
                     error="Email already exists",
                     message="An account with this email already exists. Please use a different email or try logging in.",
                     status_code=400
                 )
-                
             if existing_user_phone.data:
                 return error_response(
                     error="Phone number already exists", 
@@ -83,7 +96,6 @@ def register():
                     status_code=400
                 )
         else:
-            # Mock DB check
             for user in mock_db["users"]:
                 if user["email"] == data["email"]:
                     return error_response(
@@ -97,10 +109,7 @@ def register():
                         message="An account with this phone number already exists. Please use a different phone number or try logging in.",
                         status_code=400
                     )
-
         password_hash = generate_password_hash(data["password"])
-        
-        # Handle referral code if provided
         referred_by_id = None
         if data.get("referral_code"):
             if supabase:
@@ -114,7 +123,6 @@ def register():
                         status_code=400
                     )
             else:
-                # Mock DB referral check
                 found_referrer = False
                 for user in mock_db["users"]:
                     if user.get("referral_code") == data["referral_code"]:
@@ -127,9 +135,8 @@ def register():
                         message="The referral code you entered is not valid. Please check and try again.",
                         status_code=400
                     )
-        
         user_data = {
-            "id": supabase_auth_id,  # Use Supabase Auth user ID for consistency
+            "id": supabase_auth_id,
             "email": data["email"],
             "phone": data["phone"],
             "password_hash": password_hash,
@@ -144,16 +151,12 @@ def register():
             "updated_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
             "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
         }
-        
         if supabase:
             result = supabase.table("users").insert(user_data).execute()
             user = result.data[0]
         else:
-            # Mock DB insert
             mock_db["users"].append(user_data)
             user = user_data
-        
-        # Create referral record if user was referred
         if referred_by_id:
             try:
                 referral_data = {
@@ -164,13 +167,10 @@ def register():
                 if supabase:
                     supabase.table("referrals").insert(referral_data).execute()
                 else:
-                    mock_db["referrals"].append(referral_data) # Assuming referrals in mock_db
+                    mock_db["referrals"].append(referral_data)
             except Exception as referral_error:
-                # Log the error but don't fail the registration
                 print(f"Failed to create referral record: {referral_error}")
-        
         access_token = create_access_token(identity=user["id"])
-        
         return success_response(
             message="User registered successfully",
             data={
@@ -184,13 +184,18 @@ def register():
                     "role": user["role"],
                     "subscription_plan": user["subscription_plan"],
                     "subscription_status": user["subscription_status"],
-                    "trial_ends_at": user.get("trial_ends_at") # Use .get() for safety
+                    "trial_ends_at": user.get("trial_ends_at")
                 }
             },
             status_code=201
         )
-            
     except Exception as e:
+        if "duplicate key value violates unique constraint" in str(e):
+            return error_response(
+                error="Email or phone already exists",
+                message="An account with this email or phone already exists. Please log in or use 'Forgot Password'.",
+                status_code=400
+            )
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/login", methods=["POST"])
