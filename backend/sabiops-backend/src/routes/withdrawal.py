@@ -353,16 +353,16 @@ def admin_process_withdrawal(withdrawal_id):
                 transaction_id = transfer_resp['data']['id']
                 withdrawal.transaction_id = str(transaction_id)
                 withdrawal.status = 'processing'  # Mark as processing until webhook confirms
-                withdrawal.processed_by = user_id
-                withdrawal.processed_at = db.func.now()
-                withdrawal.admin_notes = admin_notes
-                # Update user's total withdrawn
-                withdrawal_user = User.query.get(withdrawal.user_id)
-                withdrawal_user.total_withdrawn += withdrawal.amount
-                # Send notification
-                if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
-                    current_app.supabase_service.send_notification(
-                        str(withdrawal.user_id),
+            withdrawal.processed_by = user_id
+            withdrawal.processed_at = db.func.now()
+            withdrawal.admin_notes = admin_notes
+            # Update user's total withdrawn
+            withdrawal_user = User.query.get(withdrawal.user_id)
+            withdrawal_user.total_withdrawn += withdrawal.amount
+            # Send notification
+            if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
+                current_app.supabase_service.send_notification(
+                    str(withdrawal.user_id),
                         "Withdrawal Processing",
                         f"Your withdrawal of ₦{withdrawal.amount:,.2f} is being processed. You will be notified once completed.",
                         "info"

@@ -10,10 +10,9 @@ firebase_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_json:
     cred = credentials.Certificate(json.loads(firebase_json))
 else:
-    cred = credentials.Certificate('firebase-service-account.json')
+    cred = credentials.Certificate(FIREBASE_CRED_PATH)
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CRED_PATH)
     firebase_admin.initialize_app(cred)
 
 def send_push_notification(token, title, body, data=None):
