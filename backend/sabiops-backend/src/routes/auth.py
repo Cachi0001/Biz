@@ -544,6 +544,16 @@ def reset_password():
                 "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
                 "Content-Type": "application/json"
             }
+            # Check user status in Supabase Auth
+            resp = requests.get(f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}", headers=headers)
+            if resp.status_code == 200:
+                auth_user = resp.json()
+                if auth_user.get("confirmed_at") is None:
+                    return error_response(
+                        "Account not activated",
+                        message="Please check your email for an invite link to set your password for the first time.",
+                        status_code=400
+                    )
             resp = requests.patch(
                 f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
                 headers=headers,
