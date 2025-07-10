@@ -166,3 +166,7 @@
 - Removed duplicate export declarations for `createSale`, `createExpense`, and `createInvoice` at the bottom of `frontend/sabiops-frontend/src/services/api.js`.
 - This resolves the Vercel build error: "Multiple exports with the same name ... has already been declared."
 
+## [DATE: YYYY-MM-DD] - Fix NotificationProvider crash on null useAuth
+- Updated `frontend/sabiops-frontend/src/contexts/NotificationContext.jsx` to safely destructure `user` from `useAuth()` with a fallback to an empty object.
+- This prevents the error: `TypeError: Cannot destructure property 'user' of 'useAuth(...)' as it is null.`
+
