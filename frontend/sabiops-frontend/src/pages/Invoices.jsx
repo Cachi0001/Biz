@@ -347,7 +347,7 @@ const Invoices = () => {
             </SelectTrigger>
             <SelectContent>
               {customers.length === 0 ? (
-                <SelectItem value="" disabled>
+                <SelectItem value="none" disabled>
                   No customers available. Please add a customer first.
                 </SelectItem>
               ) : (
@@ -415,7 +415,7 @@ const Invoices = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {products.length === 0 ? (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="none" disabled>
                         No products available. Please add a product first.
                       </SelectItem>
                     ) : (

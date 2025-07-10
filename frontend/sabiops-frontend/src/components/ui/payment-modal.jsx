@@ -49,7 +49,7 @@ const PaymentModal = ({
         description: `Subscription upgrade to ${plan} plan`,
         callback_url: window.location.origin + '/payment/callback',
         metadata: {
-          user_id: user.id,
+          owner_id: user.id,
           plan: plan,
           upgrade_type: 'subscription'
         }
@@ -66,7 +66,7 @@ const PaymentModal = ({
           currency: 'NGN',
           ref: response.data.reference,
           metadata: {
-            user_id: user.id,
+            owner_id: user.id,
             plan: plan,
             upgrade_type: 'subscription'
           },

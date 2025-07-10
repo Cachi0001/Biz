@@ -260,7 +260,7 @@ const Sales = () => {
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Walk-in Customer</SelectItem>
+                      <SelectItem value="walkin">Walk-in Customer</SelectItem>
                       {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id.toString()}>
                           {customer.name} - {customer.email}

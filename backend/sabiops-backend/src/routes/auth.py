@@ -12,6 +12,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
 from threading import Lock
+import requests
+import os
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -56,6 +58,12 @@ def register():
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
+        
+        # Ensure user is created in Supabase Auth first
+        try:
+            supabase_auth_id = ensure_user_in_supabase_auth(data["email"], data["password"])
+        except Exception as e:
+            return error_response("Failed to create user in Supabase Auth. Please try again later.", status_code=500)
         
         if supabase:
             existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
@@ -121,7 +129,7 @@ def register():
                     )
         
         user_data = {
-            "id": str(uuid.uuid4()),
+            "id": supabase_auth_id,  # Use Supabase Auth user ID for consistency
             "email": data["email"],
             "phone": data["phone"],
             "password_hash": password_hash,
@@ -312,6 +320,40 @@ limiter = Limiter(key_func=get_remote_address)
 reset_cooldown_cache = {}
 reset_cooldown_lock = Lock()
 RESET_COOLDOWN_SECONDS = 60
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+
+def ensure_user_in_supabase_auth(email, password=None):
+    """
+    Ensure the user exists in Supabase Auth. If not, create/invite them.
+    Returns the user id from Supabase Auth.
+    """
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json"
+    }
+    # 1. Check if user exists in Supabase Auth
+    resp = requests.get(
+        f"{SUPABASE_URL}/auth/v1/admin/users?email={email}",
+        headers=headers
+    )
+    if resp.status_code == 200 and resp.json().get("users"):
+        return resp.json()["users"][0]["id"]  # Already exists
+    # 2. If not, create/invite user
+    payload = {"email": email}
+    if password:
+        payload["password"] = password
+    invite_resp = requests.post(
+        f"{SUPABASE_URL}/auth/v1/admin/users",
+        headers=headers,
+        json=payload
+    )
+    if invite_resp.status_code in (200, 201):
+        return invite_resp.json()["id"]
+    else:
+        raise Exception(f"Failed to create/invite user in Supabase Auth: {invite_resp.text}")
 
 @auth_bp.route("/forgot-password", methods=["POST"])
 @limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))

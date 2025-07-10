@@ -30,9 +30,9 @@ def error_response(error, message="Error", status_code=400):
 def get_payments():
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        query = get_supabase().table("payments").select("*").eq("user_id", user_id)
+        query = get_supabase().table("payments").select("*").eq("owner_id", owner_id)
         
         status = request.args.get("status")
         if status:
@@ -54,8 +54,8 @@ def get_payments():
 def get_payment(payment_id):
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
-        payment = get_supabase().table("payments").select("*").eq("id", payment_id).eq("user_id", user_id).single().execute()
+        owner_id = get_jwt_identity()
+        payment = get_supabase().table("payments").select("*").eq("id", payment_id).eq("owner_id", owner_id).single().execute()
         
         if not payment.data:
             return error_response("Payment not found", status_code=404)
@@ -74,7 +74,7 @@ def get_payment(payment_id):
 def initialize_payment():
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
         required_fields = ["amount", "email"]
@@ -84,14 +84,14 @@ def initialize_payment():
         
         invoice = None
         if data.get("invoice_id"):
-            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
+            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("owner_id", owner_id).single().execute()
             if not invoice_result.data:
                 return error_response("Invoice not found", status_code=404)
             invoice = invoice_result.data
         
         payment_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id,
             "invoice_id": data.get("invoice_id"),
             "amount": float(data["amount"]),
             "currency": data.get("currency", "NGN"),
@@ -119,7 +119,7 @@ def initialize_payment():
             "callback_url": data.get("callback_url"),
             "metadata": {
                 "payment_id": payment["id"],
-                "user_id": user_id,
+                "owner_id": owner_id,
                 "invoice_id": data.get("invoice_id")
             }
         }
@@ -161,9 +161,9 @@ def initialize_payment():
 def verify_payment(reference):
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        payment_result = get_supabase().table("payments").select("*").eq("id", reference).eq("user_id", user_id).single().execute()
+        payment_result = get_supabase().table("payments").select("*").eq("id", reference).eq("owner_id", owner_id).single().execute()
         
         if not payment_result.data:
             return error_response("Payment not found", status_code=404)
@@ -285,7 +285,7 @@ def paystack_webhook():
 def record_manual_payment():
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         data = request.get_json()
         
         required_fields = ["amount", "payment_method"]
@@ -295,14 +295,14 @@ def record_manual_payment():
         
         invoice = None
         if data.get("invoice_id"):
-            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("user_id", user_id).single().execute()
+            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("owner_id", owner_id).single().execute()
             if not invoice_result.data:
                 return error_response("Invoice not found", status_code=404)
             invoice = invoice_result.data
         
         payment_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": owner_id,
             "invoice_id": data.get("invoice_id"),
             "amount": float(data["amount"]),
             "currency": data.get("currency", "NGN"),
@@ -346,9 +346,9 @@ def record_manual_payment():
 def get_payment_stats():
     try:
         supabase = get_supabase()
-        user_id = get_jwt_identity()
+        owner_id = get_jwt_identity()
         
-        all_payments_result = get_supabase().table("payments").select("*").eq("user_id", user_id).execute()
+        all_payments_result = get_supabase().table("payments").select("*").eq("owner_id", owner_id).execute()
         all_payments = all_payments_result.data
         
         total_payments = len(all_payments)
@@ -360,7 +360,7 @@ def get_payment_stats():
         total_revenue = sum(float(p["amount"]) for p in successful_payment_records)
         total_fees = sum(float(p.get("fees", 0)) for p in successful_payment_records)
         
-        recent_payments = get_supabase().table("payments").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(5).execute().data
+        recent_payments = get_supabase().table("payments").select("*").eq("owner_id", owner_id).order("created_at", desc=True).limit(5).execute().data
         
         return success_response(
             data={

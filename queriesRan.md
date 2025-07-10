@@ -352,4 +352,43 @@ CREATE POLICY "Team members can view invoice items" ON public.invoice_items FOR 
     EXISTS (SELECT 1 FROM public.invoices WHERE invoices.id = invoice_items.invoice_id AND (invoices.owner_id = auth.uid() OR auth.uid() IN (SELECT team_member_id FROM public.team WHERE owner_id = invoices.owner_id)))
 );
 
+CREATE TABLE IF NOT EXISTS public.payments (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    owner_id UUID REFERENCES public.users(id) ON DELETE CASCADE, -- Who made the payment
+    invoice_id UUID REFERENCES public.invoices(id), -- Optional, for invoice payments
+    amount DECIMAL(15,2) NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+    payment_reference TEXT UNIQUE, -- Paystack or internal reference
+    payment_method TEXT DEFAULT 'cash', -- cash, card, bank_transfer, paystack, etc.
+    paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Owners and team can view payments" ON public.payments FOR SELECT USING (
+    auth.uid() = owner_id OR auth.uid() IN (SELECT team_member_id FROM public.team WHERE owner_id = public.payments.owner_id)
+);
+
+CREATE POLICY "Owners can manage payments" ON public.payments FOR ALL USING (
+    auth.uid() = owner_id
+);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS public.payment_webhooks (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';

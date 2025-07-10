@@ -38,10 +38,10 @@ def get_sales():
         product_id = request.args.get("product_id")
         
         if start_date:
-            query = query.gte("sale_date", start_date)
+            query = query.gte("date", start_date)
         
         if end_date:
-            query = query.lte("sale_date", end_date)
+            query = query.lte("date", end_date)
         
         if customer_id:
             query = query.eq("customer_id", customer_id)
@@ -49,7 +49,7 @@ def get_sales():
         if product_id:
             query = query.eq("product_id", product_id)
         
-        sales = query.order("sale_date", desc=True).execute()
+        sales = query.order("date", desc=True).execute()
         
         return success_response(
             data={
@@ -68,7 +68,7 @@ def create_sale():
         owner_id = get_jwt_identity()
         data = request.get_json()
         
-        required_fields = ["product_id", "quantity", "unit_price", "total_price", "sale_date"]
+        required_fields = ["product_id", "quantity", "unit_price", "total_price", "date"]
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
@@ -90,7 +90,7 @@ def create_sale():
             "unit_price": float(data["unit_price"]),
             "total_price": float(data["total_price"]),
             "payment_method": data.get("payment_method", ""),
-            "sale_date": data["sale_date"],
+            "date": data["date"],
             "notes": data.get("notes", ""),
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
@@ -126,10 +126,10 @@ def get_sales_stats():
         query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
         
         if start_date:
-            query = query.gte("sale_date", start_date)
+            query = query.gte("date", start_date)
         
         if end_date:
-            query = query.lte("sale_date", end_date)
+            query = query.lte("date", end_date)
         
         sales = query.execute().data
         

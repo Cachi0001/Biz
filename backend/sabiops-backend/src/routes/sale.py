@@ -31,7 +31,7 @@ def get_sales():
         supabase = get_supabase()
         user_id = get_jwt_identity()
         
-        query = get_supabase().table("sales").select("*").eq("user_id", user_id)
+        query = get_supabase().table("sales").select("*").eq("owner_id", user_id)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -40,10 +40,10 @@ def get_sales():
         salesperson_id = request.args.get("salesperson_id")
         
         if start_date:
-            query = query.gte("sale_date", start_date)
+            query = query.gte("date", start_date)
         
         if end_date:
-            query = query.lte("sale_date", end_date)
+            query = query.lte("date", end_date)
         
         if payment_method:
             query = query.eq("payment_method", payment_method)
@@ -115,7 +115,7 @@ def create_sale():
         
         sale_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "owner_id": user_id,
             "customer_id": data.get("customer_id"),
             "salesperson_id": data.get("salesperson_id", user_id),
             "payment_method": data["payment_method"],
@@ -128,7 +128,7 @@ def create_sale():
             "total_amount": total_amount,
             "net_amount": total_amount - float(data.get("discount_amount", 0)) + float(data.get("tax_amount", 0)),
             "sale_items": sale_items_processed,
-            "sale_date": datetime.now().isoformat(),
+            "date": datetime.now().isoformat(),
             "created_at": datetime.now().isoformat()
         }
         
@@ -156,7 +156,7 @@ def get_sale(sale_id):
     try:
         supabase = get_supabase()
         user_id = get_jwt_identity()
-        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", user_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -176,7 +176,7 @@ def update_sale(sale_id):
     try:
         supabase = get_supabase()
         user_id = get_jwt_identity()
-        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("user_id", user_id).single().execute()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", user_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -211,7 +211,7 @@ def get_daily_sales_report():
         
         report_date = datetime.strptime(report_date_str, "%Y-%m-%d").date()
         
-        sales_result = get_supabase().table("sales").select("*").eq("user_id", user_id).gte("sale_date", report_date.isoformat()).lte("sale_date", (report_date + timedelta(days=1)).isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("owner_id", user_id).gte("date", report_date.isoformat()).lte("date", (report_date + timedelta(days=1)).isoformat()).execute()
         sales = sales_result.data
         
         total_sales = len(sales)
@@ -239,7 +239,7 @@ def get_daily_sales_report():
         
         hourly_sales = defaultdict(lambda: {"count": 0, "total": 0.0})
         for sale in sales:
-            sale_dt = datetime.fromisoformat(sale["sale_date"])
+            sale_dt = datetime.fromisoformat(sale["date"])
             hour = sale_dt.hour
             hourly_sales[hour]["count"] += 1
             hourly_sales[hour]["total"] += float(sale["net_amount"])
@@ -277,7 +277,7 @@ def get_sales_analytics():
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=int(period))
         
-        sales_result = get_supabase().table("sales").select("*").eq("user_id", user_id).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("owner_id", user_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).execute()
         sales = sales_result.data
         
         total_revenue = sum(float(sale["net_amount"]) for sale in sales)
@@ -291,7 +291,7 @@ def get_sales_analytics():
             current_date += timedelta(days=1)
         
         for sale in sales:
-            sale_dt = datetime.fromisoformat(sale["sale_date"])
+            sale_dt = datetime.fromisoformat(sale["date"])
             date_key = sale_dt.date().isoformat()
             daily_revenue[date_key] += float(sale["net_amount"])
         
@@ -353,7 +353,7 @@ def get_team_performance():
         team_members_result = get_supabase().table("salespeople").select("salesperson_user_id").eq("user_id", user_id).execute()
         team_member_ids = [member["salesperson_user_id"] for member in team_members_result.data] + [user_id]
         
-        sales_result = get_supabase().table("sales").select("*").in_("salesperson_id", team_member_ids).gte("sale_date", start_date.isoformat()).lte("sale_date", end_date.isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").in_("salesperson_id", team_member_ids).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).execute()
         sales = sales_result.data
         
         performance = defaultdict(lambda: {
