@@ -589,17 +589,6 @@ async function queueOrFetch(url, data, method = 'POST') {
   }
 }
 
-// Example usage for sales, expenses, invoices, etc.
-export async function createSale(data) {
-  return queueOrFetch('/sales/', data, 'POST');
-}
-export async function createExpense(data) {
-  return queueOrFetch('/expenses/', data, 'POST');
-}
-export async function createInvoice(data) {
-  return queueOrFetch('/invoices/', data, 'POST');
-}
-
 // Save device token to backend for push notifications
 export async function saveDeviceToken(token) {
   return api.post('/push-subscriptions', { token });

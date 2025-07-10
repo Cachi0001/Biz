@@ -162,3 +162,7 @@
   - Trial expiry (on subscription status check)
 - Confirmed that product stock is automatically decremented on every sale; users do not need to manually adjust stock for normal operations.
 
+## [DATE: YYYY-MM-DD] - Fix duplicate export error in api.js
+- Removed duplicate export declarations for `createSale`, `createExpense`, and `createInvoice` at the bottom of `frontend/sabiops-frontend/src/services/api.js`.
+- This resolves the Vercel build error: "Multiple exports with the same name ... has already been declared."
+
