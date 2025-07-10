@@ -46,11 +46,10 @@ const ForgotPassword = () => {
     setIsResending(true);
     try {
       await authService.requestPasswordReset(email);
-      toast.success('A password reset code has been sent to you via this email ,onyemechicaleb4@gmail.com please check your spam folder');
+      toast.success('A password reset code has been sent to your email, please check your spam folder');
       setStep(2);
       setCooldown(cooldownSeconds);
     } catch (err) {
-      // Backend returns proper error messages
       let errorMessage = err.message || 'Failed to send reset code. Please try again.';
       if (errorMessage.includes('No account')) {
         toast.error('No account with this email.');
@@ -64,7 +63,7 @@ const ForgotPassword = () => {
         toast.error(errorMessage);
       }
     }
-    setIsLoading(false);
+    setIsResending(false);
   };
 
 
@@ -79,15 +78,15 @@ const ForgotPassword = () => {
       const errorMessage = err.message || 'Invalid or expired code.';
       toast.error(errorMessage);
     }
-    setIsLoading(false);
+    setIsVerifying(false);
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsVerifying(true);
     if (newPassword !== confirmNewPassword) {
       toast.error('New passwords do not match.');
-      setIsLoading(false);
+      setIsVerifying(false);
       return;
     }
     try {
@@ -98,7 +97,7 @@ const ForgotPassword = () => {
       const errorMessage = err.message || 'Failed to reset password. Please check the code and try again.';
       toast.error(errorMessage);
     }
-    setIsLoading(false);
+    setIsVerifying(false);
   };
 
   if (!isOwner) {

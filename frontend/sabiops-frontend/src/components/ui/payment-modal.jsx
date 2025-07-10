@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CreditCard, Shield, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
+import { initializePayment, verifyPayment, upgradeSubscription } from '../../services/api';
 
 const PaymentModal = ({ 
   isOpen, 
@@ -29,21 +29,24 @@ const PaymentModal = ({
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      const existingScript = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
     };
   }, []);
 
-  const initializePayment = async () => {
+  const initializePaymentFlow = async () => {
     try {
       setLoading(true);
       setPaymentStatus('processing');
       setErrorMessage('');
 
       // Initialize payment with backend
-      const response = await apiService.initializePayment({
+      const response = await initializePayment({
         amount: amount * 100, // Convert to kobo
         email: user.email,
-        plan: plan,
+        description: `Subscription upgrade to ${plan} plan`,
         callback_url: window.location.origin + '/payment/callback',
         metadata: {
           user_id: user.id,
@@ -96,22 +99,25 @@ const PaymentModal = ({
       setPaymentStatus('processing');
 
       // Verify payment with backend
-      const verificationResponse = await apiService.verifyPayment(response.reference);
+      const verificationResponse = await verifyPayment(response.reference);
 
       if (verificationResponse.success) {
-        setPaymentStatus('success');
-        
-        // Update user subscription
-        await apiService.updateSubscription({
+        // Upgrade subscription
+        const upgradeResponse = await upgradeSubscription({
           plan: plan,
-          payment_reference: response.reference,
-          status: 'active'
+          payment_reference: response.reference
         });
 
-        setTimeout(() => {
-          if (onSuccess) onSuccess(verificationResponse);
-          onClose();
-        }, 2000);
+        if (upgradeResponse.success) {
+          setPaymentStatus('success');
+          
+          setTimeout(() => {
+            if (onSuccess) onSuccess(upgradeResponse);
+            onClose();
+          }, 2000);
+        } else {
+          throw new Error(upgradeResponse.message || 'Failed to upgrade subscription');
+        }
       } else {
         throw new Error(verificationResponse.message || 'Payment verification failed');
       }
@@ -146,20 +152,23 @@ const PaymentModal = ({
 
   const getPlanFeatures = (planType) => {
     const features = {
-      basic: [
-        'Unlimited customers',
+      monthly: [
+        'Unlimited invoices',
+        'Unlimited expenses',
         'Advanced reporting',
-        'Email support',
-        'Data export',
-        'Mobile access'
+        'Team management',
+        'Customer management',
+        'Sales analytics',
+        'Priority support'
       ],
-      premium: [
-        'Everything in Basic',
-        'Team collaboration',
-        'API access',
+      yearly: [
+        'All Monthly plan features',
+        'Advanced team management',
         'Priority support',
         'Custom integrations',
-        'Advanced analytics'
+        'Advanced analytics',
+        'Data export',
+        'API access'
       ]
     };
     return features[planType] || [];
@@ -216,7 +225,7 @@ const PaymentModal = ({
 
               {/* Payment Button */}
               <Button 
-                onClick={initializePayment} 
+                onClick={initializePaymentFlow} 
                 disabled={loading}
                 className="w-full"
                 size="lg"
@@ -269,7 +278,7 @@ const PaymentModal = ({
                 {errorMessage || 'There was an issue processing your payment. Please try again.'}
               </p>
               <div className="space-y-2">
-                <Button onClick={initializePayment} disabled={loading} className="w-full">
+                <Button onClick={initializePaymentFlow} disabled={loading} className="w-full">
                   Try Again
                 </Button>
                 <Button variant="outline" onClick={handleClose} className="w-full">

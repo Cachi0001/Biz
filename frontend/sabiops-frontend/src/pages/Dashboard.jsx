@@ -84,7 +84,8 @@ const DashboardFixed = () => {
       try {
         console.log('[FIXED DASHBOARD] Fetching dashboard data...');
         
-        if (getDashboardOverview) {
+        // Verify that getDashboardOverview is a function
+        if (typeof getDashboardOverview === 'function') {
           try {
             console.log('[FIXED DASHBOARD] Calling getDashboardOverview...');
             const data = await getDashboardOverview();
@@ -92,7 +93,7 @@ const DashboardFixed = () => {
             console.log('[FIXED DASHBOARD] Data type:', typeof data);
             console.log('[FIXED DASHBOARD] Data keys:', data ? Object.keys(data) : 'No keys');
             
-            if (data) {
+            if (data && typeof data === 'object') {
               console.log('[FIXED DASHBOARD] Processing data structure...');
               console.log('[FIXED DASHBOARD] data.revenue:', data.revenue);
               console.log('[FIXED DASHBOARD] data.customers:', data.customers);
@@ -122,6 +123,7 @@ const DashboardFixed = () => {
               setOverview(processedOverview);
             } else {
               console.warn('[FIXED DASHBOARD] No data received from API');
+              // Keep default values
             }
           } catch (fetchError) {
             console.error('[FIXED DASHBOARD] Data fetch failed:', fetchError);
@@ -130,13 +132,15 @@ const DashboardFixed = () => {
               stack: fetchError.stack,
               response: fetchError.response
             });
-            // Keep default values
+            // Keep default values, don't set error for API failures
           }
         } else {
-          console.warn('[FIXED DASHBOARD] getDashboardOverview function not available');
+          console.error('[FIXED DASHBOARD] getDashboardOverview is not a function:', typeof getDashboardOverview);
+          setError('Dashboard API function not available');
         }
       } catch (error) {
         console.error('[FIXED DASHBOARD] General error:', error);
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }

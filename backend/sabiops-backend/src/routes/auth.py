@@ -494,11 +494,31 @@ def reset_password():
         if datetime.fromisoformat(token["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             return error_response("Code expired", status_code=400)
         # Update password
-        password_hash = generate_password_hash(new_password)
         if supabase:
-            supabase.table("users").update({"password_hash": password_hash}).eq("id", user["id"]).execute()
+            import os
+            import requests
+            SUPABASE_URL = os.environ["SUPABASE_URL"]
+            SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+            headers = {
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "Content-Type": "application/json"
+            }
+            # Get user auth id by email
+            resp = requests.get(f"{SUPABASE_URL}/auth/v1/admin/users?email={email}", headers=headers)
+            user_list = resp.json().get('users', []) if resp.status_code == 200 else []
+            if not user_list:
+                return error_response("User not found in Supabase Auth", status_code=404)
+            user_id = user_list[0]['id']
+            # Update password in Supabase Auth
+            resp = requests.patch(f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}", headers=headers, json={"password": new_password})
+            if resp.status_code != 200:
+                return error_response("Failed to update password in Supabase Auth", status_code=500)
+            # Mark token as used
             supabase.table("password_reset_tokens").update({"used": True}).eq("id", token["id"]).execute()
         else:
+            from werkzeug.security import generate_password_hash
+            password_hash = generate_password_hash(new_password)
             for i, u in enumerate(mock_db["users"]):
                 if u["id"] == user["id"]:
                     mock_db["users"][i]["password_hash"] = password_hash

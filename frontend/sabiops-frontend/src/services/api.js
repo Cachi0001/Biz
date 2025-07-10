@@ -1,4 +1,4 @@
-// SabiOps API Service
+// SabiOps API Service - Refactored for Minification Safety
 import axios from 'axios';
 
 // Create axios instance with base configuration
@@ -39,13 +39,21 @@ api.interceptors.response.use(
   }
 );
 
-// Auth token management
-export const getAuthToken = () => localStorage.getItem('token');
-export const setAuthToken = (token) => localStorage.setItem('token', token);
-export const removeAuthToken = () => localStorage.removeItem('token');
+// Auth token management functions
+export function getAuthToken() {
+  return localStorage.getItem('token');
+}
+
+export function setAuthToken(token) {
+  localStorage.setItem('token', token);
+}
+
+export function removeAuthToken() {
+  localStorage.removeItem('token');
+}
 
 // Authentication endpoints
-export const register = async (userData) => {
+export async function register(userData) {
   try {
     console.log("[DEBUG] Register request data:", userData);
     const response = await api.post("/auth/register", userData);
@@ -68,9 +76,9 @@ export const register = async (userData) => {
     console.error("[ERROR] Register error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
-};
+}
 
-export const login = async (credentials) => {
+export async function login(credentials) {
   try {
     console.log("[DEBUG] Login request data:", credentials);
     const response = await api.post("/auth/login", credentials);
@@ -93,87 +101,45 @@ export const login = async (credentials) => {
     console.error("[ERROR] Login error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
-};
+}
 
-export const logout = async () => {
+export async function logout() {
   removeAuthToken();
   return Promise.resolve();
-};
+}
 
-export const getProfile = async () => {
+export async function getProfile() {
   try {
   const response = await api.get('/auth/profile');
     console.log("[DEBUG] getProfile response:", response.data);
-    // Backend returns {success: true, data: {user: {...}}, message: "..."}
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getProfile failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const updateProfile = async (userData) => {
+export async function updateProfile(userData) {
   const response = await api.put('/auth/profile', userData);
   return response.data;
-};
+}
 
-export const requestPasswordReset = async (data) => {
+export async function requestPasswordReset(data) {
   const response = await api.post('/auth/forgot-password', data);
   return response.data;
-};
+}
 
-export const verifyResetCode = async (data) => {
-  // New endpoint for verifying code
+export async function verifyResetCode(data) {
   const response = await api.post('/auth/verify-reset-code', data);
   return response.data;
-};
+}
 
-export const resetPassword = async (data) => {
-  // Now uses /auth/reset-password
+export async function resetPassword(data) {
   const response = await api.post('/auth/reset-password', data);
   return response.data;
-};
+}
 
-export const createTeamMember = async (memberData) => {
-  const response = await api.post('/team/', memberData);
-  return response.data;
-};
-
-// Team Management
-export const getTeamMembers = async () => {
-  try {
-    const response = await api.get('/team/');
-    console.log("[DEBUG] getTeamMembers response:", response.data);
-    // Backend returns {success: true, data: {...}, message: "..."}
-    return response.data.data || response.data; // Handle both formats for compatibility
-  } catch (error) {
-    console.error("[ERROR] getTeamMembers failed:", error.response ? error.response.data : error.message);
-    throw error;
-  }
-};
-
-export const updateTeamMember = async (memberId, memberData) => {
-  const response = await api.put(`/team/${memberId}`, memberData);
-  return response.data;
-};
-
-export const deleteTeamMember = async (memberId) => {
-  const response = await api.delete(`/team/${memberId}`);
-  return response.data;
-};
-
-export const activateTeamMember = async (memberId) => {
-  const response = await api.post(`/team/${memberId}/activate`);
-  return response.data;
-};
-
-export const resetTeamMemberPassword = async (memberId) => {
-  const response = await api.post(`/team/${memberId}/reset-password`);
-  return response.data;
-};
-
-// New verifyToken method
-export const verifyToken = async () => {
+export async function verifyToken() {
   try {
     console.log("[DEBUG] verifyToken called");
     console.log("[DEBUG] Current token:", getAuthToken());
@@ -188,219 +154,284 @@ export const verifyToken = async () => {
     console.error("[ERROR] verifyToken error response:", error.response ? error.response.data : error.message);
     console.error("[ERROR] verifyToken error status:", error.response ? error.response.status : 'No status');
     
-    // If token verification fails, remove the invalid token
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       console.log("[DEBUG] Removing invalid token due to 401/403 error");
       removeAuthToken();
     }
     
-    throw error; // Re-throw the error so it can be caught by the calling component
+    throw error;
   }
-};
+}
 
-// Health check
-export const healthCheck = async () => {
+// Team Management
+export async function createTeamMember(memberData) {
+  const response = await api.post('/team/', memberData);
+  return response.data;
+}
+
+export async function getTeamMembers() {
+  try {
+    const response = await api.get('/team/');
+    console.log("[DEBUG] getTeamMembers response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getTeamMembers failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
+export async function updateTeamMember(memberId, memberData) {
+  const response = await api.put(`/team/${memberId}`, memberData);
+  return response.data;
+}
+
+export async function deleteTeamMember(memberId) {
+  const response = await api.delete(`/team/${memberId}`);
+  return response.data;
+}
+
+export async function activateTeamMember(memberId) {
+  const response = await api.post(`/team/${memberId}/activate`);
+  return response.data;
+}
+
+export async function resetTeamMemberPassword(memberId) {
+  const response = await api.post(`/team/${memberId}/reset-password`);
+  return response.data;
+}
+
+// Health and testing
+export async function healthCheck() {
   const response = await api.get('/health');
   return response.data;
-};
+}
 
-export const testDatabase = async () => {
-  const response = await api.get('/test-db');
+export async function testDatabase() {
+  const response = await api.get('/test');
   return response.data;
-};
+}
 
-// Customers
-export const getCustomers = async () => {
+// Customer Management
+export async function getCustomers() {
   try {
     const response = await api.get('/customers/');
     console.log("[DEBUG] getCustomers response:", response.data);
-    // Backend returns {success: true, data: {customers: [...]}, message: "..."}
-    return response.data.data?.customers || response.data.data || response.data; // Handle nested data structure
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getCustomers failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const createCustomer = async (customerData) => {
+export async function createCustomer(customerData) {
   const response = await api.post('/customers/', customerData);
   return response.data;
-};
+}
 
-export const updateCustomer = async (customerId, customerData) => {
+export async function updateCustomer(customerId, customerData) {
   const response = await api.put(`/customers/${customerId}`, customerData);
   return response.data;
-};
+}
 
-export const deleteCustomer = async (customerId) => {
+export async function deleteCustomer(customerId) {
   const response = await api.delete(`/customers/${customerId}`);
   return response.data;
-};
+}
 
-// Products
-export const getProducts = async () => {
+// Product Management
+export async function getProducts() {
   try {
     const response = await api.get('/products/');
     console.log("[DEBUG] getProducts response:", response.data);
-    // Backend returns {success: true, data: {products: [...]}, message: "..."}
-    return response.data.data?.products || response.data.data || response.data; // Handle nested data structure
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getProducts failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const createProduct = async (productData) => {
+export async function createProduct(productData) {
   const response = await api.post('/products/', productData);
   return response.data;
-};
+}
 
-export const updateProduct = async (productId, productData) => {
+export async function updateProduct(productId, productData) {
   const response = await api.put(`/products/${productId}`, productData);
   return response.data;
-};
+}
 
-export const deleteProduct = async (productId) => {
+export async function deleteProduct(productId) {
   const response = await api.delete(`/products/${productId}`);
   return response.data;
-};
+}
 
-export const getCategories = async () => {
+export async function getCategories() {
   try {
   const response = await api.get('/products/categories');
     console.log("[DEBUG] getCategories response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getCategories failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-// Invoices
-export const getInvoices = async () => {
+// Invoice Management
+export async function getInvoices() {
   try {
     const response = await api.get('/invoices/');
     console.log("[DEBUG] getInvoices response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getInvoices failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const getInvoice = async (invoiceId) => {
+export async function getInvoice(invoiceId) {
   try {
   const response = await api.get(`/invoices/${invoiceId}`);
     console.log("[DEBUG] getInvoice response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getInvoice failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const createInvoice = async (invoiceData) => {
+export async function createInvoice(invoiceData) {
   const response = await api.post('/invoices/', invoiceData);
   return response.data;
-};
+}
 
-export const updateInvoice = async (invoiceId, invoiceData) => {
+export async function updateInvoice(invoiceId, invoiceData) {
   const response = await api.put(`/invoices/${invoiceId}`, invoiceData);
   return response.data;
-};
+}
 
-export const deleteInvoice = async (invoiceId) => {
+export async function deleteInvoice(invoiceId) {
   const response = await api.delete(`/invoices/${invoiceId}`);
   return response.data;
-};
+}
 
-export const updateInvoiceStatus = async (invoiceId, statusData) => {
+export async function updateInvoiceStatus(invoiceId, statusData) {
   const response = await api.put(`/invoices/${invoiceId}/status`, statusData);
   return response.data;
-};
+}
 
-export const sendInvoice = async (invoiceId) => {
+export async function sendInvoice(invoiceId) {
   const response = await api.post(`/invoices/${invoiceId}/send`);
   return response.data;
-};
+}
 
-export const downloadInvoicePdf = async (invoiceId) => {
+export async function downloadInvoicePdf(invoiceId) {
   const response = await api.get(`/invoices/${invoiceId}/send`, { responseType: 'blob' });
   return response.data;
-};
+}
 
-// Expenses
-export const getExpenses = async () => {
+// Expense Management
+export async function getExpenses() {
   try {
     const response = await api.get('/expenses/');
     console.log("[DEBUG] getExpenses response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getExpenses failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const createExpense = async (expenseData) => {
+export async function createExpense(expenseData) {
   const response = await api.post('/expenses/', expenseData);
   return response.data;
-};
+}
 
-export const updateExpense = async (expenseId, expenseData) => {
+export async function updateExpense(expenseId, expenseData) {
   const response = await api.put(`/expenses/${expenseId}`, expenseData);
   return response.data;
-};
+}
 
-export const deleteExpense = async (expenseId) => {
+export async function deleteExpense(expenseId) {
   const response = await api.delete(`/expenses/${expenseId}`);
   return response.data;
-};
+}
 
-// Sales (assuming these are separate from invoices for now, if needed)
-export const getSales = async () => {
+// Sales Management
+export async function getSales() {
   try {
     const response = await api.get('/sales/');
     console.log("[DEBUG] getSales response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getSales failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const createSale = async (saleData) => {
+export async function createSale(saleData) {
   const response = await api.post('/sales/', saleData);
   return response.data;
-};
+}
 
-// Payments (if separate from invoices/sales)
-export const getPayments = async () => {
+// Payment Management
+export async function getPayments() {
   try {
     const response = await api.get('/payments/');
     console.log("[DEBUG] getPayments response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getPayments failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const recordPayment = async (paymentData) => {
+export async function recordPayment(paymentData) {
   const response = await api.post('/payments/', paymentData);
   return response.data;
-};
+}
 
-// Dashboard
-export const getDashboardOverview = async () => {
+export async function initializePayment(paymentData) {
+  const response = await api.post('/payments/initialize', paymentData);
+  return response.data;
+}
+
+export async function verifyPayment(reference) {
+  const response = await api.get(`/payments/verify/${reference}`);
+  return response.data;
+}
+
+// Subscription Management
+export async function getSubscriptionPlans() {
+  try {
+    const response = await api.get('/subscription-upgrade/plans');
+    console.log("[DEBUG] getSubscriptionPlans response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getSubscriptionPlans failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
+export async function upgradeSubscription(upgradeData) {
+  const response = await api.post('/subscription-upgrade/upgrade', upgradeData);
+  return response.data;
+}
+
+export async function updateSubscription(subscriptionData) {
+  const response = await api.put('/subscription-upgrade/update', subscriptionData);
+  return response.data;
+}
+
+// Dashboard - CRITICAL FIX
+export async function getDashboardOverview() {
   try {
     console.log("[DEBUG] getDashboardOverview: Starting request to /dashboard/overview");
-  const response = await api.get('/dashboard/overview');
+    const response = await api.get('/dashboard/overview');
     console.log("[DEBUG] getDashboardOverview: Full response object:", response);
     console.log("[DEBUG] getDashboardOverview: Response status:", response.status);
     console.log("[DEBUG] getDashboardOverview: Response headers:", response.headers);
     console.log("[DEBUG] getDashboardOverview: Response data:", response.data);
     
-    // Check if response has the expected structure
     if (response.data && typeof response.data === 'object') {
       if (response.data.success && response.data.data) {
         console.log("[DEBUG] getDashboardOverview: Using response.data.data format");
@@ -429,50 +460,49 @@ export const getDashboardOverview = async () => {
     }
     throw error;
   }
-};
+}
 
-export const getRevenueChart = async () => {
+export async function getRevenueChart() {
   try {
-  const response = await api.get('/dashboard/revenue-chart');
+    const response = await api.get('/dashboard/revenue-chart');
     console.log("[DEBUG] getRevenueChart response:", response.data);
-    // Backend returns {success: true, data: {...}, message: "..."}
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getRevenueChart failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
 // Sales Report
-export const getSalesReport = async (params) => {
+export async function getSalesReport(params) {
   try {
-  const response = await api.get('/reports/sales', { params });
+    const response = await api.get('/reports/sales', { params });
     console.log("[DEBUG] getSalesReport response:", response.data);
-    // Backend returns {success: true, data: {...}, message: "..."}
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getSalesReport failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
-export const downloadSalesReport = async (params, format) => {
+export async function downloadSalesReport(params, format) {
   const response = await api.get(`/reports/sales/download/${format}`, { params, responseType: 'blob' });
   return response.data;
-};
+}
 
 // Expense Categories
-export const getExpenseCategories = async () => {
+export async function getExpenseCategories() {
   try {
     const response = await api.get('/expenses/categories');
     console.log("[DEBUG] getExpenseCategories response:", response.data);
-    return response.data.data || response.data; // Handle both formats for compatibility
+    return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-};
+}
 
+// Export axios methods for backward compatibility
 export const get = api.get;
 export const post = api.post;
 export const put = api.put;

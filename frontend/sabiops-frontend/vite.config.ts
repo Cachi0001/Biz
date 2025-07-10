@@ -82,11 +82,64 @@ export default defineConfig({
     terserOptions: {
       mangle: {
         keep_fnames: true, // Preserve function names to prevent minification issues
+        reserved: [
+          'getDashboardOverview',
+          'getRevenueChart',
+          'getCustomers',
+          'getProducts',
+          'getInvoices',
+          'getExpenses',
+          'getSales',
+          'getPayments',
+          'getTeamMembers',
+          'register',
+          'login',
+          'logout',
+          'getProfile',
+          'verifyToken',
+          'createCustomer',
+          'createProduct',
+          'createInvoice',
+          'createExpense',
+          'createSale',
+          'createTeamMember',
+          'updateCustomer',
+          'updateProduct',
+          'updateInvoice',
+          'updateExpense',
+          'updateTeamMember',
+          'deleteCustomer',
+          'deleteProduct',
+          'deleteInvoice',
+          'deleteExpense',
+          'deleteTeamMember',
+          'requestPasswordReset',
+          'verifyResetCode',
+          'resetPassword',
+          'recordPayment',
+          'getSalesReport',
+          'getExpenseCategories',
+          'getCategories',
+          'healthCheck',
+          'testDatabase',
+          'get',
+          'post',
+          'put',
+          'del',
+          'getAuthToken',
+          'setAuthToken',
+          'removeAuthToken'
+        ]
       },
       compress: {
         drop_console: false, // Keep console logs for debugging
         drop_debugger: true,
+        pure_funcs: [], // Don't remove any functions
+        passes: 1 // Reduce optimization passes
       },
+      format: {
+        comments: false
+      }
     },
     rollupOptions: {
       output: {
