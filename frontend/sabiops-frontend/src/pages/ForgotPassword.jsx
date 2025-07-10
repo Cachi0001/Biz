@@ -6,13 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@supabase/supabase-js';
 import { requestPasswordReset } from '../services/api';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');

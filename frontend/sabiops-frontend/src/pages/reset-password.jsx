@@ -1,33 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 import { resetPassword } from '../services/api';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [token, setToken] = useState(null);
   const [email, setEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
-
-  useEffect(() => {
-    // Parse access token from URL fragment
-    const hash = window.location.hash.substr(1);
-    const params = new URLSearchParams(hash);
-    const access_token = params.get('access_token');
-    setToken(access_token);
-  }, []);
 
   const handleReset = async (e) => {
     e.preventDefault();
@@ -49,19 +34,6 @@ const ResetPassword = () => {
     }
     setIsResetting(false);
   };
-
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 text-center">
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-            Invalid or expired reset link.
-          </h2>
-          <Button onClick={() => navigate('/forgot-password')} className="mt-4">Request New Link</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">

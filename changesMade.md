@@ -170,3 +170,7 @@
 - Updated `frontend/sabiops-frontend/src/contexts/NotificationContext.jsx` to safely destructure `user` from `useAuth()` with a fallback to an empty object.
 - This prevents the error: `TypeError: Cannot destructure property 'user' of 'useAuth(...)' as it is null.`
 
+## [DATE: YYYY-MM-DD] - Align frontend auth and backend Firebase usage with implementation guide
+- Refactored `frontend/sabiops-frontend/src/pages/Register.jsx`, `reset-password.jsx`, `ForgotPassword.jsx`, and `email-verified.jsx` to remove all direct Supabase JS SDK usage. All authentication and verification flows now use only the backend API, as per the implementation guide.
+- Patched `backend/sabiops-backend/src/services/firebase_service.py` to load the Firebase service account from the `FIREBASE_SERVICE_ACCOUNT_JSON` environment variable if present, otherwise fallback to the file. This enables secure production deployment without storing secrets in the repo.
+

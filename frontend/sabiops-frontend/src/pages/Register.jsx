@@ -6,13 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@supabase/supabase-js';
+import { register as apiRegister } from '../services/api';
 import { getErrorMessage } from '../services/api';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -67,20 +62,12 @@ const Register = () => {
     }
     try {
       const { confirmPassword, ...registrationData } = formData;
-      // Supabase signUp
-      const { error } = await supabase.auth.signUp({
-        email: registrationData.email,
-        password: registrationData.password,
-        options: {
-          emailRedirectTo: 'https://sabiops.vercel.app/email-verified',
-        },
-      });
-      if (error) {
-        toast.error(getErrorMessage(error, error.message || 'Registration failed. Please check your information and try again.'));
-        setIsLoading(false);
-        return;
+      const response = await apiRegister(registrationData);
+      if (response.success) {
+        setShowCheckEmail(true);
+      } else {
+        toast.error(response.message || 'Registration failed. Please check your information and try again.');
       }
-      setShowCheckEmail(true);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Registration failed. Please check your information and try again.'));
     } finally {
@@ -88,29 +75,7 @@ const Register = () => {
     }
   };
 
-  // Polling for email verification
-  const pollForVerification = async () => {
-    setPolling(true);
-    setPollError("");
-    try {
-      const { data, error } = await supabase.auth.admin.getUserByEmail(formData.email);
-      if (error) {
-        setPollError('Could not check verification status. Try again.');
-        setPolling(false);
-        return;
-      }
-      if (data?.user?.email_confirmed_at) {
-        // Redirect to /email-verified with email as query param
-        navigate(`/email-verified?email=${encodeURIComponent(formData.email)}`);
-      } else {
-        setPollError('Email not yet verified. Please check your inbox and click the confirmation link.');
-      }
-    } catch (err) {
-      setPollError('Error checking verification status.');
-    } finally {
-      setPolling(false);
-    }
-  };
+  // Remove all Supabase JS SDK usage and polling for verification from frontend. If polling is needed, call a backend endpoint to check verification status.
 
   if (showCheckEmail) {
     return (
