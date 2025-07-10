@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@supabase/supabase-js';
+import { getErrorMessage } from '../services/api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -75,13 +76,13 @@ const Register = () => {
         },
       });
       if (error) {
-        toast.error(error.message);
+        toast.error(getErrorMessage(error, error.message || 'Registration failed. Please check your information and try again.'));
         setIsLoading(false);
         return;
       }
       setShowCheckEmail(true);
     } catch (error) {
-      toast.error(error.message || 'Registration failed. Please check your information and try again.');
+      toast.error(getErrorMessage(error, 'Registration failed. Please check your information and try again.'));
     } finally {
       setIsLoading(false);
     }

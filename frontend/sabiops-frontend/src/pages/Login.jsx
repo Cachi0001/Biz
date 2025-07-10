@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@supabase/supabase-js';
+import { getErrorMessage } from '../services/api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -25,14 +26,14 @@ const Login = () => {
     try {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        toast.error(error.message, { duration: 4000 });
+        toast.error(getErrorMessage(error, error.message || 'Login failed.'), { duration: 4000 });
       } else if (data.session) {
         localStorage.setItem('token', data.session.access_token);
         // Optionally fetch user profile from your backend here if needed
         navigate('/dashboard');
       }
     } catch (err) {
-      toast.error('Login failed. Please try again.', { duration: 4000 });
+      toast.error(getErrorMessage(err, 'Login failed. Please try again.'), { duration: 4000 });
     }
     setIsLoading(false);
   };
@@ -68,15 +69,15 @@ const Login = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
                   type="password"
-                  required
+                    required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                    placeholder="Enter your password"
                   disabled={isLoading}
                 />
               </div>
@@ -91,7 +92,7 @@ const Login = () => {
             <div className="text-center mt-4">
               <Link to="/forgot-password" className="font-medium text-primary hover:text-primary/80">
                 Forgot password?
-              </Link>
+                </Link>
             </div>
           </CardContent>
         </Card>

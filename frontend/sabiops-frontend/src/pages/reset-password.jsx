@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
+import { resetPassword } from '../services/api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -17,6 +18,8 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [token, setToken] = useState(null);
+  const [email, setEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
 
   useEffect(() => {
     // Parse access token from URL fragment
@@ -34,15 +37,15 @@ const ResetPassword = () => {
     }
     setIsResetting(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        toast.error(error.message);
-      } else {
+      const response = await resetPassword({ email, reset_code: resetCode, new_password: password });
+      if (response.success) {
         toast.success('Password reset successful! You can now log in.');
         setTimeout(() => navigate('/login'), 1500);
+      } else {
+        toast.error(response.message || 'Failed to reset password.');
       }
     } catch (err) {
-      toast.error('Failed to reset password. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to reset password.');
     }
     setIsResetting(false);
   };
@@ -72,6 +75,32 @@ const ResetPassword = () => {
           </p>
         </div>
         <form onSubmit={handleReset} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              disabled={isResetting}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="resetCode">Reset Code</Label>
+            <Input
+              id="resetCode"
+              name="resetCode"
+              type="text"
+              required
+              value={resetCode}
+              onChange={(e) => setResetCode(e.target.value)}
+              placeholder="Enter the code sent to your email"
+              disabled={isResetting}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <Input

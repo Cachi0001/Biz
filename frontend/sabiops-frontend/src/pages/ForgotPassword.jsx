@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@supabase/supabase-js';
+import { requestPasswordReset } from '../services/api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -22,17 +23,15 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsRequesting(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://sabiops.vercel.app/reset-password',
-      });
-      if (error) {
-        toast.error(error.message);
-      } else {
+      const response = await requestPasswordReset({ email });
+      if (response.success) {
         setStep(2);
-        toast.success('A password reset link has been sent to your email.');
+        toast.success('A password reset code has been sent to your email.');
+      } else {
+        toast.error(response.message || 'Failed to send reset code.');
       }
     } catch (err) {
-      toast.error('Failed to send reset link. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to send reset code.');
     }
     setIsRequesting(false);
   };
@@ -64,18 +63,18 @@ const ForgotPassword = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {step === 1 && (
-              <form onSubmit={handleRequestReset} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                {step === 1 && (
+                  <form onSubmit={handleRequestReset} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
                     disabled={isRequesting}
                   />
                 </div>

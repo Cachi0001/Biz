@@ -213,3 +213,45 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Mark notification read error: {e}")
             return False
+
+    def send_push_notification(self, user_id: str, title: str, message: str, type: str = "info"):
+        """Send push notification to all device tokens for a user via Firebase Cloud Messaging (FCM v1 API) using service account."""
+        import logging
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, messaging as fcm_messaging
+            # Initialize Firebase app if not already
+            if not firebase_admin._apps:
+                cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred, {
+                    'projectId': os.getenv("FIREBASE_PROJECT_ID")
+                })
+            # Get all device tokens for the user
+            tokens = []
+            if self.is_enabled():
+                subs = self.select("push_subscriptions", "device_token", {"user_id": user_id})
+                tokens = [s["device_token"] for s in subs if s.get("device_token")]
+            if not tokens:
+                logging.info(f"No device tokens for user {user_id}")
+                return False
+            # Build message
+            notification = fcm_messaging.Notification(title=title, body=message)
+            message = fcm_messaging.MulticastMessage(
+                notification=notification,
+                tokens=tokens,
+                data={"type": type}
+            )
+            response = fcm_messaging.send_multicast(message)
+            if response.failure_count > 0:
+                logging.error(f"Push notification failures: {response.failure_count}, errors: {response.responses}")
+            logging.info(f"Push notification sent to user {user_id}, success: {response.success_count}")
+            return response.success_count > 0
+        except Exception as e:
+            logging.error(f"Push notification error: {e}")
+            return False
+
+    def notify_user(self, user_id: str, title: str, message: str, type: str = "info"):
+        """Send both in-app and push notification to a user"""
+        self.send_notification(user_id, title, message, type)
+        self.send_push_notification(user_id, title, message, type)

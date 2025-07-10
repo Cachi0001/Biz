@@ -7,6 +7,7 @@ from src.models.user import User, db
 from src.models.referral import ReferralWithdrawal, ReferralEarning
 import requests
 import logging
+from src.services.paystack_service import PaystackService
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,10 @@ NIGERIAN_BANKS = {
     "035": "Wema Bank Plc",
     "057": "Zenith Bank Plc",
     "101": "Providus Bank",
+    "301490": "Opay",
+    "566817": "PalmPay",
+    "559186": "Moniepoint",
+    "526389": "Kuda",
     "000": "Other"
 }
 
@@ -302,54 +307,90 @@ def admin_process_withdrawal(withdrawal_id):
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
-        
         # Check if user has admin privileges
         if not user or user.role not in ['Owner', 'Admin']:
             return jsonify({'error': 'Admin access required'}), 403
-        
         withdrawal = ReferralWithdrawal.query.get(withdrawal_id)
         if not withdrawal:
             return jsonify({'error': 'Withdrawal not found'}), 404
-        
         if withdrawal.status != 'pending':
             return jsonify({'error': 'Withdrawal already processed'}), 400
-        
         data = request.get_json()
         action = data.get('action')  # 'approve' or 'reject'
         admin_notes = data.get('admin_notes', '')
-        
         if action == 'approve':
-            # Here you would integrate with Paystack to make the actual transfer
-            # For now, we'll mark as completed
-            withdrawal.status = 'completed'
-            withdrawal.processed_by = user_id
-            withdrawal.processed_at = db.func.now()
-            withdrawal.admin_notes = admin_notes
-            withdrawal.transaction_id = f"TXN_{withdrawal.reference_number}"
-            
-            # Update user's total withdrawn
-            withdrawal_user = User.query.get(withdrawal.user_id)
-            withdrawal_user.total_withdrawn += withdrawal.amount
-            
-            # Send notification
-            if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
-                current_app.supabase_service.send_notification(
-                    str(withdrawal.user_id),
-                    "Withdrawal Completed",
-                    f"Your withdrawal of ₦{withdrawal.amount:,.2f} has been processed successfully.",
-                    "success"
+            # --- Paystack Integration Start ---
+            paystack = PaystackService()
+            try:
+                # 1. Resolve account number
+                resolve_resp = paystack.resolve_account_number(
+                    withdrawal.account_number, withdrawal.bank_code)
+                if not resolve_resp.get('status') or not resolve_resp.get('data'):
+                    raise Exception('Failed to resolve account number with Paystack')
+                account_name = resolve_resp['data']['account_name']
+                # 2. Create transfer recipient
+                recipient_resp = paystack.create_transfer_recipient(
+                    type='nuban',
+                    name=withdrawal.account_name or account_name,
+                    account_number=withdrawal.account_number,
+                    bank_code=withdrawal.bank_code,
+                    currency='NGN'
                 )
-            
+                if not recipient_resp.get('status') or not recipient_resp.get('data'):
+                    raise Exception('Failed to create transfer recipient with Paystack')
+                recipient_code = recipient_resp['data']['recipient_code']
+                withdrawal.recipient_code = recipient_code
+                # 3. Initiate transfer
+                transfer_resp = paystack.initiate_transfer(
+                    source='balance',
+                    amount=int(float(withdrawal.amount) * 100),  # Paystack expects kobo
+                    recipient=recipient_code,
+                    reason=f'Referral withdrawal for {withdrawal.account_name}',
+                    reference=withdrawal.reference_number
+                )
+                if not transfer_resp.get('status') or not transfer_resp.get('data'):
+                    raise Exception('Failed to initiate transfer with Paystack')
+                transaction_id = transfer_resp['data']['id']
+                withdrawal.transaction_id = str(transaction_id)
+                withdrawal.status = 'processing'  # Mark as processing until webhook confirms
+                withdrawal.processed_by = user_id
+                withdrawal.processed_at = db.func.now()
+                withdrawal.admin_notes = admin_notes
+                # Update user's total withdrawn
+                withdrawal_user = User.query.get(withdrawal.user_id)
+                withdrawal_user.total_withdrawn += withdrawal.amount
+                # Send notification
+                if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
+                    current_app.supabase_service.send_notification(
+                        str(withdrawal.user_id),
+                        "Withdrawal Processing",
+                        f"Your withdrawal of ₦{withdrawal.amount:,.2f} is being processed. You will be notified once completed.",
+                        "info"
+                    )
+            except Exception as paystack_error:
+                withdrawal.status = 'failed'
+                withdrawal.admin_notes = f"Paystack error: {paystack_error}"
+                # Refund amount to user's earnings
+                withdrawal_user = User.query.get(withdrawal.user_id)
+                withdrawal_user.referral_earnings += withdrawal.amount
+                if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
+                    current_app.supabase_service.send_notification(
+                        str(withdrawal.user_id),
+                        "Withdrawal Failed",
+                        f"Your withdrawal request of ₦{withdrawal.amount:,.2f} failed due to a payment error. Amount refunded to your balance.",
+                        "warning"
+                    )
+                db.session.commit()
+                return jsonify({'error': f'Failed to process withdrawal: {paystack_error}'}), 500
+            # --- Paystack Integration End ---
         elif action == 'reject':
             withdrawal.status = 'failed'
             withdrawal.processed_by = user_id
             withdrawal.processed_at = db.func.now()
             withdrawal.admin_notes = admin_notes
-            
             # Refund amount to user's earnings
             withdrawal_user = User.query.get(withdrawal.user_id)
             withdrawal_user.referral_earnings += withdrawal.amount
-            
             # Send notification
             if hasattr(current_app, 'supabase_service') and current_app.supabase_service.is_enabled():
                 current_app.supabase_service.send_notification(
@@ -360,14 +401,11 @@ def admin_process_withdrawal(withdrawal_id):
                 )
         else:
             return jsonify({'error': 'Invalid action. Use "approve" or "reject"'}), 400
-        
         db.session.commit()
-        
         return jsonify({
             'message': f'Withdrawal {action}d successfully',
             'withdrawal': withdrawal.to_dict()
         })
-        
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error processing withdrawal: {e}")

@@ -7,6 +7,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.colors import HexColor
 import io
+from src.services.supabase_service import SupabaseService
 
 invoice_bp = Blueprint("invoice", __name__)
 
@@ -120,13 +121,24 @@ def create_invoice():
         
         # Calculate totals from items
         total_amount = 0
+        total_cogs = 0
         if data.get("items"):
             for item in data["items"]:
                 item_total = float(item.get("quantity", 0)) * float(item.get("unit_price", 0))
                 total_amount += item_total
+                # Calculate COGS for each item
+                cost_price = 0
+                if item.get("product_id"):
+                    product_result = get_supabase().table("products").select("cost_price").eq("id", item["product_id"]).single().execute()
+                    if product_result.data and product_result.data.get("cost_price") is not None:
+                        cost_price = float(product_result.data["cost_price"])
+                item_cogs = float(item.get("quantity", 0)) * cost_price
+                total_cogs += item_cogs
         
         invoice_data["amount"] = total_amount
         invoice_data["total_amount"] = total_amount + invoice_data["tax_amount"]
+        invoice_data["total_cogs"] = total_cogs
+        invoice_data["gross_profit"] = total_amount - total_cogs
 
         result = get_supabase().table("invoices").insert(invoice_data).execute()
 
@@ -432,6 +444,14 @@ def get_overdue_invoices():
         for invoice in overdue_invoices:
             if invoice["status"] != "overdue":
                 get_supabase().table("invoices").update({"status": "overdue", "updated_at": datetime.now().isoformat()}).eq("id", invoice["id"]).execute()
+                # Notify owner of overdue invoice
+                supa_service = SupabaseService()
+                supa_service.notify_user(
+                    str(owner_id),
+                    "Invoice Overdue!",
+                    f"Invoice {invoice['invoice_number']} for ₦{invoice['total_amount']:,.2f} is overdue.",
+                    "warning"
+                )
         
         # Re-fetch to get updated statuses
         overdue_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).eq("status", "overdue").execute()

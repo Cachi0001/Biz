@@ -32,6 +32,7 @@ import {
 } from "../components/ui/table";
 import { getProducts, getCategories, updateProduct, createProduct, deleteProduct } from "../services/api";
 import { toast } from 'react-hot-toast'; // Corrected import
+import { getErrorMessage } from '../services/api';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -145,8 +146,7 @@ const Products = () => {
       fetchCategories();
     } catch (error) {
       console.error('Failed to save product:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save product';
-      toast.error(`Failed to save product: ${errorMessage}`); // Corrected toast usage
+      toast.error(getErrorMessage(error, 'Failed to save product'));
     }
   };
 
@@ -174,7 +174,7 @@ const Products = () => {
         fetchProducts();
       } catch (error) {
         console.error('Failed to delete product:', error);
-        toast.error(`Failed to delete product: ${error.message || 'Unknown error'}`); // Corrected toast usage
+        toast.error(getErrorMessage(error, 'Failed to delete product'));
       }
     }
   };

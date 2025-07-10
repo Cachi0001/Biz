@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
+from src.services.supabase_service import SupabaseService
 
 expense_bp = Blueprint("expense", __name__)
 
@@ -89,6 +90,18 @@ def create_expense():
         result = get_supabase().table("expenses").insert(expense_data).execute()
         
         print(f"[EXPENSE CREATE SUCCESS] Expense created with ID: {result.data[0]['id']}")
+        # Check expense limit and notify if exceeded
+        # (Assume a helper get_user_plan_limit exists or hardcode for demo)
+        plan_limit = 1000  # TODO: Replace with actual plan lookup
+        expenses_count = get_supabase().table("expenses").select("*").eq("owner_id", owner_id).execute().count
+        if expenses_count and expenses_count > plan_limit:
+            supa_service = SupabaseService()
+            supa_service.notify_user(
+                str(owner_id),
+                "Expense Limit Exceeded!",
+                f"You have exceeded your plan's expense limit ({plan_limit}). Upgrade your plan to add more expenses.",
+                "warning"
+            )
         
         return success_response(
             message="Expense created successfully",

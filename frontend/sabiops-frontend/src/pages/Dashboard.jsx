@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getDashboardOverview, getRevenueChart } from '../services/api';
+import { getFinancials } from '../services/api';
 
 // Simple fallback components (no external dependencies)
 const SimpleCard = ({ children, className = '', ...props }) => (
@@ -57,12 +57,7 @@ const SimpleIcon = ({ name, className = 'h-4 w-4' }) => {
 
 const DashboardFixed = () => {
   const [mounted, setMounted] = useState(false);
-  const [overview, setOverview] = useState({
-    revenue: { total: 0, this_month: 0, outstanding: 0 },
-    customers: { total: 0, new_this_month: 0 },
-    products: { total: 0, low_stock: 0 },
-    invoices: { overdue: 0 }
-  });
+  const [financials, setFinancials] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -81,66 +76,13 @@ const DashboardFixed = () => {
     setMounted(true);
 
     const fetchData = async () => {
+      setLoading(true);
       try {
-        console.log('[FIXED DASHBOARD] Fetching dashboard data...');
-        
-        // Verify that getDashboardOverview is a function
-        if (typeof getDashboardOverview === 'function') {
-          try {
-            console.log('[FIXED DASHBOARD] Calling getDashboardOverview...');
-            const data = await getDashboardOverview();
-            console.log('[FIXED DASHBOARD] Raw data received:', data);
-            console.log('[FIXED DASHBOARD] Data type:', typeof data);
-            console.log('[FIXED DASHBOARD] Data keys:', data ? Object.keys(data) : 'No keys');
-            
-            if (data && typeof data === 'object') {
-              console.log('[FIXED DASHBOARD] Processing data structure...');
-              console.log('[FIXED DASHBOARD] data.revenue:', data.revenue);
-              console.log('[FIXED DASHBOARD] data.customers:', data.customers);
-              console.log('[FIXED DASHBOARD] data.products:', data.products);
-              console.log('[FIXED DASHBOARD] data.invoices:', data.invoices);
-              
-              const processedOverview = {
-                revenue: {
-                  total: data.revenue?.total || 0,
-                  this_month: data.revenue?.this_month || 0,
-                  outstanding: data.revenue?.outstanding || 0
-                },
-                customers: {
-                  total: data.customers?.total || 0,
-                  new_this_month: data.customers?.new_this_month || 0
-                },
-                products: {
-                  total: data.products?.total || 0,
-                  low_stock: data.products?.low_stock || 0
-                },
-                invoices: {
-                  overdue: data.invoices?.overdue || 0
-                }
-              };
-              
-              console.log('[FIXED DASHBOARD] Processed overview:', processedOverview);
-              setOverview(processedOverview);
-            } else {
-              console.warn('[FIXED DASHBOARD] No data received from API');
-              // Keep default values
-            }
-          } catch (fetchError) {
-            console.error('[FIXED DASHBOARD] Data fetch failed:', fetchError);
-            console.error('[FIXED DASHBOARD] Error details:', {
-              message: fetchError.message,
-              stack: fetchError.stack,
-              response: fetchError.response
-            });
-            // Keep default values, don't set error for API failures
-          }
-        } else {
-          console.error('[FIXED DASHBOARD] getDashboardOverview is not a function:', typeof getDashboardOverview);
-          setError('Dashboard API function not available');
-        }
-      } catch (error) {
-        console.error('[FIXED DASHBOARD] General error:', error);
-        setError('Failed to load dashboard data');
+        const data = await getFinancials();
+        setFinancials(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load financials');
       } finally {
         setLoading(false);
       }
@@ -222,39 +164,25 @@ const DashboardFixed = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2">Loading dashboard data...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-2 text-green-700">Loading dashboard data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-green-900">
             Welcome back, {userName}!
           </h1>
-          <p className="text-gray-600">
-            Here's what's happening with your business today.
+          <p className="text-green-700 text-sm sm:text-base">
+            Your business at a glance. All figures in <span className="font-semibold">₦</span> Naira.
           </p>
-          
-          {/* Free Trial Warning */}
-          {authData.isFreeTrial && authData.trialDaysLeft <= 3 && (
-            <div className="flex items-center gap-2 mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-              <SimpleIcon name="AlertTriangle" className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm text-yellow-800">
-                Your free trial expires in {authData.trialDaysLeft} day{authData.trialDaysLeft !== 1 ? 's' : ''}. 
-                <Link to="/subscription/upgrade" className="ml-1 underline font-medium">
-                  Upgrade now
-                </Link>
-              </span>
-            </div>
-          )}
         </div>
-        
         <div className="flex space-x-2">
           <SimpleButton asChild>
             <Link to="/invoices/new">
@@ -262,140 +190,142 @@ const DashboardFixed = () => {
               New Invoice
             </Link>
           </SimpleButton>
-          
-          {authData.isFreeTrial && (
-            <SimpleButton asChild>
-              <Link to="/subscription/upgrade" className="bg-yellow-600 hover:bg-yellow-700">
-                <SimpleIcon name="Crown" className="mr-2 h-4 w-4" />
-                Upgrade
-              </Link>
-            </SimpleButton>
-          )}
         </div>
       </div>
-
-      {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <SimpleCard>
-          <SimpleCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <SimpleCardTitle className="text-sm font-medium">Total Revenue</SimpleCardTitle>
-            <SimpleIcon name="DollarSign" className="h-4 w-4 text-gray-500" />
+      {/* Financial Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SimpleCard className="bg-green-50 border-green-200">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Revenue</SimpleCardTitle>
+            <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(overview?.revenue?.total || 0)}
-            </div>
-            <p className="text-xs text-gray-500">
-              {formatCurrency(overview?.revenue?.this_month || 0)} this month
-            </p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.revenue?.total)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.revenue?.this_month)}</p>
           </SimpleCardContent>
         </SimpleCard>
-
-        <SimpleCard>
-          <SimpleCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <SimpleCardTitle className="text-sm font-medium">
-              Customers
-              {authData.isFreeTrial && (
-                <span className="text-xs text-gray-500 ml-1">
-                  ({overview?.customers?.total || 0}/10)
-                </span>
-              )}
-            </SimpleCardTitle>
-            <SimpleIcon name="Users" className="h-4 w-4 text-gray-500" />
+        <SimpleCard className="bg-green-50 border-green-200">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">COGS</SimpleCardTitle>
+            <SimpleIcon name="Package" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold">
-              {overview?.customers?.total || 0}
-            </div>
-            <p className="text-xs text-gray-500">
-              +{overview?.customers?.new_this_month || 0} new this month
-            </p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.cogs?.total)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.cogs?.this_month)}</p>
           </SimpleCardContent>
         </SimpleCard>
-
-        <SimpleCard>
-          <SimpleCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <SimpleCardTitle className="text-sm font-medium">
-              Products
-              {authData.isFreeTrial && (
-                <span className="text-xs text-gray-500 ml-1">
-                  ({overview?.products?.total || 0}/50)
-                </span>
-              )}
-            </SimpleCardTitle>
-            <SimpleIcon name="Package" className="h-4 w-4 text-gray-500" />
+        <SimpleCard className="bg-green-50 border-green-200">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Gross Profit</SimpleCardTitle>
+            <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold">
-              {overview?.products?.total || 0}
-            </div>
-            <p className="text-xs text-gray-500">
-              {overview?.products?.low_stock || 0} low stock
-            </p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.gross_profit?.total)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.gross_profit?.this_month)}</p>
           </SimpleCardContent>
         </SimpleCard>
-
-        <SimpleCard>
-          <SimpleCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <SimpleCardTitle className="text-sm font-medium">Overdue Invoices</SimpleCardTitle>
-            <SimpleIcon name="FileText" className="h-4 w-4 text-gray-500" />
+        <SimpleCard className="bg-green-50 border-green-200">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Net Profit</SimpleCardTitle>
+            <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold">
-              {overview?.invoices?.overdue || 0}
-            </div>
-            <p className="text-xs text-gray-500">
-              Requires attention
-            </p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.net_profit?.total)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.net_profit?.this_month)}</p>
           </SimpleCardContent>
         </SimpleCard>
       </div>
-
-      {/* Charts Section */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Revenue Chart */}
-        <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
-          <div className="h-48 flex items-center justify-center bg-gray-50 rounded border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <div className="text-gray-400 mb-2">📈</div>
-              <p className="text-gray-500 text-sm">Revenue chart will be displayed here</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Total: {formatCurrency(overview?.revenue?.total || 0)}
-              </p>
+      {/* Cash Flow & Inventory */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Cash Flow</SimpleCardTitle>
+            <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <div className="flex flex-col gap-1">
+              <span className="text-green-700 text-sm">Money In: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_in)}</span></span>
+              <span className="text-green-700 text-sm">Money Out: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_out)}</span></span>
+              <span className="text-green-900 font-bold">Net: {formatCurrency(financials?.cash_flow?.net)}</span>
             </div>
+          </SimpleCardContent>
+        </SimpleCard>
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Inventory Value</SimpleCardTitle>
+            <SimpleIcon name="Package" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.inventory_value)}</div>
+            <p className="text-xs text-green-700">Low stock: {financials?.low_stock?.length || 0}</p>
+          </SimpleCardContent>
+        </SimpleCard>
           </div>
+      {/* Expenses by Category & Top Products */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Expenses by Category</SimpleCardTitle>
+            <SimpleIcon name="FileText" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <ul className="text-green-800 text-sm space-y-1">
+              {financials?.expenses?.by_category && Object.entries(financials.expenses.by_category).map(([cat, amt]) => (
+                <li key={cat} className="flex justify-between"><span>{cat}</span><span>{formatCurrency(amt)}</span></li>
+              ))}
+            </ul>
+          </SimpleCardContent>
+        </SimpleCard>
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Top Products</SimpleCardTitle>
+            <SimpleIcon name="Package" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <ul className="text-green-800 text-sm space-y-1">
+              {financials?.top_products && financials.top_products.map((p) => (
+                <li key={p.name} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
+              ))}
+            </ul>
+          </SimpleCardContent>
+        </SimpleCard>
         </div>
-
-        {/* Customer Growth Chart */}
-        <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h3 className="text-lg font-semibold mb-4">Customer Growth</h3>
-          <div className="h-48 flex items-center justify-center bg-gray-50 rounded border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <div className="text-gray-400 mb-2">👥</div>
-              <p className="text-gray-500 text-sm">Customer growth chart will be displayed here</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Total: {overview?.customers?.total || 0} customers
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Top Expenses & Low Stock Alerts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Top Expenses</SimpleCardTitle>
+            <SimpleIcon name="FileText" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <ul className="text-green-800 text-sm space-y-1">
+              {financials?.top_expenses && financials.top_expenses.map((e) => (
+                <li key={e.category} className="flex justify-between"><span>{e.category}</span><span>{formatCurrency(e.amount)}</span></li>
+              ))}
+            </ul>
+          </SimpleCardContent>
+        </SimpleCard>
+        <SimpleCard className="bg-white border-green-100">
+          <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
+            <SimpleCardTitle className="text-green-900">Low Stock Alerts</SimpleCardTitle>
+            <SimpleIcon name="AlertTriangle" className="h-5 w-5 text-green-600" />
+          </SimpleCardHeader>
+          <SimpleCardContent>
+            <ul className="text-red-700 text-sm space-y-1">
+              {financials?.low_stock && financials.low_stock.length > 0 ? (
+                financials.low_stock.map((p) => (
+                  <li key={p.name} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
+                ))
+              ) : (
+                <li className="text-green-700">All products in stock</li>
+              )}
+            </ul>
+          </SimpleCardContent>
+        </SimpleCard>
       </div>
-
-      {/* Status Section */}
-      <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <h3 className="font-semibold text-green-800">Dashboard Status</h3>
-        <p className="text-green-700 text-sm mt-1">
-          Fixed dashboard loaded successfully with proper ES6 imports and no require() calls.
-          This version eliminates all import errors and should fetch data correctly.
-        </p>
-        <div className="mt-2 text-xs text-green-600">
-          <p>✅ Authentication: Working</p>
-          <p>✅ Data fetching: {overview.revenue.total > 0 || overview.customers.total > 0 ? 'Working' : 'No data'}</p>
-          <p>✅ Component rendering: Working</p>
-          <p>✅ Error handling: Active</p>
-          <p>✅ Import system: Fixed (no require() calls)</p>
-        </div>
+      {/* Mobile-First: Ensure all sections are stacked and scrollable on 360px screens */}
+      <div className="mt-8 text-xs text-green-700 text-center">
+        <p>All insights are calculated in real-time for Nigerian SMEs. For help, tap any card title for a tooltip.</p>
       </div>
     </div>
   );

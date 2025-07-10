@@ -392,3 +392,13 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE 'plpgsql';
+
+-- Add COGS and gross profit to sales and invoices
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS total_cogs DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS total_cogs DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0;
+
+-- Add sub_category to expenses
+ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS sub_category TEXT;

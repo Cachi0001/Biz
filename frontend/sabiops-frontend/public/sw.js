@@ -185,20 +185,63 @@ async function doBackgroundSync() {
   }
 }
 
-async function getOfflineData() {
-  // Implementation would get data from IndexedDB
-  // For now, return empty array
-  return [];
+// IndexedDB helpers for offline sync
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('sabiops-offline-db', 1);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('offline-queue')) {
+        db.createObjectStore('offline-queue', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-async function syncDataItem(item) {
-  // Implementation would sync individual items with server
-  console.log('Syncing item:', item);
+async function getOfflineData() {
+  const db = await openDB();
+  const tx = db.transaction('offline-queue', 'readonly');
+  const store = tx.objectStore('offline-queue');
+  return new Promise((resolve, reject) => {
+    const items = [];
+    const req = store.openCursor();
+    req.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        items.push({ ...cursor.value, id: cursor.key });
+        cursor.continue();
+      } else {
+        resolve(items);
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
 }
 
 async function removeOfflineData(itemId) {
-  // Implementation would remove synced item from offline storage
-  console.log('Removing offline item:', itemId);
+  const db = await openDB();
+  const tx = db.transaction('offline-queue', 'readwrite');
+  tx.objectStore('offline-queue').delete(itemId);
+  return tx.complete;
+}
+
+async function syncDataItem(item) {
+  try {
+    const response = await fetch(item.url, {
+      method: item.method || 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(item.data),
+    });
+    if (!response.ok) throw new Error('Sync failed');
+    return await response.json();
+  } catch (err) {
+    throw err;
+  }
 }
 
 // Message event - handle messages from main thread

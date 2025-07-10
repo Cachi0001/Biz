@@ -164,6 +164,11 @@ export async function verifyToken() {
   }
 }
 
+export async function updatePassword(data) {
+  const response = await api.post('/auth/update-password', data);
+  return response.data;
+}
+
 // Team Management
 export async function createTeamMember(memberData) {
   const response = await api.post('/team/', memberData);
@@ -474,6 +479,12 @@ export async function getRevenueChart() {
   }
 }
 
+// Get financials for dashboard (P&L, cash flow, etc.)
+export async function getFinancials() {
+  const response = await api.get('/dashboard/financials');
+  return response.data.data;
+}
+
 // Sales Report
 export async function getSalesReport(params) {
   try {
@@ -501,6 +512,111 @@ export async function getExpenseCategories() {
     console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
     throw error;
   }
+}
+
+// IndexedDB utility for offline queue
+const DB_NAME = 'sabiops-offline-db';
+const STORE_NAME = 'offline-queue';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function addOfflineItem(item) {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  tx.objectStore(STORE_NAME).add(item);
+  return tx.complete;
+}
+
+export async function getOfflineItems() {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAME, 'readonly');
+  const store = tx.objectStore(STORE_NAME);
+  return new Promise((resolve, reject) => {
+    const items = [];
+    const req = store.openCursor();
+    req.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        items.push({ ...cursor.value, id: cursor.key });
+        cursor.continue();
+      } else {
+        resolve(items);
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function removeOfflineItem(id) {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  tx.objectStore(STORE_NAME).delete(id);
+  return tx.complete;
+}
+
+// Wrap POST/PUT requests to queue offline
+async function queueOrFetch(url, data, method = 'POST') {
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Network error');
+    return await response.json();
+  } catch (err) {
+    // If offline, queue the request
+    if (!navigator.onLine) {
+      await addOfflineItem({ url, data, method, timestamp: Date.now() });
+      return { success: false, offline: true };
+    }
+    throw err;
+  }
+}
+
+// Example usage for sales, expenses, invoices, etc.
+export async function createSale(data) {
+  return queueOrFetch('/sales/', data, 'POST');
+}
+export async function createExpense(data) {
+  return queueOrFetch('/expenses/', data, 'POST');
+}
+export async function createInvoice(data) {
+  return queueOrFetch('/invoices/', data, 'POST');
+}
+
+// Save device token to backend for push notifications
+export async function saveDeviceToken(token) {
+  return api.post('/push-subscriptions', { token });
+}
+
+// Utility to extract user-friendly error messages from API errors
+export function getErrorMessage(error, fallback = 'An unexpected error occurred') {
+  if (error?.response?.data) {
+    // Prefer user-friendly message, then error code, then generic
+    return (
+      error.response.data.message ||
+      error.response.data.error ||
+      error.message ||
+      fallback
+    );
+  }
+  return error?.message || fallback;
 }
 
 // Export axios methods for backward compatibility

@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.models.user import User, db
 from datetime import datetime, timedelta
+from src.services.supabase_service import SupabaseService
 
 subscription_bp = Blueprint('subscription', __name__)
 
@@ -20,6 +21,25 @@ def get_subscription_status():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
+        if user.is_trial_active and user.trial_end_date:
+            days_left = (user.trial_end_date - datetime.utcnow().date()).days
+            if days_left == 1:
+                supa_service = SupabaseService()
+                supa_service.notify_user(
+                    str(user_id),
+                    "Trial Expiring Soon!",
+                    "Your free trial expires in 1 day. Upgrade now to keep your business running smoothly!",
+                    "warning"
+                )
+            elif days_left == 0:
+                supa_service = SupabaseService()
+                supa_service.notify_user(
+                    str(user_id),
+                    "Trial Expired!",
+                    "Your free trial has expired. Please upgrade your subscription to continue using SabiOps.",
+                    "error"
+                )
+
         subscription_data = {
             'subscription_plan': user.subscription_plan,
             'subscription_status': user.subscription_status,
