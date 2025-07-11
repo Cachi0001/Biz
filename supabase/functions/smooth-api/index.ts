@@ -12,6 +12,12 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_KEY');
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
 
+    // Add console.log to check environment variables
+    console.log('SUPABASE_URL:', supabaseUrl ? 'Set' : 'Not Set');
+    console.log('SUPABASE_SERVICE_KEY:', supabaseServiceKey ? 'Set' : 'Not Set');
+    console.log('SUPABASE_KEY (Anon):', supabaseAnonKey ? 'Set' : 'Not Set');
+    console.log('FRONTEND_URL:', frontendUrl);
+
     // Supabase clients
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
