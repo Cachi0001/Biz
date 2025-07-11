@@ -233,3 +233,48 @@
 **Critical Issues**: 0 (Email Verification Fixed)
 
 
+
+
+## Latest Updates (Current Session)
+
+### 🔧 **CRITICAL FIXES COMPLETED**
+
+#### 1. **Login "Email Not Confirmed" Error** - FIXED ✅
+- **Problem**: Users encountered an "email not confirmed" error when trying to log in, even after their email was successfully verified.
+- **Root Cause**: The login endpoint (`/login`) in `auth.py` was checking for a non-existent `email_confirmed` field instead of the `email_confirmed_at` field, which is correctly populated upon email verification.
+- **Solution**: 
+  - Modified the `/login` endpoint in `backend/sabiops-backend/src/routes/auth.py` to correctly check for the `email_confirmed_at` field in the user object retrieved from the database.
+
+#### 2. **Forgot Password Functionality** - FIXED ✅
+- **Problem**: The forgot password flow was not functioning correctly, and the reset link in the email was incorrect.
+- **Root Cause**: Similar to the login issue, the `forgot-password` endpoint was checking for `email_confirmed` instead of `email_confirmed_at`. Additionally, the `reset_link` generated in the email was not correctly pointing to the frontend's reset password page.
+- **Solution**: 
+  - Modified the `/forgot-password` endpoint in `backend/sabiops-backend/src/routes/auth.py` to correctly check for the `email_confirmed_at` field.
+  - Updated the `reset_link` generation to point to `https://sabiops.vercel.app/reset-password?code={reset_code}&email={email}`.
+
+### 📁 **FILES MODIFIED**
+
+#### Backend Files:
+- `backend/sabiops-backend/src/routes/auth.py` - Fixed email confirmation check for login and forgot password, and corrected reset link generation.
+
+### 🔍 **TESTING STATUS**
+
+#### 🧪 **Ready for Testing:**
+- **Login:** Attempt to log in with a confirmed email. It should now succeed.
+- **Forgot Password:** Initiate the forgot password flow, receive the email, and verify that the reset link is correct and allows for password reset.
+
+### 📋 **NEXT STEPS**
+
+1. **Deployment:**
+   - Deploy the updated backend code to your Vercel backend (`sabiops-backend.vercel.app`).
+
+2. **Testing:**
+   - Thoroughly test the login and forgot password functionalities as described above.
+
+---
+
+**Last Updated**: 2025-11-07
+**Status**: Fix Implemented, Ready for Deployment and Testing ✅
+**Critical Issues**: 0 (Login and Forgot Password Fixed)
+
+
