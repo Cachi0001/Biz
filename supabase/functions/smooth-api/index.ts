@@ -1,187 +1,218 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.31.0';
-Deno.serve(async (req)=>{
+
+Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const path = url.pathname;
     const params = url.searchParams;
+
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY');
     const supabaseAnonKey = Deno.env.get('SUPABASE_KEY');
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
+
     // Supabase clients
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+
     // --- EMAIL VERIFICATION ---
     if (path === '/verify-email') {
       const token = params.get('token');
       const email = params.get('email');
+
       if (!token || !email) {
+        console.error('Missing token or email in verification request');
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=missing_params`, 302);
       }
-      const { data: tokenData, error: tokenError } = await supabaseAdmin.from('email_verification_tokens').select('*').eq('token', token).eq('used', false).single();
+
+      // Fetch the email verification token
+      const { data: tokenData, error: tokenError } = await supabaseAdmin
+        .from('email_verification_tokens')
+        .select('*')
+        .eq('token', token)
+        .eq('used', false)
+        .single();
+
       if (tokenError || !tokenData) {
+        console.error('Invalid or used token:', tokenError?.message || 'No token data');
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=invalid_token`, 302);
       }
+
+      // Check if token has expired
       if (new Date(tokenData.expires_at) < new Date()) {
+        console.error('Expired token for user_id:', tokenData.user_id);
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=expired_token`, 302);
       }
-      const { data: userData, error: userError } = await supabaseAdmin.rpc('get_auth_user_by_id', {
-        user_id: tokenData.user_id
-      });
-      if (userError || !userData || userData.length === 0) {
+
+      // Fetch user data from the 'users' table (public schema)
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('id, email')
+        .eq('id', tokenData.user_id)
+        .single();
+
+      if (userError || !userData) {
+        console.error('User not found in public.users table for user_id:', tokenData.user_id, userError?.message);
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_not_found`, 302);
       }
-      if (userData[0].email !== email) {
+
+      // Ensure email matches the one in the token and user record
+      if (userData.email !== email) {
+        console.error('Email mismatch for user_id:', tokenData.user_id, 'Expected:', userData.email, 'Received:', email);
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=email_mismatch`, 302);
       }
-      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(tokenData.user_id, {
-        email_confirmed: true
-      });
+
+      // Update email_confirmed in Supabase Auth (auth.users table)
+      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+        tokenData.user_id,
+        { email_confirmed_at: new Date().toISOString() }
+      );
+
       if (updateAuthError) {
+        console.error('Failed to update email_confirmed_at in auth.users:', updateAuthError.message);
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=auth_update_failed`, 302);
       }
-      await supabaseAdmin.from('users').update({
-        email_confirmed: true
-      }).eq('id', tokenData.user_id);
-      await supabaseAdmin.from('email_verification_tokens').update({
-        used: true
-      }).eq('id', tokenData.id);
-      return Response.redirect(`${frontendUrl}/email-verified?success=true&email=${encodeURIComponent(email)}`, 302);
+
+      // Update email_confirmed in public.users table
+      const { error: updateUserTableError } = await supabaseAdmin
+        .from('users')
+        .update({ email_confirmed: true })
+        .eq('id', tokenData.user_id);
+
+      if (updateUserTableError) {
+        console.error('Failed to update email_confirmed in public.users:', updateUserTableError.message);
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_table_update_failed`, 302);
+      }
+
+      // Mark the verification token as used
+      const { error: updateTokenError } = await supabaseAdmin
+        .from('email_verification_tokens')
+        .update({ used: true })
+        .eq('id', tokenData.id);
+
+      if (updateTokenError) {
+        console.error('Failed to mark token as used:', updateTokenError.message);
+        // This is not critical enough to prevent success redirect, but log it.
+      }
+
+      // Redirect to the frontend dashboard on success
+      return Response.redirect(`${frontendUrl}/dashboard`, 302); // Redirect directly to dashboard
+
     } else if (path === '/reset-password') {
       const token = params.get('token');
       const email = params.get('email');
+
       if (!token || !email) {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=missing_params`, 302);
       }
+
       const { data: tokenData, error: tokenError } = await supabaseAdmin.from('password_reset_tokens').select('*').eq('reset_code', token).eq('used', false).single();
       if (tokenError || !tokenData) {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=invalid_token`, 302);
       }
+
       if (new Date(tokenData.expires_at) < new Date()) {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=expired_token`, 302);
       }
+
       const { data: userData, error: userError } = await supabaseAdmin.from('users').select('*').eq('id', tokenData.user_id).single();
       if (userError || !userData) {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=user_not_found`, 302);
       }
+
       if (userData.email !== email) {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=email_mismatch`, 302);
       }
+
       if (userData.role.toLowerCase() !== 'owner') {
         return Response.redirect(`${frontendUrl}/reset-password?success=false&reason=not_owner`, 302);
       }
+
       return Response.redirect(`${frontendUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`, 302);
+
     } else if (path === '/complete-reset' && req.method === 'POST') {
       const { token, email, password } = await req.json();
+
       if (!token || !email || !password) {
-        return new Response(JSON.stringify({
-          error: 'Missing required parameters'
-        }), {
+        return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
       const { data: tokenData, error: tokenError } = await supabaseAdmin.from('password_reset_tokens').select('*').eq('reset_code', token).eq('used', false).single();
       if (tokenError || !tokenData) {
-        return new Response(JSON.stringify({
-          error: 'Invalid or expired reset token'
-        }), {
+        return new Response(JSON.stringify({ error: 'Invalid or expired reset token' }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
       if (new Date(tokenData.expires_at) < new Date()) {
-        return new Response(JSON.stringify({
-          error: 'Reset token has expired'
-        }), {
+        return new Response(JSON.stringify({ error: 'Reset token has expired' }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
       const { data: userData, error: userError } = await supabaseAdmin.from('users').select('*').eq('id', tokenData.user_id).single();
       if (userError || !userData) {
-        return new Response(JSON.stringify({
-          error: 'User not found'
-        }), {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
           status: 404,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
       if (userData.email !== email) {
-        return new Response(JSON.stringify({
-          error: 'Email mismatch'
-        }), {
+        return new Response(JSON.stringify({ error: 'Email mismatch' }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
       if (userData.role.toLowerCase() !== 'owner') {
-        return new Response(JSON.stringify({
-          error: 'Only owners can reset passwords'
-        }), {
+        return new Response(JSON.stringify({ error: 'Only owners can reset passwords' }), {
           status: 403,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
-      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(tokenData.user_id, {
-        password
-      });
+
+      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+        tokenData.user_id,
+        { password }
+      );
+
       if (updateAuthError) {
-        return new Response(JSON.stringify({
-          error: 'Failed to update password'
-        }), {
+        return new Response(JSON.stringify({ error: 'Failed to update password' }), {
           status: 500,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
-      await supabaseAdmin.from('password_reset_tokens').update({
-        used: true
-      }).eq('id', tokenData.id);
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Password updated successfully'
-      }), {
+
+      await supabaseAdmin.from('password_reset_tokens').update({ used: true }).eq('id', tokenData.id);
+
+      return new Response(JSON.stringify({ success: true, message: 'Password updated successfully' }), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
       });
     }
+
     // --- INVALID ENDPOINT ---
-    return new Response(JSON.stringify({
-      error: 'Invalid endpoint'
-    }), {
+    return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
       status: 404,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in auth-handler:', error);
     return new Response(JSON.stringify({
       error: 'Internal server error',
-      details: error.message
+      details: error.message,
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 });
- 
+
+
