@@ -382,3 +382,7 @@
 - **Supabase Edge Function Update**: Modified `supabase/functions/smooth-api/index.ts` to set `email_confirmed: true` in addition to `email_confirmed_at` when an email is successfully verified.
 
 
+
+
+- **Fixed SyntaxError in auth.py**: Corrected a `SyntaxError` at line 509 in `auth.py` that was causing a network error during registration and login. The `if` statement for `email_confirmed` was malformed.
+

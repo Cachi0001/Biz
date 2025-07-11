@@ -3,7 +3,7 @@
 ## Phase 1: Revert incorrect changes in auth.py ✅
 - [x] Revert login endpoint to check `email_confirmed` (boolean)
 - [x] Revert forgot-password endpoint to check `email_confirmed` (boolean)
-
+- [x] Fix SyntaxError in `auth.py` at line 509
 ## Phase 2: Analyze Supabase Edge Function and database interaction ✅
 - [x] Analyze `queriesRan.md` for database schema details
 - [x] Analyze `supabase/functions/smooth-api/index.ts` for email verification logic

@@ -506,12 +506,13 @@ def forgot_password():
                     break
         if not user:
             logging.warning(f"[DEBUG] No user found for email: {email}")
-            return error_response("Email not found", message="No account with this email.", status_code=404        if not user.get("email_confirmed", False):
+            return error_response("Email not found", message="No account with this email.", status_code=404)
+        if not user.get("email_confirmed", False):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before requesting a password reset.",
                 status_code=403
-            )        now = datetime.now(timezone.utc)
+            )ow = datetime.now(timezone.utc)
         cooldown_remaining = 0
         if supabase:
             # Try to get last reset request from tokens
