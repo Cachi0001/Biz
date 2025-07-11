@@ -393,16 +393,12 @@ def login():
                 status_code=401
             )
         
-        if not user.get("email_confirmed_at"):
+        if not user.get("email_confirmed", False):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before logging in.",
                 status_code=403
-            )        
-        if supabase:
-            supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
-        else:
-            # Update last_login in mock_db
+            )
             for i, u in enumerate(mock_db["users"]):
                 if u["id"] == user["id"]:
                     mock_db["users"][i]["last_login"] = pytz.UTC.localize(datetime.utcnow()).isoformat()
@@ -510,14 +506,12 @@ def forgot_password():
                     break
         if not user:
             logging.warning(f"[DEBUG] No user found for email: {email}")
-            return error_response("Email not found", message="No account with this email.", status_code=404)
-        if not user.get("email_confirmed_at"):
+            return error_response("Email not found", message="No account with this email.", status_code=404        if not user.get("email_confirmed", False):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before requesting a password reset.",
                 status_code=403
-            )        # --- Cooldown check ---
-        now = datetime.now(timezone.utc)
+            )        now = datetime.now(timezone.utc)
         cooldown_remaining = 0
         if supabase:
             # Try to get last reset request from tokens

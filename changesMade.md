@@ -373,3 +373,12 @@
 **Critical Issues**: 0 (Login and Forgot Password Fixed)
 
 
+
+
+
+## Corrections (Current Status: 2025-07-11)
+
+- **Reverted Login and Forgot Password Checks**: Changed back to checking `email_confirmed` (boolean) instead of `email_confirmed_at` (timestamp) in `auth.py`.
+- **Supabase Edge Function Update**: Modified `supabase/functions/smooth-api/index.ts` to set `email_confirmed: true` in addition to `email_confirmed_at` when an email is successfully verified.
+
+

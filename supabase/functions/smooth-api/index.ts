@@ -64,10 +64,10 @@ Deno.serve(async (req) => {
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=expired_token`, 302);
       }
 
-      // Update user's email_confirmed_at and mark token as used
-      const { error: userUpdateError } = await supabaseAdmin.from('users')
-        .update({ email_confirmed_at: new Date().toISOString() })
-        .eq('id', tokenData.user_id); // Use user_id for update
+      // Update user's email_confirmed_at and email_confirmed, and mark token as used
+      const { error: userUpdateError } = await supabaseAdmin.from("users")
+        .update({ email_confirmed_at: new Date().toISOString(), email_confirmed: true })
+        .eq("id", tokenData.user_id); // Use user_id for update
 
       if (userUpdateError) {
         console.error('User update error:', userUpdateError);
