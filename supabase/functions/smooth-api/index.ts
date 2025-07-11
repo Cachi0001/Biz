@@ -8,42 +8,65 @@ Deno.serve(async (req) => {
 
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Corrected name
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY'); // Corrected name
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
 
-    // --- DEBUGGING ENVIRONMENT VARIABLES ---
-    // If the path is for verification, return env vars directly for debugging
-    if (path === '/verify-email') {
-      return new Response(JSON.stringify({
-        status: 'Debugging Environment Variables',
-        SUPABASE_URL: supabaseUrl ? 'Set' : 'Not Set',
-        SUPABASE_SERVICE_KEY: supabaseServiceKey ? 'Set' : 'Not Set',
-        SUPABASE_KEY_Anon: supabaseAnonKey ? 'Set' : 'Not Set',
-        FRONTEND_URL: frontendUrl,
-        SUPABASE_URL_VALUE: supabaseUrl, // Provide actual value for verification
-        SUPABASE_SERVICE_KEY_VALUE: supabaseServiceKey, // Provide actual value for verification
-        SUPABASE_KEY_Anon_VALUE: supabaseAnonKey // Provide actual value for verification
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Supabase clients (only initialized if not in debugging mode for /verify-email)
+    // Supabase clients
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- EMAIL VERIFICATION ---
-    // This block will now only be reached if path is not /verify-email
-    // or if we decide to remove the debugging block later.
-    if (path === '/verify-email') { // This block is now redundant due to the debugging block above
-      // Original verification logic (commented out for debugging purposes)
-      // ...
-    }
+    if (path === '/verify-email') {
+      const token = params.get('token');
+      const email = params.get('email');
 
-    // Original reset-password and complete-reset logic remains
-    else if (path === '/reset-password') {
+      if (!token || !email) {
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=missing_params`, 302);
+      }
+
+      // Verify the token against the database
+      const { data: tokenData, error: tokenError } = await supabaseAdmin
+        .from('email_verification_tokens')
+        .select('*')
+        .eq('token', token)
+        .eq('email', email)
+        .eq('used', false)
+        .single();
+
+      if (tokenError || !tokenData) {
+        console.error('Token verification error:', tokenError);
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=invalid_token`, 302);
+      }
+
+      // Check if token has expired
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=expired_token`, 302);
+      }
+
+      // Update user's email_confirmed_at and mark token as used
+      const { error: userUpdateError } = await supabaseAdmin.from('users')
+        .update({ email_confirmed_at: new Date().toISOString() })
+        .eq('email', email);
+
+      if (userUpdateError) {
+        console.error('User update error:', userUpdateError);
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_update_failed`, 302);
+      }
+
+      const { error: tokenUsedError } = await supabaseAdmin.from('email_verification_tokens')
+        .update({ used: true })
+        .eq('id', tokenData.id);
+
+      if (tokenUsedError) {
+        console.error('Token used update error:', tokenUsedError);
+        // Log error but still redirect to success as user email is confirmed
+      }
+
+      // Redirect to dashboard on success
+      return Response.redirect(`${frontendUrl}/dashboard?email_verified=true`, 302);
+
+    } else if (path === '/reset-password') {
       const token = params.get('token');
       const email = params.get('email');
 
