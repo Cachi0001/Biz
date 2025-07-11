@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_KEY');
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
 
     // --- DEBUGGING ENVIRONMENT VARIABLES ---
