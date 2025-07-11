@@ -6,6 +6,9 @@ Deno.serve(async (req) => {
     const path = url.pathname;
     const params = url.searchParams;
 
+    console.log(`Incoming path: ${path}`);
+    console.log(`Is path /verify-email? ${path === '/verify-email'}`);
+
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Corrected name
