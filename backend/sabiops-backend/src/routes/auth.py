@@ -215,11 +215,22 @@ def register():
             confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={user['email']}"
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+            html_body = f"""
+<html>
+  <body style=\"font-family: Arial, sans-serif; color: #222;\">
+    <h2>Welcome to SabiOps!</h2>
+    <p>Please confirm your email by clicking the button below:</p>
+    <a href=\"{confirm_link}\" style=\"display:inline-block;padding:12px 24px;background-color:#22c55e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;\">Confirm Email</a>
+    <p style=\"margin-top:24px;font-size:13px;color:#888;\">If you did not register, please ignore this email.</p>
+  </body>
+</html>
+"""
             from src.services.email_service import email_service
             email_service.send_email(
                 to_email=user["email"],
                 subject=subject,
-                text_content=body
+                text_content=body,
+                html_content=html_body
             )
         except Exception as mail_err:
             print(f"[ERROR] Failed to send confirmation email: {mail_err}")
