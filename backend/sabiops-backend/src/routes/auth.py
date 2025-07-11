@@ -393,13 +393,12 @@ def login():
                 status_code=401
             )
         
-        if not user.get("email_confirmed", False):
+        if not user.get("email_confirmed_at"):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before logging in.",
                 status_code=403
-            )
-        
+            )        
         if supabase:
             supabase.table("users").update({"last_login": pytz.UTC.localize(datetime.utcnow()).isoformat()}).eq("id", user["id"]).execute()
         else:
@@ -512,13 +511,12 @@ def forgot_password():
         if not user:
             logging.warning(f"[DEBUG] No user found for email: {email}")
             return error_response("Email not found", message="No account with this email.", status_code=404)
-        if not user.get("email_confirmed", False):
+        if not user.get("email_confirmed_at"):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before requesting a password reset.",
                 status_code=403
-            )
-        # --- Cooldown check ---
+            )        # --- Cooldown check ---
         now = datetime.now(timezone.utc)
         cooldown_remaining = 0
         if supabase:
@@ -579,6 +577,7 @@ def forgot_password():
         # Send password reset email with Edge Function link
         try:
             from src.services.email_service import email_service
+            reset_link = f"https://sabiops.vercel.app/reset-password?code={reset_code}&email={email}"
             subject = "SabiOps Password Reset"
             body = f"You requested a password reset. Click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email."
             logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service. Subject: {subject}, Body: {body}")
