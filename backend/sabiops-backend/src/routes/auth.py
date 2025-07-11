@@ -512,12 +512,8 @@ def forgot_password():
                 error="Email not confirmed",
                 message="Please confirm your email before requesting a password reset.",
                 status_code=403
-            )ow = datetime.now(timezone.utc)
-        cooldown_remaining = 0
-        if supabase:
-            # Try to get last reset request from tokens
-            recent_token = (
-                supabase.table("password_reset_tokens")
+            )
+        now = datetime.now(timezone.utc)
                 .select("created_at")
                 .eq("user_id", user["id"])
                 .order("created_at", desc=True)

@@ -386,3 +386,7 @@
 
 - **Fixed SyntaxError in auth.py**: Corrected a `SyntaxError` at line 509 in `auth.py` that was causing a network error during registration and login. The `if` statement for `email_confirmed` was malformed.
 
+
+
+- **Fixed SyntaxError in auth.py at line 515**: Corrected another `SyntaxError` related to improper line breaking after the `error_response` call in the forgot password endpoint.
+
