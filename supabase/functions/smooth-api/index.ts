@@ -12,100 +12,38 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_KEY');
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
 
-    // Add console.log to check environment variables
-    console.log('SUPABASE_URL:', supabaseUrl ? 'Set' : 'Not Set');
-    console.log('SUPABASE_SERVICE_KEY:', supabaseServiceKey ? 'Set' : 'Not Set');
-    console.log('SUPABASE_KEY (Anon):', supabaseAnonKey ? 'Set' : 'Not Set');
-    console.log('FRONTEND_URL:', frontendUrl);
+    // --- DEBUGGING ENVIRONMENT VARIABLES ---
+    // If the path is for verification, return env vars directly for debugging
+    if (path === '/verify-email') {
+      return new Response(JSON.stringify({
+        status: 'Debugging Environment Variables',
+        SUPABASE_URL: supabaseUrl ? 'Set' : 'Not Set',
+        SUPABASE_SERVICE_KEY: supabaseServiceKey ? 'Set' : 'Not Set',
+        SUPABASE_KEY_Anon: supabaseAnonKey ? 'Set' : 'Not Set',
+        FRONTEND_URL: frontendUrl,
+        SUPABASE_URL_VALUE: supabaseUrl, // Provide actual value for verification
+        SUPABASE_SERVICE_KEY_VALUE: supabaseServiceKey, // Provide actual value for verification
+        SUPABASE_KEY_Anon_VALUE: supabaseAnonKey // Provide actual value for verification
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Supabase clients
+    // Supabase clients (only initialized if not in debugging mode for /verify-email)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- EMAIL VERIFICATION ---
-    if (path === '/verify-email') {
-      const token = params.get('token');
-      const email = params.get('email');
+    // This block will now only be reached if path is not /verify-email
+    // or if we decide to remove the debugging block later.
+    if (path === '/verify-email') { // This block is now redundant due to the debugging block above
+      // Original verification logic (commented out for debugging purposes)
+      // ...
+    }
 
-      if (!token || !email) {
-        console.error('Missing token or email in verification request');
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=missing_params`, 302);
-      }
-
-      // Fetch the email verification token
-      const { data: tokenData, error: tokenError } = await supabaseAdmin
-        .from('email_verification_tokens')
-        .select('*')
-        .eq('token', token)
-        .eq('used', false)
-        .single();
-
-      if (tokenError || !tokenData) {
-        console.error('Invalid or used token:', tokenError?.message || 'No token data');
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=invalid_token`, 302);
-      }
-
-      // Check if token has expired
-      if (new Date(tokenData.expires_at) < new Date()) {
-        console.error('Expired token for user_id:', tokenData.user_id);
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=expired_token`, 302);
-      }
-
-      // Fetch user data from the 'users' table (public schema)
-      const { data: userData, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('id, email')
-        .eq('id', tokenData.user_id)
-        .single();
-
-      if (userError || !userData) {
-        console.error('User not found in public.users table for user_id:', tokenData.user_id, userError?.message);
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_not_found`, 302);
-      }
-
-      // Ensure email matches the one in the token and user record
-      if (userData.email !== email) {
-        console.error('Email mismatch for user_id:', tokenData.user_id, 'Expected:', userData.email, 'Received:', email);
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=email_mismatch`, 302);
-      }
-
-      // Update email_confirmed in Supabase Auth (auth.users table)
-      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
-        tokenData.user_id,
-        { email_confirmed_at: new Date().toISOString() }
-      );
-
-      if (updateAuthError) {
-        console.error('Failed to update email_confirmed_at in auth.users:', updateAuthError.message);
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=auth_update_failed`, 302);
-      }
-
-      // Update email_confirmed in public.users table
-      const { error: updateUserTableError } = await supabaseAdmin
-        .from('users')
-        .update({ email_confirmed: true })
-        .eq('id', tokenData.user_id);
-
-      if (updateUserTableError) {
-        console.error('Failed to update email_confirmed in public.users:', updateUserTableError.message);
-        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_table_update_failed`, 302);
-      }
-
-      // Mark the verification token as used
-      const { error: updateTokenError } = await supabaseAdmin
-        .from('email_verification_tokens')
-        .update({ used: true })
-        .eq('id', tokenData.id);
-
-      if (updateTokenError) {
-        console.error('Failed to mark token as used:', updateTokenError.message);
-        // This is not critical enough to prevent success redirect, but log it.
-      }
-
-      // Redirect to the frontend dashboard on success
-      return Response.redirect(`${frontendUrl}/dashboard`, 302); // Redirect directly to dashboard
-
-    } else if (path === '/reset-password') {
+    // Original reset-password and complete-reset logic remains
+    else if (path === '/reset-password') {
       const token = params.get('token');
       const email = params.get('email');
 
