@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     const params = url.searchParams;
 
     console.log(`Incoming path: ${path}`);
-    console.log(`Is path /verify-email? ${path === '/verify-email'}`);
+    console.log(`Is path /smooth-api/verify-email? ${path === '/smooth-api/verify-email'}`);
 
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -20,11 +20,11 @@ Deno.serve(async (req) => {
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- EMAIL VERIFICATION ---
-    if (path === '/verify-email') {
+    if (path === '/smooth-api/verify-email') {
       const token = params.get('token');
-      const email = params.get('email');
+      const emailFromParam = params.get('email'); // Renamed to avoid conflict
 
-      if (!token || !email) {
+      if (!token || !emailFromParam) {
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=missing_params`, 302);
       }
 
@@ -33,13 +33,30 @@ Deno.serve(async (req) => {
         .from('email_verification_tokens')
         .select('*')
         .eq('token', token)
-        .eq('email', email)
         .eq('used', false)
         .single();
 
       if (tokenError || !tokenData) {
         console.error('Token verification error:', tokenError);
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=invalid_token`, 302);
+      }
+
+      // Fetch user details using user_id from tokenData
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', tokenData.user_id)
+        .single();
+
+      if (userError || !userData) {
+        console.error('User fetch error:', userError);
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_not_found`, 302);
+      }
+
+      // Ensure the email from the URL matches the user's email
+      if (userData.email !== emailFromParam) {
+        console.error('Email mismatch:', userData.email, emailFromParam);
+        return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=email_mismatch`, 302);
       }
 
       // Check if token has expired
@@ -50,7 +67,7 @@ Deno.serve(async (req) => {
       // Update user's email_confirmed_at and mark token as used
       const { error: userUpdateError } = await supabaseAdmin.from('users')
         .update({ email_confirmed_at: new Date().toISOString() })
-        .eq('email', email);
+        .eq('id', tokenData.user_id); // Use user_id for update
 
       if (userUpdateError) {
         console.error('User update error:', userUpdateError);
