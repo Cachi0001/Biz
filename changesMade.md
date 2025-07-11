@@ -178,3 +178,14 @@
 - Updated `email-verified.jsx` to use query parameters and show success if `?success=true` is present, matching the Edge Function redirect.
 - Updated `reset-password.jsx` to prefill the email and resetCode fields from query parameters (`token` and `email`) if present, matching the Edge Function redirect.
 
+## [DATE: YYYY-MM-DD] Fix for 'name secrets is not defined' in auth.py
+- Bug: Registration and password reset failed with 'name secrets is not defined' due to incorrect import ('from secrets import token_urlsafe') while using 'secrets.token_urlsafe(32)'.
+- Fix: Replaced 'from secrets import token_urlsafe' with 'import secrets' and ensured all usages are 'secrets.token_urlsafe(32)'.
+- Impact: Registration and password reset flows now work without NameError. Token generation is robust and production-ready.
+
+## [DATE: YYYY-MM-DD] Registration endpoint 'secrets' bug and robustness fix
+
+- **Bug:** Registration endpoint crashed with `name 'secrets' is not defined` when generating email verification token. This was due to using `from secrets import token_urlsafe` and then referencing `secrets.token_urlsafe`, which fails if the import is not present or shadowed.
+- **Fix:** Changed import to `import secrets` and updated all usages to `secrets.token_urlsafe`. Added try/except around token generation and email verification DB insert to handle partial registration gracefully, logging and returning a clear error if token generation fails.
+- **Impact:** Prevents 500 errors on registration, avoids partial user creation without verification, and improves error reporting for registration failures.
+

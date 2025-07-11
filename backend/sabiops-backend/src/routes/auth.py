@@ -7,7 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pytz
-from secrets import token_urlsafe
+import secrets
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
@@ -188,21 +188,28 @@ def register():
                 print(f"Failed to create referral record: {referral_error}")
         # After user is created in Supabase Auth and users table:
         # Generate email verification token
-        token = secrets.token_urlsafe(32)
-        expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-        if supabase:
-            supabase.table("email_verification_tokens").insert({
-                "user_id": user["id"],
-                "token": token,
-                "expires_at": expires_at
-            }).execute()
-        else:
-            mock_db.setdefault("email_verification_tokens", []).append({
-                "user_id": user["id"],
-                "token": token,
-                "expires_at": expires_at,
-                "used": False
-            })
+        try:
+            token = secrets.token_urlsafe(32)
+            expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+            if supabase:
+                supabase.table("email_verification_tokens").insert({
+                    "user_id": user["id"],
+                    "token": token,
+                    "expires_at": expires_at
+                }).execute()
+            else:
+                mock_db.setdefault("email_verification_tokens", []).append({
+                    "user_id": user["id"],
+                    "token": token,
+                    "expires_at": expires_at
+                })
+        except Exception as token_error:
+            print(f"[ERROR] Failed to generate/store email verification token: {token_error}")
+            return error_response(
+                error="Token generation failed",
+                message="Registration failed at email verification step. Please try again or contact support.",
+                status_code=500
+            )
         # Send verification email with Edge Function link
         try:
             confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={user['email']}"
