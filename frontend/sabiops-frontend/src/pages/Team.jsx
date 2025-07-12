@@ -59,16 +59,22 @@ const Team = () => {
     try {
       setLoading(true);
       const response = await getTeamMembers();
-      if (response.data && response.data.team_members) {
-        setTeamMembers(response.data.team_members);
-      } else if (Array.isArray(response)) {
+      console.log('[TEAM] Team members response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
         setTeamMembers(response);
+      } else if (response && response.team_members && Array.isArray(response.team_members)) {
+        setTeamMembers(response.team_members);
+      } else if (response && response.data && response.data.team_members && Array.isArray(response.data.team_members)) {
+        setTeamMembers(response.data.team_members);
       } else {
+        console.warn('[TEAM] Unexpected response structure:', response);
         setTeamMembers([]);
       }
     } catch (error) {
       console.error('Failed to fetch team members:', error);
-      toast.error("Failed to load team members.");
+      toast.error(getErrorMessage(error, 'Failed to load team members'));
       setTeamMembers([]);
     } finally {
       setLoading(false);
@@ -110,19 +116,23 @@ const Team = () => {
 
     try {
       setLoading(true);
+      console.log('[TEAM] Submitting team member data:', formData);
+      
       if (editingMember) {
-        await updateTeamMember(editingMember.id, formData);
+        const response = await updateTeamMember(editingMember.id, formData);
+        console.log('[TEAM] Update response:', response);
         toast.success('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
-        await createTeamMember(formData);
+        const response = await createTeamMember(formData);
+        console.log('[TEAM] Create response:', response);
         toast.success('Team member created successfully');
         setShowAddDialog(false);
       }
       
       resetForm();
-      fetchTeamMembers();
+      await fetchTeamMembers();
     } catch (error) {
       console.error('Failed to save team member:', error);
       const errorMessage = getErrorMessage(error, 'Failed to save team member');
@@ -161,14 +171,18 @@ const Team = () => {
   const handleDelete = async (memberId) => {
     if (window.confirm('Are you sure you want to remove this team member?')) {
       try {
-        await deleteTeamMember(memberId);
+        setLoading(true);
+        const response = await deleteTeamMember(memberId);
+        console.log('[TEAM] Delete response:', response);
         toast.success('Team member removed successfully');
-        fetchTeamMembers();
+        await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to delete team member:', error);
         const errorMessage = getErrorMessage(error, 'Failed to remove team member');
         toast.error(errorMessage);
         setError(errorMessage);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -176,14 +190,18 @@ const Team = () => {
   const handleActivate = async (memberId) => {
     if (window.confirm('Are you sure you want to activate this team member?')) {
       try {
-        await activateTeamMember(memberId);
+        setLoading(true);
+        const response = await activateTeamMember(memberId);
+        console.log('[TEAM] Activate response:', response);
         toast.success('Team member activated successfully');
-        fetchTeamMembers();
+        await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to activate team member:', error);
         const errorMessage = getErrorMessage(error, 'Failed to activate team member');
         toast.error(errorMessage);
         setError(errorMessage);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -191,15 +209,24 @@ const Team = () => {
   const handleResetPassword = async (memberId) => {
     if (window.confirm('Are you sure you want to reset this team member\'s password?')) {
       try {
+        setLoading(true);
         const response = await resetTeamMemberPassword(memberId);
-        setTempPassword(response.temporary_password);
-        setShowPassword(true);
+        console.log('[TEAM] Reset password response:', response);
+        
+        if (response && response.data && response.data.temporary_password) {
+          setTempPassword(response.data.temporary_password);
+        } else if (response && response.temporary_password) {
+          setTempPassword(response.temporary_password);
+        }
+        
         toast.success('Password reset successfully');
       } catch (error) {
         console.error('Failed to reset password:', error);
         const errorMessage = getErrorMessage(error, 'Failed to reset password');
         toast.error(errorMessage);
         setError(errorMessage);
+      } finally {
+        setLoading(false);
       }
     }
   };

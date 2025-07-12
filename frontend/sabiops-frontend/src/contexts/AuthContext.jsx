@@ -95,6 +95,11 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       checkAuth,
+      // Role-based properties
+      isOwner: user?.role?.toLowerCase() === 'owner' || false,
+      isAdmin: user?.role?.toLowerCase() === 'admin' || false,
+      isSalesperson: user?.role?.toLowerCase() === 'salesperson' || false,
+      userRole: user?.role || null,
       // Derived values with safe defaults
       isFreeTrial: user?.subscription_status?.toLowerCase() === 'free_trial' || false,
       isPremium: user?.subscription_status?.toLowerCase() === 'premium' || false,
@@ -103,7 +108,27 @@ export const AuthProvider = ({ children }) => {
       canAccessFeature: (feature) => {
         if (!user) return false;
         const subscription = user.subscription_status?.toLowerCase();
-        // Add feature access logic here
+        const role = user.role?.toLowerCase();
+        
+        // Feature access logic based on role and subscription
+        const roleBasedFeatures = {
+          'team_management': ['owner'],
+          'subscription_upgrade': ['owner'],
+          'referrals': ['owner'],
+          'full_analytics': ['owner', 'admin'],
+          'sales_only': ['salesperson'],
+          'expenses': ['owner', 'admin'],
+          'customers': ['owner', 'admin', 'salesperson'],
+          'products': ['owner', 'admin'],
+          'invoices': ['owner', 'admin', 'salesperson'],
+          'dashboard': ['owner', 'admin', 'salesperson']
+        };
+        
+        if (roleBasedFeatures[feature]) {
+          return roleBasedFeatures[feature].includes(role);
+        }
+        
+        // Default subscription-based access
         return subscription === 'premium' || subscription === 'basic';
       }
     }}>

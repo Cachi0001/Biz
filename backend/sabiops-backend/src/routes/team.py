@@ -246,3 +246,85 @@ def delete_team_member(team_member_id):
     except Exception as e:
         return error_response(str(e), status_code=500)
 
+@team_bp.route("/<team_member_id>/activate", methods=["POST"])
+@jwt_required()
+def activate_team_member(team_member_id):
+    """
+    Activate a deactivated team member.
+    Sets is_deactivated to False and active to True in users and team tables.
+    """
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return error_response("SUPABASE", "Database not available", status_code=500)
+
+        owner_id = get_jwt_identity()
+
+        # Check if the current user is an Owner
+        owner_result = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_result.data or owner_result.data["role"] != "Owner":
+            return error_response("Only owners can activate team members", status_code=403)
+
+        team_member = supabase.table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
+        if not team_member.data:
+            return error_response("Team member not found", status_code=404)
+
+        # Activate in users table
+        supabase.table("users").update({"is_deactivated": False, "active": True, "updated_at": datetime.now().isoformat()}).eq("id", team_member_id).execute()
+        # Activate in team table
+        supabase.table("team").update({"active": True, "updated_at": datetime.now().isoformat()}).eq("team_member_id", team_member_id).execute()
+
+        return success_response(message="Team member activated successfully")
+
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@team_bp.route("/<team_member_id>/reset-password", methods=["POST"])
+@jwt_required()
+def reset_team_member_password(team_member_id):
+    """
+    Reset a team member's password and generate a temporary password.
+    """
+    try:
+        import secrets
+        import string
+        
+        supabase = get_supabase()
+        if not supabase:
+            return error_response("SUPABASE", "Database not available", status_code=500)
+
+        owner_id = get_jwt_identity()
+
+        # Check if the current user is an Owner
+        owner_result = supabase.table("users").select("role").eq("id", owner_id).single().execute()
+        if not owner_result.data or owner_result.data["role"] != "Owner":
+            return error_response("Only owners can reset team member passwords", status_code=403)
+
+        team_member = supabase.table("users").select("*").eq("id", team_member_id).eq("owner_id", owner_id).single().execute()
+        if not team_member.data:
+            return error_response("Team member not found", status_code=404)
+
+        # Generate a temporary password
+        alphabet = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+        
+        # Hash the temporary password
+        password_hash = generate_password_hash(temp_password)
+
+        # Update the password in the database
+        supabase.table("users").update({
+            "password_hash": password_hash, 
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", team_member_id).execute()
+
+        return success_response(
+            message="Password reset successfully",
+            data={
+                "temporary_password": temp_password,
+                "team_member_id": team_member_id
+            }
+        )
+
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+

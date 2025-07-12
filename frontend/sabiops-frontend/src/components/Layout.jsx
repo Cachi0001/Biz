@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isOwner, isAdmin, isSalesperson } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -110,16 +110,43 @@ const Layout = ({ children }) => {
     setUnreadCount(0);
   };
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Customers', href: '/customers', icon: Users },
-    { name: 'Products', href: '/products', icon: Package },
-    { name: 'Invoices', href: '/invoices', icon: FileText },
-    { name: 'Expenses', href: '/expenses', icon: Receipt },
-    { name: 'Sales Report', href: '/sales/report', icon: TrendingUp },
-    { name: 'Transactions', href: '/transactions', icon: CreditCard },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
+  // Role-based navigation
+  const getNavigationItems = () => {
+    const baseNavigation = [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['owner', 'admin', 'salesperson'] },
+      { name: 'Customers', href: '/customers', icon: Users, roles: ['owner', 'admin', 'salesperson'] },
+      { name: 'Invoices', href: '/invoices', icon: FileText, roles: ['owner', 'admin', 'salesperson'] },
+      { name: 'Sales Report', href: '/sales/report', icon: TrendingUp, roles: ['owner', 'admin', 'salesperson'] },
+    ];
+
+    // Owner-only items
+    if (isOwner) {
+      baseNavigation.push(
+        { name: 'Products', href: '/products', icon: Package, roles: ['owner'] },
+        { name: 'Expenses', href: '/expenses', icon: Receipt, roles: ['owner'] },
+        { name: 'Team', href: '/team', icon: Users, roles: ['owner'] },
+        { name: 'Transactions', href: '/transactions', icon: CreditCard, roles: ['owner'] },
+      );
+    }
+
+    // Admin items (can manage products and expenses)
+    if (isAdmin) {
+      baseNavigation.push(
+        { name: 'Products', href: '/products', icon: Package, roles: ['admin'] },
+        { name: 'Expenses', href: '/expenses', icon: Receipt, roles: ['admin'] },
+      );
+    }
+
+    // Always add settings for all roles
+    baseNavigation.push(
+      { name: 'Settings', href: '/settings', icon: Settings, roles: ['owner', 'admin', 'salesperson'] }
+    );
+
+    const userRole = user?.role?.toLowerCase() || '';
+    return baseNavigation.filter(item => item.roles.includes(userRole));
+  };
+
+  const navigation = getNavigationItems();
 
   const handleLogout = async () => {
     await logout();
@@ -266,6 +293,9 @@ const Layout = ({ children }) => {
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user?.email}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      Role: {user?.role || 'User'}
                     </p>
                   </div>
                 </DropdownMenuLabel>
