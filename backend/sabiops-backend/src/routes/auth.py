@@ -34,188 +34,59 @@ def error_response(error, message="Error", status_code=400):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    print("[DEBUG] /auth/register endpoint called")
-    print(f"[DEBUG] Request method: {request.method}")
-    print(f"[DEBUG] Request headers: {dict(request.headers)}")
-    print(f"[DEBUG] Request content type: {request.content_type}")
+    """Start registration: generate verification token and send email, do NOT create user yet."""
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
-        print(f"[DEBUG] Request data received: {data}")
-        if data is None:
-            print("[ERROR] No JSON data received")
-            return error_response(
-                error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
-                status_code=400
-            )
-        required_fields = ["email", "phone", "password", "full_name"]
-        for field in required_fields:
-            if not data.get(field):
-                return error_response(f"{field} is required", status_code=400)
-        # 1. Check if user already exists in Supabase Auth
-        headers = {
-            "apikey": SUPABASE_SERVICE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-            "Content-Type": "application/json"
-        }
-        resp = requests.get(
-            f"{SUPABASE_URL}/auth/v1/admin/users?email={data['email']}",
-            headers=headers
-        )
-        print(f"[DEBUG] Supabase Admin API response status: {resp.status_code}")
-        print(f"[DEBUG] Supabase Admin API response body: {resp.text}")
-        users_list = resp.json().get("users") if resp.status_code == 200 else None
-        if users_list:
-            for user in users_list:
-                if user.get("email", "").lower() == data["email"].lower():
-                    return error_response(
-                        error="Email already exists",
-                        message="An account with this email already exists. Please log in or use 'Forgot Password'.",
-                        status_code=400
-                    )
-        # 2. Create user in Supabase Auth
-        payload = {"email": data["email"], "password": data["password"]}
-        create_resp = requests.post(
-            f"{SUPABASE_URL}/auth/v1/admin/users",
-            headers=headers,
-            json=payload
-        )
-        print(f"[DEBUG] Supabase Auth create user response status: {create_resp.status_code}")
-        print(f"[DEBUG] Supabase Auth create user response body: {create_resp.text}")
-        if create_resp.status_code not in (200, 201):
-            return error_response("Failed to create user in Supabase Auth.", status_code=500)
-        supabase_auth_id = create_resp.json()["id"]
-        # Defensive: Check if this ID already exists in public.users
+        email = data.get("email")
+        phone = data.get("phone")
+        password = data.get("password")
+        full_name = data.get("full_name")
+        business_name = data.get("business_name")
+        # Validate required fields
+        if not email or not phone or not password or not full_name:
+            return error_response("Missing required fields", status_code=400)
+        # Check if user already exists (confirmed)
         if supabase:
-            existing_id = supabase.table("users").select("*").eq("id", supabase_auth_id).execute()
-            if existing_id.data:
-                return error_response(
-                    error="Registration error",
-                    message="A user with this ID already exists. Please contact support.",
-                    status_code=400
-                )
-        if supabase:
-            existing_user_email = supabase.table("users").select("*").eq("email", data["email"]).execute()
-            existing_user_phone = supabase.table("users").select("*").eq("phone", data["phone"]).execute()
-            if existing_user_email.data:
-                return error_response(
-                    error="Email already exists",
-                    message="An account with this email already exists. Please use a different email or try logging in.",
-                    status_code=400
-                )
-            if existing_user_phone.data:
-                return error_response(
-                    error="Phone number already exists", 
-                    message="An account with this phone number already exists. Please use a different phone number or try logging in.",
-                    status_code=400
-                )
+            user_result = supabase.table("users").select("id").eq("email", email).execute()
+            if user_result.data:
+                return error_response("Email already exists", status_code=400)
+            phone_result = supabase.table("users").select("id").eq("phone", phone).execute()
+            if phone_result.data:
+                return error_response("Phone already exists", status_code=400)
         else:
-            for user in mock_db["users"]:
-                if user["email"] == data["email"]:
-                    return error_response(
-                        error="Email already exists",
-                        message="An account with this email already exists. Please use a different email or try logging in.",
-                        status_code=400
-                    )
-                if user["phone"] == data["phone"]:
-                    return error_response(
-                        error="Phone number already exists", 
-                        message="An account with this phone number already exists. Please use a different phone number or try logging in.",
-                        status_code=400
-                    )
-        password_hash = generate_password_hash(data["password"])
-        referred_by_id = None
-        if data.get("referral_code"):
-            if supabase:
-                referrer_result = supabase.table("users").select("id").eq("referral_code", data["referral_code"]).execute()
-                if referrer_result.data:
-                    referred_by_id = referrer_result.data[0]["id"]
-                else:
-                    return error_response(
-                        error="Invalid referral code",
-                        message="The referral code you entered is not valid. Please check and try again.",
-                        status_code=400
-                    )
-            else:
-                found_referrer = False
-                for user in mock_db["users"]:
-                    if user.get("referral_code") == data["referral_code"]:
-                        referred_by_id = user["id"]
-                        found_referrer = True
-                        break
-                if not found_referrer:
-                    return error_response(
-                        error="Invalid referral code",
-                        message="The referral code you entered is not valid. Please check and try again.",
-                        status_code=400
-                    )
-        user_data = {
-            "id": supabase_auth_id,
-            "email": data["email"],
-            "phone": data["phone"],
-            "password_hash": password_hash,
-            "full_name": data["full_name"],
-            "business_name": data.get("business_name", ""),
-            "referred_by": referred_by_id,
-            "role": "Owner",
-            "subscription_plan": "weekly",
-            "subscription_status": "trial",
-            "active": True,
-            "created_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
-            "updated_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
-            "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
-        }
+            for u in mock_db["users"]:
+                if u["email"] == email:
+                    return error_response("Email already exists", status_code=400)
+                if u["phone"] == phone:
+                    return error_response("Phone already exists", status_code=400)
+        # Generate verification token
+        import secrets
+        import string
+        from datetime import datetime, timedelta, timezone
+        token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        # Store token in email_verification_tokens
         if supabase:
-            result = supabase.table("users").insert(user_data).execute()
-            user = result.data[0]
+            supabase.table("email_verification_tokens").insert({
+                "user_id": None,  # Will be set after confirmation
+                "token": token,
+                "expires_at": expires_at,
+                "used": False
+            }).execute()
         else:
-            mock_db["users"].append(user_data)
-            user = user_data
-        if referred_by_id:
-            try:
-                referral_data = {
-                    "referrer_id": referred_by_id,
-                    "referred_id": user["id"],
-                    "status": "pending"
-                }
-                if supabase:
-                    supabase.table("referrals").insert(referral_data).execute()
-                else:
-                    mock_db["referrals"].append(referral_data)
-            except Exception as referral_error:
-                print(f"Failed to create referral record: {referral_error}")
-        # After user is created in Supabase Auth and users table:
-        # Generate email verification token
-        try:
-            token = secrets.token_urlsafe(32)
-            expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-            if supabase:
-                supabase.table("email_verification_tokens").insert({
-                    "user_id": user["id"],
-                    "token": token,
-                    "expires_at": expires_at
-                }).execute()
-            else:
-                mock_db.setdefault("email_verification_tokens", []).append({
-                    "user_id": user["id"],
-                    "token": token,
-                    "expires_at": expires_at
-                })
-        except Exception as token_error:
-            print(f"[ERROR] Failed to generate/store email verification token: {token_error}")
-            return error_response(
-                error="Token generation failed",
-                message="Registration failed at email verification step. Please try again or contact support.",
-                status_code=500
-            )
-        # Send verification email with Edge Function link
-        try:
-            confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={user['email']}"
-            subject = "SabiOps Email Confirmation"
-            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
-            html_body = f"""
+            mock_db.setdefault("email_verification_tokens", []).append({
+                "user_id": None,
+                "token": token,
+                "expires_at": expires_at,
+                "used": False
+            })
+        # Send verification email
+        confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
+        subject = "SabiOps Email Confirmation"
+        body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+        html_body = f"""
 <html>
   <body style=\"font-family: Arial, sans-serif; color: #222;\">
     <h2>Welcome to SabiOps!</h2>
@@ -225,96 +96,65 @@ def register():
   </body>
 </html>
 """
-            from src.services.email_service import email_service
-            email_service.send_email(
-                to_email=user["email"],
-                subject=subject,
-                text_content=body,
-                html_content=html_body
-            )
-        except Exception as mail_err:
-            print(f"[ERROR] Failed to send confirmation email: {mail_err}")
-        access_token = create_access_token(identity=user["id"])
-        return success_response(
-            message="User registered successfully. Please check your email to confirm your account.",
-            data={
-                "access_token": access_token,
-                "user": {
-                    "id": user["id"],
-                    "email": user["email"],
-                    "phone": user["phone"],
-                    "full_name": user["full_name"],
-                    "business_name": user["business_name"],
-                    "role": user["role"],
-                    "subscription_plan": user["subscription_plan"],
-                    "subscription_status": user["subscription_status"],
-                    "trial_ends_at": user.get("trial_ends_at")
-                }
-            },
-            status_code=201
+        from src.services.email_service import email_service
+        email_service.send_email(
+            to_email=email,
+            subject=subject,
+            text_content=body,
+            html_content=html_body
         )
+        return success_response(message="Registration started. Please check your email to confirm your account.")
     except Exception as e:
-        if "duplicate key value violates unique constraint" in str(e):
-            return error_response(
-                error="Email or phone already exists",
-                message="An account with this email or phone already exists. Please log in or use 'Forgot Password'.",
-                status_code=400
-            )
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/register/confirmed", methods=["POST"])
 def register_confirmed():
-    print("[DEBUG] /register/confirmed endpoint called")
+    """Complete registration: verify token, then create user."""
     data = request.get_json()
     email = data.get("email")
-    if not email:
-        return error_response("Email is required", status_code=400)
+    token = data.get("token")
+    phone = data.get("phone")
+    password = data.get("password")
+    full_name = data.get("full_name")
+    business_name = data.get("business_name")
+    if not email or not token or not phone or not password or not full_name:
+        return error_response("Missing required fields", status_code=400)
     supabase = g.supabase
-    # 1. Check if user already exists in public.users
+    mock_db = g.mock_db
+    # 1. Check token validity
     if supabase:
-        existing_user = supabase.table("users").select("*").eq("email", email).execute()
-        if existing_user.data:
-            return success_response(message="User already exists.")
-    # 2. Check if user is verified in Supabase Auth
-    headers = {
-        "apikey": SUPABASE_SERVICE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-        "Content-Type": "application/json"
-    }
-    resp = requests.get(
-        f"{SUPABASE_URL}/auth/v1/admin/users?email={email}",
-        headers=headers
-    )
-    if resp.status_code != 200 or not resp.json().get("users"):
-        return error_response("User not found in Supabase Auth", status_code=404)
-    user_auth = resp.json()["users"][0]
-    if not user_auth.get("email_confirmed_at"):
-        return error_response("Email not verified yet", status_code=400)
-    # 3. Create user in public.users
+        token_result = supabase.table("email_verification_tokens").select("*").eq("token", token).eq("used", False).execute()
+        if not token_result.data:
+            return error_response("Invalid or expired token", status_code=400)
+        token_row = token_result.data[0]
+        # Mark token as used
+        supabase.table("email_verification_tokens").update({"used": True}).eq("id", token_row["id"]).execute()
+    else:
+        token_row = next((t for t in mock_db.get("email_verification_tokens", []) if t["token"] == token and not t["used"]), None)
+        if not token_row:
+            return error_response("Invalid or expired token", status_code=400)
+        token_row["used"] = True
+    # 2. Create user in public.users
+    from werkzeug.security import generate_password_hash
     user_data = {
-        "id": user_auth["id"],
-        "email": user_auth["email"],
-        "phone": "",  # Optionally update later
-        "password_hash": "",  # Not needed
-        "full_name": "",  # Optionally update later
-        "business_name": "",
-        "referred_by": None,
+        "email": email,
+        "phone": phone,
+        "password_hash": generate_password_hash(password),
+        "full_name": full_name,
+        "business_name": business_name or "",
         "role": "Owner",
         "subscription_plan": "weekly",
         "subscription_status": "trial",
         "active": True,
-        "created_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
-        "updated_at": pytz.UTC.localize(datetime.utcnow()).isoformat(),
-        "trial_ends_at": (pytz.UTC.localize(datetime.utcnow()) + timedelta(days=7)).isoformat()
+        "email_confirmed": True
     }
     if supabase:
         result = supabase.table("users").insert(user_data).execute()
         user = result.data[0]
     else:
-        mock_db = g.mock_db
         mock_db["users"].append(user_data)
         user = user_data
-    return success_response(message="User created after email verification.", data={"user": user})
+    return success_response(message="User registered and confirmed successfully.", data={"user": user})
 
 @auth_bp.route("/login", methods=["POST"])
 def login():

@@ -78,6 +78,16 @@ export async function register(userData) {
   }
 }
 
+export async function registerConfirmed(userData) {
+  try {
+    const response = await api.post("/auth/register/confirmed", userData);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] Register confirmed failed:", error);
+    throw error;
+  }
+}
+
 // DEPRECATED: Do not use this register function for user registration. Use Supabase Auth signUp directly in the frontend.
 export async function login(credentials) {
   try {
