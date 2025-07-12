@@ -44,9 +44,11 @@ def register():
         password = data.get("password")
         full_name = data.get("full_name")
         business_name = data.get("business_name")
+        
         # Validate required fields
         if not email or not phone or not password or not full_name:
             return error_response("Missing required fields", status_code=400)
+        
         # Check if user already exists
         if supabase:
             user_result = supabase.table("users").select("id").eq("email", email).execute()
@@ -61,6 +63,7 @@ def register():
                     return error_response("Email already exists", status_code=400)
                 if u["phone"] == phone:
                     return error_response("Phone already exists", status_code=400)
+        
         # Create user with email_confirmed=False
         from werkzeug.security import generate_password_hash
         user_data = {
@@ -75,28 +78,61 @@ def register():
             "active": True,
             "email_confirmed": False
         }
+        
+        user_id = None
         if supabase:
-            result = supabase.table("users").insert(user_data).execute()
-            user = result.data[0]
-            user_id = user["id"]
+            try:
+                # Insert user and get the user_id
+                result = supabase.table("users").insert(user_data).execute()
+                if not result.data:
+                    return error_response("Failed to create user", status_code=500)
+                user = result.data[0]
+                user_id = user["id"]
+                
+                # Add a small delay to ensure the user is committed
+                import time
+                time.sleep(0.1)
+                
+                # Verify the user was created successfully
+                verify_result = supabase.table("users").select("id").eq("id", user_id).execute()
+                if not verify_result.data:
+                    return error_response("User creation failed - user not found after insert", status_code=500)
+                
+            except Exception as e:
+                return error_response(f"Failed to create user: {str(e)}", status_code=500)
         else:
             user_id = str(uuid.uuid4())
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
+        
         # Generate verification token
         import secrets
         import string
         from datetime import datetime, timedelta, timezone
         token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        
         # Store token in email_verification_tokens
         if supabase:
-            supabase.table("email_verification_tokens").insert({
-                "user_id": user_id,
-                "token": token,
-                "expires_at": expires_at,
-                "used": False
-            }).execute()
+            try:
+                token_data = {
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                }
+                token_result = supabase.table("email_verification_tokens").insert(token_data).execute()
+                if not token_result.data:
+                    # If token creation fails, clean up the user
+                    supabase.table("users").delete().eq("id", user_id).execute()
+                    return error_response("Failed to create verification token", status_code=500)
+            except Exception as e:
+                # If token creation fails, clean up the user
+                try:
+                    supabase.table("users").delete().eq("id", user_id).execute()
+                except:
+                    pass  # Best effort cleanup
+                return error_response(f"Failed to create verification token: {str(e)}", status_code=500)
         else:
             mock_db.setdefault("email_verification_tokens", []).append({
                 "user_id": user_id,
@@ -104,6 +140,7 @@ def register():
                 "expires_at": expires_at,
                 "used": False
             })
+        
         # Send verification email
         confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
         subject = "SabiOps Email Confirmation"
@@ -118,15 +155,23 @@ def register():
   </body>
 </html>
 """
-        from src.services.email_service import email_service
-        email_service.send_email(
-            to_email=email,
-            subject=subject,
-            text_content=body,
-            html_content=html_body
-        )
+        
+        try:
+            from src.services.email_service import email_service
+            email_service.send_email(
+                to_email=email,
+                subject=subject,
+                text_content=body,
+                html_content=html_body
+            )
+        except Exception as e:
+            # Log the email error but don't fail registration
+            print(f"[WARNING] Failed to send verification email: {str(e)}")
+        
         return success_response(message="Registration successful. Please check your email to confirm your account.")
+        
     except Exception as e:
+        print(f"[ERROR] Registration failed: {str(e)}")
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/register/confirmed", methods=["POST"])
