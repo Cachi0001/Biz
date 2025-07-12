@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { verifyToken, login as apiLogin, register as apiRegister } from '../services/api';
+import apiService from '../services/api';
 import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         console.log('Token from localStorage before verifyToken:', token); // Added log
-        const response = await verifyToken();
+        const response = await apiService.verifyToken();
         if (response.success) {
           const userData = response.data.user;
           // Calculate trial_days_left based on trial_ends_at
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await apiLogin(email, password);
+      const response = await apiService.login({ email, password });
       if (response.success) {
         console.log('Login successful. Full API Response:', response); // Log full response
         console.log('Login successful. Access Token from response.data:', response.data.access_token); // Added log

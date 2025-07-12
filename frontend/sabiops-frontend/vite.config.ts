@@ -77,69 +77,20 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'es2015',
+    target: 'es2020',
     minify: 'terser',
     terserOptions: {
-      mangle: {
-        keep_fnames: true, // Preserve function names to prevent minification issues
-        reserved: [
-          'getDashboardOverview',
-          'getRevenueChart',
-          'getCustomers',
-          'getProducts',
-          'getInvoices',
-          'getExpenses',
-          'getSales',
-          'getPayments',
-          'getTeamMembers',
-          'register',
-          'login',
-          'logout',
-          'getProfile',
-          'verifyToken',
-          'createCustomer',
-          'createProduct',
-          'createInvoice',
-          'createExpense',
-          'createSale',
-          'createTeamMember',
-          'updateCustomer',
-          'updateProduct',
-          'updateInvoice',
-          'updateExpense',
-          'updateTeamMember',
-          'deleteCustomer',
-          'deleteProduct',
-          'deleteInvoice',
-          'deleteExpense',
-          'deleteTeamMember',
-          'requestPasswordReset',
-          'verifyResetCode',
-          'resetPassword',
-          'recordPayment',
-          'getSalesReport',
-          'getExpenseCategories',
-          'getCategories',
-          'healthCheck',
-          'testDatabase',
-          'get',
-          'post',
-          'put',
-          'del',
-          'getAuthToken',
-          'setAuthToken',
-          'removeAuthToken'
-        ]
-      },
       compress: {
         drop_console: false, // Keep console logs for debugging
-        drop_debugger: true,
-        pure_funcs: [], // Don't remove any functions
-        passes: 1 // Reduce optimization passes
+        drop_debugger: false,
+        passes: 1,
+      },
+      mangle: {
+        safari10: true,
       },
       format: {
-        comments: false
-      }
+        comments: false,
+      },
     },
     rollupOptions: {
       output: {
@@ -152,14 +103,14 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
-    sourcemap: true, // Enable source maps for debugging
+    sourcemap: true,
   },
   server: {
     port: 3000,
     host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Use local backend for development
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },

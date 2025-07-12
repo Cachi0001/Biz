@@ -1,4 +1,4 @@
-// SabiOps API Service - Refactored for Minification Safety
+// SabiOps API Service - Minification-Safe Version
 import axios from 'axios';
 
 // Create axios instance with base configuration
@@ -40,20 +40,12 @@ api.interceptors.response.use(
 );
 
 // Auth token management functions
-export function getAuthToken() {
-  return localStorage.getItem('token');
-}
-
-export function setAuthToken(token) {
-  localStorage.setItem('token', token);
-}
-
-export function removeAuthToken() {
-  localStorage.removeItem('token');
-}
+const getAuthToken = () => localStorage.getItem('token');
+const setAuthToken = (token) => localStorage.setItem('token', token);
+const removeAuthToken = () => localStorage.removeItem('token');
 
 // Authentication endpoints
-export async function register(userData) {
+const register = async (userData) => {
   try {
     console.log("[DEBUG] Register request data:", userData);
     const response = await api.post("/auth/register", userData);
@@ -76,9 +68,9 @@ export async function register(userData) {
     console.error("[ERROR] Register error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
-}
+};
 
-export async function registerConfirmed(userData) {
+const registerConfirmed = async (userData) => {
   try {
     const response = await api.post("/auth/register/confirmed", userData);
     return response.data;
@@ -86,10 +78,9 @@ export async function registerConfirmed(userData) {
     console.error("[ERROR] Register confirmed failed:", error);
     throw error;
   }
-}
+};
 
-// DEPRECATED: Do not use this register function for user registration. Use Supabase Auth signUp directly in the frontend.
-export async function login(credentials) {
+const login = async (credentials) => {
   try {
     console.log("[DEBUG] Login request data:", credentials);
     const response = await api.post("/auth/login", credentials);
@@ -112,49 +103,48 @@ export async function login(credentials) {
     console.error("[ERROR] Login error status:", error.response ? error.response.status : 'No status');
     throw error;
   }
-}
+};
 
-export async function logout() {
+const logout = async () => {
   removeAuthToken();
   return Promise.resolve();
-}
+};
 
-export async function getProfile() {
+const getProfile = async () => {
   try {
-  const response = await api.get('/auth/profile');
+    const response = await api.get('/auth/profile');
     console.log("[DEBUG] getProfile response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getProfile failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function updateProfile(userData) {
+const updateProfile = async (userData) => {
   const response = await api.put('/auth/profile', userData);
   return response.data;
-}
+};
 
-export async function requestPasswordReset(data) {
+const requestPasswordReset = async (data) => {
   const response = await api.post('/auth/forgot-password', data);
   return response.data;
-}
+};
 
-export async function verifyResetCode(data) {
+const verifyResetCode = async (data) => {
   const response = await api.post('/auth/verify-reset-code', data);
   return response.data;
-}
+};
 
-export async function resetPassword(data) {
-  // Only send { token, password } for the new JWT-based flow
+const resetPassword = async (data) => {
   const response = await api.post('/auth/reset-password', {
     token: data.token,
     password: data.password
   });
   return response.data;
-}
+};
 
-export async function verifyToken() {
+const verifyToken = async () => {
   try {
     console.log("[DEBUG] verifyToken called");
     console.log("[DEBUG] Current token:", getAuthToken());
@@ -176,20 +166,20 @@ export async function verifyToken() {
     
     throw error;
   }
-}
+};
 
-export async function updatePassword(data) {
+const updatePassword = async (data) => {
   const response = await api.post('/auth/update-password', data);
   return response.data;
-}
+};
 
 // Team Management
-export async function createTeamMember(memberData) {
+const createTeamMember = async (memberData) => {
   const response = await api.post('/team/', memberData);
   return response.data;
-}
+};
 
-export async function getTeamMembers() {
+const getTeamMembers = async () => {
   try {
     const response = await api.get('/team/');
     console.log("[DEBUG] getTeamMembers response:", response.data);
@@ -198,41 +188,41 @@ export async function getTeamMembers() {
     console.error("[ERROR] getTeamMembers failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function updateTeamMember(memberId, memberData) {
+const updateTeamMember = async (memberId, memberData) => {
   const response = await api.put(`/team/${memberId}`, memberData);
   return response.data;
-}
+};
 
-export async function deleteTeamMember(memberId) {
+const deleteTeamMember = async (memberId) => {
   const response = await api.delete(`/team/${memberId}`);
   return response.data;
-}
+};
 
-export async function activateTeamMember(memberId) {
+const activateTeamMember = async (memberId) => {
   const response = await api.post(`/team/${memberId}/activate`);
   return response.data;
-}
+};
 
-export async function resetTeamMemberPassword(memberId) {
+const resetTeamMemberPassword = async (memberId) => {
   const response = await api.post(`/team/${memberId}/reset-password`);
   return response.data;
-}
+};
 
 // Health and testing
-export async function healthCheck() {
+const healthCheck = async () => {
   const response = await api.get('/health');
   return response.data;
-}
+};
 
-export async function testDatabase() {
+const testDatabase = async () => {
   const response = await api.get('/test');
   return response.data;
-}
+};
 
 // Customer Management
-export async function getCustomers() {
+const getCustomers = async () => {
   try {
     const response = await api.get('/customers/');
     console.log("[DEBUG] getCustomers response:", response.data);
@@ -241,25 +231,25 @@ export async function getCustomers() {
     console.error("[ERROR] getCustomers failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function createCustomer(customerData) {
+const createCustomer = async (customerData) => {
   const response = await api.post('/customers/', customerData);
   return response.data;
-}
+};
 
-export async function updateCustomer(customerId, customerData) {
+const updateCustomer = async (customerId, customerData) => {
   const response = await api.put(`/customers/${customerId}`, customerData);
   return response.data;
-}
+};
 
-export async function deleteCustomer(customerId) {
+const deleteCustomer = async (customerId) => {
   const response = await api.delete(`/customers/${customerId}`);
   return response.data;
-}
+};
 
 // Product Management
-export async function getProducts() {
+const getProducts = async () => {
   try {
     const response = await api.get('/products/');
     console.log("[DEBUG] getProducts response:", response.data);
@@ -268,36 +258,36 @@ export async function getProducts() {
     console.error("[ERROR] getProducts failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function createProduct(productData) {
+const createProduct = async (productData) => {
   const response = await api.post('/products/', productData);
   return response.data;
-}
+};
 
-export async function updateProduct(productId, productData) {
+const updateProduct = async (productId, productData) => {
   const response = await api.put(`/products/${productId}`, productData);
   return response.data;
-}
+};
 
-export async function deleteProduct(productId) {
+const deleteProduct = async (productId) => {
   const response = await api.delete(`/products/${productId}`);
   return response.data;
-}
+};
 
-export async function getCategories() {
+const getCategories = async () => {
   try {
-  const response = await api.get('/products/categories');
+    const response = await api.get('/products/categories');
     console.log("[DEBUG] getCategories response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getCategories failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
 // Invoice Management
-export async function getInvoices() {
+const getInvoices = async () => {
   try {
     const response = await api.get('/invoices/');
     console.log("[DEBUG] getInvoices response:", response.data);
@@ -306,51 +296,51 @@ export async function getInvoices() {
     console.error("[ERROR] getInvoices failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function getInvoice(invoiceId) {
+const getInvoice = async (invoiceId) => {
   try {
-  const response = await api.get(`/invoices/${invoiceId}`);
+    const response = await api.get(`/invoices/${invoiceId}`);
     console.log("[DEBUG] getInvoice response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getInvoice failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function createInvoice(invoiceData) {
+const createInvoice = async (invoiceData) => {
   const response = await api.post('/invoices/', invoiceData);
   return response.data;
-}
+};
 
-export async function updateInvoice(invoiceId, invoiceData) {
+const updateInvoice = async (invoiceId, invoiceData) => {
   const response = await api.put(`/invoices/${invoiceId}`, invoiceData);
   return response.data;
-}
+};
 
-export async function deleteInvoice(invoiceId) {
+const deleteInvoice = async (invoiceId) => {
   const response = await api.delete(`/invoices/${invoiceId}`);
   return response.data;
-}
+};
 
-export async function updateInvoiceStatus(invoiceId, statusData) {
+const updateInvoiceStatus = async (invoiceId, statusData) => {
   const response = await api.put(`/invoices/${invoiceId}/status`, statusData);
   return response.data;
-}
+};
 
-export async function sendInvoice(invoiceId) {
+const sendInvoice = async (invoiceId) => {
   const response = await api.post(`/invoices/${invoiceId}/send`);
   return response.data;
-}
+};
 
-export async function downloadInvoicePdf(invoiceId) {
+const downloadInvoicePdf = async (invoiceId) => {
   const response = await api.get(`/invoices/${invoiceId}/send`, { responseType: 'blob' });
   return response.data;
-}
+};
 
 // Expense Management
-export async function getExpenses() {
+const getExpenses = async () => {
   try {
     const response = await api.get('/expenses/');
     console.log("[DEBUG] getExpenses response:", response.data);
@@ -359,25 +349,25 @@ export async function getExpenses() {
     console.error("[ERROR] getExpenses failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function createExpense(expenseData) {
+const createExpense = async (expenseData) => {
   const response = await api.post('/expenses/', expenseData);
   return response.data;
-}
+};
 
-export async function updateExpense(expenseId, expenseData) {
+const updateExpense = async (expenseId, expenseData) => {
   const response = await api.put(`/expenses/${expenseId}`, expenseData);
   return response.data;
-}
+};
 
-export async function deleteExpense(expenseId) {
+const deleteExpense = async (expenseId) => {
   const response = await api.delete(`/expenses/${expenseId}`);
   return response.data;
-}
+};
 
 // Sales Management
-export async function getSales() {
+const getSales = async () => {
   try {
     const response = await api.get('/sales/');
     console.log("[DEBUG] getSales response:", response.data);
@@ -386,15 +376,15 @@ export async function getSales() {
     console.error("[ERROR] getSales failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function createSale(saleData) {
+const createSale = async (saleData) => {
   const response = await api.post('/sales/', saleData);
   return response.data;
-}
+};
 
 // Payment Management
-export async function getPayments() {
+const getPayments = async () => {
   try {
     const response = await api.get('/payments/');
     console.log("[DEBUG] getPayments response:", response.data);
@@ -403,25 +393,25 @@ export async function getPayments() {
     console.error("[ERROR] getPayments failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function recordPayment(paymentData) {
+const recordPayment = async (paymentData) => {
   const response = await api.post('/payments/', paymentData);
   return response.data;
-}
+};
 
-export async function initializePayment(paymentData) {
+const initializePayment = async (paymentData) => {
   const response = await api.post('/payments/initialize', paymentData);
   return response.data;
-}
+};
 
-export async function verifyPayment(reference) {
+const verifyPayment = async (reference) => {
   const response = await api.get(`/payments/verify/${reference}`);
   return response.data;
-}
+};
 
 // Subscription Management
-export async function getSubscriptionPlans() {
+const getSubscriptionPlans = async () => {
   try {
     const response = await api.get('/subscription-upgrade/plans');
     console.log("[DEBUG] getSubscriptionPlans response:", response.data);
@@ -430,23 +420,23 @@ export async function getSubscriptionPlans() {
     console.error("[ERROR] getSubscriptionPlans failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function upgradeSubscription(upgradeData) {
+const upgradeSubscription = async (upgradeData) => {
   const response = await api.post('/subscription-upgrade/upgrade', upgradeData);
   return response.data;
-}
+};
 
-export async function updateSubscription(subscriptionData) {
+const updateSubscription = async (subscriptionData) => {
   const response = await api.put('/subscription-upgrade/update', subscriptionData);
   return response.data;
-}
+};
 
-// Dashboard - CRITICAL FIX
-export async function getDashboardOverview() {
+// Dashboard
+const getDashboardOverview = async () => {
   try {
     console.log("[DEBUG] getDashboardOverview: Starting request to /dashboard/overview");
-  const response = await api.get('/dashboard/overview');
+    const response = await api.get('/dashboard/overview');
     console.log("[DEBUG] getDashboardOverview: Full response object:", response);
     console.log("[DEBUG] getDashboardOverview: Response status:", response.status);
     console.log("[DEBUG] getDashboardOverview: Response headers:", response.headers);
@@ -480,44 +470,43 @@ export async function getDashboardOverview() {
     }
     throw error;
   }
-}
+};
 
-export async function getRevenueChart() {
+const getRevenueChart = async () => {
   try {
-  const response = await api.get('/dashboard/revenue-chart');
+    const response = await api.get('/dashboard/revenue-chart');
     console.log("[DEBUG] getRevenueChart response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getRevenueChart failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-// Get financials for dashboard (P&L, cash flow, etc.)
-export async function getFinancials() {
+const getFinancials = async () => {
   const response = await api.get('/dashboard/financials');
   return response.data.data;
-}
+};
 
 // Sales Report
-export async function getSalesReport(params) {
+const getSalesReport = async (params) => {
   try {
-  const response = await api.get('/reports/sales', { params });
+    const response = await api.get('/reports/sales', { params });
     console.log("[DEBUG] getSalesReport response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
     console.error("[ERROR] getSalesReport failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
 
-export async function downloadSalesReport(params, format) {
+const downloadSalesReport = async (params, format) => {
   const response = await api.get(`/reports/sales/download/${format}`, { params, responseType: 'blob' });
   return response.data;
-}
+};
 
 // Expense Categories
-export async function getExpenseCategories() {
+const getExpenseCategories = async () => {
   try {
     const response = await api.get('/expenses/categories');
     console.log("[DEBUG] getExpenseCategories response:", response.data);
@@ -526,7 +515,35 @@ export async function getExpenseCategories() {
     console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
     throw error;
   }
-}
+};
+
+// Referrals
+const getReferralStats = async () => {
+  try {
+    const response = await api.get('/referrals/stats');
+    console.log("[DEBUG] getReferralStats response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getReferralStats failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+const getWithdrawals = async () => {
+  try {
+    const response = await api.get('/referrals/withdrawals');
+    console.log("[DEBUG] getWithdrawals response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getWithdrawals failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+const requestWithdrawal = async (data) => {
+  const response = await api.post('/referrals/withdrawals', data);
+  return response.data;
+};
 
 // IndexedDB utility for offline queue
 const DB_NAME = 'sabiops-offline-db';
@@ -546,14 +563,14 @@ function openDB() {
   });
 }
 
-export async function addOfflineItem(item) {
+const addOfflineItem = async (item) => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   tx.objectStore(STORE_NAME).add(item);
   return tx.complete;
-}
+};
 
-export async function getOfflineItems() {
+const getOfflineItems = async () => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readonly');
   const store = tx.objectStore(STORE_NAME);
@@ -571,47 +588,23 @@ export async function getOfflineItems() {
     };
     req.onerror = () => reject(req.error);
   });
-}
+};
 
-export async function removeOfflineItem(id) {
+const removeOfflineItem = async (id) => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   tx.objectStore(STORE_NAME).delete(id);
   return tx.complete;
-}
-
-// Wrap POST/PUT requests to queue offline
-async function queueOrFetch(url, data, method = 'POST') {
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Network error');
-    return await response.json();
-  } catch (err) {
-    // If offline, queue the request
-    if (!navigator.onLine) {
-      await addOfflineItem({ url, data, method, timestamp: Date.now() });
-      return { success: false, offline: true };
-    }
-    throw err;
-  }
-}
+};
 
 // Save device token to backend for push notifications
-export async function saveDeviceToken(token) {
+const saveDeviceToken = async (token) => {
   return api.post('/push-subscriptions', { token });
-}
+};
 
 // Utility to extract user-friendly error messages from API errors
-export function getErrorMessage(error, fallback = 'An unexpected error occurred') {
+const getErrorMessage = (error, fallback = 'An unexpected error occurred') => {
   if (error?.response?.data) {
-    // Prefer user-friendly message, then error code, then generic
     return (
       error.response.data.message ||
       error.response.data.error ||
@@ -620,12 +613,191 @@ export function getErrorMessage(error, fallback = 'An unexpected error occurred'
     );
   }
   return error?.message || fallback;
-}
+};
+
+// Create the main API service object - MINIFIER-FRIENDLY DEFAULT EXPORT
+const apiService = {
+  // Auth methods
+  register,
+  registerConfirmed,
+  login,
+  logout,
+  getProfile,
+  updateProfile,
+  requestPasswordReset,
+  verifyResetCode,
+  resetPassword,
+  verifyToken,
+  updatePassword,
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+  
+  // Team methods
+  createTeamMember,
+  getTeamMembers,
+  updateTeamMember,
+  deleteTeamMember,
+  activateTeamMember,
+  resetTeamMemberPassword,
+  
+  // Health methods
+  healthCheck,
+  testDatabase,
+  
+  // Customer methods
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  
+  // Product methods
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getCategories,
+  
+  // Invoice methods
+  getInvoices,
+  getInvoice,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
+  updateInvoiceStatus,
+  sendInvoice,
+  downloadInvoicePdf,
+  
+  // Expense methods
+  getExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  getExpenseCategories,
+  
+  // Sales methods
+  getSales,
+  createSale,
+  getSalesReport,
+  downloadSalesReport,
+  
+  // Payment methods
+  getPayments,
+  recordPayment,
+  initializePayment,
+  verifyPayment,
+  
+  // Subscription methods
+  getSubscriptionPlans,
+  upgradeSubscription,
+  updateSubscription,
+  
+  // Dashboard methods
+  getDashboardOverview,
+  getRevenueChart,
+  getFinancials,
+  
+  // Referral methods
+  getReferralStats,
+  getWithdrawals,
+  requestWithdrawal,
+  
+  // Offline methods
+  addOfflineItem,
+  getOfflineItems,
+  removeOfflineItem,
+  
+  // Device methods
+  saveDeviceToken,
+  
+  // Utility methods
+  getErrorMessage,
+  
+  // Axios methods for direct access
+  get: api.get.bind(api),
+  post: api.post.bind(api),
+  put: api.put.bind(api),
+  delete: api.delete.bind(api),
+  del: api.delete.bind(api)
+};
+
+// Export the main API service as default - MINIFIER-FRIENDLY
+export default apiService;
+
+// Also export individual functions for backward compatibility
+export {
+  register,
+  registerConfirmed,
+  login,
+  logout,
+  getProfile,
+  updateProfile,
+  requestPasswordReset,
+  verifyResetCode,
+  resetPassword,
+  verifyToken,
+  updatePassword,
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+  createTeamMember,
+  getTeamMembers,
+  updateTeamMember,
+  deleteTeamMember,
+  activateTeamMember,
+  resetTeamMemberPassword,
+  healthCheck,
+  testDatabase,
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getCategories,
+  getInvoices,
+  getInvoice,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
+  updateInvoiceStatus,
+  sendInvoice,
+  downloadInvoicePdf,
+  getExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  getExpenseCategories,
+  getSales,
+  createSale,
+  getSalesReport,
+  downloadSalesReport,
+  getPayments,
+  recordPayment,
+  initializePayment,
+  verifyPayment,
+  getSubscriptionPlans,
+  upgradeSubscription,
+  updateSubscription,
+  getDashboardOverview,
+  getRevenueChart,
+  getFinancials,
+  getReferralStats,
+  getWithdrawals,
+  requestWithdrawal,
+  addOfflineItem,
+  getOfflineItems,
+  removeOfflineItem,
+  saveDeviceToken,
+  getErrorMessage
+};
 
 // Export axios methods for backward compatibility
-export const get = api.get;
-export const post = api.post;
-export const put = api.put;
-export const del = api.delete;
+export const get = api.get.bind(api);
+export const post = api.post.bind(api);
+export const put = api.put.bind(api);
+export const del = api.delete.bind(api);
 
 

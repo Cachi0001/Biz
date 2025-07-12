@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getFinancials } from '../services/api';
+import apiService from '../services/api';
 
 // Simple fallback components (no external dependencies)
 const SimpleCard = ({ children, className = '', ...props }) => (
@@ -78,7 +78,7 @@ const DashboardFixed = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const data = await getFinancials();
+        const data = await apiService.getFinancials();
         setFinancials(data);
         setError(null);
       } catch (err) {
