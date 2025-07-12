@@ -181,31 +181,55 @@ def register():
             "active": True,
             "email_confirmed": False
         }
-        if supabase:
-            result = supabase.table("users").insert(user_data).execute()
-            user = result.data[0]
-            user_id = user["id"]
-        else:
-            user_id = str(uuid.uuid4())
-            user_data["id"] = user_id
-            mock_db["users"].append(user_data)
         
-        # Generate verification token
+        # Generate verification token first
         import secrets
         import string
         from datetime import datetime, timedelta, timezone
         token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
         
-        # Store token in email_verification_tokens
         if supabase:
-            supabase.table("email_verification_tokens").insert({
-                "user_id": user_id,
-                "token": token,
-                "expires_at": expires_at,
-                "used": False
-            }).execute()
+            try:
+                # Create user first
+                result = supabase.table("users").insert(user_data).execute()
+                if not result.data:
+                    return error_response("Failed to create user", status_code=500)
+                user = result.data[0]
+                user_id = user["id"]
+                
+                # Verify the user was actually created by querying it back
+                verify_result = supabase.table("users").select("id").eq("id", user_id).execute()
+                if not verify_result.data:
+                    return error_response("User creation verification failed", status_code=500)
+                
+                # Then create verification token
+                token_result = supabase.table("email_verification_tokens").insert({
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                }).execute()
+                
+                if not token_result.data:
+                    # If token creation fails, delete the user to maintain consistency
+                    supabase.table("users").delete().eq("id", user_id).execute()
+                    return error_response("Failed to create verification token", status_code=500)
+                    
+            except Exception as e:
+                # If anything fails, try to clean up the user if it was created
+                if 'user_id' in locals():
+                    try:
+                        supabase.table("users").delete().eq("id", user_id).execute()
+                    except:
+                        pass  # Ignore cleanup errors
+                return error_response(f"Registration failed: {str(e)}", status_code=500)
         else:
+            user_id = str(uuid.uuid4())
+            user_data["id"] = user_id
+            mock_db["users"].append(user_data)
+            
+            # Store token in email_verification_tokens
             mock_db.setdefault("email_verification_tokens", []).append({
                 "user_id": user_id,
                 "token": token,
