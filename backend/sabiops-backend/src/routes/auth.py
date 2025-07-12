@@ -483,7 +483,8 @@ def ensure_user_in_supabase_auth(email, password=None):
 @auth_bp.route("/forgot-password", methods=["POST"])
 @limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
-    """Request a password reset code via email."""
+    """Request a password reset link via email (JWT-based, Owner only)."""
+    import jwt
     try:
         supabase = g.supabase
         mock_db = g.mock_db
@@ -493,10 +494,8 @@ def forgot_password():
             return error_response("Email is required", message="Please enter your email address.", status_code=400)
         # Find user
         user = None
-        logging.warning(f"[DEBUG] Password reset requested for email: {email}")
         if supabase:
-            user_result = supabase.table("users").select("id, email_confirmed").eq("email", email).execute()
-            logging.warning(f"[DEBUG] Supabase user lookup result: {user_result.data}")
+            user_result = supabase.table("users").select("id, email_confirmed, role").eq("email", email).execute()
             if user_result.data:
                 user = user_result.data[0]
         else:
@@ -505,7 +504,6 @@ def forgot_password():
                     user = u
                     break
         if not user:
-            logging.warning(f"[DEBUG] No user found for email: {email}")
             return error_response("Email not found", message="No account with this email.", status_code=404)
         if not user.get("email_confirmed", False):
             return error_response(
@@ -513,76 +511,55 @@ def forgot_password():
                 message="Please confirm your email before requesting a password reset.",
                 status_code=403
             )
-        now = datetime.now(timezone.utc)
-        cooldown_remaining = 0
-        if supabase:
-            # Try to get last reset request from tokens
-            recent_token = (
-                supabase.table("password_reset_tokens")
-                .select("created_at")
-                .eq("user_id", user["id"])
-                .order("created_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-            logging.warning(f"[DEBUG] Supabase recent_token result: {recent_token.data}")
-            if recent_token.data:
-                last_time = recent_token.data[0].get("created_at")
-                if last_time:
-                    # Parse as UTC (handles both 'Z' and offset)
-                    last_time_dt = datetime.fromisoformat(last_time).replace(tzinfo=timezone.utc)
-                    delta = (now - last_time_dt).total_seconds()
-                    if delta < RESET_COOLDOWN_SECONDS:
-                        cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
-        else:
-            with reset_cooldown_lock:
-                last_time = reset_cooldown_cache.get(email)
-        if cooldown_remaining > 0:
-            logging.warning(f"[DEBUG] Cooldown active for {email}: {cooldown_remaining}s remaining")
+        if user.get("role", "").lower() != "owner":
             return error_response(
-                "Please wait before requesting another reset.",
-                message=f"Please wait {cooldown_remaining} seconds before requesting another reset.",
-                status_code=429
+                error="Not allowed",
+                message="Only Owners can reset their password via this method.",
+                status_code=403
             )
-        # --- Passed cooldown, proceed ---
-        if not supabase:
-            with reset_cooldown_lock:
-                reset_cooldown_cache[email] = now
-        # Generate password reset token
-        reset_code = secrets.token_urlsafe(32)
-        expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
-        logging.warning(f"[DEBUG] Generated reset code for {email}: {reset_code}")
-        token_data = {
-            "user_id": user["id"],
-            "reset_code": reset_code,
-            "expires_at": expires_at,
-            "used": False,
-            "created_at": now.isoformat()  # for cooldown tracking
+        # Generate JWT token (15 min exp)
+        import os
+        from datetime import datetime, timedelta, timezone
+        jwt_secret = os.environ.get("SUPABASE_JWT_SECRET") or os.environ.get("JWT_SECRET_KEY")
+        if not jwt_secret:
+            return error_response("JWT secret not configured", status_code=500)
+        payload = {
+            "sub": user["id"],
+            "email": user["email"],
+            "type": "reset",
+            "exp": int((datetime.now(timezone.utc) + timedelta(minutes=15)).timestamp())
         }
-        if supabase:
-            insert_result = supabase.table("password_reset_tokens").insert(token_data).execute()
-            logging.warning(f"[DEBUG] Supabase insert token result: {insert_result}")
-        else:
-            mock_db.setdefault("password_reset_tokens", []).append(token_data)
-            logging.warning(f"[DEBUG] Token appended to mock_db for {email}")
-        # Send password reset email with Edge Function link
-        try:
-            from src.services.email_service import email_service
-            reset_link = f"https://sabiops.vercel.app/reset-password?code={reset_code}&email={email}"
-            subject = "SabiOps Password Reset"
-            body = f"You requested a password reset. Click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email."
-            logging.warning(f"[DEBUG] Attempting to send reset email to {email} via email_service. Subject: {subject}, Body: {body}")
-            email_service.send_email(
-                to_email=email,
-                subject=subject,
-                text_content=body
-            )
-            logging.warning(f"[DEBUG] Reset email sent successfully to {email}!")
-        except Exception as mail_err:
-            logging.error(f"[ERROR] Failed to send reset email via email_service: {mail_err}")
-            return error_response("Failed to send reset email. Contact support.", status_code=500)
+        token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+        # Build reset URL
+        reset_url = f"https://sabiops.vercel.app/reset-password?token={token}"
+        # Send email
+        from src.services.email_service import email_service
+        subject = "Reset your SabiOps password"
+        html_body = f"""
+<!doctype html>
+<html>
+  <body style=\"margin:0;font-family:Arial,Helvetica,sans-serif;\">
+    <div style=\"max-width:600px;margin:auto;padding:40px 20px;\">
+      <h2>Reset your password</h2>
+      <p>You requested a password reset. Click the button below to choose a new password.</p>
+      <a href=\"{reset_url}\" style=\"background:#00c853;color:white;padding:14px 24px;border-radius:4px;text-decoration:none;display:inline-block;font-size:16px;\">
+        Reset Password
+      </a>
+      <p style=\"font-size:12px;color:#666;\">If you did not request this, please ignore.</p>
+    </div>
+  </body>
+</html>
+"""
+        text_body = f"You requested a password reset. Use this link to reset your password: {reset_url}\nIf you did not request this, please ignore."
+        email_service.send_email(
+            to_email=user["email"],
+            subject=subject,
+            html_content=html_body,
+            text_content=text_body
+        )
         return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
+        import logging
         logging.error(f"[ERROR] Exception in forgot_password: {e}", exc_info=True)
         return error_response(str(e), status_code=500)
 
@@ -627,59 +604,53 @@ def verify_reset_code():
 
 @auth_bp.route("/reset-password", methods=["POST"])
 def reset_password():
-    """Reset password using code."""
+    """Reset password using JWT token (Owner only)."""
+    import jwt
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
-        email = data.get("email")
-        reset_code = data.get("reset_code")
-        new_password = data.get("new_password")
-        if not email or not reset_code or not new_password:
-            return error_response("Email, reset code, and new password are required", status_code=400)
-        # Find user
+        token = data.get("token")
+        new_password = data.get("password")
+        if not token or not new_password:
+            return error_response("Token and new password are required", status_code=400)
+        import os
+        from datetime import datetime, timezone
+        jwt_secret = os.environ.get("SUPABASE_JWT_SECRET") or os.environ.get("JWT_SECRET_KEY")
+        if not jwt_secret:
+            return error_response("JWT secret not configured", status_code=500)
+        try:
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return error_response("Reset link expired. Please request a new one.", status_code=400)
+        except jwt.InvalidTokenError:
+            return error_response("Invalid reset link.", status_code=400)
+        user_id = payload.get("sub")
+        email = payload.get("email")
+        if payload.get("type") != "reset":
+            return error_response("Invalid reset token type.", status_code=400)
+        # Find user and check role
         user = None
         if supabase:
-            user_result = supabase.table("users").select("*").eq("email", email).execute()
+            user_result = supabase.table("users").select("id, role").eq("id", user_id).single().execute()
             if user_result.data:
-                user = user_result.data[0]
+                user = user_result.data
         else:
             for u in mock_db["users"]:
-                if u["email"] == email:
+                if u["id"] == user_id:
                     user = u
                     break
         if not user:
-            return error_response("Email not found", status_code=404)
-        # Find token
-        if supabase:
-            token_result = supabase.table("password_reset_tokens").select("*").eq("user_id", user["id"]).eq("reset_code", reset_code).eq("used", False).execute()
-            token = token_result.data[0] if token_result.data else None
-        else:
-            token = next((t for t in mock_db.get("password_reset_tokens", []) if t["user_id"] == user["id"] and t["reset_code"] == reset_code and not t["used"]), None)
-        if not token:
-            return error_response("Invalid or expired code", status_code=400)
-        # Check expiry
-        if datetime.fromisoformat(token["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            return error_response("Invalid or expired code", status_code=400)
+            return error_response("User not found", status_code=404)
+        if user.get("role", "").lower() != "owner":
+            return error_response("Only Owners can reset their password via this method.", status_code=403)
         # Update password in Supabase Auth
         try:
-            # Patch password in Supabase Auth
-            user_id = user["id"]
             headers = {
                 "apikey": SUPABASE_SERVICE_KEY,
                 "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
                 "Content-Type": "application/json"
             }
-            # Check user status in Supabase Auth
-            resp = requests.get(f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}", headers=headers)
-            if resp.status_code == 200:
-                auth_user = resp.json()
-                if auth_user.get("confirmed_at") is None:
-                    return error_response(
-                        "Account not activated",
-                        message="Please check your email for an invite link to set your password for the first time.",
-                        status_code=400
-                    )
             resp = requests.patch(
                 f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
                 headers=headers,
@@ -689,11 +660,13 @@ def reset_password():
                 return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
         except Exception as e:
             return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
-        # Mark token as used
+        # Mark all old tokens as used (idempotency)
         if supabase:
-            supabase.table("password_reset_tokens").update({"used": True}).eq("id", token["id"]).execute()
+            supabase.table("password_reset_tokens").update({"used": True}).eq("user_id", user_id).execute()
         else:
-            token["used"] = True
+            for t in mock_db.get("password_reset_tokens", []):
+                if t["user_id"] == user_id:
+                    t["used"] = True
         return success_response(message="Password updated successfully. You can now log in with your new password.")
     except Exception as e:
         return error_response(str(e), status_code=500)

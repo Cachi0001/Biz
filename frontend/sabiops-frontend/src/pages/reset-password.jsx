@@ -11,16 +11,13 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [email, setEmail] = useState('');
-  const [resetCode, setResetCode] = useState('');
+  const [token, setToken] = useState('');
 
   useEffect(() => {
-    // Prefill from query params if present
+    // Read token from query params
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const emailParam = params.get('email');
-    if (token) setResetCode(token);
-    if (emailParam) setEmail(emailParam);
+    const tokenParam = params.get('token');
+    if (tokenParam) setToken(tokenParam);
   }, []);
 
   const handleReset = async (e) => {
@@ -29,9 +26,13 @@ const ResetPassword = () => {
       toast.error('Passwords do not match.');
       return;
     }
+    if (!token) {
+      toast.error('Invalid or missing reset link.');
+      return;
+    }
     setIsResetting(true);
     try {
-      const response = await resetPassword({ email, reset_code: resetCode, new_password: password });
+      const response = await resetPassword({ token, password });
       if (response.success) {
         toast.success('Password reset successful! You can now log in.');
         setTimeout(() => navigate('/login'), 1500);
@@ -56,32 +57,6 @@ const ResetPassword = () => {
           </p>
         </div>
         <form onSubmit={handleReset} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              disabled={isResetting}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="resetCode">Reset Code</Label>
-            <Input
-              id="resetCode"
-              name="resetCode"
-              type="text"
-              required
-              value={resetCode}
-              onChange={(e) => setResetCode(e.target.value)}
-              placeholder="Enter the code sent to your email"
-              disabled={isResetting}
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <Input
