@@ -34,7 +34,7 @@ def error_response(error, message="Error", status_code=400):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """Start registration: generate verification token and send email, do NOT create user yet."""
+    """Register user: create user with email_confirmed=False, send verification email."""
     try:
         supabase = g.supabase
         mock_db = g.mock_db
@@ -47,7 +47,7 @@ def register():
         # Validate required fields
         if not email or not phone or not password or not full_name:
             return error_response("Missing required fields", status_code=400)
-        # Check if user already exists (confirmed)
+        # Check if user already exists
         if supabase:
             user_result = supabase.table("users").select("id").eq("email", email).execute()
             if user_result.data:
@@ -61,6 +61,28 @@ def register():
                     return error_response("Email already exists", status_code=400)
                 if u["phone"] == phone:
                     return error_response("Phone already exists", status_code=400)
+        # Create user with email_confirmed=False
+        from werkzeug.security import generate_password_hash
+        user_data = {
+            "email": email,
+            "phone": phone,
+            "password_hash": generate_password_hash(password),
+            "full_name": full_name,
+            "business_name": business_name or "",
+            "role": "Owner",
+            "subscription_plan": "weekly",
+            "subscription_status": "trial",
+            "active": True,
+            "email_confirmed": False
+        }
+        if supabase:
+            result = supabase.table("users").insert(user_data).execute()
+            user = result.data[0]
+            user_id = user["id"]
+        else:
+            user_id = str(uuid.uuid4())
+            user_data["id"] = user_id
+            mock_db["users"].append(user_data)
         # Generate verification token
         import secrets
         import string
@@ -70,14 +92,14 @@ def register():
         # Store token in email_verification_tokens
         if supabase:
             supabase.table("email_verification_tokens").insert({
-                "user_id": None,  # Will be set after confirmation
+                "user_id": user_id,
                 "token": token,
                 "expires_at": expires_at,
                 "used": False
             }).execute()
         else:
             mock_db.setdefault("email_verification_tokens", []).append({
-                "user_id": None,
+                "user_id": user_id,
                 "token": token,
                 "expires_at": expires_at,
                 "used": False
@@ -103,58 +125,64 @@ def register():
             text_content=body,
             html_content=html_body
         )
-        return success_response(message="Registration started. Please check your email to confirm your account.")
+        return success_response(message="Registration successful. Please check your email to confirm your account.")
     except Exception as e:
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/register/confirmed", methods=["POST"])
 def register_confirmed():
-    """Complete registration: verify token, then create user."""
+    """Confirm email: verify token, mark user as confirmed, return JWT."""
     data = request.get_json()
-    email = data.get("email")
     token = data.get("token")
-    phone = data.get("phone")
-    password = data.get("password")
-    full_name = data.get("full_name")
-    business_name = data.get("business_name")
-    if not email or not token or not phone or not password or not full_name:
-        return error_response("Missing required fields", status_code=400)
+    email = data.get("email")
+    if not token or not email:
+        return error_response("Missing token or email", status_code=400)
     supabase = g.supabase
     mock_db = g.mock_db
-    # 1. Check token validity
+    # 1. Check token validity and get user_id
     if supabase:
-        token_result = supabase.table("email_verification_tokens").select("*").eq("token", token).eq("used", False).execute()
+        token_result = supabase.table("email_verification_tokens").select("*", "user_id").eq("token", token).eq("used", False).execute()
         if not token_result.data:
             return error_response("Invalid or expired token", status_code=400)
         token_row = token_result.data[0]
+        user_id = token_row["user_id"]
         # Mark token as used
         supabase.table("email_verification_tokens").update({"used": True}).eq("id", token_row["id"]).execute()
+        # Mark user as confirmed
+        user_result = supabase.table("users").select("*").eq("id", user_id).eq("email", email).execute()
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
+        user = user_result.data[0]
+        supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
     else:
         token_row = next((t for t in mock_db.get("email_verification_tokens", []) if t["token"] == token and not t["used"]), None)
         if not token_row:
             return error_response("Invalid or expired token", status_code=400)
+        user_id = token_row["user_id"]
         token_row["used"] = True
-    # 2. Create user in public.users
-    from werkzeug.security import generate_password_hash
-    user_data = {
-        "email": email,
-        "phone": phone,
-        "password_hash": generate_password_hash(password),
-        "full_name": full_name,
-        "business_name": business_name or "",
-        "role": "Owner",
-        "subscription_plan": "weekly",
-        "subscription_status": "trial",
-        "active": True,
-        "email_confirmed": True
-    }
-    if supabase:
-        result = supabase.table("users").insert(user_data).execute()
-        user = result.data[0]
-    else:
-        mock_db["users"].append(user_data)
-        user = user_data
-    return success_response(message="User registered and confirmed successfully.", data={"user": user})
+        user = next((u for u in mock_db["users"] if u["id"] == user_id and u["email"] == email), None)
+        if not user:
+            return error_response("User not found", status_code=404)
+        user["email_confirmed"] = True
+    # Generate JWT and return user info
+    access_token = create_access_token(identity=user["id"])
+    return success_response(
+        message="Email confirmed and user logged in.",
+        data={
+            "access_token": access_token,
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "phone": user["phone"],
+                "full_name": user["full_name"],
+                "business_name": user["business_name"],
+                "role": user["role"],
+                "subscription_plan": user["subscription_plan"],
+                "subscription_status": user["subscription_status"],
+                "trial_ends_at": user.get("trial_ends_at")
+            }
+        }
+    )
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -390,10 +418,10 @@ def forgot_password():
 </html>
 """
         text_body = f"You requested a password reset. Use this link to reset your password: {reset_url}\nIf you did not request this, please ignore."
-        from src.services.email_service import email_service
+            from src.services.email_service import email_service
         result = email_service.send_email(
             to_email=user["email"],
-            subject=subject,
+                subject=subject,
             html_content=html_body,
             text_content=text_body
         )
