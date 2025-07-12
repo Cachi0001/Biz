@@ -65,14 +65,22 @@ const Products = () => {
     try {
       setLoading(true);
       const response = await getProducts();
-      if (response.data && response.data.products) {
+      console.log('[PRODUCTS] Products response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
+        setProducts(response);
+      } else if (response && response.products && Array.isArray(response.products)) {
+        setProducts(response.products);
+      } else if (response && response.data && response.data.products && Array.isArray(response.data.products)) {
         setProducts(response.data.products);
       } else {
+        console.warn('[PRODUCTS] Unexpected response structure:', response);
         setProducts([]);
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast.error("Failed to load products."); // Corrected toast usage
+      toast.error(getErrorMessage(error, 'Failed to load products'));
       setProducts([]);
     } finally {
       setLoading(false);
@@ -82,14 +90,22 @@ const Products = () => {
   const fetchCategories = async () => {
     try {
       const response = await getCategories();
-      if (response.data && response.data.categories) {
+      console.log('[PRODUCTS] Categories response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
+        setCategories(response);
+      } else if (response && response.categories && Array.isArray(response.categories)) {
+        setCategories(response.categories);
+      } else if (response && response.data && response.data.categories && Array.isArray(response.data.categories)) {
         setCategories(response.data.categories);
       } else {
-        setCategories([]);
+        console.warn('[PRODUCTS] Using fallback categories');
+        setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast.error("Failed to load categories."); // Corrected toast usage
+      toast.error(getErrorMessage(error, 'Failed to load categories'));
       setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
     }
   };
@@ -106,27 +122,30 @@ const Products = () => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      toast.error("Product name is required"); // Corrected toast usage
+      toast.error("Product name is required");
       return;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast.error("Valid selling price is required"); // Corrected toast usage
+      toast.error("Valid selling price is required");
       return;
     }
     if (!formData.quantity || parseInt(formData.quantity) < 0) {
-      toast.error("Valid stock quantity is required"); // Corrected toast usage
+      toast.error("Valid stock quantity is required");
       return;
     }
 
     try {
+      setLoading(true);
       if (editingProduct) {
-        await updateProduct(editingProduct.id, formData);
-        toast.success("Product updated successfully!"); // Corrected toast usage
+        const response = await updateProduct(editingProduct.id, formData);
+        console.log('[PRODUCTS] Update response:', response);
+        toast.success("Product updated successfully!");
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
-        await createProduct(formData);
-        toast.success("Product created successfully!"); // Corrected toast usage
+        const response = await createProduct(formData);
+        console.log('[PRODUCTS] Create response:', response);
+        toast.success("Product created successfully!");
         setShowAddDialog(false);
       }
       
@@ -142,11 +161,13 @@ const Products = () => {
         image_url: ''
       });
       
-      fetchProducts();
-      fetchCategories();
+      await fetchProducts();
+      await fetchCategories();
     } catch (error) {
       console.error('Failed to save product:', error);
       toast.error(getErrorMessage(error, 'Failed to save product'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -169,12 +190,16 @@ const Products = () => {
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await deleteProduct(productId);
-        toast.success("Product deleted successfully!"); // Corrected toast usage
-        fetchProducts();
+        setLoading(true);
+        const response = await deleteProduct(productId);
+        console.log('[PRODUCTS] Delete response:', response);
+        toast.success("Product deleted successfully!");
+        await fetchProducts();
       } catch (error) {
         console.error('Failed to delete product:', error);
         toast.error(getErrorMessage(error, 'Failed to delete product'));
+      } finally {
+        setLoading(false);
       }
     }
   };
