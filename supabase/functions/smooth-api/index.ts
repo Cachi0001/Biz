@@ -74,6 +74,15 @@ Deno.serve(async (req) => {
         return Response.redirect(`${frontendUrl}/email-verified?success=false&reason=user_update_failed`, 302);
       }
 
+      // Force refresh Supabase Auth user record
+      const { error: refreshError } = await supabaseAdmin.auth.admin.updateUserById(
+        tokenData.user_id,
+        { email_confirm: true }
+      );
+      if (refreshError) {
+        console.error("Auth admin update failed:", refreshError);
+      }
+
       const { error: tokenUsedError } = await supabaseAdmin.from('email_verification_tokens')
         .update({ used: true })
         .eq('id', tokenData.id);

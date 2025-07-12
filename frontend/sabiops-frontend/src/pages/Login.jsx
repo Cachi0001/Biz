@@ -30,7 +30,11 @@ const Login = () => {
       } else if (data.session) {
         localStorage.setItem('token', data.session.access_token);
         // Optionally fetch user profile from your backend here if needed
-        navigate('/dashboard');
+        try {
+          navigate('/dashboard'); // React Router navigation
+        } catch (e) {
+          window.location.href = '/dashboard'; // Fallback in case navigate fails
+        }
       }
     } catch (err) {
       toast.error(getErrorMessage(err, 'Login failed. Please try again.'), { duration: 4000 });

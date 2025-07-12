@@ -495,7 +495,7 @@ def forgot_password():
         user = None
         logging.warning(f"[DEBUG] Password reset requested for email: {email}")
         if supabase:
-            user_result = supabase.table("users").select("id").eq("email", email).execute()
+            user_result = supabase.table("users").select("id, email_confirmed").eq("email", email).execute()
             logging.warning(f"[DEBUG] Supabase user lookup result: {user_result.data}")
             if user_result.data:
                 user = user_result.data[0]
@@ -600,7 +600,7 @@ def verify_reset_code():
         # Find user
         user = None
         if supabase:
-            user_result = supabase.table("users").select("id").eq("email", email).execute()
+            user_result = supabase.table("users").select("id, email_confirmed").eq("email", email).execute()
             if user_result.data:
                 user = user_result.data[0]
         else:
