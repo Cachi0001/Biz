@@ -14,8 +14,6 @@ import logging
 from threading import Lock
 import requests
 import os
-import string # Added for secrets.choice
-import time # Added for time.sleep
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -52,138 +50,55 @@ def register():
             return error_response("Missing required fields", status_code=400)
         
         if supabase:
-            print(f"[DEBUG] Starting registration for email: {email}")
-            
-            # Check if user already exists
-            existing_user_result = supabase.table("users").select("*").eq("email", email).execute()
-            existing_user = existing_user_result.data[0] if existing_user_result.data else None
-            
-            if existing_user:
-                if existing_user.get("email_confirmed", False):
-                    return error_response("Email already exists", status_code=400)
-                else:
-                    # User exists but not confirmed, resend verification
-                    print(f"[DEBUG] User exists but not confirmed, resending verification for: {email}")
-                    user_id = existing_user["id"]
-                    
-                    # Generate new token
-                    token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
-                    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-                    
-                    # Mark old tokens as used
-                    supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
-                    
-                    # Insert new token
-                    token_result = supabase.table("email_verification_tokens").insert({
-                        "user_id": user_id,
-                        "token": token,
-                        "expires_at": expires_at,
-                        "used": False
-                    }).execute()
-                    
-                    if not token_result.data:
-                        return error_response("Failed to generate verification token", status_code=500)
-                    
-                    # Send verification email
-                    confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
-                    subject = "SabiOps Email Confirmation"
-                    body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
-                    html_body = f"""
-<html>
-  <body style=\"font-family: Arial, sans-serif; color: #222;\">
-    <h2>Welcome to SabiOps!</h2>
-    <p>Please confirm your email by clicking the button below:</p>
-    <a href=\"{confirm_link}\" style=\"display:inline-block;padding:12px 24px;background-color:#22c55e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;\">Confirm Email</a>
-    <p style=\"margin-top:24px;font-size:13px;color:#888;\">If you did not register, please ignore this email.</p>
-  </body>
-</html>
-"""
-                    from src.services.email_service import email_service
-                    email_service.send_email(
-                        to_email=email,
-                        subject=subject,
-                        text_content=body,
-                        html_content=html_body
-                    )
-                    
-                    return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
-            
-            # Check if phone already exists
-            existing_phone_result = supabase.table("users").select("id").eq("phone", phone).execute()
-            if existing_phone_result.data:
-                return error_response("Phone already exists", status_code=400)
-            
-            # Create new user - NO RPC FUNCTION, direct table operations
-            print(f"[DEBUG] Creating new user for email: {email}")
-            
-            # Generate user data
-            user_id = str(uuid.uuid4())
+            # Use RPC function for atomic user registration - NO FALLBACK
             password_hash = generate_password_hash(password)
             
-            user_data = {
-                "id": user_id,
-                "email": email,
-                "phone": phone,
-                "password_hash": password_hash,
-                "full_name": full_name,
-                "business_name": business_name or "",
-                "role": "Owner",
-                "subscription_plan": "weekly",
-                "subscription_status": "trial",
-                "active": True,
-                "email_confirmed": False
-            }
+            print(f"[DEBUG] Calling RPC function with email: {email}")
             
-            # Insert user first
-            print(f"[DEBUG] Inserting user with ID: {user_id}")
-            user_result = supabase.table("users").insert(user_data).execute()
-            
-            if not user_result.data:
-                print(f"[ERROR] Failed to create user")
-                return error_response("Failed to create user", status_code=500)
-            
-            created_user = user_result.data[0]
-            actual_user_id = created_user["id"]
-            print(f"[DEBUG] User created successfully with ID: {actual_user_id}")
-            
-            # Verify user exists before creating token
-            verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
-            if not verify_result.data:
-                print(f"[ERROR] User verification failed after creation")
-                return error_response("User verification failed", status_code=500)
-            
-            print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
-            
-            # Generate verification token
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
-            expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-            
-            # Insert verification token with a small delay to ensure user is committed
-            time.sleep(0.1)  # 100ms delay to ensure user is committed
-            
-            token_data = {
-                "user_id": actual_user_id,
-                "token": token,
-                "expires_at": expires_at,
-                "used": False
-            }
-            
-            print(f"[DEBUG] Inserting token for user ID: {actual_user_id}")
-            token_result = supabase.table("email_verification_tokens").insert(token_data).execute()
-            
-            if not token_result.data:
-                print(f"[ERROR] Failed to create verification token, rolling back user")
-                # Rollback: delete the user
-                supabase.table("users").delete().eq("id", actual_user_id).execute()
-                return error_response("Failed to generate verification token", status_code=500)
-            
-            print(f"[DEBUG] Token created successfully")
-            
-            # Send verification email
-            confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
-            subject = "SabiOps Email Confirmation"
-            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
-            html_body = f"""
+            try:
+                result = supabase.rpc('register_user_with_token', {
+                    'p_email': email,
+                    'p_phone': phone,
+                    'p_password_hash': password_hash,
+                    'p_full_name': full_name,
+                    'p_business_name': business_name or '',
+                    'p_role': 'Owner',
+                    'p_subscription_plan': 'weekly',
+                    'p_subscription_status': 'trial'
+                }).execute()
+                
+                print(f"[DEBUG] RPC result: {result}")
+                
+                if not result.data:
+                    return error_response("RPC function returned no data. Please ensure the register_user_with_token function is deployed in your Supabase database.", status_code=500)
+                
+                rpc_result = result.data
+                print(f"[DEBUG] RPC result data: {rpc_result}")
+                
+                if not rpc_result.get('success'):
+                    error_msg = rpc_result.get('error', 'Unknown error')
+                    if 'Email already exists and is confirmed' in error_msg:
+                        return error_response("Email already exists", status_code=400)
+                    elif 'Phone already exists' in error_msg:
+                        return error_response("Phone already exists", status_code=400)
+                    else:
+                        return error_response(error_msg, status_code=400)
+                
+                # Get the token and send verification email
+                token = rpc_result.get('token')
+                user_id = rpc_result.get('user_id')
+                message = rpc_result.get('message')
+                
+                if not token:
+                    return error_response("Failed to generate verification token", status_code=500)
+                
+                print(f"[DEBUG] Generated token: {token[:10]}... for user: {user_id}")
+                
+                # Send verification email
+                confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+                subject = "SabiOps Email Confirmation"
+                body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+                html_body = f"""
 <html>
   <body style=\"font-family: Arial, sans-serif; color: #222;\">
     <h2>Welcome to SabiOps!</h2>
@@ -193,16 +108,22 @@ def register():
   </body>
 </html>
 """
-            from src.services.email_service import email_service
-            email_service.send_email(
-                to_email=email,
-                subject=subject,
-                text_content=body,
-                html_content=html_body
-            )
-            
-            return success_response(message="Registration successful. Please check your email to confirm your account.")
-        
+                from src.services.email_service import email_service
+                email_service.send_email(
+                    to_email=email,
+                    subject=subject,
+                    text_content=body,
+                    html_content=html_body
+                )
+                
+                if 'New verification email' in message:
+                    return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
+                else:
+                    return success_response(message="Registration successful. Please check your email to confirm your account.")
+                    
+            except Exception as e:
+                print(f"[ERROR] RPC function call failed: {str(e)}")
+                return error_response(f"Registration failed: {str(e)}", status_code=500)
         else:
             # Mock DB logic for local testing only
             existing_user = None
@@ -221,7 +142,10 @@ def register():
             if existing_user and not existing_user.get("email_confirmed", False):
                 user_id = existing_user["id"]
                 
-                token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+                import secrets
+                import string
+                from datetime import datetime, timedelta, timezone
+                token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
                 
                 for t in mock_db.get("email_verification_tokens", []):
@@ -274,7 +198,10 @@ def register():
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
             
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            import secrets
+            import string
+            from datetime import datetime, timedelta, timezone
+            token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
             
             mock_db.setdefault("email_verification_tokens", []).append({
@@ -346,7 +273,10 @@ def resend_verification_email():
         user_id = user["id"]
         
         # Generate new verification token
-        token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        import secrets
+        import string
+        from datetime import datetime, timedelta, timezone
+        token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
         
         # Store token in email_verification_tokens
@@ -473,7 +403,7 @@ def login():
         if data is None:
             return error_response(
                 error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
+                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
                 status_code=400
             )
         
@@ -538,11 +468,6 @@ def login():
                 message="Please confirm your email before logging in.",
                 status_code=403
             )
-            
-        # Update last login time
-        if supabase:
-            supabase.table("users").update({"last_login": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
-        else:
             for i, u in enumerate(mock_db["users"]):
                 if u["id"] == user["id"]:
                     mock_db["users"][i]["last_login"] = pytz.UTC.localize(datetime.utcnow()).isoformat()
@@ -570,7 +495,7 @@ def login():
         
     except Exception as e:
         print(f"[ERROR] Login failed: {e}") # Added for debugging
-        # Ensure the error message is a string and not an object like \'SUPABASE\'
+        # Ensure the error message is a string and not an object like 'SUPABASE'
         error_message = str(e)
         if "object has no attribute" in error_message and "supabase" in error_message.lower():
             error_message = "Supabase client not initialized. Running in mock mode."
@@ -625,7 +550,7 @@ def ensure_user_in_supabase_auth(email, password=None):
         raise Exception(f"Failed to create/invite user in Supabase Auth: {invite_resp.text}")
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.json.get(\'email\') or request.form.get(\'email\') or request.args.get(\'email\', \'\'))
+@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
     """Request a password reset link via email (JWT-based, Owner only)."""
     import jwt
@@ -703,8 +628,8 @@ def forgot_password():
         )
         if not result:
             import logging
-            logging.error(f"[ERROR] Failed to send password reset email to {user[\'email\']}")
-            return error_response("Failed to send password reset email. Please contact support if this persists.", status_code=500)
+            logging.error(f"[ERROR] Failed to send password reset email to {user['email']}")
+            return error_response("Failed to send password reset email. Please contact support.", status_code=500)
         return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
         import logging
@@ -822,7 +747,7 @@ def reset_password():
 @auth_bp.route("/update-password", methods=["POST"])
 @jwt_required()
 def update_password():
-    """Authenticated Owner can update their own or a team member\'s password."""
+    """Authenticated Owner can update their own or a team member's password."""
     try:
         supabase = g.supabase
         mock_db = g.mock_db
@@ -926,7 +851,7 @@ def get_profile():
 def verify_token():
     """
     Verify JWT token and return user information.
-    This endpoint is called by the frontend to check if the user\'s token is still valid.
+    This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
         print(f"[DEBUG] verify_token: Request headers: {request.headers}")
@@ -980,7 +905,7 @@ def verify_token():
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
                     "owner_id": user.get("owner_id"),
-                    "active": user.get("active", True) # Ensure \'active\' is always returned
+                    "active": user.get("active", True) # Ensure 'active' is always returned
                 }
             }
         )
@@ -1014,6 +939,4 @@ def handle_auth_error(e):
         message="Authentication failed",
         status_code=401
     )
-
-
 
