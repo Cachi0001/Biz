@@ -168,6 +168,59 @@ def register():
                 return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
         
         # Create new user if doesn't exist or if existing_user was set to None due to database inconsistency
+            token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            
+            # Store token in email_verification_tokens
+            if supabase:
+                # Mark old tokens as used
+                supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
+                # Insert new token
+                supabase.table("email_verification_tokens").insert({
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                }).execute()
+            else:
+                # Mark old tokens as used
+                for t in mock_db.get("email_verification_tokens", []):
+                    if t["user_id"] == user_id:
+                        t["used"] = True
+                # Insert new token
+                mock_db.setdefault("email_verification_tokens", []).append({
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                })
+            
+            # Send verification email
+            confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+            subject = "SabiOps Email Confirmation"
+            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+            html_body = f"""
+<html>
+  <body style=\"font-family: Arial, sans-serif; color: #222;\">
+    <h2>Welcome to SabiOps!</h2>
+    <p>Please confirm your email by clicking the button below:</p>
+    <a href=\"{confirm_link}\" style=\"display:inline-block;padding:12px 24px;background-color:#22c55e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;\">Confirm Email</a>
+    <p style=\"margin-top:24px;font-size:13px;color:#888;\">If you did not register, please ignore this email.</p>
+  </body>
+</html>
+"""
+            from src.services.email_service import email_service
+            email_service.send_email(
+                to_email=email,
+                subject=subject,
+                text_content=body,
+                html_content=html_body
+            )
+            
+            return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
+        
+        # Create new user if doesn't exist
+        # Create user with email_confirmed=False
         from werkzeug.security import generate_password_hash
         user_data = {
             "email": email,
@@ -189,14 +242,12 @@ def register():
             user_id = str(uuid.uuid4())
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
-        
         # Generate verification token
         import secrets
         import string
         from datetime import datetime, timedelta, timezone
         token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-        
         # Store token in email_verification_tokens
         if supabase:
             supabase.table("email_verification_tokens").insert({
@@ -212,7 +263,6 @@ def register():
                 "expires_at": expires_at,
                 "used": False
             })
-        
         # Send verification email
         confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
         subject = "SabiOps Email Confirmation"
@@ -234,12 +284,9 @@ def register():
             text_content=body,
             html_content=html_body
         )
-        
         return success_response(message="Registration successful. Please check your email to confirm your account.")
     except Exception as e:
         return error_response(str(e), status_code=500)
-
-
 
 @auth_bp.route("/resend-verification-email", methods=["POST"])
 def resend_verification_email():
@@ -940,4 +987,15 @@ def handle_auth_error(e):
         message="Authentication failed",
         status_code=401
     )
+
+
+
+
+
+
+
+
+
+
+
 
