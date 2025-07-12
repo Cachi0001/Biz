@@ -28,6 +28,7 @@ const Login = () => {
       const response = await apiLogin({ login: email, password });
       if (response.success && (response.data?.access_token || response.access_token)) {
         // Token is already set by api.js, but you can set user info if needed
+        console.log('Redirecting to dashboard');
         try {
           navigate('/dashboard'); // React Router navigation
         } catch (e) {

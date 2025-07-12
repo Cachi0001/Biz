@@ -551,12 +551,16 @@ def forgot_password():
 </html>
 """
         text_body = f"You requested a password reset. Use this link to reset your password: {reset_url}\nIf you did not request this, please ignore."
-        email_service.send_email(
+        result = email_service.send_email(
             to_email=user["email"],
             subject=subject,
             html_content=html_body,
             text_content=text_body
         )
+        if not result:
+            import logging
+            logging.error(f"[ERROR] Failed to send password reset email to {user['email']}")
+            return error_response("Failed to send password reset email. Please contact support.", status_code=500)
         return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
         import logging
