@@ -394,3 +394,7 @@
 
 - **Fixed IndentationError in auth.py at line 517**: Corrected an `IndentationError` related to the `recent_token` query in the forgot password endpoint.
 
+
+
+- **Fixed SyntaxError in auth.py at line 527**: Corrected a `SyntaxError` related to improper line breaking and indentation after the `execute()` call in the forgot password endpoint.
+
