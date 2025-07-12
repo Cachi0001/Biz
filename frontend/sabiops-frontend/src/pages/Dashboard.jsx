@@ -55,7 +55,7 @@ const SimpleIcon = ({ name, className = 'h-4 w-4' }) => {
   );
 };
 
-const DashboardFixed = () => {
+const Dashboard = () => {
   const [mounted, setMounted] = useState(false);
   const [financials, setFinancials] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,24 +65,63 @@ const DashboardFixed = () => {
   let authData = null;
   try {
     authData = useAuth();
-    console.log('[FIXED DASHBOARD] Auth data:', authData);
+    console.log('[DASHBOARD] Auth data:', authData);
   } catch (err) {
-    console.error('[FIXED DASHBOARD] useAuth error:', err);
+    console.error('[DASHBOARD] useAuth error:', err);
     setError('Authentication error');
   }
 
   useEffect(() => {
-    console.log('[FIXED DASHBOARD] Component mounted');
+    console.log('[DASHBOARD] Component mounted');
     setMounted(true);
 
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const data = await getFinancials();
-        setFinancials(data);
-        setError(null);
+        console.log('[DASHBOARD] Fetching financials...');
+        const response = await getFinancials();
+        console.log('[DASHBOARD] Financials response:', response);
+        
+        // Handle different response formats
+        if (response && typeof response === 'object') {
+          if (response.success && response.data) {
+            setFinancials(response.data);
+          } else if (response.data) {
+            setFinancials(response.data);
+          } else {
+            setFinancials(response);
+          }
+        } else {
+          setFinancials({
+            revenue: { total: 0, this_month: 0 },
+            cogs: { total: 0, this_month: 0 },
+            gross_profit: { total: 0, this_month: 0 },
+            expenses: { total: 0, this_month: 0, by_category: {} },
+            net_profit: { total: 0, this_month: 0 },
+            cash_flow: { money_in: 0, money_out: 0, net: 0 },
+            inventory_value: 0,
+            low_stock: [],
+            top_products: [],
+            top_expenses: []
+          });
+        }
       } catch (err) {
-        setError('Failed to load financials');
+        console.error('[DASHBOARD] Error fetching financials:', err);
+        setError('Failed to load financial data');
+        // Set default empty data
+        setFinancials({
+          revenue: { total: 0, this_month: 0 },
+          cogs: { total: 0, this_month: 0 },
+          gross_profit: { total: 0, this_month: 0 },
+          expenses: { total: 0, this_month: 0, by_category: {} },
+          net_profit: { total: 0, this_month: 0 },
+          cash_flow: { money_in: 0, money_out: 0, net: 0 },
+          inventory_value: 0,
+          low_stock: [],
+          top_products: [],
+          top_expenses: []
+        });
       } finally {
         setLoading(false);
       }
@@ -192,6 +231,7 @@ const DashboardFixed = () => {
           </SimpleButton>
         </div>
       </div>
+
       {/* Financial Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <SimpleCard className="bg-green-50 border-green-200">
@@ -200,41 +240,45 @@ const DashboardFixed = () => {
             <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.revenue?.total)}</div>
-            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.revenue?.this_month)}</p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.revenue?.total || 0)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.revenue?.this_month || 0)}</p>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-green-50 border-green-200">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">COGS</SimpleCardTitle>
             <SimpleIcon name="Package" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.cogs?.total)}</div>
-            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.cogs?.this_month)}</p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.cogs?.total || 0)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.cogs?.this_month || 0)}</p>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-green-50 border-green-200">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Gross Profit</SimpleCardTitle>
             <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.gross_profit?.total)}</div>
-            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.gross_profit?.this_month)}</p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.gross_profit?.total || 0)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.gross_profit?.this_month || 0)}</p>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-green-50 border-green-200">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Net Profit</SimpleCardTitle>
             <SimpleIcon name="DollarSign" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.net_profit?.total)}</div>
-            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.net_profit?.this_month)}</p>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.net_profit?.total || 0)}</div>
+            <p className="text-xs text-green-700">This month: {formatCurrency(financials?.net_profit?.this_month || 0)}</p>
           </SimpleCardContent>
         </SimpleCard>
       </div>
+
       {/* Cash Flow & Inventory */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SimpleCard className="bg-white border-green-100">
@@ -244,23 +288,25 @@ const DashboardFixed = () => {
           </SimpleCardHeader>
           <SimpleCardContent>
             <div className="flex flex-col gap-1">
-              <span className="text-green-700 text-sm">Money In: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_in)}</span></span>
-              <span className="text-green-700 text-sm">Money Out: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_out)}</span></span>
-              <span className="text-green-900 font-bold">Net: {formatCurrency(financials?.cash_flow?.net)}</span>
+              <span className="text-green-700 text-sm">Money In: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_in || 0)}</span></span>
+              <span className="text-green-700 text-sm">Money Out: <span className="font-semibold">{formatCurrency(financials?.cash_flow?.money_out || 0)}</span></span>
+              <span className="text-green-900 font-bold">Net: {formatCurrency(financials?.cash_flow?.net || 0)}</span>
             </div>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-white border-green-100">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Inventory Value</SimpleCardTitle>
             <SimpleIcon name="Package" className="h-5 w-5 text-green-600" />
           </SimpleCardHeader>
           <SimpleCardContent>
-            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.inventory_value)}</div>
+            <div className="text-2xl font-bold text-green-800">{formatCurrency(financials?.inventory_value || 0)}</div>
             <p className="text-xs text-green-700">Low stock: {financials?.low_stock?.length || 0}</p>
           </SimpleCardContent>
         </SimpleCard>
-          </div>
+      </div>
+
       {/* Expenses by Category & Top Products */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SimpleCard className="bg-white border-green-100">
@@ -276,6 +322,7 @@ const DashboardFixed = () => {
             </ul>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-white border-green-100">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Top Products</SimpleCardTitle>
@@ -283,13 +330,14 @@ const DashboardFixed = () => {
           </SimpleCardHeader>
           <SimpleCardContent>
             <ul className="text-green-800 text-sm space-y-1">
-              {financials?.top_products && financials.top_products.map((p) => (
-                <li key={p.name} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
+              {financials?.top_products && financials.top_products.map((p, index) => (
+                <li key={index} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
               ))}
             </ul>
           </SimpleCardContent>
         </SimpleCard>
-        </div>
+      </div>
+
       {/* Top Expenses & Low Stock Alerts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SimpleCard className="bg-white border-green-100">
@@ -299,12 +347,13 @@ const DashboardFixed = () => {
           </SimpleCardHeader>
           <SimpleCardContent>
             <ul className="text-green-800 text-sm space-y-1">
-              {financials?.top_expenses && financials.top_expenses.map((e) => (
-                <li key={e.category} className="flex justify-between"><span>{e.category}</span><span>{formatCurrency(e.amount)}</span></li>
+              {financials?.top_expenses && financials.top_expenses.map((e, index) => (
+                <li key={index} className="flex justify-between"><span>{e.category}</span><span>{formatCurrency(e.amount)}</span></li>
               ))}
             </ul>
           </SimpleCardContent>
         </SimpleCard>
+
         <SimpleCard className="bg-white border-green-100">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Low Stock Alerts</SimpleCardTitle>
@@ -313,8 +362,8 @@ const DashboardFixed = () => {
           <SimpleCardContent>
             <ul className="text-red-700 text-sm space-y-1">
               {financials?.low_stock && financials.low_stock.length > 0 ? (
-                financials.low_stock.map((p) => (
-                  <li key={p.name} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
+                financials.low_stock.map((p, index) => (
+                  <li key={index} className="flex justify-between"><span>{p.name}</span><span>{p.quantity}</span></li>
                 ))
               ) : (
                 <li className="text-green-700">All products in stock</li>
@@ -323,6 +372,7 @@ const DashboardFixed = () => {
           </SimpleCardContent>
         </SimpleCard>
       </div>
+
       {/* Mobile-First: Ensure all sections are stacked and scrollable on 360px screens */}
       <div className="mt-8 text-xs text-green-700 text-center">
         <p>All insights are calculated in real-time for Nigerian SMEs. For help, tap any card title for a tooltip.</p>
@@ -331,5 +381,5 @@ const DashboardFixed = () => {
   );
 };
 
-export default DashboardFixed;
+export default Dashboard;
 
