@@ -514,21 +514,17 @@ def forgot_password():
                 status_code=403
             )
         now = datetime.now(timezone.utc)
+        cooldown_remaining = 0
+        if supabase:
+            # Try to get last reset request from tokens
+            recent_token = (
+                supabase.table("password_reset_tokens")
                 .select("created_at")
                 .eq("user_id", user["id"])
                 .order("created_at", desc=True)
                 .limit(1)
                 .execute()
-            )
-            logging.warning(f"[DEBUG] Supabase recent_token result: {recent_token.data}")
-            if recent_token.data:
-                last_time = recent_token.data[0].get("created_at")
-                if last_time:
-                    # Parse as UTC (handles both 'Z' and offset)
-                    last_time_dt = datetime.fromisoformat(last_time).replace(tzinfo=timezone.utc)
-                    delta = (now - last_time_dt).total_seconds()
-                    if delta < RESET_COOLDOWN_SECONDS:
-                        cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
+            )                        cooldown_remaining = int(RESET_COOLDOWN_SECONDS - delta)
         else:
             with reset_cooldown_lock:
                 last_time = reset_cooldown_cache.get(email)

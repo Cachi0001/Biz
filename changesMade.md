@@ -390,3 +390,7 @@
 
 - **Fixed SyntaxError in auth.py at line 515**: Corrected another `SyntaxError` related to improper line breaking after the `error_response` call in the forgot password endpoint.
 
+
+
+- **Fixed IndentationError in auth.py at line 517**: Corrected an `IndentationError` related to the `recent_token` query in the forgot password endpoint.
+
