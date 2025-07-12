@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, Eye, Download, Send } from 'lucide-react';
-import { getInvoices, getCustomers, getProducts, updateInvoice, createInvoice, getInvoice, deleteInvoice, downloadInvoicePdf, sendInvoice } from "../services/api";
-import toast from 'react-hot-toast';
+import { getInvoices, getCustomers, getProducts, updateInvoice, createInvoice, getInvoice, deleteInvoice, downloadInvoicePdf, sendInvoice, getErrorMessage } from "../services/api";
+import { toast } from 'react-hot-toast';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -24,12 +24,14 @@ const Invoices = () => {
 
   const [formData, setFormData] = useState({
     customer_id: '',
-    amount: 0,
-    tax_amount: 0,
-    total_amount: 0,
+    issue_date: new Date().toISOString().split('T')[0],
     due_date: '',
+    payment_terms: 'Net 30',
     notes: '',
-    items: [{ description: '', quantity: 1, unit_price: 0 }],
+    terms_and_conditions: 'Payment is due within 30 days of invoice date.',
+    currency: 'NGN',
+    discount_amount: 0,
+    items: [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
   });
 
   useEffect(() => {
@@ -42,14 +44,22 @@ const Invoices = () => {
     try {
       setLoading(true);
       const response = await getInvoices();
-      setInvoices(response.invoices || []);
+      console.log('[INVOICES] Invoices response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
+        setInvoices(response);
+      } else if (response && response.invoices && Array.isArray(response.invoices)) {
+        setInvoices(response.invoices);
+      } else if (response && response.data && response.data.invoices && Array.isArray(response.data.invoices)) {
+        setInvoices(response.data.invoices);
+      } else {
+        console.warn('[INVOICES] Unexpected response structure:', response);
+        setInvoices([]);
+      }
     } catch (error) {
       console.error('Failed to fetch invoices:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load invoices.",
-        variant: "destructive",
-      });
+      toast.error(getErrorMessage(error, 'Failed to load invoices'));
       setInvoices([]);
     } finally {
       setLoading(false);
@@ -59,14 +69,22 @@ const Invoices = () => {
   const fetchCustomers = async () => {
     try {
       const response = await getCustomers();
-      setCustomers(response.customers || []);
+      console.log('[INVOICES] Customers response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
+        setCustomers(response);
+      } else if (response && response.customers && Array.isArray(response.customers)) {
+        setCustomers(response.customers);
+      } else if (response && response.data && response.data.customers && Array.isArray(response.data.customers)) {
+        setCustomers(response.data.customers);
+      } else {
+        console.warn('[INVOICES] Unexpected customers response structure:', response);
+        setCustomers([]);
+      }
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load customers.",
-        variant: "destructive",
-      });
+      toast.error(getErrorMessage(error, 'Failed to load customers'));
       setCustomers([]);
     }
   };
@@ -74,14 +92,22 @@ const Invoices = () => {
   const fetchProducts = async () => {
     try {
       const response = await getProducts();
-      setProducts(response.products || []);
+      console.log('[INVOICES] Products response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
+        setProducts(response);
+      } else if (response && response.products && Array.isArray(response.products)) {
+        setProducts(response.products);
+      } else if (response && response.data && response.data.products && Array.isArray(response.data.products)) {
+        setProducts(response.data.products);
+      } else {
+        console.warn('[INVOICES] Unexpected products response structure:', response);
+        setProducts([]);
+      }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products.",
-        variant: "destructive",
-      });
+      toast.error(getErrorMessage(error, 'Failed to load products'));
       setProducts([]);
     }
   };
@@ -144,21 +170,16 @@ const Invoices = () => {
     e.preventDefault();
     try {
       if (!formData.customer_id) {
-        toast({
-          title: "Error",
-          description: "Please select a customer.",
-          variant: "destructive",
-        });
+        toast.error('Please select a customer');
         return;
       }
       if (formData.items.length === 0 || formData.items.some(item => !item.description || item.quantity <= 0 || item.unit_price <= 0)) {
-        toast({
-          title: "Error",
-          description: "Please add valid invoice items with description, quantity, and unit price.",
-          variant: "destructive",
-        });
+        toast.error('Please add valid invoice items with description, quantity, and unit price');
         return;
       }
+
+      setLoading(true);
+      console.log('[INVOICES] Submitting invoice data:', formData);
 
       const invoiceData = {
         ...formData,
@@ -167,30 +188,24 @@ const Invoices = () => {
       };
 
       if (selectedInvoice) {
-        await updateInvoice(selectedInvoice.id, invoiceData);
-        toast({
-          title: "Success",
-          description: "Invoice updated successfully!",
-        });
+        const response = await updateInvoice(selectedInvoice.id, invoiceData);
+        console.log('[INVOICES] Update response:', response);
+        toast.success('Invoice updated successfully!');
         setIsEditDialogOpen(false);
       } else {
-        await createInvoice(invoiceData);
-        toast({
-          title: "Success",
-          description: "Invoice created successfully!",
-        });
+        const response = await createInvoice(invoiceData);
+        console.log('[INVOICES] Create response:', response);
+        toast.success('Invoice created successfully!');
         setIsCreateDialogOpen(false);
       }
       resetForm();
-      fetchInvoices();
+      await fetchInvoices();
     } catch (error) {
       console.error('Failed to save invoice:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to save invoice';
-      toast({
-        title: "Error",
-        description: `Failed to save invoice: ${errorMessage}`,
-        variant: "destructive",
-      });
+      const errorMessage = getErrorMessage(error, 'Failed to save invoice');
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,61 +226,69 @@ const Invoices = () => {
 
   const handleEdit = async (invoiceId) => {
     try {
+      setLoading(true);
       const response = await getInvoice(invoiceId);
-      const invoice = response.invoice;
+      console.log('[INVOICES] Get invoice response:', response);
+      
+      let invoice;
+      if (response && response.invoice) {
+        invoice = response.invoice;
+      } else if (response && response.data && response.data.invoice) {
+        invoice = response.data.invoice;
+      } else {
+        invoice = response;
+      }
+      
       setSelectedInvoice(invoice);
       setFormData({
-        customer_id: invoice.customer_id,
-        issue_date: invoice.issue_date,
-        due_date: invoice.due_date,
-        payment_terms: invoice.payment_terms,
-        notes: invoice.notes,
-        terms_and_conditions: invoice.terms_and_conditions,
-        currency: invoice.currency,
-        discount_amount: invoice.discount_amount,
-        items: invoice.items.map(item => ({
-          product_id: item.product_id || '',
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          tax_rate: item.tax_rate,
-          discount_rate: item.discount_rate,
-        })),
+        customer_id: invoice.customer_id || '',
+        issue_date: invoice.issue_date || new Date().toISOString().split('T')[0],
+        due_date: invoice.due_date || '',
+        payment_terms: invoice.payment_terms || 'Net 30',
+        notes: invoice.notes || '',
+        terms_and_conditions: invoice.terms_and_conditions || 'Payment is due within 30 days of invoice date.',
+        currency: invoice.currency || 'NGN',
+        discount_amount: invoice.discount_amount || 0,
+        items: invoice.items && invoice.items.length > 0 
+          ? invoice.items.map(item => ({
+              product_id: item.product_id || '',
+              description: item.description || '',
+              quantity: item.quantity || 1,
+              unit_price: item.unit_price || 0,
+              tax_rate: item.tax_rate || 0,
+              discount_rate: item.discount_rate || 0,
+            }))
+          : [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
       });
       setIsEditDialogOpen(true);
     } catch (error) {
       console.error('Failed to fetch invoice for edit:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load invoice for editing.",
-        variant: "destructive",
-      });
+      toast.error(getErrorMessage(error, 'Failed to load invoice for editing'));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
-        await deleteInvoice(invoiceId);
-        toast({
-          title: "Success",
-          description: "Invoice deleted successfully!",
-        });
-        fetchInvoices();
+        setLoading(true);
+        const response = await deleteInvoice(invoiceId);
+        console.log('[INVOICES] Delete response:', response);
+        toast.success('Invoice deleted successfully!');
+        await fetchInvoices();
       } catch (error) {
         console.error('Failed to delete invoice:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to delete invoice';
-        toast({
-          title: "Error",
-          description: `Failed to delete invoice: ${errorMessage}`,
-          variant: "destructive",
-        });
+        toast.error(getErrorMessage(error, 'Failed to delete invoice'));
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const handleDownloadPdf = async (invoiceId) => {
     try {
+      setLoading(true);
       const response = await downloadInvoicePdf(invoiceId);
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
@@ -274,38 +297,28 @@ const Invoices = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast({
-        title: "Success",
-        description: "Invoice PDF downloaded successfully!",
-      });
+      toast.success('Invoice PDF downloaded successfully!');
     } catch (error) {
       console.error('Failed to download PDF:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to download PDF';
-      toast({
-        title: "Error",
-        description: `Failed to download PDF: ${errorMessage}`,
-        variant: "destructive",
-      });
+      toast.error(getErrorMessage(error, 'Failed to download PDF'));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSendInvoice = async (invoiceId) => {
     if (window.confirm('Are you sure you want to send this invoice?')) {
       try {
-        await sendInvoice(invoiceId);
-        toast({
-          title: "Success",
-          description: "Invoice sent successfully!",
-        });
-        fetchInvoices();
+        setLoading(true);
+        const response = await sendInvoice(invoiceId);
+        console.log('[INVOICES] Send response:', response);
+        toast.success('Invoice sent successfully!');
+        await fetchInvoices();
       } catch (error) {
         console.error('Failed to send invoice:', error);
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to send invoice';
-        toast({
-          title: "Error",
-          description: `Failed to send invoice: ${errorMessage}`,
-          variant: "destructive",
-        });
+        toast.error(getErrorMessage(error, 'Failed to send invoice'));
+      } finally {
+        setLoading(false);
       }
     }
   };

@@ -60,7 +60,7 @@ def get_invoices():
 
 @invoice_bp.route("/<invoice_id>", methods=["GET"])
 @jwt_required()
-def get_invoice():
+def get_invoice(invoice_id):
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
@@ -69,15 +69,30 @@ def get_invoice():
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
         
-        invoice_items = get_supabase().table("invoice_items").select("*").eq("invoice_id", invoice_id).execute()
-        invoice.data["items"] = invoice_items.data
+        # Get invoice items from the JSONB items field or from separate table if it exists
+        if invoice.data.get("items"):
+            # Items are stored as JSONB in the invoice table
+            invoice_data = invoice.data
+        else:
+            # Try to get items from separate invoice_items table (if it exists)
+            try:
+                invoice_items = get_supabase().table("invoice_items").select("*").eq("invoice_id", invoice_id).execute()
+                invoice.data["items"] = invoice_items.data if invoice_items.data else []
+            except:
+                # invoice_items table doesn't exist or other error, use empty items
+                invoice.data["items"] = []
+            invoice_data = invoice.data
 
-        customer = get_supabase().table("customers").select("*").eq("id", invoice.data["customer_id"]).single().execute()
-        invoice.data["customer"] = customer.data
+        # Get customer info
+        try:
+            customer = get_supabase().table("customers").select("*").eq("id", invoice.data["customer_id"]).single().execute()
+            invoice_data["customer"] = customer.data if customer.data else None
+        except:
+            invoice_data["customer"] = None
 
         return success_response(
             data={
-                "invoice": invoice.data
+                "invoice": invoice_data
             }
         )
         
