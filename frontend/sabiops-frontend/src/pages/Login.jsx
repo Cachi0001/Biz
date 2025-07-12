@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@supabase/supabase-js';
 import { getErrorMessage } from '../services/api';
+import { login as apiLogin } from '../services/api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -24,17 +25,16 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast.error(getErrorMessage(error, error.message || 'Login failed.'), { duration: 4000 });
-      } else if (data.session) {
-        localStorage.setItem('token', data.session.access_token);
-        // Optionally fetch user profile from your backend here if needed
+      const response = await apiLogin({ login: email, password });
+      if (response.success && (response.data?.access_token || response.access_token)) {
+        // Token is already set by api.js, but you can set user info if needed
         try {
           navigate('/dashboard'); // React Router navigation
         } catch (e) {
           window.location.href = '/dashboard'; // Fallback in case navigate fails
         }
+      } else {
+        toast.error(response.message || 'Login failed.', { duration: 4000 });
       }
     } catch (err) {
       toast.error(getErrorMessage(err, 'Login failed. Please try again.'), { duration: 4000 });
