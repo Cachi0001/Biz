@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getSalesReport, downloadSalesReport } from "../services/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getSalesReport, downloadSalesReport, getErrorMessage } from "../services/api";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Alert, AlertDescription } from '../components/ui/alert';
 import {
   Download,
   Calendar,
@@ -19,17 +19,16 @@ import {
   FileText,
   Image as ImageIcon
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { toast } from 'react-hot-toast';
 
 const SalesReport = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [salesData, setSalesData] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateRange, setDateRange] = useState({
-    start_date: format(new Date(), 'yyyy-MM-dd'),
-    end_date: format(new Date(), 'yyyy-MM-dd')
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
   });
   const [reportType, setReportType] = useState('daily');
 
@@ -48,11 +47,22 @@ const SalesReport = () => {
         params = dateRange;
       }
       
+      console.log('[SALES_REPORT] Fetching with params:', params);
       const response = await getSalesReport(params);
-      setSalesData(response);
+      console.log('[SALES_REPORT] Response:', response);
+      
+      // Handle different response formats
+      if (response && response.data) {
+        setSalesData(response.data);
+      } else if (response) {
+        setSalesData(response);
+      } else {
+        setSalesData(null);
+      }
     } catch (error) {
       console.error('Failed to fetch sales report:', error);
-      toast.error('Failed to load sales report');
+      toast.error(getErrorMessage(error, 'Failed to load sales report'));
+      setSalesData(null);
     } finally {
       setLoading(false);
     }
@@ -69,6 +79,7 @@ const SalesReport = () => {
         params = dateRange;
       }
       
+      console.log('[SALES_REPORT] Downloading report with params:', params);
       const blob = await downloadSalesReport(params, format);
       
       // Create download link
@@ -84,17 +95,34 @@ const SalesReport = () => {
       toast.success(`Sales report downloaded as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Failed to download report:', error);
-      toast.error('Failed to download report');
+      toast.error(getErrorMessage(error, 'Failed to download report'));
     } finally {
       setLoading(false);
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN'
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0
+      }).format(amount || 0);
+    } catch (error) {
+      return `₦${(amount || 0).toLocaleString()}`;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return {
+        date: date.toLocaleDateString('en-NG'),
+        time: date.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })
+      };
+    } catch (error) {
+      return { date: 'Invalid date', time: '' };
+    }
   };
 
   const getPaymentMethodBadge = (method) => {
@@ -175,7 +203,7 @@ const SalesReport = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  max={format(new Date(), 'yyyy-MM-dd')}
+                  max={new Date().toISOString().split('T')[0]}
                 />
               </div>
             ) : (
@@ -186,7 +214,7 @@ const SalesReport = () => {
                     type="date"
                     value={dateRange.start_date}
                     onChange={(e) => setDateRange({...dateRange, start_date: e.target.value})}
-                    max={format(new Date(), 'yyyy-MM-dd')}
+                    max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div className="space-y-2">
@@ -195,7 +223,7 @@ const SalesReport = () => {
                     type="date"
                     value={dateRange.end_date}
                     onChange={(e) => setDateRange({...dateRange, end_date: e.target.value})}
-                    max={format(new Date(), 'yyyy-MM-dd')}
+                    max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
               </>
@@ -316,10 +344,10 @@ const SalesReport = () => {
                           <TableCell>
                             <div>
                               <p className="font-medium">
-                                {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
+                                {formatDate(transaction.created_at).date}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {format(new Date(transaction.created_at), 'HH:mm')}
+                                {formatDate(transaction.created_at).time}
                               </p>
                             </div>
                           </TableCell>

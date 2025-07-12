@@ -502,9 +502,51 @@ export async function getFinancials() {
 // Sales Report
 export async function getSalesReport(params) {
   try {
-  const response = await api.get('/reports/sales', { params });
+    console.log("[DEBUG] getSalesReport called with params:", params);
+    
+    // Determine which backend endpoint to use based on params
+    let endpoint = '/sales/daily-report';
+    let apiParams = {};
+    
+    if (params.date) {
+      // Single date - use daily report
+      endpoint = '/sales/daily-report';
+      apiParams = { date: params.date };
+    } else if (params.start_date && params.end_date) {
+      // Date range - use analytics
+      endpoint = '/sales/analytics';
+      const startDate = new Date(params.start_date);
+      const endDate = new Date(params.end_date);
+      const diffTime = Math.abs(endDate - startDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      apiParams = { period: diffDays };
+    } else {
+      // Default to daily report for today
+      endpoint = '/sales/daily-report';
+      apiParams = { date: new Date().toISOString().split('T')[0] };
+    }
+    
+    console.log("[DEBUG] getSalesReport using endpoint:", endpoint, "with params:", apiParams);
+    const response = await api.get(endpoint, { params: apiParams });
     console.log("[DEBUG] getSalesReport response:", response.data);
-    return response.data.data || response.data;
+    
+    // Transform the response to match expected format
+    const data = response.data.data || response.data;
+    
+    // Transform to expected format for SalesReport component
+    const transformed = {
+      summary: {
+        total_sales: data.summary?.total_amount || 0,
+        total_transactions: data.summary?.total_sales || 0,
+        total_quantity: data.summary?.total_quantity || 0,
+        average_sale: data.summary?.average_sale || data.summary?.average_order_value || 0
+      },
+      payment_breakdown: data.payment_methods || {},
+      transactions: data.sales || []
+    };
+    
+    console.log("[DEBUG] getSalesReport transformed data:", transformed);
+    return transformed;
   } catch (error) {
     console.error("[ERROR] getSalesReport failed:", error.response ? error.response.data : error.message);
     throw error;
@@ -512,8 +554,42 @@ export async function getSalesReport(params) {
 }
 
 export async function downloadSalesReport(params, format) {
-  const response = await api.get(`/reports/sales/download/${format}`, { params, responseType: 'blob' });
-  return response.data;
+  try {
+    console.log("[DEBUG] downloadSalesReport called with params:", params, "format:", format);
+    
+    // For now, we'll generate a simple report since the backend doesn't have download endpoints
+    // In a real app, you'd implement PDF/CSV generation on the backend
+    const reportData = await getSalesReport(params);
+    
+    // Create a simple CSV or return data for frontend processing
+    if (format === 'csv') {
+      let csvContent = "Date,Customer,Products,Quantity,Payment Method,Amount\n";
+      
+      if (reportData.transactions && reportData.transactions.length > 0) {
+        reportData.transactions.forEach(transaction => {
+          const date = new Date(transaction.created_at || transaction.date).toLocaleDateString();
+          const customer = transaction.customer_name || 'Walk-in Customer';
+          const products = transaction.sale_items?.map(item => `${item.product_name}(${item.quantity})`).join('; ') || 'N/A';
+          const quantity = transaction.sale_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+          const paymentMethod = transaction.payment_method || 'N/A';
+          const amount = transaction.total_amount || transaction.net_amount || 0;
+          
+          csvContent += `"${date}","${customer}","${products}","${quantity}","${paymentMethod}","${amount}"\n`;
+        });
+      }
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      return blob;
+    } else {
+      // For other formats, return a simple text representation
+      const textContent = `Sales Report\n\nTotal Sales: ${reportData.summary.total_sales}\nTotal Transactions: ${reportData.summary.total_transactions}\nTotal Quantity: ${reportData.summary.total_quantity}\nAverage Sale: ${reportData.summary.average_sale}\n`;
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+      return blob;
+    }
+  } catch (error) {
+    console.error("[ERROR] downloadSalesReport failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 }
 
 // Expense Categories
