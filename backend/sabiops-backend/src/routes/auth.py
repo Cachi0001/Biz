@@ -68,22 +68,22 @@ def register():
         token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
         # Store token in email_verification_tokens
-        if supabase:
-            supabase.table("email_verification_tokens").insert({
+            if supabase:
+                supabase.table("email_verification_tokens").insert({
                 "user_id": None,  # Will be set after confirmation
-                "token": token,
+                    "token": token,
                 "expires_at": expires_at,
                 "used": False
-            }).execute()
-        else:
-            mock_db.setdefault("email_verification_tokens", []).append({
+                }).execute()
+            else:
+                mock_db.setdefault("email_verification_tokens", []).append({
                 "user_id": None,
-                "token": token,
+                    "token": token,
                 "expires_at": expires_at,
                 "used": False
             })
         # Send verification email
-        confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
+        confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
         subject = "SabiOps Email Confirmation"
         body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
         html_body = f"""
@@ -373,7 +373,7 @@ def forgot_password():
         # Build reset URL
         reset_url = f"https://sabiops.vercel.app/reset-password?token={token}"
         # Send email
-        from src.services.email_service import email_service
+            from src.services.email_service import email_service
         subject = "Reset your SabiOps password"
         html_body = f"""
 <!doctype html>
@@ -393,10 +393,10 @@ def forgot_password():
         text_body = f"You requested a password reset. Use this link to reset your password: {reset_url}\nIf you did not request this, please ignore."
         result = email_service.send_email(
             to_email=user["email"],
-            subject=subject,
+                subject=subject,
             html_content=html_body,
             text_content=text_body
-        )
+            )
         if not result:
             import logging
             logging.error(f"[ERROR] Failed to send password reset email to {user['email']}")
