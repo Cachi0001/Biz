@@ -50,30 +50,28 @@ def register():
             return error_response("Missing required fields", status_code=400)
         
         if supabase:
-            # Use RPC function for atomic user registration - NO FALLBACK
+            # Use RPC function for atomic user registration
+            from werkzeug.security import generate_password_hash
             password_hash = generate_password_hash(password)
             
-            print(f"[DEBUG] Calling RPC function with email: {email}")
-            
             try:
+                # For regular registration, use default Owner role
+                # Your team creation logic can call this function with different roles
                 result = supabase.rpc('register_user_with_token', {
                     'p_email': email,
                     'p_phone': phone,
                     'p_password_hash': password_hash,
                     'p_full_name': full_name,
                     'p_business_name': business_name or '',
-                    'p_role': 'Owner',
+                    'p_role': 'Owner',  # Default for self-registration
                     'p_subscription_plan': 'weekly',
                     'p_subscription_status': 'trial'
                 }).execute()
                 
-                print(f"[DEBUG] RPC result: {result}")
-                
                 if not result.data:
-                    return error_response("RPC function returned no data. Please ensure the register_user_with_token function is deployed in your Supabase database.", status_code=500)
+                    return error_response("RPC function failed", status_code=500)
                 
                 rpc_result = result.data
-                print(f"[DEBUG] RPC result data: {rpc_result}")
                 
                 if not rpc_result.get('success'):
                     error_msg = rpc_result.get('error', 'Unknown error')
@@ -91,8 +89,6 @@ def register():
                 
                 if not token:
                     return error_response("Failed to generate verification token", status_code=500)
-                
-                print(f"[DEBUG] Generated token: {token[:10]}... for user: {user_id}")
                 
                 # Send verification email
                 confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
@@ -122,10 +118,10 @@ def register():
                     return success_response(message="Registration successful. Please check your email to confirm your account.")
                     
             except Exception as e:
-                print(f"[ERROR] RPC function call failed: {str(e)}")
                 return error_response(f"Registration failed: {str(e)}", status_code=500)
         else:
-            # Mock DB logic for local testing only
+            # Mock DB logic (unchanged for local testing)
+            # Check if user already exists
             existing_user = None
             for u in mock_db["users"]:
                 if u["email"] == email:
@@ -136,9 +132,11 @@ def register():
                     if u["phone"] == phone:
                         return error_response("Phone already exists", status_code=400)
             
+            # If user exists and email is confirmed, return error
             if existing_user and existing_user.get("email_confirmed", False):
                 return error_response("Email already exists", status_code=400)
             
+            # If user exists but email is not confirmed, resend verification email
             if existing_user and not existing_user.get("email_confirmed", False):
                 user_id = existing_user["id"]
                 
@@ -148,9 +146,11 @@ def register():
                 token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
                 
+                # Mark old tokens as used
                 for t in mock_db.get("email_verification_tokens", []):
                     if t["user_id"] == user_id:
                         t["used"] = True
+                # Insert new token
                 mock_db.setdefault("email_verification_tokens", []).append({
                     "user_id": user_id,
                     "token": token,
@@ -158,6 +158,7 @@ def register():
                     "used": False
                 })
                 
+                # Send verification email
                 confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
                 subject = "SabiOps Email Confirmation"
                 body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -181,6 +182,8 @@ def register():
                 
                 return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
             
+            # Create new user if doesn't exist
+            from werkzeug.security import generate_password_hash
             user_data = {
                 "email": email,
                 "phone": phone,
@@ -198,12 +201,14 @@ def register():
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
             
+            # Generate verification token
             import secrets
             import string
             from datetime import datetime, timedelta, timezone
             token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
             
+            # Store token in email_verification_tokens
             mock_db.setdefault("email_verification_tokens", []).append({
                 "user_id": user_id,
                 "token": token,
@@ -211,6 +216,7 @@ def register():
                 "used": False
             })
             
+            # Send verification email
             confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -235,7 +241,6 @@ def register():
             return success_response(message="Registration successful. Please check your email to confirm your account.")
             
     except Exception as e:
-        print(f"[ERROR] Registration exception: {str(e)}")
         return error_response(str(e), status_code=500)
 
 
