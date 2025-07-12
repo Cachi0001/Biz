@@ -78,6 +78,16 @@ export async function register(userData) {
   }
 }
 
+export async function resendVerificationEmail(email) {
+  try {
+    const response = await api.post("/auth/resend-verification-email", { email });
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] Resend verification email failed:", error);
+    throw error;
+  }
+}
+
 export async function registerConfirmed(userData) {
   try {
     const response = await api.post("/auth/register/confirmed", userData);

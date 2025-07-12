@@ -1,4 +1,4 @@
-import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken, verifyResetCode } from './api';
+import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken, verifyResetCode, resendVerificationEmail } from './api';
 
 export const authService = {
   // User login
@@ -44,6 +44,16 @@ export const authService = {
       return response;
     } catch (error) {
       throw error.response?.data || { error: "Registration confirmation failed" };
+    }
+  },
+
+  // Resend verification email
+  async resendVerificationEmail(email) {
+    try {
+      const response = await resendVerificationEmail(email);
+      return response;
+    } catch (error) {
+      throw error.response?.data || { error: "Failed to resend verification email" };
     }
   },
 

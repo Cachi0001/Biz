@@ -47,20 +47,90 @@ def register():
         # Validate required fields
         if not email or not phone or not password or not full_name:
             return error_response("Missing required fields", status_code=400)
+        
         # Check if user already exists
+        existing_user = None
         if supabase:
-            user_result = supabase.table("users").select("id").eq("email", email).execute()
+            user_result = supabase.table("users").select("*").eq("email", email).execute()
             if user_result.data:
-                return error_response("Email already exists", status_code=400)
+                existing_user = user_result.data[0]
             phone_result = supabase.table("users").select("id").eq("phone", phone).execute()
-            if phone_result.data:
+            if phone_result.data and not existing_user:
                 return error_response("Phone already exists", status_code=400)
         else:
             for u in mock_db["users"]:
                 if u["email"] == email:
-                    return error_response("Email already exists", status_code=400)
-                if u["phone"] == phone:
-                    return error_response("Phone already exists", status_code=400)
+                    existing_user = u
+                    break
+            if not existing_user:
+                for u in mock_db["users"]:
+                    if u["phone"] == phone:
+                        return error_response("Phone already exists", status_code=400)
+        
+        # If user exists and email is confirmed, return error
+        if existing_user and existing_user.get("email_confirmed", False):
+            return error_response("Email already exists", status_code=400)
+        
+        # If user exists but email is not confirmed, resend verification email
+        if existing_user and not existing_user.get("email_confirmed", False):
+            user_id = existing_user["id"]
+            
+            # Generate new verification token
+            import secrets
+            import string
+            from datetime import datetime, timedelta, timezone
+            token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            
+            # Store token in email_verification_tokens
+            if supabase:
+                # Mark old tokens as used
+                supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
+                # Insert new token
+                supabase.table("email_verification_tokens").insert({
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                }).execute()
+            else:
+                # Mark old tokens as used
+                for t in mock_db.get("email_verification_tokens", []):
+                    if t["user_id"] == user_id:
+                        t["used"] = True
+                # Insert new token
+                mock_db.setdefault("email_verification_tokens", []).append({
+                    "user_id": user_id,
+                    "token": token,
+                    "expires_at": expires_at,
+                    "used": False
+                })
+            
+            # Send verification email
+            confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+            subject = "SabiOps Email Confirmation"
+            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+            html_body = f"""
+<html>
+  <body style=\"font-family: Arial, sans-serif; color: #222;\">
+    <h2>Welcome to SabiOps!</h2>
+    <p>Please confirm your email by clicking the button below:</p>
+    <a href=\"{confirm_link}\" style=\"display:inline-block;padding:12px 24px;background-color:#22c55e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;\">Confirm Email</a>
+    <p style=\"margin-top:24px;font-size:13px;color:#888;\">If you did not register, please ignore this email.</p>
+  </body>
+</html>
+"""
+            from src.services.email_service import email_service
+            email_service.send_email(
+                to_email=email,
+                subject=subject,
+                text_content=body,
+                html_content=html_body
+            )
+            
+            return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
+        
+        # Create new user if doesn't exist
         # Create user with email_confirmed=False
         from werkzeug.security import generate_password_hash
         user_data = {
@@ -126,6 +196,96 @@ def register():
             html_content=html_body
         )
         return success_response(message="Registration successful. Please check your email to confirm your account.")
+    except Exception as e:
+        return error_response(str(e), status_code=500)
+
+@auth_bp.route("/resend-verification-email", methods=["POST"])
+def resend_verification_email():
+    """Resend verification email for unconfirmed users."""
+    try:
+        supabase = g.supabase
+        mock_db = g.mock_db
+        data = request.get_json()
+        email = data.get("email")
+        
+        if not email:
+            return error_response("Email is required", status_code=400)
+        
+        # Find user
+        user = None
+        if supabase:
+            user_result = supabase.table("users").select("*").eq("email", email).execute()
+            if user_result.data:
+                user = user_result.data[0]
+        else:
+            for u in mock_db["users"]:
+                if u["email"] == email:
+                    user = u
+                    break
+        
+        if not user:
+            return error_response("User not found", status_code=404)
+        
+        if user.get("email_confirmed", False):
+            return error_response("Email already confirmed", status_code=400)
+        
+        user_id = user["id"]
+        
+        # Generate new verification token
+        import secrets
+        import string
+        from datetime import datetime, timedelta, timezone
+        token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        
+        # Store token in email_verification_tokens
+        if supabase:
+            # Mark old tokens as used
+            supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
+            # Insert new token
+            supabase.table("email_verification_tokens").insert({
+                "user_id": user_id,
+                "token": token,
+                "expires_at": expires_at,
+                "used": False
+            }).execute()
+        else:
+            # Mark old tokens as used
+            for t in mock_db.get("email_verification_tokens", []):
+                if t["user_id"] == user_id:
+                    t["used"] = True
+            # Insert new token
+            mock_db.setdefault("email_verification_tokens", []).append({
+                "user_id": user_id,
+                "token": token,
+                "expires_at": expires_at,
+                "used": False
+            })
+        
+        # Send verification email
+        confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+        subject = "SabiOps Email Confirmation"
+        body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+        html_body = f"""
+<html>
+  <body style=\"font-family: Arial, sans-serif; color: #222;\">
+    <h2>Welcome to SabiOps!</h2>
+    <p>Please confirm your email by clicking the button below:</p>
+    <a href=\"{confirm_link}\" style=\"display:inline-block;padding:12px 24px;background-color:#22c55e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;\">Confirm Email</a>
+    <p style=\"margin-top:24px;font-size:13px;color:#888;\">If you did not register, please ignore this email.</p>
+  </body>
+</html>
+"""
+        from src.services.email_service import email_service
+        email_service.send_email(
+            to_email=email,
+            subject=subject,
+            text_content=body,
+            html_content=html_body
+        )
+        
+        return success_response(message="Verification email has been resent. Please check your email to confirm your account.")
+        
     except Exception as e:
         return error_response(str(e), status_code=500)
 
