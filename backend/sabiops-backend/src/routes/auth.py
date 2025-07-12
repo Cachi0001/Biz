@@ -418,10 +418,10 @@ def forgot_password():
 </html>
 """
         text_body = f"You requested a password reset. Use this link to reset your password: {reset_url}\nIf you did not request this, please ignore."
-            from src.services.email_service import email_service
+        from src.services.email_service import email_service
         result = email_service.send_email(
             to_email=user["email"],
-                subject=subject,
+            subject=subject,
             html_content=html_body,
             text_content=text_body
         )
