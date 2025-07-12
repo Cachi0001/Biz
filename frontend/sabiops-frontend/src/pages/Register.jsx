@@ -64,6 +64,7 @@ const Register = () => {
       const { confirmPassword, ...registrationData } = formData;
       const response = await apiRegister(registrationData);
       if (response.success) {
+        localStorage.setItem('pending_registration', JSON.stringify(registrationData));
         setShowCheckEmail(true);
       } else {
         toast.error(response.message || 'Registration failed. Please check your information and try again.');

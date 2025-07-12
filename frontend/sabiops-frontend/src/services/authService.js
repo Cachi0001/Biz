@@ -33,6 +33,20 @@ export const authService = {
     }
   },
 
+  // Confirm registration (email verification)
+  async registerConfirmed(userData) {
+    try {
+      const response = await require('./api').registerConfirmed(userData);
+      if (response.data && response.data.access_token) {
+        localStorage.setItem("token", response.data.access_token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+      return response;
+    } catch (error) {
+      throw error.response?.data || { error: "Registration confirmation failed" };
+    }
+  },
+
   // Request password reset code
   async requestPasswordReset(email) {
     try {
