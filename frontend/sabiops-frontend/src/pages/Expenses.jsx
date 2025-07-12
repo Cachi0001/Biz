@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Receipt, Upload, Download, Eye, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Receipt, Eye, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import FileUpload from '../components/FileUpload';
-import { getExpenses, createExpense, updateExpense, deleteExpense, getCategories as getExpenseCategories, post } from "../services/api";
+import { getExpenses, createExpense, updateExpense, deleteExpense, getCategories as getExpenseCategories, getErrorMessage } from "../services/api";
+import { toast } from 'react-hot-toast';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -19,7 +19,6 @@ const Expenses = () => {
   const [error, setError] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -35,11 +34,6 @@ const Expenses = () => {
     'cash', 'bank_transfer', 'card', 'mobile_money', 'check', 'other'
   ];
 
-  const taxCategories = [
-    'office_supplies', 'travel', 'utilities', 'marketing', 'equipment',
-    'professional_services', 'rent', 'insurance', 'meals', 'other'
-  ];
-
   useEffect(() => {
     fetchExpenses();
     fetchCategories();
@@ -49,15 +43,22 @@ const Expenses = () => {
     try {
       setLoading(true);
       const response = await getExpenses();
-      if (response.data && response.data.expenses) {
-        setExpenses(response.data.expenses);
-      } else if (Array.isArray(response)) {
+      console.log('[EXPENSES] Expenses response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
         setExpenses(response);
+      } else if (response && response.expenses && Array.isArray(response.expenses)) {
+        setExpenses(response.expenses);
+      } else if (response && response.data && response.data.expenses && Array.isArray(response.data.expenses)) {
+        setExpenses(response.data.expenses);
       } else {
+        console.warn('[EXPENSES] Unexpected response structure:', response);
         setExpenses([]);
       }
     } catch (err) {
-      setError('Failed to fetch expenses');
+      const errorMessage = getErrorMessage(err, 'Failed to fetch expenses');
+      setError(errorMessage);
       console.error('Error fetching expenses:', err);
       setExpenses([]);
     } finally {
@@ -68,16 +69,30 @@ const Expenses = () => {
   const fetchCategories = async () => {
     try {
       const response = await getExpenseCategories();
-      if (response.data && response.data.categories) {
-        setCategories(response.data.categories);
-      } else if (Array.isArray(response)) {
+      console.log('[EXPENSES] Categories response:', response);
+      
+      // Handle different response formats
+      if (response && Array.isArray(response)) {
         setCategories(response);
+      } else if (response && response.categories && Array.isArray(response.categories)) {
+        setCategories(response.categories);
+      } else if (response && response.data && response.data.categories && Array.isArray(response.data.categories)) {
+        setCategories(response.data.categories);
       } else {
-        setCategories([]);
+        console.warn('[EXPENSES] Using fallback categories');
+        setCategories([
+          {"name": "Rent", "description": "Monthly rent for office or business space"},
+          {"name": "Utilities", "description": "Electricity, water, internet bills"},
+          {"name": "Salaries", "description": "Employee salaries and wages"},
+          {"name": "Marketing", "description": "Advertising and promotional expenses"},
+          {"name": "Supplies", "description": "Office or operational supplies"},
+          {"name": "Travel", "description": "Business travel expenses"},
+          {"name": "Maintenance", "description": "Repairs and maintenance"},
+          {"name": "Other", "description": "Miscellaneous expenses"}
+        ]);
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
-      // Fallback to default categories
       setCategories([
         {"name": "Rent", "description": "Monthly rent for office or business space"},
         {"name": "Utilities", "description": "Electricity, water, internet bills"},
@@ -93,25 +108,51 @@ const Expenses = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.category.trim()) {
+      toast.error('Category is required');
+      return;
+    }
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast.error('Valid amount is required');
+      return;
+    }
+    if (!formData.date) {
+      toast.error('Date is required');
+      return;
+    }
+
     try {
       setLoading(true);
       
       const expenseData = {
-        ...formData,
-        amount: parseFloat(formData.amount) || 0
+        category: formData.category,
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        receipt_url: formData.receipt_url || '',
+        payment_method: formData.payment_method || 'cash',
+        date: formData.date
       };
 
+      console.log('[EXPENSES] Submitting expense data:', expenseData);
+
       if (editingExpense) {
-        await updateExpense(editingExpense.id, expenseData);
+        const response = await updateExpense(editingExpense.id, expenseData);
+        console.log('[EXPENSES] Update response:', response);
+        toast.success('Expense updated successfully!');
       } else {
-        await createExpense(expenseData);
+        const response = await createExpense(expenseData);
+        console.log('[EXPENSES] Create response:', response);
+        toast.success('Expense created successfully!');
       }
 
       await fetchExpenses();
       resetForm();
       setIsDialogOpen(false);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save expense');
+      const errorMessage = getErrorMessage(err, 'Failed to save expense');
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -121,48 +162,28 @@ const Expenses = () => {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
     
     try {
-      await deleteExpense(expenseId);
+      setLoading(true);
+      const response = await deleteExpense(expenseId);
+      console.log('[EXPENSES] Delete response:', response);
+      toast.success('Expense deleted successfully!');
       await fetchExpenses();
     } catch (err) {
-      setError('Failed to delete expense');
-    }
-  };
-
-  const handleReceiptUpload = async (expenseId, file) => {
-    if (!file) return;
-
-    try {
-      setUploadingReceipt(true);
-      const formData = new FormData();
-      formData.append('receipt', file);
-
-      await post(`/expenses/upload-receipt/${expenseId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      await fetchExpenses();
-    } catch (err) {
-      setError('Failed to upload receipt');
-      console.error('Error uploading receipt:', err);
+      const errorMessage = getErrorMessage(err, 'Failed to delete expense');
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setUploadingReceipt(false);
+      setLoading(false);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      title: '',
+      category: '',
       description: '',
       amount: '',
-      category: '',
-      payment_method: '',
-      vendor_name: '',
-      vendor_contact: '',
-      expense_date: new Date().toISOString().split('T')[0],
-      is_tax_deductible: false,
-      tax_category: ''
+      receipt_url: '',
+      payment_method: 'cash',
+      date: new Date().toISOString().split('T')[0]
     });
     setEditingExpense(null);
   };
@@ -170,16 +191,12 @@ const Expenses = () => {
   const openEditDialog = (expense) => {
     setEditingExpense(expense);
     setFormData({
-      title: expense.title || '',
+      category: expense.category || '',
       description: expense.description || '',
       amount: expense.amount?.toString() || '',
-      category: expense.category || '',
-      payment_method: expense.payment_method || '',
-      vendor_name: expense.vendor_name || '',
-      vendor_contact: expense.vendor_contact || '',
-      expense_date: expense.expense_date ? expense.expense_date.split('T')[0] : new Date().toISOString().split('T')[0],
-      is_tax_deductible: expense.is_tax_deductible || false,
-      tax_category: expense.tax_category || ''
+      receipt_url: expense.receipt_url || '',
+      payment_method: expense.payment_method || 'cash',
+      date: expense.date ? expense.date.split('T')[0] : new Date().toISOString().split('T')[0]
     });
     setIsDialogOpen(true);
   };
@@ -205,7 +222,7 @@ const Expenses = () => {
     
     return expenses
       .filter(expense => {
-        const expenseDate = new Date(expense.expense_date);
+        const expenseDate = new Date(expense.date);
         return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
       })
       .reduce((total, expense) => total + (expense.amount || 0), 0);
@@ -245,40 +262,7 @@ const Expenses = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="title">Expense Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="amount">Amount (₦) *</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Category *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -292,6 +276,32 @@ const Expenses = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="amount">Amount (₦) *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Enter expense description"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="payment_method">Payment Method</Label>
                   <Select value={formData.payment_method} onValueChange={(value) => setFormData({...formData, payment_method: value})}>
@@ -307,63 +317,26 @@ const Expenses = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="vendor_name">Vendor Name</Label>
+                  <Label htmlFor="date">Expense Date *</Label>
                   <Input
-                    id="vendor_name"
-                    value={formData.vendor_name}
-                    onChange={(e) => setFormData({...formData, vendor_name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vendor_contact">Vendor Contact</Label>
-                  <Input
-                    id="vendor_contact"
-                    value={formData.vendor_contact}
-                    onChange={(e) => setFormData({...formData, vendor_contact: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expense_date">Expense Date</Label>
-                  <Input
-                    id="expense_date"
+                    id="date"
                     type="date"
-                    value={formData.expense_date}
-                    onChange={(e) => setFormData({...formData, expense_date: e.target.value})}
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    required
                   />
-                </div>
-                <div>
-                  <Label htmlFor="tax_category">Tax Category</Label>
-                  <Select value={formData.tax_category} onValueChange={(value) => setFormData({...formData, tax_category: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tax category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {taxCategories.map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_tax_deductible"
-                  checked={formData.is_tax_deductible}
-                  onChange={(e) => setFormData({...formData, is_tax_deductible: e.target.checked})}
-                  className="rounded"
+              <div>
+                <Label htmlFor="receipt_url">Receipt URL</Label>
+                <Input
+                  id="receipt_url"
+                  value={formData.receipt_url}
+                  onChange={(e) => setFormData({...formData, receipt_url: e.target.value})}
+                  placeholder="Enter receipt URL (optional)"
                 />
-                <Label htmlFor="is_tax_deductible">Tax deductible expense</Label>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
@@ -421,16 +394,13 @@ const Expenses = () => {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold">{expense.title}</h3>
-                    {expense.is_tax_deductible && (
-                      <Badge variant="secondary">Tax Deductible</Badge>
-                    )}
+                    <h3 className="text-lg font-semibold">{expense.category}</h3>
                     {expense.category && (
                       <Badge variant="outline">{expense.category}</Badge>
                     )}
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600">
                     <div>
                       <span className="font-medium">Amount:</span>
                       <div className="text-lg font-bold text-gray-900">
@@ -439,15 +409,11 @@ const Expenses = () => {
                     </div>
                     <div>
                       <span className="font-medium">Date:</span>
-                      <div>{formatDate(expense.expense_date)}</div>
+                      <div>{formatDate(expense.date)}</div>
                     </div>
                     <div>
                       <span className="font-medium">Payment:</span>
                       <div>{expense.payment_method?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
-                    </div>
-                    <div>
-                      <span className="font-medium">Vendor:</span>
-                      <div>{expense.vendor_name || 'N/A'}</div>
                     </div>
                   </div>
 
@@ -456,8 +422,8 @@ const Expenses = () => {
                   )}
 
                   {/* Receipt Section */}
-                  <div className="mt-4">
-                    {expense.receipt_url ? (
+                  {expense.receipt_url && (
+                    <div className="mt-4">
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
@@ -468,22 +434,11 @@ const Expenses = () => {
                           View Receipt
                         </Button>
                         <span className="text-sm text-gray-500">
-                          {expense.receipt_filename}
+                          Receipt attached
                         </span>
                       </div>
-                    ) : (
-                      <div className="w-full max-w-xs">
-                        <FileUpload
-                          onFileSelect={(file) => handleReceiptUpload(expense.id, file)}
-                          accept="image/*,.pdf"
-                          maxSize={16}
-                          allowedTypes={['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']}
-                          placeholder="Upload Receipt"
-                          disabled={uploadingReceipt}
-                        />
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex space-x-2 ml-4">
@@ -527,7 +482,7 @@ const Expenses = () => {
           <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
-                Receipt - {viewingReceipt.title}
+                Receipt - {viewingReceipt.category}
                 <Button
                   variant="ghost"
                   size="sm"
