@@ -473,7 +473,7 @@ def login():
         if data is None:
             return error_response(
                 error="No JSON data",
-                message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
+                message="Request body must contain JSON data. Check Content-Type header is 'application/json'",
                 status_code=400
             )
 
@@ -570,7 +570,7 @@ def login():
 
     except Exception as e:
         print(f"[ERROR] Login failed: {e}") # Added for debugging
-        # Ensure the error message is a string and not an object like \'SUPABASE\'
+        # Ensure the error message is a string and not an object like 'SUPABASE'
         error_message = str(e)
         if "object has no attribute" in error_message and "supabase" in error_message.lower():
             error_message = "Supabase client not initialized. Running in mock mode."
@@ -625,7 +625,7 @@ def ensure_user_in_supabase_auth(email, password=None):
         raise Exception(f"Failed to create/invite user in Supabase Auth: {invite_resp.text}")
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.json.get(\'email\') or request.form.get(\'email\') or request.args.get(\'email\', \'\'))
+@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') if request.json else request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
     """Request a password reset link via email (JWT-based, Owner only)."""
     import jwt
@@ -703,7 +703,7 @@ def forgot_password():
         )
         if not result:
             import logging
-            logging.error(f"[ERROR] Failed to send password reset email to {user[\'email\']}")
+            logging.error(f"[ERROR] Failed to send password reset email to {user['email']}")
             return error_response("Failed to send password reset email. Please contact support if this persists.", status_code=500)
         return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
@@ -822,7 +822,7 @@ def reset_password():
 @auth_bp.route("/update-password", methods=["POST"])
 @jwt_required()
 def update_password():
-    """Authenticated Owner can update their own or a team member\'s password."""
+    """Authenticated Owner can update their own or a team member's password."""
     try:
         supabase = g.supabase
         mock_db = g.mock_db
@@ -926,7 +926,7 @@ def get_profile():
 def verify_token():
     """
     Verify JWT token and return user information.
-    This endpoint is called by the frontend to check if the user\'s token is still valid.
+    This endpoint is called by the frontend to check if the user's token is still valid.
     """
     try:
         print(f"[DEBUG] verify_token: Request headers: {request.headers}")
@@ -980,7 +980,7 @@ def verify_token():
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
                     "owner_id": user.get("owner_id"),
-                    "active": user.get("active", True) # Ensure \'active\' is always returned
+                    "active": user.get("active", True) # Ensure 'active' is always returned
                 }
             }
         )
