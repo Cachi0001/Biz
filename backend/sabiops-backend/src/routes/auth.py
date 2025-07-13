@@ -74,6 +74,7 @@ def register():
                     supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
 
                     # Insert new token
+                    print(f"[DEBUG] Re-registration: Creating new token for user_id: {user_id}")
                     token_result = supabase.table("email_verification_tokens").insert({
                         "user_id": user_id,
                         "token": token,
@@ -82,10 +83,14 @@ def register():
                     }).execute()
 
                     if not token_result.data:
+                        print(f"[ERROR] Re-registration: Failed to create verification token for user_id: {user_id}")
                         return error_response("Failed to generate verification token", status_code=500)
+
+                    print(f"[DEBUG] Re-registration: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
                     # Send verification email
                     confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+                    print(f"[DEBUG] Re-registration: Sending verification email to {email} with token: {token[:10]}...")
                     subject = "SabiOps Email Confirmation"
                     body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
                     html_body = f"""
@@ -99,12 +104,17 @@ def register():
 </html>
 """
                     from src.services.email_service import email_service
-                    email_service.send_email(
-                        to_email=email,
-                        subject=subject,
-                        text_content=body,
-                        html_content=html_body
-                    )
+                    try:
+                        email_service.send_email(
+                            to_email=email,
+                            subject=subject,
+                            text_content=body,
+                            html_content=html_body
+                        )
+                        print(f"[DEBUG] Re-registration: Email sent successfully to {email}")
+                    except Exception as e:
+                        print(f"[ERROR] Re-registration: Failed to send email: {e}")
+                        return error_response("Failed to send verification email", status_code=500)
 
                     return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
 
@@ -168,19 +178,20 @@ def register():
                 "used": False
             }
 
-            print(f"[DEBUG] Inserting token for user ID: {actual_user_id}")
+            print(f"[DEBUG] New user: Inserting token for user ID: {actual_user_id}")
             token_result = supabase.table("email_verification_tokens").insert(token_data).execute()
 
             if not token_result.data:
-                print(f"[ERROR] Failed to create verification token, rolling back user")
+                print(f"[ERROR] New user: Failed to create verification token, rolling back user")
                 # Rollback: delete the user
                 supabase.table("users").delete().eq("id", actual_user_id).execute()
                 return error_response("Failed to generate verification token", status_code=500)
 
-            print(f"[DEBUG] Token created successfully")
+            print(f"[DEBUG] New user: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
             # Send verification email
             confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+            print(f"[DEBUG] New user: Sending verification email to {email} with token: {token[:10]}...")
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
             html_body = f"""
@@ -194,12 +205,20 @@ def register():
 </html>
 """
             from src.services.email_service import email_service
-            email_service.send_email(
-                to_email=email,
-                subject=subject,
-                text_content=body,
-                html_content=html_body
-            )
+            try:
+                email_service.send_email(
+                    to_email=email,
+                    subject=subject,
+                    text_content=body,
+                    html_content=html_body
+                )
+                print(f"[DEBUG] New user: Email sent successfully to {email}")
+            except Exception as e:
+                print(f"[ERROR] New user: Failed to send email: {e}")
+                # Rollback: delete the user and token
+                supabase.table("users").delete().eq("id", actual_user_id).execute()
+                supabase.table("email_verification_tokens").delete().eq("user_id", actual_user_id).execute()
+                return error_response("Failed to send verification email", status_code=500)
 
             return success_response(message="Registration successful. Please check your email to confirm your account.")
 
@@ -404,63 +423,145 @@ def resend_verification_email():
 def register_confirmed():
     """Confirm email: verify token, mark user as confirmed, return JWT."""
     from datetime import datetime, timezone
+    print(f"[DEBUG] Email verification request received")
     data = request.get_json()
     token = data.get("token")
     email = data.get("email")
+    print(f"[DEBUG] Request data - token: {token[:10] if token else 'None'}..., email: {email}")
+    
     if not token or not email:
+        print(f"[DEBUG] Missing required fields - token: {bool(token)}, email: {bool(email)}")
         return error_response("Missing token or email", status_code=400)
+    
     supabase = g.supabase
     mock_db = g.mock_db
+    print(f"[DEBUG] Database mode - supabase: {bool(supabase)}, mock_db: {bool(mock_db)}")
+    
     # 1. Check token validity and get user_id
     if supabase:
-        token_result = supabase.table("email_verification_tokens").select("*", "user_id").eq("token", token).eq("used", False).execute()
-        if not token_result.data:
-            return error_response("Invalid or expired token", status_code=400)
-        token_row = token_result.data[0]
-        # Check expiry
-        if datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            return error_response("Invalid or expired token", status_code=400)
-        user_id = token_row["user_id"]
-        # Mark token as used
-        supabase.table("email_verification_tokens").update({"used": True}).eq("id", token_row["id"]).execute()
-        # Mark user as confirmed
-        user_result = supabase.table("users").select("*").eq("id", user_id).eq("email", email).execute()
-        if not user_result.data:
-            return error_response("User not found", status_code=404)
-        user = user_result.data[0]
-        supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
+        print(f"[DEBUG] Starting Supabase token lookup for token: {token[:10]}...")
+        try:
+            token_result = supabase.table("email_verification_tokens").select("*").eq("token", token).eq("used", False).execute()
+            print(f"[DEBUG] Supabase query executed successfully")
+            print(f"[DEBUG] Token lookup result: {len(token_result.data) if token_result.data else 0} tokens found")
+            
+            if token_result.data:
+                print(f"[DEBUG] Found tokens: {[{k: v for k, v in t.items() if k != 'token'} for t in token_result.data]}")
+            
+            if not token_result.data:
+                print(f"[DEBUG] No tokens found for token: {token[:10]}... and used=False")
+                all_tokens_result = supabase.table("email_verification_tokens").select("*").eq("token", token).execute()
+                print(f"[DEBUG] All tokens with this value (any used status): {len(all_tokens_result.data) if all_tokens_result.data else 0}")
+                if all_tokens_result.data:
+                    print(f"[DEBUG] All matching tokens: {[{k: v for k, v in t.items() if k != 'token'} for t in all_tokens_result.data]}")
+                return error_response("Invalid or expired token", status_code=400)
+            
+            token_row = token_result.data[0]
+            print(f"[DEBUG] Found token - ID: {token_row.get('id')}, user_id: {token_row.get('user_id')}, expires_at: {token_row.get('expires_at')}, used: {token_row.get('used')}")
+            
+            # Check expiry
+            expires_at = datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc)
+            current_time = datetime.now(timezone.utc)
+            print(f"[DEBUG] Time check - expires_at: {expires_at}, current_time: {current_time}, is_expired: {expires_at < current_time}")
+            
+            if expires_at < current_time:
+                print(f"[DEBUG] Token expired: {token_row['expires_at']}")
+                return error_response("Invalid or expired token", status_code=400)
+            
+            user_id = token_row["user_id"]
+            print(f"[DEBUG] Token valid for user_id: {user_id}")
+            
+            # Mark token as used
+            print(f"[DEBUG] Marking token as used - token ID: {token_row['id']}")
+            update_token_result = supabase.table("email_verification_tokens").update({"used": True}).eq("id", token_row["id"]).execute()
+            print(f"[DEBUG] Token update result: {len(update_token_result.data) if update_token_result.data else 0} rows updated")
+            
+            # Mark user as confirmed
+            print(f"[DEBUG] Looking up user - user_id: {user_id}, email: {email}")
+            user_result = supabase.table("users").select("*").eq("id", user_id).eq("email", email).execute()
+            print(f"[DEBUG] User lookup result: {len(user_result.data) if user_result.data else 0} users found")
+            
+            if not user_result.data:
+                print(f"[DEBUG] User not found for id: {user_id}, email: {email}")
+                user_by_id_result = supabase.table("users").select("*").eq("id", user_id).execute()
+                print(f"[DEBUG] User by ID only: {len(user_by_id_result.data) if user_by_id_result.data else 0} users found")
+                if user_by_id_result.data:
+                    print(f"[DEBUG] User found by ID has email: {user_by_id_result.data[0].get('email')}")
+                return error_response("User not found", status_code=404)
+            
+            user = user_result.data[0]
+            print(f"[DEBUG] Found user - ID: {user.get('id')}, email: {user.get('email')}, current email_confirmed: {user.get('email_confirmed', False)}")
+            
+            print(f"[DEBUG] Updating user email_confirmed to True for user_id: {user_id}")
+            update_user_result = supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
+            print(f"[DEBUG] User update result: {len(update_user_result.data) if update_user_result.data else 0} rows updated")
+            
+            print(f"[DEBUG] Refreshing user data to verify update")
+            user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+            if user_result.data:
+                user = user_result.data[0]
+                print(f"[DEBUG] Refreshed user - email_confirmed: {user.get('email_confirmed', False)}")
+            else:
+                print(f"[DEBUG] Failed to refresh user data")
+                
+        except Exception as e:
+            print(f"[ERROR] Supabase operation failed: {str(e)}")
+            return error_response("Database error during verification", status_code=500)
     else:
+        print(f"[DEBUG] Using mock database for token lookup")
         token_row = next((t for t in mock_db.get("email_verification_tokens", []) if t["token"] == token and not t["used"]), None)
+        print(f"[DEBUG] Mock DB token lookup result: {'Found' if token_row else 'Not found'}")
+        
         if not token_row:
+            print(f"[DEBUG] No unused tokens found in mock DB for token: {token[:10]}...")
             return error_response("Invalid or expired token", status_code=400)
+        
         # Check expiry
-        if datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        expires_at = datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc)
+        current_time = datetime.now(timezone.utc)
+        print(f"[DEBUG] Mock DB time check - expires_at: {expires_at}, current_time: {current_time}")
+        
+        if expires_at < current_time:
+            print(f"[DEBUG] Mock DB token expired: {token_row['expires_at']}")
             return error_response("Invalid or expired token", status_code=400)
+        
         user_id = token_row["user_id"]
+        print(f"[DEBUG] Mock DB token valid for user_id: {user_id}")
         token_row["used"] = True
+        
         user = next((u for u in mock_db["users"] if u["id"] == user_id and u["email"] == email), None)
         if not user:
+            print(f"[DEBUG] Mock DB user not found for id: {user_id}, email: {email}")
             return error_response("User not found", status_code=404)
+        
+        print(f"[DEBUG] Mock DB found user, updating email_confirmed")
         user["email_confirmed"] = True
+    
     # Generate JWT and return user info
+    print(f"[DEBUG] Generating JWT for user_id: {user['id']}")
     access_token = create_access_token(identity=user["id"])
+    print(f"[DEBUG] JWT generated successfully")
+    
+    response_data = {
+        "access_token": access_token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "phone": user["phone"],
+            "full_name": user["full_name"],
+            "business_name": user["business_name"],
+            "role": user["role"],
+            "subscription_plan": user["subscription_plan"],
+            "subscription_status": user["subscription_status"],
+            "trial_ends_at": user.get("trial_ends_at"),
+            "email_confirmed": user.get("email_confirmed", False)
+        }
+    }
+    
+    print(f"[DEBUG] Email verification completed successfully - email_confirmed: {user.get('email_confirmed', False)}")
     return success_response(
         message="Email confirmed and user logged in.",
-        data={
-            "access_token": access_token,
-            "user": {
-                "id": user["id"],
-                "email": user["email"],
-                "phone": user["phone"],
-                "full_name": user["full_name"],
-                "business_name": user["business_name"],
-                "role": user["role"],
-                "subscription_plan": user["subscription_plan"],
-                "subscription_status": user["subscription_status"],
-                "trial_ends_at": user.get("trial_ends_at"),
-                "email_confirmed": user.get("email_confirmed", True)
-            }
-        }
+        data=response_data
     )
 
 @auth_bp.route("/login", methods=["POST"])
