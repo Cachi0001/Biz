@@ -406,7 +406,7 @@ ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS sub_category TEXT;
 -- Create email verification tokens table
 CREATE TABLE IF NOT EXISTS public.email_verification_tokens (
   id bigint primary key generated always as identity,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
   token text not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS public.email_verification_tokens (
 -- Create password reset tokens table (if not exists)
 CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
   id bigint primary key generated always as identity,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
   reset_code text not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
