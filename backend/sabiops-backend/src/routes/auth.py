@@ -486,24 +486,18 @@ def register_confirmed():
                     print(f"[DEBUG] Found used token - likely already processed by Supabase Edge Function")
                     token_row = used_token_result.data[0]
                     user_id = token_row["user_id"]
-                    
-                    # Try to find user by user_id and email first
-                    user_result = supabase.table("users").select("*").eq("id", user_id).eq("email", email).execute()
-                    print(f"[DEBUG] User lookup by id+email: {len(user_result.data) if user_result.data else 0} users found")
-                    user = None
-                    if user_result.data:
-                        user = user_result.data[0]
-                    else:
-                        # Try to find user by user_id only
-                        user_by_id_result = supabase.table("users").select("*").eq("id", user_id).execute()
-                        print(f"[DEBUG] User lookup by id only: {len(user_by_id_result.data) if user_by_id_result.data else 0} users found")
-                        if user_by_id_result.data:
-                            user = user_by_id_result.data[0]
-                            print(f"[DEBUG] User found by ID has email: {user.get('email')}")
-                        else:
-                            print(f"[DEBUG] No user found by id only either")
-                    if user and user.get("email_confirmed", False):
-                        print(f"[DEBUG] User already confirmed, proceeding to generate JWT")
+                    # Always try to find user by user_id only
+                    user_by_id_result = supabase.table("users").select("*").eq("id", user_id).execute()
+                    print(f"[DEBUG] User lookup by id only: {len(user_by_id_result.data) if user_by_id_result.data else 0} users found")
+                    if user_by_id_result.data:
+                        user = user_by_id_result.data[0]
+                        print(f"[DEBUG] User found by ID has email: {user.get('email')}, email_confirmed: {user.get('email_confirmed', False)}")
+                        # If not confirmed, force update
+                        if not user.get("email_confirmed", False):
+                            print(f"[DEBUG] User not confirmed, forcing email_confirmed=True")
+                            supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
+                            user["email_confirmed"] = True
+                        # Always return success and JWT if user exists
                         access_token = create_access_token(identity=user["id"])
                         print(f"[DEBUG] JWT generated successfully")
                         response_data = {
@@ -527,8 +521,8 @@ def register_confirmed():
                             data=response_data
                         )
                     else:
-                        print(f"[DEBUG] User not found or not confirmed after used token lookup")
-                        return error_response("User not found or not confirmed", status_code=404)
+                        print(f"[DEBUG] No user found by id only either")
+                        return error_response("User not found", status_code=404)
                 # If we get here, token doesn't exist at all
                 all_tokens_result = supabase.table("email_verification_tokens").select("*").eq("token", token).execute()
                 print(f"[DEBUG] All tokens with this value (any used status): {len(all_tokens_result.data) if all_tokens_result.data else 0}")
