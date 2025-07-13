@@ -151,7 +151,11 @@ def register():
                 user_result = supabase.table("users").insert(user_data).execute()
                 print(f"[DEBUG] User insert result: {user_result}")
                 print(f"[DEBUG] User insert data: {user_result.data}")
-                print(f"[DEBUG] User insert error: {user_result.error}")
+                # Check if there's an error in the response
+                if hasattr(user_result, 'error') and user_result.error:
+                    print(f"[DEBUG] User insert error: {user_result.error}")
+                else:
+                    print(f"[DEBUG] User insert successful - no errors")
             except Exception as e:
                 print(f"[ERROR] User insert exception: {e}")
                 import traceback
@@ -172,7 +176,11 @@ def register():
                 verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
                 print(f"[DEBUG] User verification result: {verify_result}")
                 print(f"[DEBUG] User verification data: {verify_result.data}")
-                print(f"[DEBUG] User verification error: {verify_result.error}")
+                # Check if there's an error in the response
+                if hasattr(verify_result, 'error') and verify_result.error:
+                    print(f"[DEBUG] User verification error: {verify_result.error}")
+                else:
+                    print(f"[DEBUG] User verification successful - no errors")
             except Exception as e:
                 print(f"[ERROR] User verification exception: {e}")
                 import traceback
@@ -689,13 +697,21 @@ def login():
                     user_result = supabase.table("users").select("*").eq("email", login_field).execute()
                     print(f"[DEBUG] Email lookup result: {user_result}")
                     print(f"[DEBUG] Email lookup data: {user_result.data}")
-                    print(f"[DEBUG] Email lookup error: {user_result.error}")
+                    # Check if there's an error in the response
+                    if hasattr(user_result, 'error') and user_result.error:
+                        print(f"[DEBUG] Email lookup error: {user_result.error}")
+                    else:
+                        print(f"[DEBUG] Email lookup successful - no errors")
                 else:
                     print(f"[DEBUG] Looking up user by phone: {login_field}")
                     user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
                     print(f"[DEBUG] Phone lookup result: {user_result}")
                     print(f"[DEBUG] Phone lookup data: {user_result.data}")
-                    print(f"[DEBUG] Phone lookup error: {user_result.error}")
+                    # Check if there's an error in the response
+                    if hasattr(user_result, 'error') and user_result.error:
+                        print(f"[DEBUG] Phone lookup error: {user_result.error}")
+                    else:
+                        print(f"[DEBUG] Phone lookup successful - no errors")
 
                 if user_result.data and len(user_result.data) > 0:
                     user = user_result.data[0]
