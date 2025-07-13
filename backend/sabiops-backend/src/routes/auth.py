@@ -403,6 +403,7 @@ def resend_verification_email():
 @auth_bp.route("/register/confirmed", methods=["POST"])
 def register_confirmed():
     """Confirm email: verify token, mark user as confirmed, return JWT."""
+    from datetime import datetime, timezone
     data = request.get_json()
     token = data.get("token")
     email = data.get("email")
@@ -416,6 +417,9 @@ def register_confirmed():
         if not token_result.data:
             return error_response("Invalid or expired token", status_code=400)
         token_row = token_result.data[0]
+        # Check expiry
+        if datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return error_response("Invalid or expired token", status_code=400)
         user_id = token_row["user_id"]
         # Mark token as used
         supabase.table("email_verification_tokens").update({"used": True}).eq("id", token_row["id"]).execute()
@@ -428,6 +432,9 @@ def register_confirmed():
     else:
         token_row = next((t for t in mock_db.get("email_verification_tokens", []) if t["token"] == token and not t["used"]), None)
         if not token_row:
+            return error_response("Invalid or expired token", status_code=400)
+        # Check expiry
+        if datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             return error_response("Invalid or expired token", status_code=400)
         user_id = token_row["user_id"]
         token_row["used"] = True
