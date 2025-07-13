@@ -112,20 +112,20 @@ class TestAuthRoutes:
         
     def test_protected_route_without_token(self, client):
         """Test accessing protected route without authorization."""
-        response = client.get('/dashboard')
-        
+        response = client.get('/dashboard/overview')
+    
         # Should be unauthorized
         assert response.status_code in [401, 403]
         
     def test_referral_code_registration(self, client):
         """Test registration with referral code."""
-        response = client.post('/api/auth/register', json={
+        response = client.post('/auth/register', json={
             'full_name': 'John Doe',
             'email': 'john@example.com',
             'phone': '+2348012345678',
             'password': 'password123',
             'referral_code': 'SABI123456'
         })
-        
+    
         # Should handle referral code gracefully
         assert response.status_code in [200, 201, 400]
