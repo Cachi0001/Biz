@@ -58,19 +58,30 @@ def create_app():
     # Check for required environment variables
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+    
+    print(f"[DEBUG] Supabase URL: {supabase_url}")
+    print(f"[DEBUG] Supabase key available: {bool(supabase_key)}")
+    print(f"[DEBUG] Supabase key starts with dummy: {supabase_key.startswith('dummy') if supabase_key else 'N/A'}")
 
     # Initialize Supabase client if credentials are available
     supabase = None
     if supabase_url and supabase_key and not (supabase_url.startswith('dummy') or supabase_key.startswith('dummy')):
         try:
             from supabase import create_client
+            print(f"[DEBUG] Creating Supabase client with URL: {supabase_url}")
             supabase = create_client(supabase_url, supabase_key)
             app.config['SUPABASE'] = supabase
+            print(f"[DEBUG] Supabase client created successfully")
+            print(f"[DEBUG] Supabase client type: {type(supabase)}")
             logger.info("Supabase client initialized successfully")
         except Exception as e:
+            print(f"[ERROR] Failed to initialize Supabase client: {e}")
+            import traceback
+            print(f"[ERROR] Supabase initialization traceback: {traceback.format_exc()}")
             logger.warning(f"Failed to initialize Supabase client: {e}")
             supabase = None
     else:
+        print(f"[DEBUG] Running in development mode without Supabase")
         logger.info("Running in development mode without Supabase")
 
     # Mock database for development/testing
@@ -173,6 +184,42 @@ def create_app():
     @app.route('/debug', methods=['GET'])
     def debug():
         return 'Debug route is working!', 200
+
+    @app.route('/debug/supabase', methods=['GET'])
+    def debug_supabase():
+        """Debug endpoint to test Supabase connection and table access"""
+        try:
+            if not supabase:
+                return jsonify({
+                    'error': 'Supabase not initialized',
+                    'supabase_url': supabase_url,
+                    'supabase_key_available': bool(supabase_key)
+                }), 500
+            
+            # Test connection by trying to access the users table
+            print(f"[DEBUG] Testing Supabase connection...")
+            result = supabase.table("users").select("count", count="exact").execute()
+            print(f"[DEBUG] Supabase test result: {result}")
+            
+            return jsonify({
+                'status': 'success',
+                'supabase_connected': True,
+                'users_table_accessible': True,
+                'user_count': result.count if hasattr(result, 'count') else 'unknown',
+                'supabase_url': supabase_url,
+                'client_type': str(type(supabase))
+            }), 200
+            
+        except Exception as e:
+            print(f"[ERROR] Supabase debug test failed: {e}")
+            import traceback
+            print(f"[ERROR] Supabase debug traceback: {traceback.format_exc()}")
+            return jsonify({
+                'error': 'Supabase test failed',
+                'exception': str(e),
+                'supabase_url': supabase_url,
+                'supabase_key_available': bool(supabase_key)
+            }), 500
 
     # Print all registered routes for debugging
     print('Registered routes:')

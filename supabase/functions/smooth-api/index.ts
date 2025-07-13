@@ -92,8 +92,8 @@ Deno.serve(async (req) => {
         // Log error but still redirect to success as user email is confirmed
       }
 
-      // Redirect to dashboard on success
-      return Response.redirect(`${frontendUrl}/dashboard?email_verified=true`, 302);
+      // Redirect to a special endpoint that will handle authentication and redirect to dashboard
+      return Response.redirect(`${frontendUrl}/email-verified?token=${token}&email=${emailFromParam}&verified=true`, 302);
 
     }
 

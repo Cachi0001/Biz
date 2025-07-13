@@ -146,10 +146,20 @@ def register():
 
             # Insert user first
             print(f"[DEBUG] Inserting user with ID: {user_id}")
-            user_result = supabase.table("users").insert(user_data).execute()
+            print(f"[DEBUG] User data to insert: {user_data}")
+            try:
+                user_result = supabase.table("users").insert(user_data).execute()
+                print(f"[DEBUG] User insert result: {user_result}")
+                print(f"[DEBUG] User insert data: {user_result.data}")
+                print(f"[DEBUG] User insert error: {user_result.error}")
+            except Exception as e:
+                print(f"[ERROR] User insert exception: {e}")
+                import traceback
+                print(f"[ERROR] User insert traceback: {traceback.format_exc()}")
+                return error_response("Failed to create user", status_code=500)
 
             if not user_result.data:
-                print(f"[ERROR] Failed to create user")
+                print(f"[ERROR] Failed to create user - no data returned")
                 return error_response("Failed to create user", status_code=500)
 
             created_user = user_result.data[0]
@@ -157,9 +167,20 @@ def register():
             print(f"[DEBUG] User created successfully with ID: {actual_user_id}")
 
             # Verify user exists before creating token
-            verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
+            print(f"[DEBUG] Verifying user exists after creation - ID: {actual_user_id}")
+            try:
+                verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
+                print(f"[DEBUG] User verification result: {verify_result}")
+                print(f"[DEBUG] User verification data: {verify_result.data}")
+                print(f"[DEBUG] User verification error: {verify_result.error}")
+            except Exception as e:
+                print(f"[ERROR] User verification exception: {e}")
+                import traceback
+                print(f"[ERROR] User verification traceback: {traceback.format_exc()}")
+                return error_response("User verification failed", status_code=500)
+                
             if not verify_result.data:
-                print(f"[ERROR] User verification failed after creation")
+                print(f"[ERROR] User verification failed after creation - no data returned")
                 return error_response("User verification failed", status_code=500)
 
             print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
@@ -441,20 +462,66 @@ def register_confirmed():
     if supabase:
         print(f"[DEBUG] Starting Supabase token lookup for token: {token[:10]}...")
         try:
+            # First try to find unused token
             token_result = supabase.table("email_verification_tokens").select("*").eq("token", token).eq("used", False).execute()
             print(f"[DEBUG] Supabase query executed successfully")
-            print(f"[DEBUG] Token lookup result: {len(token_result.data) if token_result.data else 0} tokens found")
+            print(f"[DEBUG] Unused token lookup result: {len(token_result.data) if token_result.data else 0} tokens found")
             
-            if token_result.data:
-                print(f"[DEBUG] Found tokens: {[{k: v for k, v in t.items() if k != 'token'} for t in token_result.data]}")
-            
+            # If no unused token found, check if token exists but is used (might be from Supabase Edge Function)
             if not token_result.data:
-                print(f"[DEBUG] No tokens found for token: {token[:10]}... and used=False")
+                print(f"[DEBUG] No unused tokens found for token: {token[:10]}..., checking for used tokens")
+                used_token_result = supabase.table("email_verification_tokens").select("*").eq("token", token).eq("used", True).execute()
+                print(f"[DEBUG] Used token lookup result: {len(used_token_result.data) if used_token_result.data else 0} tokens found")
+                
+                if used_token_result.data:
+                    print(f"[DEBUG] Found used token - likely already processed by Supabase Edge Function")
+                    token_row = used_token_result.data[0]
+                    user_id = token_row["user_id"]
+                    
+                    # Check if user is already confirmed
+                    user_result = supabase.table("users").select("*").eq("id", user_id).eq("email", email).execute()
+                    if user_result.data:
+                        user = user_result.data[0]
+                        if user.get("email_confirmed", False):
+                            print(f"[DEBUG] User already confirmed, proceeding to generate JWT")
+                            # Skip token and user updates since they're already done
+                            # Generate JWT and return user info
+                            print(f"[DEBUG] Generating JWT for user_id: {user['id']}")
+                            access_token = create_access_token(identity=user["id"])
+                            print(f"[DEBUG] JWT generated successfully")
+                            
+                            response_data = {
+                                "access_token": access_token,
+                                "user": {
+                                    "id": user["id"],
+                                    "email": user["email"],
+                                    "phone": user["phone"],
+                                    "full_name": user["full_name"],
+                                    "business_name": user["business_name"],
+                                    "role": user["role"],
+                                    "subscription_plan": user["subscription_plan"],
+                                    "subscription_status": user["subscription_status"],
+                                    "trial_ends_at": user.get("trial_ends_at"),
+                                    "email_confirmed": user.get("email_confirmed", False)
+                                }
+                            }
+                            
+                            print(f"[DEBUG] Email verification completed successfully - email_confirmed: {user.get('email_confirmed', False)}")
+                            return success_response(
+                                message="Email confirmed and user logged in.",
+                                data=response_data
+                            )
+                
+                # If we get here, token doesn't exist at all
                 all_tokens_result = supabase.table("email_verification_tokens").select("*").eq("token", token).execute()
                 print(f"[DEBUG] All tokens with this value (any used status): {len(all_tokens_result.data) if all_tokens_result.data else 0}")
                 if all_tokens_result.data:
                     print(f"[DEBUG] All matching tokens: {[{k: v for k, v in t.items() if k != 'token'} for t in all_tokens_result.data]}")
                 return error_response("Invalid or expired token", status_code=400)
+            
+            # Found unused token - proceed with normal verification flow
+            if token_result.data:
+                print(f"[DEBUG] Found unused tokens: {[{k: v for k, v in t.items() if k != 'token'} for t in token_result.data]}")
             
             token_row = token_result.data[0]
             print(f"[DEBUG] Found token - ID: {token_row.get('id')}, user_id: {token_row.get('user_id')}, expires_at: {token_row.get('expires_at')}, used: {token_row.get('used')}")
@@ -566,7 +633,7 @@ def register_confirmed():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    print("[DEBUG] /auth/login endpoint called")
+    print("[DEBUG] ===== LOGIN ENDPOINT CALLED =====")
     print(f"[DEBUG] Request method: {request.method}")
     print(f"[DEBUG] Request headers: {dict(request.headers)}")
     print(f"[DEBUG] Request content type: {request.content_type}")
@@ -574,8 +641,15 @@ def login():
     try:
         supabase = g.supabase
         mock_db = g.mock_db
+        
+        print(f"[DEBUG] Supabase client available: {supabase is not None}")
+        print(f"[DEBUG] Mock DB available: {mock_db is not None}")
+        
+        if supabase:
+            print(f"[DEBUG] Supabase URL: {supabase.supabase_url}")
+            print(f"[DEBUG] Supabase key type: {type(supabase.supabase_key)}")
+        
         data = request.get_json()
-
         print(f"[DEBUG] Request data received: {data}")
 
         # Validate that data is actually a dictionary
@@ -602,39 +676,75 @@ def login():
 
         login_field = data["login"]
         password = data["password"]
+        
+        print(f"[DEBUG] Login field: {login_field}")
+        print(f"[DEBUG] Is email: {'@' in login_field}")
 
         user = None
         if supabase:
-            if "@" in login_field:
-                user_result = supabase.table("users").select("*").eq("email", login_field).execute()
-            else:
-                user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
+            print(f"[DEBUG] Using Supabase for user lookup")
+            try:
+                if "@" in login_field:
+                    print(f"[DEBUG] Looking up user by email: {login_field}")
+                    user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+                    print(f"[DEBUG] Email lookup result: {user_result}")
+                    print(f"[DEBUG] Email lookup data: {user_result.data}")
+                    print(f"[DEBUG] Email lookup error: {user_result.error}")
+                else:
+                    print(f"[DEBUG] Looking up user by phone: {login_field}")
+                    user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
+                    print(f"[DEBUG] Phone lookup result: {user_result}")
+                    print(f"[DEBUG] Phone lookup data: {user_result.data}")
+                    print(f"[DEBUG] Phone lookup error: {user_result.error}")
 
-            if user_result.data and len(user_result.data) > 0:
-                user = user_result.data[0]
+                if user_result.data and len(user_result.data) > 0:
+                    user = user_result.data[0]
+                    print(f"[DEBUG] Found user in Supabase: {user.get('id')} - {user.get('email')}")
+                else:
+                    print(f"[DEBUG] No user found in Supabase")
+                    
+            except Exception as e:
+                print(f"[ERROR] Supabase lookup failed: {e}")
+                print(f"[ERROR] Exception type: {type(e)}")
+                import traceback
+                print(f"[ERROR] Traceback: {traceback.format_exc()}")
         else:
+            print(f"[DEBUG] Using Mock DB for user lookup")
             # Mock DB lookup
             for u in mock_db["users"]:
                 if ("@" in login_field and u["email"] == login_field) or \
                    ("@" not in login_field and u["phone"] == login_field):
                     user = u
+                    print(f"[DEBUG] Found user in Mock DB: {user.get('id')} - {user.get('email')}")
                     break
+            if not user:
+                print(f"[DEBUG] No user found in Mock DB")
 
         if not user:
+            print(f"[DEBUG] No user found - returning 401")
             return error_response(
                 error="Invalid credentials",
                 message="No account found with this email or phone number. Please check your credentials or sign up for a new account.",
                 status_code=401
             )
 
+        print(f"[DEBUG] User found - checking password")
+        print(f"[DEBUG] User has password_hash: {'password_hash' in user}")
+        print(f"[DEBUG] User active: {user.get('active', True)}")
+        print(f"[DEBUG] User email_confirmed: {user.get('email_confirmed', False)}")
+        
         if not check_password_hash(user["password_hash"], password):
+            print(f"[DEBUG] Password verification failed")
             return error_response(
                 error="Invalid credentials",
                 message="Incorrect password. Please check your password and try again.",
                 status_code=401
             )
+        
+        print(f"[DEBUG] Password verification successful")
 
         if not user.get("active", True):
+            print(f"[DEBUG] User account is deactivated")
             return error_response(
                 error="Account deactivated",
                 message="Your account has been deactivated. Please contact support for assistance.",
@@ -642,39 +752,54 @@ def login():
             )
 
         if not user.get("email_confirmed", False):
+            print(f"[DEBUG] User email not confirmed")
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before logging in.",
                 status_code=403
             )
+        
+        print(f"[DEBUG] All user checks passed - proceeding with login")
 
         # Update last login time
+        print(f"[DEBUG] Updating last login time for user: {user['id']}")
         if supabase:
-            supabase.table("users").update({"last_login": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
+            try:
+                update_result = supabase.table("users").update({"last_login": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
+                print(f"[DEBUG] Last login update result: {update_result}")
+            except Exception as e:
+                print(f"[WARNING] Failed to update last login time: {e}")
         else:
             for i, u in enumerate(mock_db["users"]):
                 if u["id"] == user["id"]:
                     mock_db["users"][i]["last_login"] = pytz.UTC.localize(datetime.utcnow()).isoformat()
                     break
 
+        print(f"[DEBUG] Creating access token for user: {user['id']}")
         access_token = create_access_token(identity=user["id"])
+        print(f"[DEBUG] Access token created successfully")
 
+        response_data = {
+            "access_token": access_token,
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "phone": user["phone"],
+                "full_name": user["full_name"],
+                "business_name": user["business_name"],
+                "role": user["role"],
+                "subscription_plan": user["subscription_plan"],
+                "subscription_status": user["subscription_status"],
+                "trial_ends_at": user.get("trial_ends_at")
+            }
+        }
+        
+        print(f"[DEBUG] Login successful - returning response with user: {user['email']}")
+        print(f"[DEBUG] ===== LOGIN ENDPOINT COMPLETED =====")
+        
         return success_response(
             message="Login successful",
-            data={
-                "access_token": access_token,
-                "user": {
-                    "id": user["id"],
-                    "email": user["email"],
-                    "phone": user["phone"],
-                    "full_name": user["full_name"],
-                    "business_name": user["business_name"],
-                    "role": user["role"],
-                    "subscription_plan": user["subscription_plan"],
-                    "subscription_status": user["subscription_status"],
-                    "trial_ends_at": user.get("trial_ends_at")
-                }
-            }
+            data=response_data
         )
 
     except Exception as e:

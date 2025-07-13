@@ -19,30 +19,60 @@ const EmailVerified = () => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const email = params.get('email');
-    if (!token || !email) {
-      setStatus('error');
-      setError('Invalid or missing verification link.');
+    const verified = params.get('verified');
+    
+    // Handle case where Supabase Edge Function redirects back with verification success
+    if (verified === 'true' && token && email) {
+      setStatus('verifying');
+      // Call backend to confirm registration and get JWT
+      const confirmRegistration = async () => {
+        try {
+          const response = await authService.registerConfirmed({ token, email });
+          if (response.success && response.data && response.data.access_token) {
+            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            setStatus('success');
+            setTimeout(() => navigate('/dashboard'), 1000);
+          } else {
+            setStatus('error');
+            setError(response.message || 'Verification failed. Please try again.');
+          }
+        } catch (err) {
+          setStatus('error');
+          setError(err.message || 'Verification failed. Please try again.');
+        }
+      };
+      confirmRegistration();
       return;
     }
-    // Call backend to confirm registration
-    const confirmRegistration = async () => {
-      try {
-        const response = await authService.registerConfirmed({ token, email });
-        if (response.success && response.data && response.data.access_token) {
-          localStorage.setItem('token', response.data.access_token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          setStatus('success');
-          setTimeout(() => navigate('/dashboard'), 1000);
-        } else {
+    
+    // Handle direct access with token and email (backward compatibility)
+    if (token && email) {
+      setStatus('verifying');
+      const confirmRegistration = async () => {
+        try {
+          const response = await authService.registerConfirmed({ token, email });
+          if (response.success && response.data && response.data.access_token) {
+            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            setStatus('success');
+            setTimeout(() => navigate('/dashboard'), 1000);
+          } else {
+            setStatus('error');
+            setError(response.message || 'Verification failed. Please try again.');
+          }
+        } catch (err) {
           setStatus('error');
-          setError(response.message || 'Verification failed. Please try again.');
+          setError(err.message || 'Verification failed. Please try again.');
         }
-      } catch (err) {
-        setStatus('error');
-        setError(err.message || 'Verification failed. Please try again.');
-      }
-    };
-    confirmRegistration();
+      };
+      confirmRegistration();
+      return;
+    }
+    
+    // No valid parameters
+    setStatus('error');
+    setError('Invalid or missing verification link.');
   }, [navigate, isAuthenticated]);
 
   return (
