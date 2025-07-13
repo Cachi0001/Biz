@@ -40,12 +40,16 @@ const EmailVerified = () => {
             }, 1000);
           } else {
             setStatus('error');
-            setError(response.message || 'Verification failed. Please try again.');
+            setError(
+              (response && (response.message || JSON.stringify(response))) || 'Verification failed. Please try again.'
+            );
             console.log('Verification failed:', response);
           }
         } catch (err) {
           setStatus('error');
-          setError(err.message || 'Verification failed. Please try again.');
+          setError(
+            (err && (err.message || JSON.stringify(err))) || 'Verification failed. Please try again.'
+          );
           console.log('Verification failed (exception):', err);
         }
       };
@@ -70,12 +74,16 @@ const EmailVerified = () => {
             }, 1000);
           } else {
             setStatus('error');
-            setError(response.message || 'Verification failed. Please try again.');
+            setError(
+              (response && (response.message || JSON.stringify(response))) || 'Verification failed. Please try again.'
+            );
             console.log('Verification failed:', response);
           }
         } catch (err) {
           setStatus('error');
-          setError(err.message || 'Verification failed. Please try again.');
+          setError(
+            (err && (err.message || JSON.stringify(err))) || 'Verification failed. Please try again.'
+          );
           console.log('Verification failed (exception):', err);
         }
       };

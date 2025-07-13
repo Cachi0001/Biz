@@ -19,11 +19,13 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState(''); // Persistent error state
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault(); // Defensive: always prevent default
     setIsLoading(true);
+    setLoginError(''); // Clear previous error
     try {
       const response = await apiLogin({ login: email, password });
       if (response.success && (response.data?.access_token || response.access_token)) {
@@ -35,12 +37,15 @@ const Login = () => {
           window.location.href = '/dashboard'; // Fallback in case navigate fails
         }
       } else {
+        setLoginError(response.message || 'Login failed.');
         toast.error(response.message || 'Login failed.', { duration: 4000 });
       }
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Login failed. Please try again.'), { duration: 4000 });
+      const msg = getErrorMessage(err, 'Login failed. Please try again.');
+      setLoginError(msg);
+      toast.error(msg, { duration: 4000 });
     }
-      setIsLoading(false);
+    setIsLoading(false);
   };
 
   return (
@@ -59,7 +64,21 @@ const Login = () => {
             <CardTitle>Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-6">
+            {/* Persistent error message with manual close */}
+            {loginError && (
+              <div className="mb-4 text-center text-red-600 font-semibold flex items-center justify-center gap-2">
+                <span>{loginError}</span>
+                <button
+                  onClick={() => setLoginError('')}
+                  className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 text-xs"
+                  aria-label="Dismiss error"
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="off" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -71,6 +90,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   disabled={isLoading}
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-2">
@@ -84,6 +104,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
