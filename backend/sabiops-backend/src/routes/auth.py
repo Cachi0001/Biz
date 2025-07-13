@@ -67,7 +67,7 @@ def register():
                     user_id = existing_user["id"]
                     
                     # Generate new token
-                    token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+                    token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
                     
                     # Mark old tokens as used
@@ -155,7 +155,7 @@ def register():
             print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
             
             # Generate verification token
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
             
             # Insert verification token with a small delay to ensure user is committed
@@ -221,7 +221,7 @@ def register():
             if existing_user and not existing_user.get("email_confirmed", False):
                 user_id = existing_user["id"]
                 
-                token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+                token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
                 
                 for t in mock_db.get("email_verification_tokens", []):
@@ -274,7 +274,7 @@ def register():
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
             
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
             
             mock_db.setdefault("email_verification_tokens", []).append({
@@ -346,7 +346,7 @@ def resend_verification_email():
         user_id = user["id"]
         
         # Generate new verification token
-        token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
         
         # Store token in email_verification_tokens
@@ -625,7 +625,7 @@ def ensure_user_in_supabase_auth(email, password=None):
         raise Exception(f"Failed to create/invite user in Supabase Auth: {invite_resp.text}")
 
 @auth_bp.route("/forgot-password", methods=["POST"])
-@limiter.limit("5 per hour", key_func=lambda: request.json.get(\'email\') or request.form.get(\'email\') or request.args.get(\'email\', \'\'))
+@limiter.limit("5 per hour", key_func=lambda: request.json.get('email') or request.form.get('email') or request.args.get('email', ''))
 def forgot_password():
     """Request a password reset link via email (JWT-based, Owner only)."""
     import jwt
@@ -703,7 +703,7 @@ def forgot_password():
         )
         if not result:
             import logging
-            logging.error(f"[ERROR] Failed to send password reset email to {user[\'email\']}")
+            logging.error(f"[ERROR] Failed to send password reset email to {user['email']}")
             return error_response("Failed to send password reset email. Please contact support if this persists.", status_code=500)
         return success_response(message="A password reset link has been sent to your email.")
     except Exception as e:
