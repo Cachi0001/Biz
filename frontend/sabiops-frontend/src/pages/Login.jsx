@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@supabase/supabase-js';
 import { getErrorMessage } from '../services/api';
-import { login as apiLogin } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -21,14 +21,15 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState(''); // Persistent error state
   const navigate = useNavigate();
+  const { login } = useAuth(); // Use AuthContext login
 
   const handleLogin = async (e) => {
     if (e && e.preventDefault) e.preventDefault(); // Defensive: always prevent default
     setIsLoading(true);
     setLoginError(''); // Clear previous error
     try {
-      const response = await apiLogin({ login: email, password });
-      if (response.success && (response.data?.access_token || response.access_token)) {
+      const result = await login(email, password); // Use context login
+      if (result.success) {
         // Token is already set by api.js, but you can set user info if needed
         console.log('Redirecting to dashboard');
         try {
@@ -37,13 +38,12 @@ const Login = () => {
           window.location.href = '/dashboard'; // Fallback in case navigate fails
         }
       } else {
-        setLoginError(response.message || 'Login failed.');
-        toast.error(response.message || 'Login failed.', { duration: 4000 });
+        setLoginError(result.message || 'Login failed.');
+        toast.error(result.message || 'Login failed.', { duration: 4000 });
       }
     } catch (err) {
-      const msg = getErrorMessage(err, 'Login failed. Please try again.');
-      setLoginError(msg);
-      toast.error(msg, { duration: 4000 });
+      setLoginError('Login failed. Please try again.');
+      toast.error('Login failed. Please try again.', { duration: 4000 });
     }
     setIsLoading(false);
   };

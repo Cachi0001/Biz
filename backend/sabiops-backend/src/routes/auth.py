@@ -453,6 +453,7 @@ def resend_verification_email():
 def register_confirmed():
     """Confirm email: verify token, mark user as confirmed, return JWT."""
     from datetime import datetime, timezone
+    import time
     print(f"[DEBUG] Email verification request received")
     data = request.get_json()
     token = data.get("token")
@@ -492,12 +493,10 @@ def register_confirmed():
                     if user_by_id_result.data:
                         user = user_by_id_result.data[0]
                         print(f"[DEBUG] User found by ID has email: {user.get('email')}, email_confirmed: {user.get('email_confirmed', False)}")
-                        # If not confirmed, force update
                         if not user.get("email_confirmed", False):
                             print(f"[DEBUG] User not confirmed, forcing email_confirmed=True")
                             supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
                             user["email_confirmed"] = True
-                        # Always return success and JWT if user exists
                         access_token = create_access_token(identity=user["id"])
                         print(f"[DEBUG] JWT generated successfully")
                         response_data = {
@@ -521,8 +520,42 @@ def register_confirmed():
                             data=response_data
                         )
                     else:
-                        print(f"[DEBUG] No user found by id only either")
-                        return error_response("User not found", status_code=404)
+                        print(f"[DEBUG] No user found by id only, retrying after 200ms...")
+                        time.sleep(0.2)
+                        user_by_id_result_retry = supabase.table("users").select("*").eq("id", user_id).execute()
+                        print(f"[DEBUG] Retry user lookup by id only: {len(user_by_id_result_retry.data) if user_by_id_result_retry.data else 0} users found")
+                        if user_by_id_result_retry.data:
+                            user = user_by_id_result_retry.data[0]
+                            print(f"[DEBUG] [RETRY] User found by ID has email: {user.get('email')}, email_confirmed: {user.get('email_confirmed', False)}")
+                            if not user.get("email_confirmed", False):
+                                print(f"[DEBUG] [RETRY] User not confirmed, forcing email_confirmed=True")
+                                supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()
+                                user["email_confirmed"] = True
+                            access_token = create_access_token(identity=user["id"])
+                            print(f"[DEBUG] [RETRY] JWT generated successfully")
+                            response_data = {
+                                "access_token": access_token,
+                                "user": {
+                                    "id": user["id"],
+                                    "email": user["email"],
+                                    "phone": user["phone"],
+                                    "full_name": user["full_name"],
+                                    "business_name": user["business_name"],
+                                    "role": user["role"],
+                                    "subscription_plan": user["subscription_plan"],
+                                    "subscription_status": user["subscription_status"],
+                                    "trial_ends_at": user.get("trial_ends_at"),
+                                    "email_confirmed": user.get("email_confirmed", False)
+                                }
+                            }
+                            print(f"[DEBUG] [RETRY] Email verification completed successfully - email_confirmed: {user.get('email_confirmed', False)}")
+                            return success_response(
+                                message="Email confirmed and user logged in.",
+                                data=response_data
+                            )
+                        else:
+                            print(f"[DEBUG] [RETRY] No user found by id only after retry. user_id: {user_id}, token: {token}")
+                            return error_response("User not found after retry", status_code=404)
                 # If we get here, token doesn't exist at all
                 all_tokens_result = supabase.table("email_verification_tokens").select("*").eq("token", token).execute()
                 print(f"[DEBUG] All tokens with this value (any used status): {len(all_tokens_result.data) if all_tokens_result.data else 0}")
