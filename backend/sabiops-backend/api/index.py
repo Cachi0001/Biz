@@ -48,8 +48,7 @@ CORS(
     origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    expose_headers=["Content-Type", "Authorization"]
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
 jwt = JWTManager(app)
 
@@ -89,31 +88,13 @@ if not supabase:
 # Remove the insecure preflight handler for OPTIONS requests
 
 @app.before_request
-def handle_preflight():
-    """Handle CORS preflight requests"""
-    if request.method == "OPTIONS":
-        response = jsonify()
-        response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin")
-        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
-        response.headers.add("Access-Control-Allow-Credentials", "true")
-        return response
-
-@app.before_request
 def load_user():
     """Load user information for authenticated requests"""
     g.user = None
     g.supabase = supabase
     g.mock_db = app.config.get('MOCK_DB')
 
-@app.after_request
-def after_request(response):
-    """Add CORS headers to all responses"""
-    response.headers.add('Access-Control-Allow-Origin', 'https://sabiops.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+
 
 # Error handlers
 @app.errorhandler(404)
@@ -176,12 +157,7 @@ def list_routes():
 # Global OPTIONS handler for all routes (for Vercel compatibility)
 @app.route('/<path:path>', methods=['OPTIONS'])
 def options_handler(path):
-    response = jsonify()
-    response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin")
-    response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
-    return response, 204
+    return '', 204
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
