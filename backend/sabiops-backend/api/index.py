@@ -176,7 +176,13 @@ app.register_blueprint(notifications_bp, url_prefix='/notifications')
 
 @app.route('/debug', methods=['GET'])
 def debug():
-    return 'Debug route is working!', 200
+    mock_db = app.config.get('MOCK_DB', {})
+    return jsonify({
+        'status': 'debug endpoint working',
+        'mode': 'development' if not supabase else 'production',
+        'supabase_connected': supabase is not None,
+        'mock_db': mock_db
+    }), 200
 
 # Print all registered routes for debugging
 print('Registered routes:')
