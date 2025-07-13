@@ -31,6 +31,7 @@ import './App.css';
 
 function NotificationPrompt() {
   const { permission, requestPermission } = useNotification();
+  console.log('[APP] NotificationPrompt render. Permission:', permission);
   if (permission === 'default') {
     return (
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-300 rounded-lg px-4 py-2 shadow-lg z-50 flex items-center gap-2">
@@ -43,158 +44,41 @@ function NotificationPrompt() {
 }
 
 function App() {
+  console.log('[APP] App component render');
   return (
     <NotificationProvider>
     <ToastProvider>
       <AuthProvider>
+        {console.log('[APP] Inside AuthProvider')}
         <Router>
+            {console.log('[APP] Inside Router')}
             <NotificationPrompt />
           <div className="min-h-screen bg-background">
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
-              <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/email-verified" element={<EmailVerified />} />
-            
+            <Route path="/" element={<Landing /> && (console.log('[APP] Route: / (Landing)'), <Landing />)} />
+            <Route path="/login" element={<Login /> && (console.log('[APP] Route: /login (Login)'), <Login />)} />
+            <Route path="/register" element={<Register /> && (console.log('[APP] Route: /register (Register)'), <Register />)} />
+            <Route path="/forgot-password" element={<ForgotPassword /> && (console.log('[APP] Route: /forgot-password (ForgotPassword)'), <ForgotPassword />)} />
+            <Route path="/reset-password" element={<ResetPassword /> && (console.log('[APP] Route: /reset-password (ResetPassword)'), <ResetPassword />)} />
+            <Route path="/terms" element={<TermsOfService /> && (console.log('[APP] Route: /terms (TermsOfService)'), <TermsOfService />)} />
+            <Route path="/privacy" element={<PrivacyPolicy /> && (console.log('[APP] Route: /privacy (PrivacyPolicy)'), <PrivacyPolicy />)} />
+            <Route path="/email-verified" element={<EmailVerified /> && (console.log('[APP] Route: /email-verified (EmailVerified)'), <EmailVerified />)} />
             {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Customers />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Products />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sales"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Sales />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sales/report"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <SalesReport />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/team"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Team />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoices"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Invoices />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoices/new"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Invoices />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payments"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Payments />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Settings />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/expenses"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Expenses />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/transactions"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Transactions />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            
+            <Route path="/dashboard" element={<ProtectedRoute>{console.log('[APP] Route: /dashboard (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /dashboard'), <Dashboard />}</Layout>}</ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute>{console.log('[APP] Route: /customers (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /customers'), <Customers />}</Layout>}</ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute>{console.log('[APP] Route: /products (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /products'), <Products />}</Layout>}</ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute>{console.log('[APP] Route: /sales (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /sales'), <Sales />}</Layout>}</ProtectedRoute>} />
+            <Route path="/sales/report" element={<ProtectedRoute>{console.log('[APP] Route: /sales/report (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /sales/report'), <SalesReport />}</Layout>}</ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute>{console.log('[APP] Route: /team (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /team'), <Team />}</Layout>}</ProtectedRoute>} />
+            <Route path="/invoices" element={<ProtectedRoute>{console.log('[APP] Route: /invoices (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /invoices'), <Invoices />}</Layout>}</ProtectedRoute>} />
+            <Route path="/invoices/new" element={<ProtectedRoute>{console.log('[APP] Route: /invoices/new (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /invoices/new'), <Invoices />}</Layout>}</ProtectedRoute>} />
+            <Route path="/payments" element={<ProtectedRoute>{console.log('[APP] Route: /payments (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /payments'), <Payments />}</Layout>}</ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute>{console.log('[APP] Route: /settings (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /settings'), <Settings />}</Layout>}</ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute>{console.log('[APP] Route: /expenses (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /expenses'), <Expenses />}</Layout>}</ProtectedRoute>} />
+            <Route path="/transactions" element={<ProtectedRoute>{console.log('[APP] Route: /transactions (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /transactions'), <Transactions />}</Layout>}</ProtectedRoute>} />
             {/* 404 fallback */}
-            <Route
-              path="*"
-              element={
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-bold">404</h1>
-                    <p className="text-muted-foreground">Page not found</p>
-                  </div>
-                </div>
-              }
-            />
+            <Route path="*" element={<div className="min-h-screen flex items-center justify-center">{console.log('[APP] Route: 404'), <div className="text-center"><h1 className="text-4xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p></div>}</div>} />
           </Routes>
         </div>
       </Router>

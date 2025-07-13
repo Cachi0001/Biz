@@ -56,6 +56,7 @@ const SimpleIcon = ({ name, className = 'h-4 w-4' }) => {
 };
 
 const Dashboard = () => {
+  console.log('[DASHBOARD] Component function invoked');
   const [mounted, setMounted] = useState(false);
   const [financials, setFinancials] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,14 +68,14 @@ const Dashboard = () => {
   let authData = null;
   try {
     authData = useAuth();
-    console.log('[DASHBOARD] Auth data:', authData);
+    console.log('[DASHBOARD] useAuth() result:', authData);
   } catch (err) {
     console.error('[DASHBOARD] useAuth error:', err);
     setError('Authentication error');
   }
 
   useEffect(() => {
-    console.log('[DASHBOARD] Component mounted');
+    console.log('[DASHBOARD] useEffect running. Mounted:', mounted);
     setMounted(true);
 
     // Check for email verification success
@@ -85,6 +86,7 @@ const Dashboard = () => {
       const newUrl = new URL(window.location);
       newUrl.searchParams.delete('email_verified');
       window.history.replaceState({}, '', newUrl);
+      console.log('[DASHBOARD] Email verified param detected and handled.');
     }
 
     const fetchData = async () => {
@@ -94,15 +96,17 @@ const Dashboard = () => {
         console.log('[DASHBOARD] Fetching financials...');
         const response = await getFinancials();
         console.log('[DASHBOARD] Financials response:', response);
-        
         // Handle different response formats
         if (response && typeof response === 'object') {
           if (response.success && response.data) {
             setFinancials(response.data);
+            console.log('[DASHBOARD] Financials set (success+data)');
           } else if (response.data) {
             setFinancials(response.data);
+            console.log('[DASHBOARD] Financials set (data)');
           } else {
             setFinancials(response);
+            console.log('[DASHBOARD] Financials set (raw response)');
           }
         } else {
           setFinancials({
@@ -117,6 +121,7 @@ const Dashboard = () => {
             top_products: [],
             top_expenses: []
           });
+          console.log('[DASHBOARD] Financials set (default empty)');
         }
       } catch (err) {
         console.error('[DASHBOARD] Error fetching financials:', err);
@@ -134,15 +139,19 @@ const Dashboard = () => {
           top_products: [],
           top_expenses: []
         });
+        console.log('[DASHBOARD] Financials set (error fallback)');
       } finally {
         setLoading(false);
+        console.log('[DASHBOARD] Loading set to false');
       }
     };
 
     if (authData?.user) {
+      console.log('[DASHBOARD] User detected, fetching data.');
       fetchData();
     } else {
       setLoading(false);
+      console.log('[DASHBOARD] No user, loading set to false.');
     }
   }, [authData]);
 
@@ -159,6 +168,7 @@ const Dashboard = () => {
   };
 
   if (error) {
+    console.log('[DASHBOARD] Render branch: error', error);
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center p-6 border border-red-200 bg-red-50 rounded-lg">
@@ -176,6 +186,7 @@ const Dashboard = () => {
   }
 
   if (!mounted || !authData) {
+    console.log('[DASHBOARD] Render branch: not mounted or no authData', { mounted, authData });
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -187,6 +198,7 @@ const Dashboard = () => {
   }
 
   if (authData.loading) {
+    console.log('[DASHBOARD] Render branch: authData.loading');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -198,6 +210,7 @@ const Dashboard = () => {
   }
 
   if (!authData.isAuthenticated) {
+    console.log('[DASHBOARD] Render branch: not authenticated');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center p-6 border border-yellow-200 bg-yellow-50 rounded-lg">
@@ -212,6 +225,7 @@ const Dashboard = () => {
   const userName = user.full_name || user.name || 'User';
 
   if (loading) {
+    console.log('[DASHBOARD] Render branch: loading');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -222,6 +236,7 @@ const Dashboard = () => {
     );
   }
 
+  console.log('[DASHBOARD] Render branch: main dashboard', { user, financials });
   return (
     <div className="space-y-6 p-4 sm:p-6 max-w-5xl mx-auto">
       {/* Header */}
