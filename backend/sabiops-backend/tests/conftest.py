@@ -129,7 +129,7 @@ def mock_supabase():
 def app(mock_supabase):
     """Create a Flask app for testing."""
     try:
-        from api.index import create_app
+        from src.app import create_app
         app = create_app()
     except ImportError:
         # Create a minimal Flask app if the main app can't be imported

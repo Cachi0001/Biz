@@ -1,11 +1,11 @@
 import pytest
 import json
 from datetime import datetime, timedelta
-from src.models.customer import Customer
-from src.models.product import Product
-from src.models.invoice import Invoice, InvoiceItem
-from src.models.payment import Payment
-from src.models.user import db
+import os
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 class TestDashboardRoutes:
     """Test cases for dashboard and analytics routes."""

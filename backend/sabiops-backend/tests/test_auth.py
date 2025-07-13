@@ -1,6 +1,10 @@
 import pytest
 import json
-from src.models.user import User, db
+import os
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 class TestAuthRoutes:
     """Test cases for authentication routes."""

@@ -1,7 +1,10 @@
 import pytest
 import json
-from src.models.customer import Customer
-from src.models.user import db
+import os
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 class TestCustomerRoutes:
     """Test cases for customer management routes."""

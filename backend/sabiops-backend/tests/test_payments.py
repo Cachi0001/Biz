@@ -1,10 +1,11 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
-from src.models.payment import Payment
-from src.models.invoice import Invoice
-from src.models.customer import Customer
-from src.models.user import db
+import os
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 class TestPaymentRoutes:
     """Test cases for payment management routes."""
