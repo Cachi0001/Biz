@@ -17,6 +17,7 @@ const EmailVerified = () => {
     console.log('Email verification useEffect', { token, email, verified });
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated) {
+      console.log('Already authenticated, navigating to dashboard');
       navigate('/dashboard');
       return;
     }
@@ -32,14 +33,20 @@ const EmailVerified = () => {
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             setStatus('success');
-            setTimeout(() => navigate('/dashboard'), 1000);
+            console.log('Verification success, navigating to dashboard');
+            setTimeout(() => {
+              navigate('/dashboard');
+              window.location.href = '/dashboard'; // force redirect as backup
+            }, 1000);
           } else {
             setStatus('error');
             setError(response.message || 'Verification failed. Please try again.');
+            console.log('Verification failed:', response);
           }
         } catch (err) {
           setStatus('error');
           setError(err.message || 'Verification failed. Please try again.');
+          console.log('Verification failed (exception):', err);
         }
       };
       confirmRegistration();
@@ -56,14 +63,20 @@ const EmailVerified = () => {
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             setStatus('success');
-            setTimeout(() => navigate('/dashboard'), 1000);
+            console.log('Verification success, navigating to dashboard');
+            setTimeout(() => {
+              navigate('/dashboard');
+              window.location.href = '/dashboard'; // force redirect as backup
+            }, 1000);
           } else {
             setStatus('error');
             setError(response.message || 'Verification failed. Please try again.');
+            console.log('Verification failed:', response);
           }
         } catch (err) {
           setStatus('error');
           setError(err.message || 'Verification failed. Please try again.');
+          console.log('Verification failed (exception):', err);
         }
       };
       confirmRegistration();
@@ -73,6 +86,7 @@ const EmailVerified = () => {
     // No valid parameters
     setStatus('error');
     setError('Invalid or missing verification link.');
+    console.log('Verification failed: Invalid or missing verification link.');
   }, [navigate, isAuthenticated]);
 
   return (
