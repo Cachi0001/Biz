@@ -46,18 +46,18 @@ def register():
         password = data.get("password")
         full_name = data.get("full_name")
         business_name = data.get("business_name")
-        
+
         # Validate required fields
         if not email or not phone or not password or not full_name:
             return error_response("Missing required fields", status_code=400)
-        
+
         if supabase:
             print(f"[DEBUG] Starting registration for email: {email}")
-            
+
             # Check if user already exists
             existing_user_result = supabase.table("users").select("*").eq("email", email).execute()
             existing_user = existing_user_result.data[0] if existing_user_result.data else None
-            
+
             if existing_user:
                 if existing_user.get("email_confirmed", False):
                     return error_response("Email already exists", status_code=400)
@@ -65,14 +65,14 @@ def register():
                     # User exists but not confirmed, resend verification
                     print(f"[DEBUG] User exists but not confirmed, resending verification for: {email}")
                     user_id = existing_user["id"]
-                    
+
                     # Generate new token
-                    token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+                    token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-                    
+
                     # Mark old tokens as used
                     supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
-                    
+
                     # Insert new token
                     token_result = supabase.table("email_verification_tokens").insert({
                         "user_id": user_id,
@@ -80,10 +80,10 @@ def register():
                         "expires_at": expires_at,
                         "used": False
                     }).execute()
-                    
+
                     if not token_result.data:
                         return error_response("Failed to generate verification token", status_code=500)
-                    
+
                     # Send verification email
                     confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
                     subject = "SabiOps Email Confirmation"
@@ -105,21 +105,21 @@ def register():
                         text_content=body,
                         html_content=html_body
                     )
-                    
+
                     return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
-            
+
             # Check if phone already exists
             existing_phone_result = supabase.table("users").select("id").eq("phone", phone).execute()
             if existing_phone_result.data:
                 return error_response("Phone already exists", status_code=400)
-            
+
             # Create new user - NO RPC FUNCTION, direct table operations
             print(f"[DEBUG] Creating new user for email: {email}")
-            
+
             # Generate user data
             user_id = str(uuid.uuid4())
             password_hash = generate_password_hash(password)
-            
+
             user_data = {
                 "id": user_id,
                 "email": email,
@@ -133,52 +133,52 @@ def register():
                 "active": True,
                 "email_confirmed": False
             }
-            
+
             # Insert user first
             print(f"[DEBUG] Inserting user with ID: {user_id}")
             user_result = supabase.table("users").insert(user_data).execute()
-            
+
             if not user_result.data:
                 print(f"[ERROR] Failed to create user")
                 return error_response("Failed to create user", status_code=500)
-            
+
             created_user = user_result.data[0]
             actual_user_id = created_user["id"]
             print(f"[DEBUG] User created successfully with ID: {actual_user_id}")
-            
+
             # Verify user exists before creating token
             verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
             if not verify_result.data:
                 print(f"[ERROR] User verification failed after creation")
                 return error_response("User verification failed", status_code=500)
-            
+
             print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
-            
+
             # Generate verification token
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-            
+
             # Insert verification token with a small delay to ensure user is committed
             time.sleep(0.1)  # 100ms delay to ensure user is committed
-            
+
             token_data = {
                 "user_id": actual_user_id,
                 "token": token,
                 "expires_at": expires_at,
                 "used": False
             }
-            
+
             print(f"[DEBUG] Inserting token for user ID: {actual_user_id}")
             token_result = supabase.table("email_verification_tokens").insert(token_data).execute()
-            
+
             if not token_result.data:
                 print(f"[ERROR] Failed to create verification token, rolling back user")
                 # Rollback: delete the user
                 supabase.table("users").delete().eq("id", actual_user_id).execute()
                 return error_response("Failed to generate verification token", status_code=500)
-            
+
             print(f"[DEBUG] Token created successfully")
-            
+
             # Send verification email
             confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
             subject = "SabiOps Email Confirmation"
@@ -200,9 +200,9 @@ def register():
                 text_content=body,
                 html_content=html_body
             )
-            
+
             return success_response(message="Registration successful. Please check your email to confirm your account.")
-        
+
         else:
             # Mock DB logic for local testing only
             existing_user = None
@@ -214,16 +214,16 @@ def register():
                 for u in mock_db["users"]:
                     if u["phone"] == phone:
                         return error_response("Phone already exists", status_code=400)
-            
+
             if existing_user and existing_user.get("email_confirmed", False):
                 return error_response("Email already exists", status_code=400)
-            
+
             if existing_user and not existing_user.get("email_confirmed", False):
                 user_id = existing_user["id"]
-                
-                token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+
+                token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-                
+
                 for t in mock_db.get("email_verification_tokens", []):
                     if t["user_id"] == user_id:
                         t["used"] = True
@@ -233,7 +233,7 @@ def register():
                     "expires_at": expires_at,
                     "used": False
                 })
-                
+
                 confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
                 subject = "SabiOps Email Confirmation"
                 body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -254,9 +254,9 @@ def register():
                     text_content=body,
                     html_content=html_body
                 )
-                
+
                 return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
-            
+
             user_data = {
                 "email": email,
                 "phone": phone,
@@ -269,21 +269,21 @@ def register():
                 "active": True,
                 "email_confirmed": False
             }
-            
+
             user_id = str(uuid.uuid4())
             user_data["id"] = user_id
             mock_db["users"].append(user_data)
-            
-            token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+
+            token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-            
+
             mock_db.setdefault("email_verification_tokens", []).append({
                 "user_id": user_id,
                 "token": token,
                 "expires_at": expires_at,
                 "used": False
             })
-            
+
             confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -304,9 +304,9 @@ def register():
                 text_content=body,
                 html_content=html_body
             )
-            
+
             return success_response(message="Registration successful. Please check your email to confirm your account.")
-            
+
     except Exception as e:
         print(f"[ERROR] Registration exception: {str(e)}")
         return error_response(str(e), status_code=500)
@@ -321,10 +321,10 @@ def resend_verification_email():
         mock_db = g.mock_db
         data = request.get_json()
         email = data.get("email")
-        
+
         if not email:
             return error_response("Email is required", status_code=400)
-        
+
         # Find user
         user = None
         if supabase:
@@ -336,19 +336,19 @@ def resend_verification_email():
                 if u["email"] == email:
                     user = u
                     break
-        
+
         if not user:
             return error_response("User not found", status_code=404)
-        
+
         if user.get("email_confirmed", False):
             return error_response("Email already confirmed", status_code=400)
-        
+
         user_id = user["id"]
-        
+
         # Generate new verification token
-        token = ".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
-        
+
         # Store token in email_verification_tokens
         if supabase:
             # Mark old tokens as used
@@ -372,7 +372,7 @@ def resend_verification_email():
                 "expires_at": expires_at,
                 "used": False
             })
-        
+
         # Send verification email
         confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
         subject = "SabiOps Email Confirmation"
@@ -394,9 +394,9 @@ def resend_verification_email():
             text_content=body,
             html_content=html_body
         )
-        
+
         return success_response(message="Verification email has been resent. Please check your email to confirm your account.")
-        
+
     except Exception as e:
         return error_response(str(e), status_code=500)
 
@@ -461,14 +461,14 @@ def login():
     print(f"[DEBUG] Request method: {request.method}")
     print(f"[DEBUG] Request headers: {dict(request.headers)}")
     print(f"[DEBUG] Request content type: {request.content_type}")
-    
+
     try:
         supabase = g.supabase
         mock_db = g.mock_db
         data = request.get_json()
-        
+
         print(f"[DEBUG] Request data received: {data}")
-        
+
         # Validate that data is actually a dictionary
         if data is None:
             return error_response(
@@ -476,31 +476,31 @@ def login():
                 message="Request body must contain JSON data. Check Content-Type header is \'application/json\'",
                 status_code=400
             )
-        
+
         if not isinstance(data, dict):
             return error_response(
                 error="Invalid JSON format",
                 message=f"Expected JSON object, received {type(data).__name__}: {str(data)[:100]}",
                 status_code=400
             )
-        
+
         if not data.get("login") or not data.get("password"):
             return error_response(
                 error="Login credentials required",
                 message="Email/Phone and password are required",
                 status_code=400
             )
-        
+
         login_field = data["login"]
         password = data["password"]
-        
+
         user = None
         if supabase:
             if "@" in login_field:
                 user_result = supabase.table("users").select("*").eq("email", login_field).execute()
             else:
                 user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
-            
+
             if user_result.data and len(user_result.data) > 0:
                 user = user_result.data[0]
         else:
@@ -517,28 +517,28 @@ def login():
                 message="No account found with this email or phone number. Please check your credentials or sign up for a new account.",
                 status_code=401
             )
-        
+
         if not check_password_hash(user["password_hash"], password):
             return error_response(
                 error="Invalid credentials",
                 message="Incorrect password. Please check your password and try again.",
                 status_code=401
             )
-        
+
         if not user.get("active", True):
             return error_response(
                 error="Account deactivated",
                 message="Your account has been deactivated. Please contact support for assistance.",
                 status_code=401
             )
-        
+
         if not user.get("email_confirmed", False):
             return error_response(
                 error="Email not confirmed",
                 message="Please confirm your email before logging in.",
                 status_code=403
             )
-            
+
         # Update last login time
         if supabase:
             supabase.table("users").update({"last_login": datetime.now(timezone.utc).isoformat()}).eq("id", user["id"]).execute()
@@ -547,9 +547,9 @@ def login():
                 if u["id"] == user["id"]:
                     mock_db["users"][i]["last_login"] = pytz.UTC.localize(datetime.utcnow()).isoformat()
                     break
-        
+
         access_token = create_access_token(identity=user["id"])
-        
+
         return success_response(
             message="Login successful",
             data={
@@ -567,7 +567,7 @@ def login():
                 }
             }
         )
-        
+
     except Exception as e:
         print(f"[ERROR] Login failed: {e}") # Added for debugging
         # Ensure the error message is a string and not an object like \'SUPABASE\'
@@ -886,7 +886,7 @@ def get_profile():
         supabase = g.supabase
         mock_db = g.mock_db
         user_id = get_jwt_identity()
-        
+
         user = None
         if supabase:
             user_result = supabase.table("users").select("*").eq("id", user_id).execute()
@@ -900,7 +900,7 @@ def get_profile():
 
         if not user:
             return error_response("User not found", status_code=404)
-        
+
         return success_response(
             data={
                 "user": {
@@ -917,7 +917,7 @@ def get_profile():
                 }
             }
         )
-        
+
     except Exception as e:
         return error_response(str(e), status_code=500)
 
@@ -935,7 +935,7 @@ def verify_token():
 
         supabase = g.supabase
         mock_db = g.mock_db
-        
+
         user = None
         if supabase:
             user_result = supabase.table("users").select("*").eq("id", user_id).execute()
@@ -946,7 +946,7 @@ def verify_token():
                 if u["id"] == user_id:
                     user = u
                     break
-        
+
         if not user:
             print(f"[DEBUG] verify_token: User not found for ID: {user_id}")
             return error_response(
@@ -954,7 +954,7 @@ def verify_token():
                 message="The user associated with this token no longer exists.",
                 status_code=404
             )
-        
+
         # Check if user is still active
         if not user.get("active", True):
             print(f"[DEBUG] verify_token: User account deactivated for ID: {user_id}")
@@ -963,7 +963,7 @@ def verify_token():
                 message="Your account has been deactivated. Please contact support for assistance.",
                 status_code=401
             )
-        
+
         print(f"[DEBUG] verify_token: Token valid for user: {user_id}")
         return success_response(
             message="Token is valid",
@@ -984,7 +984,7 @@ def verify_token():
                 }
             }
         )
-        
+
     except Exception as e:
         return error_response(
             error=str(e),
@@ -998,7 +998,7 @@ def handle_auth_error(e):
     print(f"[ERROR] JWT Error Handler: Type: {type(e).__name__}, Message: {e}")
     print(f"[ERROR] Request URL: {request.url}")
     print(f"[ERROR] Request Headers: {dict(request.headers)}")
-    
+
     # Handle specific JWT exceptions
     from flask_jwt_extended.exceptions import JWTExtendedException
     if isinstance(e, JWTExtendedException):
@@ -1007,7 +1007,7 @@ def handle_auth_error(e):
             message="Authentication failed: Invalid or expired token",
             status_code=401
         )
-    
+
     # Catch any other exception that might lead to a 401
     return error_response(
         error=str(e),

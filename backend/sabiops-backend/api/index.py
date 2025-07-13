@@ -45,10 +45,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Initialize extensions
 CORS(
     app,
-    origins=["https://sabiops.vercel.app"],
+    origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],
     supports_credentials=True,
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    expose_headers=["Content-Type", "Authorization"]
 )
 jwt = JWTManager(app)
 
@@ -88,11 +89,31 @@ if not supabase:
 # Remove the insecure preflight handler for OPTIONS requests
 
 @app.before_request
+def handle_preflight():
+    """Handle CORS preflight requests"""
+    if request.method == "OPTIONS":
+        response = jsonify()
+        response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin")
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response
+
+@app.before_request
 def load_user():
     """Load user information for authenticated requests"""
     g.user = None
     g.supabase = supabase
     g.mock_db = app.config.get('MOCK_DB')
+
+@app.after_request
+def after_request(response):
+    """Add CORS headers to all responses"""
+    response.headers.add('Access-Control-Allow-Origin', 'https://sabiops.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 # Error handlers
 @app.errorhandler(404)
@@ -152,14 +173,15 @@ def list_routes():
         output.append(f"{rule} [{methods}]")
     return '\n'.join(output), 200, {'Content-Type': 'text/plain'}
 
-@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
-def catch_all(path):
-    return f"[DEBUG] You hit: /{path} with method {request.method}", 404
-
-# Add a global OPTIONS handler for all routes (for Vercel compatibility)
+# Global OPTIONS handler for all routes (for Vercel compatibility)
 @app.route('/<path:path>', methods=['OPTIONS'])
 def options_handler(path):
-    return '', 204
+    response = jsonify()
+    response.headers.add("Access-Control-Allow-Origin", "https://sabiops.vercel.app")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept,Origin")
+    response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response, 204
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
