@@ -89,7 +89,7 @@ def register():
                     print(f"[DEBUG] Re-registration: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
                     # Send verification email
-                    confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+                    confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
                     print(f"[DEBUG] Re-registration: Sending verification email to {email} with token: {token[:10]}...")
                     subject = "SabiOps Email Confirmation"
                     body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -190,7 +190,7 @@ def register():
             print(f"[DEBUG] New user: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
             # Send verification email
-            confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+            confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
             print(f"[DEBUG] New user: Sending verification email to {email} with token: {token[:10]}...")
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
@@ -303,7 +303,7 @@ def register():
                 "used": False
             })
 
-            confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+            confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
             subject = "SabiOps Email Confirmation"
             body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
             html_body = f"""
@@ -393,7 +393,7 @@ def resend_verification_email():
             })
 
         # Send verification email
-        confirm_link = f"https://sabiops.vercel.app/email-verified?token={token}&email={email}"
+        confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
         subject = "SabiOps Email Confirmation"
         body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
         html_body = f"""
