@@ -10,17 +10,17 @@ const EmailVerified = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const email = params.get('email');
+    const verified = params.get('verified');
+    console.log('Email verification useEffect', { token, email, verified });
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated) {
       navigate('/dashboard');
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const email = params.get('email');
-    const verified = params.get('verified');
-    
     // Handle case where Supabase Edge Function redirects back with verification success
     if (verified === 'true' && token && email) {
       setStatus('verifying');
