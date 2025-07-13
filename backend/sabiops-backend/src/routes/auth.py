@@ -457,7 +457,8 @@ def register_confirmed():
                 "role": user["role"],
                 "subscription_plan": user["subscription_plan"],
                 "subscription_status": user["subscription_status"],
-                "trial_ends_at": user.get("trial_ends_at")
+                "trial_ends_at": user.get("trial_ends_at"),
+                "email_confirmed": user.get("email_confirmed", True)
             }
         }
     )
