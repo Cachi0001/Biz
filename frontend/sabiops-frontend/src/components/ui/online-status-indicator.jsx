@@ -23,10 +23,10 @@ export default function OnlineStatusIndicator() {
 
   return (
     <div
-      className={`fixed z-50 bottom-2 right-2 sm:bottom-4 sm:left-4 flex items-center gap-2 px-3 py-1 rounded-full shadow-lg text-white text-xs sm:text-sm font-medium transition-all duration-300
+      className={`fixed z-50 bottom-4 left-4 inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-lg text-white text-xs sm:text-sm font-medium transition-all duration-300
         ${isOnline ? 'bg-green-500' : 'bg-red-500'}
         ${isOnline ? 'opacity-80' : 'opacity-100'}
-        min-w-[80px] max-w-[90vw]'
+        min-w-[80px] max-w-xs'
       `}
       style={{ pointerEvents: 'none' }}
       aria-live="polite"

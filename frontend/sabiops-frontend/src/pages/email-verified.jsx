@@ -22,7 +22,7 @@ const EmailVerified = () => {
       return;
     }
 
-    // If verified=true is present, always show success and redirect to login
+    // If verified=true is present, always show success and redirect to login (absolute priority)
     if (verified === 'true') {
       setStatus('verified-true');
       setTimeout(() => {

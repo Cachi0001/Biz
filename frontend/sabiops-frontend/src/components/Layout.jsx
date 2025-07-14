@@ -35,6 +35,33 @@ import {
   Receipt,
 } from 'lucide-react';
 
+// Tooltip component for Twitter icon
+const Tooltip = ({ children, message }) => {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div className="relative inline-block">
+      <div
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onFocus={() => setShow(true)}
+        onBlur={() => setShow(false)}
+        tabIndex={0}
+        className="outline-none"
+      >
+        {children}
+      </div>
+      {show && (
+        <div className="absolute left-1/2 -translate-x-1/2 -top-12 z-50 flex flex-col items-center">
+          <div className="bg-primary text-primary-foreground text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap font-medium">
+            {message}
+          </div>
+          <div className="w-3 h-3 bg-primary rotate-45 -mt-1 shadow-md"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Layout = ({ children }) => {
   const { user, logout, isOwner, isAdmin, isSalesperson, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -266,7 +293,7 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div className="flex flex-col md:ml-64">
         {/* Header */}
-        <div className="flex h-14 items-center gap-4 bg-primary text-primary-foreground px-4 py-2 shadow-sm rounded-b-xl lg:h-[60px] lg:px-6">
+        <div className="fixed top-0 left-0 w-full z-40 flex h-14 items-center gap-4 bg-primary text-primary-foreground px-4 py-2 shadow-sm rounded-b-xl lg:h-[60px] lg:px-6">
             {/* Mobile spacing for hamburger menu */}
             <div className="md:hidden w-10"></div>
             <div className="w-full flex-1">
@@ -283,11 +310,13 @@ const Layout = ({ children }) => {
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               {/* Social Links */}
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
-                  <Twitter className="h-4 w-4 text-blue-100" />
-                </a>
-              </Button>
+              <Tooltip message="Message our CEO">
+                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                  <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
+                    <Twitter className="h-4 w-4 text-blue-100" />
+                  </a>
+                </Button>
+              </Tooltip>
               {/* Notifications */}
               <NotificationCenter />
               {/* Profile dropdown */}
@@ -329,7 +358,7 @@ const Layout = ({ children }) => {
           </div>
 
         {/* Page Content */}
-        <main className="flex-1 py-4 md:py-6">
+        <main className="flex-1 pt-20 py-4 md:py-6">
           <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             {children}
           </div>

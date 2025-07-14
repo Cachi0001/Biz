@@ -76,7 +76,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || 'An unexpected error occurred during login.';
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'An unexpected error occurred during login.';
+      window.toast && window.toast.error(errorMessage);
       return { success: false, message: errorMessage };
     }
   };
