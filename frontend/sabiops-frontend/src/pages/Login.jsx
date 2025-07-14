@@ -72,7 +72,7 @@ const Login = () => {
                   autoComplete="current-password"
               inputMode="text"
               spellCheck={false}
-              className="pr-10"
+              className="pr-10 h-10"
                 />
             <button
               type="button"

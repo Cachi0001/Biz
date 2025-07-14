@@ -139,7 +139,9 @@ const Register = () => {
               onChange={handleChange}
               placeholder="Create password"
               autoComplete="new-password"
-              className="pr-10"
+              inputMode="text"
+              spellCheck={false}
+              className="pr-10 h-10"
             />
             <button
               type="button"

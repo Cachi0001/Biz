@@ -74,7 +74,7 @@ const ResetPassword = () => {
               autoComplete="new-password"
               inputMode="text"
               spellCheck={false}
-              className="pr-10"
+              className="pr-10 h-10"
             />
             <button
               type="button"
@@ -98,7 +98,7 @@ const ResetPassword = () => {
               autoComplete="new-password"
               inputMode="text"
               spellCheck={false}
-              className="pr-10"
+              className="pr-10 h-10"
             />
             <button
               type="button"
