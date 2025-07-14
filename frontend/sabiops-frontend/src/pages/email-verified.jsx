@@ -32,17 +32,20 @@ const EmailVerified = () => {
             localStorage.setItem('token', response.data.access_token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             setStatus('success');
-            console.log('Verification success, navigating to dashboard');
             setTimeout(() => {
               navigate('/dashboard');
-              window.location.href = '/dashboard'; // force redirect as backup
+              window.location.href = '/dashboard';
             }, 1000);
+          } else if (response && (response.message || '').toLowerCase().includes('already confirmed')) {
+            setStatus('already');
+            setTimeout(() => {
+              navigate('/login');
+            }, 2000);
           } else {
             setStatus('error');
             setError(
-              (response && (response.message || JSON.stringify(response))) || 'Verification failed. Please try again.'
+              (response && (response.message || 'Verification failed. Please try again.'))
             );
-            console.log('Verification failed:', response);
           }
         } catch (err) {
           setStatus('error');
@@ -75,7 +78,7 @@ const EmailVerified = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
       <img src="/sabiops.jpg" alt="SabiOps Logo" className="w-20 h-20 mb-4 rounded-full shadow-lg" />
       <h2 className="text-2xl font-bold text-foreground mb-2">
-        {status === 'success' ? 'Email Verified!' : status === 'error' ? 'Verification Error' : 'Verifying...'}
+        {status === 'success' ? 'Email Verified!' : status === 'already' ? 'Email Already Verified' : status === 'error' ? 'Verification Error' : 'Verifying...'}
       </h2>
       {status === 'verifying' && (
         <p className="text-muted-foreground mb-6 text-center max-w-md">
@@ -84,13 +87,18 @@ const EmailVerified = () => {
       )}
       {status === 'success' && (
         <p className="text-primary font-semibold mb-6 text-center max-w-md">
-          Your email has been verified! Redirecting to login...
+          Your email has been verified! Redirecting to your dashboard...
+        </p>
+      )}
+      {status === 'already' && (
+        <p className="text-primary font-semibold mb-6 text-center max-w-md">
+          Your email is already verified. Redirecting to login...
         </p>
       )}
       {status === 'error' && (
         <div className="text-center max-w-md">
           <p className="text-red-500 font-semibold mb-4">
-            {error}
+            {typeof error === 'string' && error.startsWith('{"error"') ? 'Verification failed. Please try again or contact support.' : error}
           </p>
           <p className="text-muted-foreground text-sm mb-4">
             If you clicked a verification link from your email, please try clicking it again or contact support.

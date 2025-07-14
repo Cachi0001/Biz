@@ -67,10 +67,10 @@ const Register = () => {
 
   if (showCheckEmail) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12 overflow-x-hidden">
         <img src="/sabiops.jpg" alt="SabiOps Logo" className="w-20 h-20 mb-4 rounded-full shadow-lg" />
-        <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
-        <p className="text-muted-foreground mb-6 text-center max-w-md">
+        <h2 className="text-2xl font-bold text-foreground mb-2 text-center">Check your email</h2>
+        <p className="text-muted-foreground mb-6 text-center max-w-md text-base">
           We sent a confirmation link to <span className="font-semibold text-primary">{formData.email}</span>.<br />
           Please click the link in your inbox to verify your account.
         </p>
@@ -80,8 +80,8 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-2 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8 flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-background px-2 py-8 overflow-x-hidden">
+      <div className="w-full max-w-xs sm:max-w-md bg-white rounded-2xl shadow-lg p-4 sm:p-8 flex flex-col items-center">
         {/* Logo inside card */}
         <div className="flex flex-col items-center mb-4">
           <img src="/sabiops.jpg" alt="SabiOps Logo" className="w-14 h-14 rounded-lg shadow mb-2" />
@@ -144,9 +144,8 @@ const Register = () => {
             <button
               type="button"
               tabIndex={-1}
-              className="absolute right-3 top-9 text-gray-500 hover:text-primary focus:outline-none"
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-primary focus:outline-none"
               onClick={() => setShowPassword((v) => !v)}
-              style={{ display: 'flex', alignItems: 'center', height: '2rem' }}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>

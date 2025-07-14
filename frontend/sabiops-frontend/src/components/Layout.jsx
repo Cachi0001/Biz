@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import NotificationCenter from './NotificationCenter';
+import OnlineStatusIndicator from './ui/online-status-indicator';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,7 @@ import {
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
-  const { user, logout, isOwner, isAdmin, isSalesperson } = useAuth();
+  const { user, logout, isOwner, isAdmin, isSalesperson, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -155,6 +156,8 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Online/Offline Indicator for authenticated users */}
+      {isAuthenticated && <OnlineStatusIndicator />}
       {/* Mobile sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
@@ -168,7 +171,7 @@ const Layout = ({ children }) => {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col w-[260px] p-0">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 pt-6">
             <Link
               to="/dashboard"
               className="flex items-center gap-2 text-lg font-semibold"
