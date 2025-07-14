@@ -309,14 +309,17 @@ const Layout = ({ children }) => {
             </form>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Social Links */}
-              <Tooltip message="Message our CEO">
+            {/* Twitter icon with always-visible message below */}
+            <div className="flex flex-col items-center">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
-                    <Twitter className="h-4 w-4 text-blue-100" />
+                  <Twitter className="h-4 w-4 text-blue-100" />
                 </a>
               </Button>
-              </Tooltip>
+              <div className="mt-1 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium">
+                Follow our CEO
+              </div>
+            </div>
             {/* Notifications */}
             <NotificationCenter />
             {/* Profile dropdown */}
