@@ -61,7 +61,7 @@ const EmailVerified = () => {
 
     // If verified=true but no token/email, just show success and redirect to login
     if (verified === 'true') {
-      setStatus('success');
+      setStatus('verified-true');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -78,7 +78,7 @@ const EmailVerified = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
       <img src="/sabiops.jpg" alt="SabiOps Logo" className="w-20 h-20 mb-4 rounded-full shadow-lg" />
       <h2 className="text-2xl font-bold text-foreground mb-2">
-        {status === 'success' ? 'Email Verified!' : status === 'already' ? 'Email Already Verified' : status === 'error' ? 'Verification Error' : 'Verifying...'}
+        {status === 'success' ? 'Email Verified!' : status === 'already' ? 'Email Already Verified' : status === 'verified-true' ? 'Email Verified!' : status === 'error' ? 'Verification Error' : 'Verifying...'}
       </h2>
       {status === 'verifying' && (
         <p className="text-muted-foreground mb-6 text-center max-w-md">
@@ -93,6 +93,11 @@ const EmailVerified = () => {
       {status === 'already' && (
         <p className="text-primary font-semibold mb-6 text-center max-w-md">
           Your email is already verified. Redirecting to login...
+        </p>
+      )}
+      {status === 'verified-true' && (
+        <p className="text-primary font-semibold mb-6 text-center max-w-md">
+          Email verified! You can now log in.<br />Redirecting to login...
         </p>
       )}
       {status === 'error' && (

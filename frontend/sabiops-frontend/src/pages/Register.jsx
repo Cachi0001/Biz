@@ -128,8 +128,7 @@ const Register = () => {
               autoComplete="tel"
             />
           </div>
-          <div className="relative">
-            <Label htmlFor="password">Password</Label>
+          <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
             <Input
               id="password"
               name="password"
@@ -141,12 +140,12 @@ const Register = () => {
               autoComplete="new-password"
               inputMode="text"
               spellCheck={false}
-              className="pr-10 h-10"
+              className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
             />
             <button
               type="button"
               tabIndex={-1}
-              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 hover:text-primary focus:outline-none"
+              className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
               onClick={() => setShowPassword((v) => !v)}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
