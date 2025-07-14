@@ -235,20 +235,12 @@ def register():
 </html>
 """
             from src.services.email_service import email_service
-            try:
-                email_service.send_email(
-                    to_email=email,
-                    subject=subject,
-                    text_content=body,
-                    html_content=html_body
-                )
-                print(f"[DEBUG] New user: Email sent successfully to {email}")
-            except Exception as e:
-                print(f"[ERROR] New user: Failed to send email: {e}")
-                # Rollback: delete the user and token
-                supabase.table("users").delete().eq("id", actual_user_id).execute()
-                supabase.table("email_verification_tokens").delete().eq("user_id", actual_user_id).execute()
-                return error_response("Failed to send verification email", status_code=500)
+            email_service.send_email(
+                to_email=email,
+                subject=subject,
+                text_content=body,
+                html_content=html_body
+            )
 
             return success_response(message="Registration successful. Please check your email to confirm your account.")
 
@@ -1103,22 +1095,14 @@ def reset_password():
             return error_response("User not found", status_code=404)
         if user.get("role", "").lower() != "owner":
             return error_response("Only Owners can reset their password via this method.", status_code=403)
-        # Update password in Supabase Auth
-        try:
-            headers = {
-                "apikey": SUPABASE_SERVICE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                "Content-Type": "application/json"
-            }
-            resp = requests.patch(
-                f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
-                headers=headers,
-                json={"password": new_password}
-            )
-            if resp.status_code != 200:
-                return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
-        except Exception as e:
-            return error_response("Failed to update password in Supabase Auth. Please contact support if this persists.", status_code=500)
+        # Update password in your own users table (not Supabase Auth)
+        password_hash = generate_password_hash(new_password)
+        if supabase:
+            supabase.table("users").update({"password_hash": password_hash}).eq("id", user_id).execute()
+        else:
+            for u in mock_db["users"]:
+                if u["id"] == user_id:
+                    u["password_hash"] = password_hash
         # Mark all old tokens as used (idempotency)
         if supabase:
             supabase.table("password_reset_tokens").update({"used": True}).eq("user_id", user_id).execute()

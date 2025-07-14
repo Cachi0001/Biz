@@ -22,16 +22,7 @@ const EmailVerified = () => {
       return;
     }
 
-    // If verified=true is present, show success and redirect to login
-    if (verified === 'true') {
-      setStatus('success');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-      return;
-    }
-
-    // Handle direct backend verification (legacy)
+    // If token and email are present, always try to auto-login
     if (token && email) {
       setStatus('verifying');
       const confirmRegistration = async () => {
@@ -62,6 +53,15 @@ const EmailVerified = () => {
         }
       };
       confirmRegistration();
+      return;
+    }
+
+    // If verified=true but no token/email, just show success and redirect to login
+    if (verified === 'true') {
+      setStatus('success');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
       return;
     }
 
