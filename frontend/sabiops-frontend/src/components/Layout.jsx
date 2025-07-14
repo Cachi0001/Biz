@@ -265,17 +265,19 @@ const Layout = ({ children }) => {
           </div>
           {/* Icons (Twitter, notifications, profile) */}
           <div className="flex items-center gap-2 md:gap-4 ml-2 min-w-fit">
-            {/* Twitter icon with always-visible message below, styled and contained */}
+            {/* Twitter icon with always-visible message below, styled as a triangle dropdown */}
             <div className="flex flex-col items-center relative" style={{ minWidth: '48px' }}>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
                   <Twitter className="h-4 w-4 text-blue-100" />
                 </a>
               </Button>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-black/90 text-white text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium z-50 min-w-max flex flex-col items-center">
-                Follow our CEO
-                {/* Downward-pointing triangle */}
-                <span className="w-3 h-3 bg-black/90 rotate-45 -mt-1 shadow-md" style={{ display: 'block' }}></span>
+              {/* Triangle dropdown with text inside, pointing to the bird */}
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 flex flex-col items-center">
+                <svg width="120" height="50" viewBox="0 0 120 50" className="block">
+                  <polygon points="60,0 120,50 0,50" fill="black" />
+                  <text x="60" y="32" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="inherit">Follow our CEO</text>
+                </svg>
               </div>
             </div>
             {/* Notifications */}
