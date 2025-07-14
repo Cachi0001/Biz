@@ -212,116 +212,10 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-background">
       {/* Online/Offline Indicator for authenticated users */}
       {isAuthenticated && <OnlineStatusIndicator />}
-      {/* Mobile sidebar */}
+      {/* Header */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 md:hidden absolute top-4 left-4 z-30 border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle navigation menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col w-[260px] p-0">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 pt-6">
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-2 text-lg font-semibold"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">S</span>
-              </div>
-              SabiOps
-            </Link>
-          </div>
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground ${
-                    location.pathname === item.href
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="px-3 pb-6 pt-2">
-            <a
-              href="https://wa.me/2348158025887"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
-            >
-              <MessageCircle className="h-5 w-5 text-green-500" />
-              Contact us
-            </a>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop sidebar */}
-      <div className="hidden border-r bg-muted/40 md:block fixed left-0 top-0 z-30 h-full w-64">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">S</span>
-              </div>
-              <span className="">SabiOps SME</span>
-            </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
-                      location.pathname === item.href
-                        ? 'bg-muted text-primary'
-                        : ''
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
-            <div className="mt-8 px-2 lg:px-4">
-              <a
-                href="https://wa.me/2348158025887"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
-              >
-                <MessageCircle className="h-4 w-4 text-green-500" />
-                Contact us
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-col md:ml-64">
-        {/* Header */}
         <div className="fixed top-0 left-0 w-full z-40 flex h-14 lg:h-[60px] items-center bg-primary text-primary-foreground px-2 lg:px-6 shadow-sm rounded-b-xl">
-          {/* Hamburger menu (mobile only) */}
+          {/* Hamburger menu (mobile only) inside SheetTrigger */}
           <div className="flex items-center md:hidden w-10">
             <SheetTrigger asChild>
               <Button
@@ -421,14 +315,106 @@ const Layout = ({ children }) => {
             </DropdownMenu>
           </div>
         </div>
-
-        {/* Page Content */}
-        <main className="flex-1 pt-14 lg:pt-[60px] py-4 md:py-6">
-          <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            {children}
+        {/* Mobile sidebar content */}
+        <SheetContent side="left" className="flex flex-col w-[260px] p-0">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 pt-6">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 text-lg font-semibold"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">S</span>
+              </div>
+              SabiOps
+            </Link>
           </div>
-        </main>
+          <nav className="flex-1 px-3 py-4 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground ${
+                    location.pathname === item.href
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground'
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="px-3 pb-6 pt-2">
+            <a
+              href="https://wa.me/2348158025887"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
+            >
+              <MessageCircle className="h-5 w-5 text-green-500" />
+              Contact us
+            </a>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop sidebar */}
+      <div className="hidden border-r bg-muted/40 md:block fixed left-0 top-0 z-30 h-full w-64">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">S</span>
+              </div>
+              <span className="">SabiOps SME</span>
+            </Link>
+          </div>
+          <div className="flex-1">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
+                      location.pathname === item.href
+                        ? 'bg-muted text-primary'
+                        : ''
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="mt-8 px-2 lg:px-4">
+              <a
+                href="https://wa.me/2348158025887"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
+              >
+                <MessageCircle className="h-4 w-4 text-green-500" />
+                Contact us
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Page Content */}
+      <main className="flex-1 pt-14 lg:pt-[60px] py-4 md:py-6">
+        <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
     </div>
   );
 };
