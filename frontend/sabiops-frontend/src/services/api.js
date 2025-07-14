@@ -696,6 +696,9 @@ export async function saveDeviceToken(token) {
 
 // Utility to extract user-friendly error messages from API errors
 export function getErrorMessage(error, fallback = 'An unexpected error occurred') {
+  if (!navigator.onLine || (error && error.message && error.message.toLowerCase().includes('network error'))) {
+    return 'No internet connection. Please check your connection and try again.';
+  }
   if (error?.response?.data) {
     // Prefer user-friendly message, then error code, then generic
     return (
