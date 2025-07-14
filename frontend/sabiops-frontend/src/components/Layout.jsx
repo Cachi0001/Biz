@@ -240,9 +240,9 @@ const Layout = ({ children }) => {
             <span className="hidden sm:inline">SabiOps SME</span>
             <span className="inline sm:hidden">SabiOps</span>
           </Link>
-          {/* Search bar (responsive width) */}
-          <div className="flex-1 flex justify-center px-2">
-            <div ref={searchRef} className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+          {/* Search bar (responsive width, limited on mobile) */}
+          <div className="flex-1 flex justify-center px-2 min-w-0">
+            <div ref={searchRef} className="relative w-full max-w-[140px] xs:max-w-[180px] sm:max-w-sm md:max-w-md lg:max-w-lg">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-foreground/70" />
                 <input
@@ -251,8 +251,8 @@ const Layout = ({ children }) => {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   onFocus={handleSearchFocus}
-                  className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-primary-foreground/70"
-                  style={{ minWidth: '120px' }}
+                  className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-primary-foreground/70 min-w-0"
+                  style={{ minWidth: '80px' }}
                 />
               </div>
               <SearchDropdown
@@ -264,7 +264,7 @@ const Layout = ({ children }) => {
             </div>
           </div>
           {/* Icons (Twitter, notifications, profile) */}
-          <div className="flex items-center gap-2 md:gap-4 ml-2">
+          <div className="flex items-center gap-2 md:gap-4 ml-2 min-w-fit">
             {/* Twitter icon with always-visible message below, styled and contained */}
             <div className="flex flex-col items-center relative" style={{ minWidth: '48px' }}>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
@@ -272,12 +272,16 @@ const Layout = ({ children }) => {
                   <Twitter className="h-4 w-4 text-blue-100" />
                 </a>
               </Button>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-black/90 text-white text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium z-50 min-w-max">
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-black/90 text-white text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium z-50 min-w-max flex flex-col items-center">
                 Follow our CEO
+                {/* Downward-pointing triangle */}
+                <span className="w-3 h-3 bg-black/90 rotate-45 -mt-1 shadow-md" style={{ display: 'block' }}></span>
               </div>
             </div>
             {/* Notifications */}
-            <NotificationCenter />
+            <div className="flex items-center">
+              <NotificationCenter />
+            </div>
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -316,7 +320,7 @@ const Layout = ({ children }) => {
           </div>
         </div>
         {/* Mobile sidebar content */}
-        <SheetContent side="left" className="flex flex-col w-[260px] p-0">
+        <SheetContent side="left" className="flex flex-col w-[260px] p-0 bg-white z-50">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 pt-6">
             <Link
               to="/dashboard"
@@ -364,7 +368,7 @@ const Layout = ({ children }) => {
       </Sheet>
 
       {/* Desktop sidebar */}
-      <div className="hidden border-r bg-muted/40 md:block fixed left-0 top-0 z-30 h-full w-64">
+      <div className="hidden border-r bg-muted/40 md:block fixed left-0 top-0 z-30 h-full w-64 bg-white">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
@@ -409,12 +413,14 @@ const Layout = ({ children }) => {
         </div>
       </div>
 
-      {/* Page Content */}
-      <main className="flex-1 pt-14 lg:pt-[60px] py-4 md:py-6">
-        <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          {children}
-        </div>
-      </main>
+      {/* Main content */}
+      <div className="flex flex-col md:ml-64">
+        <main className="flex-1 pt-14 lg:pt-[60px] py-4 md:py-6">
+          <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
