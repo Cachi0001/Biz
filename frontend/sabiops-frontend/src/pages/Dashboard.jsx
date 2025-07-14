@@ -292,7 +292,7 @@ const Dashboard = () => {
       )}
 
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <SimpleCard className="bg-green-50 border-green-200">
           <SimpleCardHeader className="flex flex-row items-center justify-between pb-2">
             <SimpleCardTitle className="text-green-900">Revenue</SimpleCardTitle>

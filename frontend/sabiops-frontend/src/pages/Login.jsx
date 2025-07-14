@@ -70,6 +70,8 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                   autoComplete="current-password"
+              inputMode="text"
+              spellCheck={false}
               className="pr-10"
                 />
             <button

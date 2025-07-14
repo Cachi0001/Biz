@@ -164,7 +164,7 @@ const Layout = ({ children }) => {
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0 md:hidden fixed top-4 left-4 z-50 border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
+            className="shrink-0 md:hidden absolute top-4 left-4 z-30 border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>

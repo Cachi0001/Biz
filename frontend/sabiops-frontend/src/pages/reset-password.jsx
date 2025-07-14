@@ -72,6 +72,8 @@ const ResetPassword = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="New password"
               autoComplete="new-password"
+              inputMode="text"
+              spellCheck={false}
               className="pr-10"
             />
             <button
@@ -94,6 +96,8 @@ const ResetPassword = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               autoComplete="new-password"
+              inputMode="text"
+              spellCheck={false}
               className="pr-10"
             />
             <button
