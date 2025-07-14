@@ -266,73 +266,67 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div className="flex flex-col md:ml-64">
         {/* Header */}
-        <div className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          {/* Mobile spacing for hamburger menu */}
-          <div className="md:hidden w-10"></div>
-          
-          <div className="w-full flex-1">
-            <form>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="search"
-                  placeholder="Search customers, products, invoices..."
-                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-input px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary"
-                />
-              </div>
-            </form>
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Social Links */}
-            <div className="flex items-center gap-2">
+        <div className="flex h-14 items-center gap-4 bg-primary text-primary-foreground px-4 py-2 shadow-sm rounded-b-xl lg:h-[60px] lg:px-6">
+            {/* Mobile spacing for hamburger menu */}
+            <div className="md:hidden w-10"></div>
+            <div className="w-full flex-1">
+              <form>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-foreground/70" />
+                  <input
+                    type="search"
+                    placeholder="Search customers, products, invoices..."
+                    className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Social Links */}
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
-                  <Twitter className="h-4 w-4 text-blue-500" />
+                  <Twitter className="h-4 w-4 text-blue-100" />
                 </a>
               </Button>
+              {/* Notifications */}
+              <NotificationCenter />
+              {/* Profile dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <div className="h-8 w-8 rounded-full bg-primary-foreground/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.full_name}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        Role: {user?.role || 'User'}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-
-            {/* Notifications */}
-            <NotificationCenter />
-
-            {/* Profile dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.full_name}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      Role: {user?.role || 'User'}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
-        </div>
 
         {/* Page Content */}
         <main className="flex-1 py-4 md:py-6">
