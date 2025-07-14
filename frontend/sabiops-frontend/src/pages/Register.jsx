@@ -56,10 +56,12 @@ const Register = () => {
         localStorage.setItem('pending_registration', JSON.stringify(formData));
         setShowCheckEmail(true);
       } else {
-        toast.error(response.message || 'Registration failed. Please check your information and try again.');
+        const errorMsg = response.error || response.message || 'Registration failed. Please check your information and try again.';
+        toast.error(errorMsg);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Registration failed. Please check your information and try again.'));
+      const backendMsg = error?.response?.data?.error || error?.response?.data?.message;
+      toast.error(backendMsg || getErrorMessage(error, 'Registration failed. Please check your information and try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -91,113 +93,113 @@ const Register = () => {
         <form onSubmit={handleSubmit} className="w-full space-y-4" autoComplete="off" noValidate>
           <div>
             <Label htmlFor="full_name">Full Name</Label>
-            <Input
-              id="full_name"
-              name="full_name"
-              type="text"
-              required
-              value={formData.full_name}
-              onChange={handleChange}
-              placeholder="Enter your full name"
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
               autoComplete="name"
-            />
-          </div>
+                  />
+                </div>
           <div>
             <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
               autoComplete="email"
-            />
-          </div>
+                    />
+                  </div>
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="Enter your phone number"
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="Enter your phone number"
               autoComplete="tel"
-            />
-          </div>
+                    />
+                  </div>
           <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create password"
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Create password"
               autoComplete="new-password"
               inputMode="text"
               spellCheck={false}
               className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
-            />
+                      />
             <button
-              type="button"
+                        type="button"
               tabIndex={-1}
               className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
               onClick={() => setShowPassword((v) => !v)}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
-          </div>
+                    </div>
           <div>
             <Label htmlFor="business_name">Business Name <span className="text-xs text-muted-foreground">(Optional)</span></Label>
-            <Input
-              id="business_name"
-              name="business_name"
-              type="text"
-              value={formData.business_name}
-              onChange={handleChange}
-              placeholder="Enter your business name"
+                  <Input
+                    id="business_name"
+                    name="business_name"
+                    type="text"
+                    value={formData.business_name}
+                    onChange={handleChange}
+                    placeholder="Enter your business name"
               autoComplete="organization"
-            />
-          </div>
+                  />
+                </div>
           <div>
             <Label htmlFor="referral_code">Referral Code <span className="text-xs text-muted-foreground">(Optional)</span></Label>
-            <Input
-              id="referral_code"
-              name="referral_code"
-              type="text"
-              value={formData.referral_code}
-              onChange={handleChange}
+                  <Input
+                    id="referral_code"
+                    name="referral_code"
+                    type="text"
+                    value={formData.referral_code}
+                    onChange={handleChange}
               placeholder="e.g., SABIXXXXXX"
               autoComplete="off"
-            />
-          </div>
+                  />
+                </div>
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? (
+                {isLoading ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account...</>
-            ) : (
-              'Create Account'
-            )}
-          </Button>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
         </form>
         <p className="text-xs text-center text-muted-foreground mt-4">
-          By creating an account, you agree to our{' '}
-          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-          {' '}and{' '}
-          <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
-        </p>
+                By creating an account, you agree to our{' '}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+              </p>
         <p className="text-sm text-center text-muted-foreground mt-2">
-          Already have an account?{' '}
-          <Link
-            to="/login"
-            className="font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            Sign in
-          </Link>
-        </p>
+                Already have an account?{' '}
+                <Link
+                  to="/login"
+                  className="font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Sign in
+                </Link>
+              </p>
       </div>
     </div>
   );

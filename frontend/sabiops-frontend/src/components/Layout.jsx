@@ -203,6 +203,17 @@ const Layout = ({ children }) => {
               );
             })}
           </nav>
+          <div className="px-3 pb-6 pt-2">
+            <a
+              href="https://wa.me/2348158025887"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
+            >
+              <MessageCircle className="h-5 w-5 text-green-500" />
+              Contact us
+            </a>
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -237,6 +248,17 @@ const Layout = ({ children }) => {
                 );
               })}
             </nav>
+            <div className="mt-8 px-2 lg:px-4">
+              <a
+                href="https://wa.me/2348158025887"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-900 transition-all shadow-sm"
+              >
+                <MessageCircle className="h-4 w-4 text-green-500" />
+                Contact us
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -267,11 +289,6 @@ const Layout = ({ children }) => {
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
                   <Twitter className="h-4 w-4 text-blue-500" />
-                </a>
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <a href="https://wa.me/2348158025887" target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-4 w-4 text-green-500" />
                 </a>
               </Button>
             </div>
