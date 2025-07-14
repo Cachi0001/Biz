@@ -493,6 +493,32 @@ def register_confirmed():
                     if user_by_id_result.data:
                         user = user_by_id_result.data[0]
                         print(f"[DEBUG] User found by ID has email: {user.get('email')}, email_confirmed: {user.get('email_confirmed', False)}")
+                        # --- UX FIX: If user is confirmed and email matches, issue JWT ---
+                        expires_at = datetime.fromisoformat(token_row["expires_at"]).replace(tzinfo=timezone.utc)
+                        current_time = datetime.now(timezone.utc)
+                        if user.get("email_confirmed", False) and user.get("email") == email and expires_at > current_time:
+                            access_token = create_access_token(identity=user["id"])
+                            print(f"[DEBUG] JWT generated for already confirmed user (token not expired)")
+                            response_data = {
+                                "access_token": access_token,
+                                "user": {
+                                    "id": user["id"],
+                                    "email": user["email"],
+                                    "phone": user["phone"],
+                                    "full_name": user["full_name"],
+                                    "business_name": user["business_name"],
+                                    "role": user["role"],
+                                    "subscription_plan": user["subscription_plan"],
+                                    "subscription_status": user["subscription_status"],
+                                    "trial_ends_at": user.get("trial_ends_at"),
+                                    "email_confirmed": user.get("email_confirmed", False)
+                                }
+                            }
+                            return success_response(
+                                message="Email already confirmed. User logged in.",
+                                data=response_data
+                            )
+                        # --- END UX FIX ---
                         if not user.get("email_confirmed", False):
                             print(f"[DEBUG] User not confirmed, forcing email_confirmed=True")
                             supabase.table("users").update({"email_confirmed": True}).eq("id", user_id).execute()

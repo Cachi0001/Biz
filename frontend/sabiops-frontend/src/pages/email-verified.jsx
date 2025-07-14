@@ -22,42 +22,16 @@ const EmailVerified = () => {
       return;
     }
 
-    // Handle case where Supabase Edge Function redirects back with verification success
-    if (verified === 'true' && token && email) {
-      setStatus('verifying');
-      // Call backend to confirm registration and get JWT
-      const confirmRegistration = async () => {
-        try {
-          const response = await authService.registerConfirmed({ token, email });
-          if (response.success && response.data && response.data.access_token) {
-            localStorage.setItem('token', response.data.access_token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            setStatus('success');
-            console.log('Verification success, navigating to dashboard');
-            setTimeout(() => {
-              navigate('/dashboard');
-              window.location.href = '/dashboard'; // force redirect as backup
-            }, 1000);
-          } else {
-            setStatus('error');
-            setError(
-              (response && (response.message || JSON.stringify(response))) || 'Verification failed. Please try again.'
-            );
-            console.log('Verification failed:', response);
-          }
-        } catch (err) {
-          setStatus('error');
-          setError(
-            (err && (err.message || JSON.stringify(err))) || 'Verification failed. Please try again.'
-          );
-          console.log('Verification failed (exception):', err);
-        }
-      };
-      confirmRegistration();
+    // If verified=true is present, show success and redirect to login
+    if (verified === 'true') {
+      setStatus('success');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
       return;
     }
-    
-    // Handle direct access with token and email (backward compatibility)
+
+    // Handle direct backend verification (legacy)
     if (token && email) {
       setStatus('verifying');
       const confirmRegistration = async () => {
@@ -90,7 +64,7 @@ const EmailVerified = () => {
       confirmRegistration();
       return;
     }
-    
+
     // No valid parameters
     setStatus('error');
     setError('Invalid or missing verification link.');
@@ -110,7 +84,7 @@ const EmailVerified = () => {
       )}
       {status === 'success' && (
         <p className="text-primary font-semibold mb-6 text-center max-w-md">
-          Your email has been verified! Redirecting to your dashboard...
+          Your email has been verified! Redirecting to login...
         </p>
       )}
       {status === 'error' && (
