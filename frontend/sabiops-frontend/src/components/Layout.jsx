@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import NotificationCenter from './NotificationCenter';
 import OnlineStatusIndicator from './ui/online-status-indicator';
+import SearchDropdown from './SearchDropdown';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +70,9 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
 
   // Initialize notifications and real-time updates
   useEffect(() => {
@@ -133,6 +137,29 @@ const Layout = ({ children }) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Handle search functionality
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearchFocus = () => {
+    setSearchOpen(true);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    if (e.target.value.trim()) {
+      setSearchOpen(true);
+    }
+  };
 
   const markNotificationsAsRead = () => {
     setUnreadCount(0);
@@ -297,16 +324,25 @@ const Layout = ({ children }) => {
           {/* Mobile spacing for hamburger menu */}
           <div className="md:hidden w-10"></div>
           <div className="w-full flex-1">
-            <form>
+            <div ref={searchRef} className="relative">
               <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-foreground/70" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-foreground/70" />
                 <input
                   type="search"
                   placeholder="Search customers, products, invoices..."
-                    className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-primary-foreground/70"
                 />
               </div>
-            </form>
+              <SearchDropdown
+                isOpen={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
             {/* Twitter icon with always-visible message below */}

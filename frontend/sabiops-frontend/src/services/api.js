@@ -694,6 +694,17 @@ export async function saveDeviceToken(token) {
   return api.post('/push-subscriptions', { token });
 }
 
+// Global search functionality
+export async function searchGlobal(query, limit = 5) {
+  try {
+    const response = await api.get(`/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] Global search failed:", error);
+    throw error;
+  }
+}
+
 // Utility to extract user-friendly error messages from API errors
 export function getErrorMessage(error, fallback = 'An unexpected error occurred') {
   if (!navigator.onLine || (error && error.message && error.message.toLowerCase().includes('network error'))) {

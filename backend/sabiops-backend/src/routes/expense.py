@@ -78,6 +78,7 @@ def create_expense():
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
             "category": data["category"],
+            "sub_category": data.get("sub_category", ""),
             "amount": float(data["amount"]),
             "description": data.get("description", ""),
             "receipt_url": data.get("receipt_url", ""),
