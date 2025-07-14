@@ -58,7 +58,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await apiLogin(email, password);
+      // FIX: Send credentials as an object with correct keys
+      const response = await apiLogin({ login: email, password });
       if (response.success) {
         console.log('Login successful. Full API Response:', response); // Log full response
         console.log('Login successful. Access Token from response.data:', response.data.access_token); // Added log
