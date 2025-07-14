@@ -79,7 +79,7 @@ const ResetPassword = () => {
             <button
               type="button"
               tabIndex={-1}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-primary focus:outline-none"
+              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 hover:text-primary focus:outline-none"
               onClick={() => setShowPassword((v) => !v)}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -103,7 +103,7 @@ const ResetPassword = () => {
             <button
               type="button"
               tabIndex={-1}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-primary focus:outline-none"
+              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 hover:text-primary focus:outline-none"
               onClick={() => setShowConfirmPassword((v) => !v)}
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
