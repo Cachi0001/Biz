@@ -320,11 +320,35 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div className="flex flex-col md:ml-64">
         {/* Header */}
-        <div className="fixed top-0 left-0 w-full z-40 flex h-14 lg:h-[60px] items-center gap-4 bg-primary text-primary-foreground px-4 lg:px-6 shadow-sm rounded-b-xl">
-          {/* Mobile spacing for hamburger menu */}
-          <div className="md:hidden w-10"></div>
-          <div className="w-full flex-1">
-            <div ref={searchRef} className="relative">
+        <div className="fixed top-0 left-0 w-full z-40 flex h-14 lg:h-[60px] items-center bg-primary text-primary-foreground px-2 lg:px-6 shadow-sm rounded-b-xl">
+          {/* Hamburger menu (mobile only) */}
+          <div className="flex items-center md:hidden w-10">
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 md:hidden border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+          </div>
+          {/* Logo (mobile and desktop) */}
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 text-lg font-semibold ml-2 md:ml-0 md:block"
+            style={{ minWidth: 'fit-content' }}
+          >
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold">S</span>
+            </div>
+            <span className="hidden sm:inline">SabiOps SME</span>
+            <span className="inline sm:hidden">SabiOps</span>
+          </Link>
+          {/* Search bar (responsive width) */}
+          <div className="flex-1 flex justify-center px-2">
+            <div ref={searchRef} className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-foreground/70" />
                 <input
@@ -333,7 +357,8 @@ const Layout = ({ children }) => {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   onFocus={handleSearchFocus}
-                  className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none md:w-2/3 lg:w-1/3 h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-primary-foreground/70"
+                  className="w-full appearance-none bg-primary/90 text-primary-foreground pl-8 shadow-none h-9 rounded-md border border-primary/30 px-3 py-1 text-sm transition-all focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-primary-foreground/70"
+                  style={{ minWidth: '120px' }}
                 />
               </div>
               <SearchDropdown
@@ -344,15 +369,16 @@ const Layout = ({ children }) => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Twitter icon with always-visible message below */}
-            <div className="flex flex-col items-center">
+          {/* Icons (Twitter, notifications, profile) */}
+          <div className="flex items-center gap-2 md:gap-4 ml-2">
+            {/* Twitter icon with always-visible message below, styled and contained */}
+            <div className="flex flex-col items-center relative" style={{ minWidth: '48px' }}>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a href="https://x.com/Caleb0533" target="_blank" rel="noopener noreferrer">
                   <Twitter className="h-4 w-4 text-blue-100" />
                 </a>
               </Button>
-              <div className="mt-1 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium">
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-black/90 text-white text-xs px-3 py-1 rounded-lg shadow-lg whitespace-nowrap font-medium z-50 min-w-max">
                 Follow our CEO
               </div>
             </div>
@@ -362,7 +388,7 @@ const Layout = ({ children }) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <div className="h-8 w-8 rounded-full bg-primary-foreground/10 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-primary-foreground/10 flex items-center justify-center">
                     <User className="h-4 w-4 text-primary-foreground" />
                   </div>
                 </Button>
