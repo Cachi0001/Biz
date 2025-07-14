@@ -47,31 +47,31 @@ const Login = () => {
         </div>
         <form onSubmit={handleLogin} className="w-full space-y-4" autoComplete="off" noValidate>
           <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              autoComplete="username"
-            />
-          </div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  autoComplete="username"
+                />
+              </div>
           <div className="relative">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
               type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              autoComplete="current-password"
+                    required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                  autoComplete="current-password"
               className="pr-10"
-            />
+                />
             <button
               type="button"
               tabIndex={-1}
@@ -80,18 +80,18 @@ const Login = () => {
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
-          </div>
+              </div>
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...</>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+                {isLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...</>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
         <div className="w-full flex flex-col items-center mt-4">
           <Link to="/forgot-password" className="font-medium text-primary hover:text-primary/80 mb-2">
-            Forgot password?
+                Forgot password?
           </Link>
           <span className="text-sm text-muted-foreground">Don't have an account?{' '}
             <Link to="/register" className="font-medium text-primary hover:text-primary/80">Register</Link>

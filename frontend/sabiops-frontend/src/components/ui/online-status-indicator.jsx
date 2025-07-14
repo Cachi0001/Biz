@@ -19,13 +19,11 @@ export default function OnlineStatusIndicator() {
     };
   }, []);
 
-  // Debug: confirm rendering
-  console.log('OnlineStatusIndicator rendered, isOnline:', isOnline);
-  debugger;
+  // Remove debug border and debugger
 
   return (
     <div
-      className={`fixed z-50 top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-2 px-3 py-1 rounded-full shadow-lg text-white text-xs sm:text-sm font-medium transition-all duration-300 border-4 border-red-500
+      className={`fixed z-50 bottom-2 left-2 sm:bottom-4 sm:left-4 flex items-center gap-2 px-3 py-1 rounded-full shadow-lg text-white text-xs sm:text-sm font-medium transition-all duration-300
         ${isOnline ? 'bg-green-500' : 'bg-red-500'}
         ${isOnline ? 'opacity-80' : 'opacity-100'}
         min-w-[80px] max-w-[90vw]'

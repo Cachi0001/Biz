@@ -162,9 +162,9 @@ const Layout = ({ children }) => {
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="shrink-0 md:hidden fixed top-4 left-4 z-50 bg-background shadow-md"
+            className="shrink-0 md:hidden fixed top-4 left-4 z-50 border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
