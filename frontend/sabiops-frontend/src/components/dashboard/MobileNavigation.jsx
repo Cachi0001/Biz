@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, TrendingUp, PlusCircle, BarChart3, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils/index.js';
 
 const MobileNavigation = () => {
   const navigate = useNavigate();

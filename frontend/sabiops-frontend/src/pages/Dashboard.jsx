@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Plus, FileText, Users, Package, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatCurrency, formatDateTime } from '../lib/utils';
+import { formatCurrency, formatDateTime } from '../lib/utils/index.js';
 
 const Dashboard = () => {
   const { user, isAuthenticated, role, subscription, businessName, isOwner, isFreeTrial, trialDaysLeft, canAccessFeature } = useAuth();

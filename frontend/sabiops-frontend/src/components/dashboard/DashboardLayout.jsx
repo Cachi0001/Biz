@@ -1,6 +1,6 @@
 import React from 'react';
 import { MobileNavigation } from './MobileNavigation';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils/index.js';
 
 const DashboardLayout = ({ children }) => {
   return (

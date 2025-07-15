@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { TrendingUp, TrendingDown, Users, FileText, DollarSign, Package, Crown, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatCurrency, formatNumber } from '../../lib/utils';
+import { formatCurrency, formatNumber } from '../../lib/utils/index.js';
 
 const ModernOverviewCards = ({ data, loading }) => {
   const { user } = useAuth();
