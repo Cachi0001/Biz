@@ -4,6 +4,9 @@ import { useDashboard } from '../hooks/useDashboard';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import ModernOverviewCards from '../components/dashboard/ModernOverviewCards';
+import ModernChartsSection from '../components/dashboard/ModernChartsSection';
+import TeamManagement from '../components/team/TeamManagement';
+import ReferralWidget from '../components/referrals/ReferralWidget';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Plus, FileText, Users, Package, TrendingUp } from 'lucide-react';
@@ -57,6 +60,12 @@ const Dashboard = () => {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">Overview</h2>
           <ModernOverviewCards data={dashboardData} loading={loading} />
+        </div>
+
+        {/* Charts Section */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-gray-900">Analytics</h2>
+          <ModernChartsSection data={dashboardData} loading={loading} />
         </div>
 
         {/* Quick Actions */}
@@ -149,17 +158,18 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Owner-only features */}
+        {/* Owner-only Team Management */}
         {isOwner && canAccessFeature('team_management') && (
-          <Card className="bg-gradient-to-r from-purple-100 to-blue-100">
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">Team Management</h3>
-              <p className="text-sm text-gray-600 mb-3">Manage your team members and their roles</p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/team">Manage Team</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <TeamManagement data={dashboardData?.team} loading={loading} />
+        )}
+
+        {/* Owner-only Referral System */}
+        {isOwner && canAccessFeature('referrals') && (
+          <ReferralWidget 
+            referralData={dashboardData?.referrals} 
+            loading={loading}
+            onWithdraw={() => alert('Withdrawal feature coming soon!')}
+          />
         )}
       </div>
     </DashboardLayout>
