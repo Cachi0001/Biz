@@ -217,16 +217,16 @@ const Layout = ({ children }) => {
         <div className="fixed top-0 left-0 w-full z-40 flex h-14 lg:h-[60px] items-center bg-primary text-primary-foreground px-2 lg:px-6 shadow-sm rounded-b-xl">
           {/* Hamburger menu (mobile only) inside SheetTrigger */}
           <div className="flex items-center md:hidden w-10">
-            <SheetTrigger asChild>
-              <Button
+        <SheetTrigger asChild>
+          <Button
                 variant="ghost"
-                size="icon"
+            size="icon"
                 className="shrink-0 md:hidden border-none bg-transparent hover:bg-gray-100 focus:ring-2 focus:ring-primary h-10 w-10 rounded-full"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </Button>
+        </SheetTrigger>
           </div>
           {/* Logo (mobile and desktop) */}
           <Link

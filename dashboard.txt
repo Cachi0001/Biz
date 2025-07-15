@@ -1,0 +1,246 @@
+SabiOps Dashboard Integration Guide (Dashboard-Only, Role-Separated, Role-Rendered)
+==================================================================================
+
+This file provides a **dashboard-only** integration guide for SabiOps, with all backend endpoints, fields, UI sections, and color branding, separated by user role. **The dashboard is always rendered based on the user's role after login.** All constraints and inheritance logic are included. Use this as the definitive reference for dashboard implementation.
+
+---
+
+# 1. Color Branding (Consistent Across Dashboard)
+- **Primary Green:** #16a34a (Tailwind: green-600)
+- **Accent Green:** #22c55e (green-500)
+- **Dark Green:** #15803d (green-700)
+- **Light Green:** #bbf7d0 (green-100)
+- **Background Green:** #f0fdf4 (green-50)
+- **Usage:**
+  - Cards: bg-green-50, border-green-200
+  - Text: text-green-900, text-green-800, text-green-700
+  - Buttons: bg-green-600, hover:bg-green-700, text-white
+  - Icons: text-green-600
+  - Charts: Use green-600 for lines/bars, green-100 for backgrounds
+
+---
+
+# 2. Role-Based Dashboard Rendering & Constraints
+
+**The dashboard is rendered based on the user's role after login.**
+
+## Owner
+- **Can sign up, reset password, and login**
+- **Can create team members (Admin, Salesperson)**
+- **Dashboard is rendered with:**
+  - All metrics (revenue, COGS, gross/net profit, expenses, cash flow, inventory, top products/expenses, low stock)
+  - All charts (revenue trend, top products, sales analytics)
+  - All quick actions (add customer, add product, new invoice, view payments, etc.)
+  - All notifications and push notifications (low stock, payment, etc.)
+  - Upgrade prompts, subscription status, crown indicator if on trial/weekly
+  - Team management, referral earnings, withdrawal requests
+  - Recent activities (sales, invoices, payments, etc.)
+  - Offline/sync status indicator
+  - Intelligent upgrade path suggestions (if nearing limits)
+- **Subscription plan inherited by team members** (Admins/Salespeople get same plan/trial as owner)
+- **Constraints:**
+  - Only Owners can access team management, subscription upgrade, and referrals dashboard sections
+  - Only Owners can create/deactivate team, upgrade plan, or request withdrawals
+  - Only Owners can see advanced upgrade suggestions and manage subscription
+
+## Admin
+- **Cannot sign up or reset password (must be created by Owner)**
+- **Can only login**
+- **Dashboard is rendered with:**
+  - All operational metrics (revenue, COGS, gross/net profit, expenses, cash flow, inventory, top products/expenses, low stock)
+  - All charts (revenue trend, top products, sales analytics)
+  - Quick actions (add customer, add product, new invoice, view payments)
+  - Notifications and push notifications
+  - Recent activities (sales, invoices, payments, etc.)
+  - Offline/sync status indicator
+- **No access to:**
+  - Team management, subscription upgrade, or referrals dashboard sections
+  - Cannot see or manage owner’s subscription status
+  - Cannot see upgrade suggestions
+- **Constraints:**
+  - Admins inherit owner’s subscription plan and trial period
+  - Cannot create team or upgrade plan
+
+## Salesperson
+- **Cannot sign up or reset password (must be created by Owner)**
+- **Can only login**
+- **Dashboard is rendered with:**
+  - Sales-focused metrics (revenue, sales, customers, invoices)
+  - Charts: revenue trend, top customers/products (if allowed)
+  - Quick actions: new invoice, add customer (if allowed)
+  - Notifications and push notifications
+  - Recent activities (sales, invoices, payments, etc.)
+  - Offline/sync status indicator
+- **No access to:**
+  - Team management, subscription, referrals, expenses, or inventory management
+  - Cannot see upgrade suggestions
+- **Constraints:**
+  - Salespeople inherit owner’s subscription plan and trial period
+  - Cannot create team, upgrade plan, or manage products/expenses
+
+---
+
+# 3. Dashboard Endpoints (Backend, All Roles)
+
+**All dashboard endpoints are filtered and rendered by user role.**
+
+## Common Endpoints (All roles, but data filtered by role)
+- **GET /api/dashboard/overview**
+  - Returns: revenue, customers, products, invoices (see below)
+- **GET /api/dashboard/financials**
+  - Returns: revenue, cogs, gross/net profit, expenses, cash flow, inventory, low stock, top products/expenses
+- **GET /api/dashboard/revenue-chart**
+  - Returns: 12-month revenue trend
+- **GET /api/dashboard/top-customers**
+  - Returns: top customers by revenue
+- **GET /api/dashboard/top-products**
+  - Returns: top products by sales
+- **GET /api/sales/daily-report**
+  - Returns: daily sales, payment methods, top products
+- **GET /api/sales/analytics**
+  - Returns: sales summary, daily revenue, top customers, payment methods
+- **GET /api/expense/stats**
+  - Returns: total/average expenses, breakdown by category/month
+- **GET /api/invoice/stats**
+  - Returns: invoice counts, paid/overdue, outstanding amount
+- **GET /api/payment/stats**
+  - Returns: payment counts, revenue, fees, recent payments
+- **GET /api/notifications/**
+  - Returns: notifications, unread count
+- **GET /api/activities** (if implemented)
+  - Returns: recent activities (sales, invoices, payments, etc.)
+- **GET /api/sync/status** (if implemented)
+  - Returns: offline/sync status
+
+## Owner-Only Endpoints (for dashboard sections)
+- **GET /api/team** (team management)
+- **GET /api/referrals** (referral earnings)
+- **POST /api/withdrawal/request** (referral withdrawal)
+- **GET /api/subscription/plans** (subscription info)
+- **POST /api/subscription/upgrade** (upgrade plan)
+- **GET /api/upgrade/suggestions** (intelligent upgrade path)
+
+---
+
+# 4. Dashboard UI Sections (by Role)
+
+**The dashboard UI is always rendered based on the user's role.**
+
+## Owner
+- **Header:** Welcome, business at a glance, trial/upgrade status, crown if on trial/weekly
+- **Overview Cards:** Revenue, COGS, Gross Profit, Net Profit, Expenses, Cash Flow, Inventory Value, Top Expenses, Low Stock Alerts, Top Products
+- **Charts:** Revenue Trend (line), Top Products (pie), Sales Analytics (bar/line)
+- **Quick Actions:** New Invoice, Add Customer, Add Product, View Payments, etc.
+- **Team Management:** List/add/deactivate team members
+- **Referrals:** Earnings, withdrawal form
+- **Notifications:** All, push notifications
+- **Recent Activities:** List of recent sales, invoices, payments, etc.
+- **Offline/Sync Status:** Indicator for offline mode and sync status
+- **Upgrade Prompt:** If on trial/weekly or nearing limits
+- **Error Handling:** All API errors surfaced in UI
+- **Color:** All cards/buttons/icons use green branding
+
+## Admin
+- **Header:** Welcome, business at a glance
+- **Overview Cards:** Revenue, COGS, Gross Profit, Net Profit, Expenses, Cash Flow, Inventory Value, Top Expenses, Low Stock Alerts, Top Products
+- **Charts:** Revenue Trend, Top Products, Sales Analytics
+- **Quick Actions:** New Invoice, Add Customer, Add Product, View Payments
+- **Notifications:** All, push notifications
+- **Recent Activities:** List of recent sales, invoices, payments, etc.
+- **Offline/Sync Status:** Indicator for offline mode and sync status
+- **Error Handling:** All API errors surfaced in UI
+- **No access to:** Team, Referrals, Subscription Upgrade, Upgrade Suggestions
+- **Color:** All cards/buttons/icons use green branding
+
+## Salesperson
+- **Header:** Welcome, business at a glance
+- **Overview Cards:** Revenue, Sales, Customers, Invoices (no expenses, inventory, or team)
+- **Charts:** Revenue Trend (if allowed)
+- **Quick Actions:** New Invoice, Add Customer (if allowed)
+- **Notifications:** All, push notifications
+- **Recent Activities:** List of recent sales, invoices, payments, etc.
+- **Offline/Sync Status:** Indicator for offline mode and sync status
+- **Error Handling:** All API errors surfaced in UI
+- **No access to:** Team, Referrals, Subscription, Expenses, Inventory, Upgrade Suggestions
+- **Color:** All cards/buttons/icons use green branding
+
+---
+
+# 5. Dashboard Data Fields (All Roles, Filtered by Role)
+
+- **Revenue:** total, this_month
+- **COGS:** total, this_month (Owner/Admin)
+- **Gross Profit:** total, this_month (Owner/Admin)
+- **Net Profit:** total, this_month (Owner/Admin)
+- **Expenses:** total, this_month, by_category (Owner/Admin)
+- **Cash Flow:** money_in, money_out, net (Owner/Admin)
+- **Inventory Value:** value, low_stock (Owner/Admin)
+- **Top Expenses:** category, amount (Owner/Admin)
+- **Low Stock Alerts:** name, quantity (Owner/Admin)
+- **Top Products:** name, quantity (Owner/Admin)
+- **Customers:** total, new_this_month
+- **Invoices:** overdue
+- **Sales:** total_sales, total_amount, total_quantity (Salesperson)
+- **Charts:** revenue trend, top products/customers, sales analytics
+- **Notifications:** unread_count, list
+- **Recent Activities:** type, description, timestamp
+- **Offline/Sync Status:** isOffline, lastSync, syncErrors
+- **Upgrade Suggestions:** suggestedPlan, reason (Owner only)
+
+---
+
+# 6. Constraints & Inheritance Logic
+- **Only Owners can sign up, reset password, or create team.**
+- **Admins/Salespeople can only login (must be created by Owner).**
+- **Team members (Admin/Salesperson) inherit Owner’s subscription plan and trial period.**
+- **Dashboard is always rendered based on user role after login.**
+- **All dashboard API endpoints require JWT token.**
+- **All dashboard data is filtered by role in backend and frontend.**
+- **UI must hide or disable sections not available to current role.**
+- **All error messages must be user-friendly and surfaced in the dashboard UI.**
+- **Offline/sync status must be visible if offline mode is supported.**
+- **Push notifications must be enabled for all roles.**
+
+---
+
+# 7. Example Dashboard API Response (Owner)
+GET /api/dashboard/financials
+Headers: { Authorization: Bearer <token> }
+Returns:
+{
+  "revenue": { "total": 100000, "this_month": 20000 },
+  "cogs": { "total": 40000, "this_month": 8000 },
+  "gross_profit": { "total": 60000, "this_month": 12000 },
+  "expenses": { "total": 20000, "this_month": 5000, "by_category": { "Rent": 5000, "Utilities": 2000 } },
+  "net_profit": { "total": 40000, "this_month": 7000 },
+  "cash_flow": { "money_in": 120000, "money_out": 80000, "net": 40000 },
+  "inventory_value": 30000,
+  "low_stock": [{ "name": "Printer Paper", "quantity": 2 }],
+  "top_products": [{ "name": "Office Chair", "quantity": 10 }],
+  "top_expenses": [{ "category": "Rent", "amount": 5000 }],
+  "recent_activities": [
+    { "type": "sale", "description": "Sold 2 Office Chairs", "timestamp": "2025-01-07T10:00:00Z" },
+    { "type": "invoice", "description": "Invoice #123 paid", "timestamp": "2025-01-07T09:00:00Z" }
+  ],
+  "notifications": [
+    { "id": 1, "message": "Low stock: Printer Paper", "read": false, "timestamp": "2025-01-07T08:00:00Z" }
+  ],
+  "offline_status": { "isOffline": false, "lastSync": "2025-01-07T07:00:00Z", "syncErrors": [] },
+  "upgrade_suggestions": [
+    { "suggestedPlan": "Silver Monthly", "reason": "You are nearing your invoice limit." }
+  ]
+}
+
+---
+
+# 8. Dashboard Color Palette (for UI)
+- **Primary Green:** #16a34a (Tailwind: green-600)
+- **Accent Green:** #22c55e (green-500)
+- **Dark Green:** #15803d (green-700)
+- **Light Green:** #bbf7d0 (green-100)
+- **Background Green:** #f0fdf4 (green-50)
+Add a twitter icon/button that has the mesage content "Follow our CEO" and that redirects users to this profile or username 'Caleb0533' on X
+'Contact us for feedback' button/message that redirects the user to this number on whatsapp '+2348158025887'
+---
+
+**This file is now strictly dashboard-only, role-separated, and explicitly states that the dashboard is always rendered based on user role after login, with all fields, endpoints, UI sections, color branding, and constraints/inheritance logic included and aligned with backend, frontend, and PRD.** 
