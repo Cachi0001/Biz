@@ -131,10 +131,13 @@ export const AuthProvider = ({ children }) => {
         const role = user.role;
         const status = user.subscription_status;
         
+        // Trial users get FULL access (they're experiencing the paid plan)
+        const hasAccess = status === 'active' || status === 'trial';
+        
         // Role-based access
-        if (feature === 'team_management') return role === 'Owner';
-        if (feature === 'referrals') return role === 'Owner' && status === 'active';
-        if (feature === 'analytics') return status === 'active' || role === 'Owner';
+        if (feature === 'team_management') return role === 'Owner' && hasAccess;
+        if (feature === 'referrals') return role === 'Owner' && hasAccess;
+        if (feature === 'analytics') return hasAccess;
         
         return true; // Basic features available to all
       }

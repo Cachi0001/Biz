@@ -29,12 +29,14 @@ const Analytics = () => {
     );
   }
 
-  if (isFreeTrial) {
+  // Trial users get FULL access (they're experiencing the weekly plan)
+  // Only show limitations for expired or non-trial users
+  if (!canAccessFeature('analytics')) {
     return (
       <DashboardLayout>
         <DashboardHeader />
         <div className="p-4 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 min-h-screen">
-          {/* Trial Limitation Notice */}
+          {/* Upgrade Notice for Non-Trial Users */}
           <Card className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-orange-300 shadow-lg">
             <CardContent className="p-6 text-center">
               <div className="flex justify-center mb-4">
@@ -44,33 +46,17 @@ const Analytics = () => {
               </div>
               <h2 className="text-xl font-bold text-orange-900 mb-2">Advanced Analytics</h2>
               <p className="text-orange-800 mb-4">
-                Unlock detailed business insights and advanced reporting with a paid subscription.
+                Subscribe to access detailed business insights and advanced reporting.
               </p>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-orange-800">Revenue Trends</p>
-                </div>
-                <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-orange-800">Performance Metrics</p>
-                </div>
-              </div>
               <Button 
                 className="bg-orange-600 hover:bg-orange-700 text-white"
                 onClick={() => window.location.href = '/subscription-upgrade'}
               >
                 <Crown className="h-4 w-4 mr-2" />
-                Upgrade Now
+                Subscribe Now
               </Button>
             </CardContent>
           </Card>
-
-          {/* Limited Preview */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-gray-900">Preview (Limited)</h2>
-            <ModernChartsSection data={dashboardData} loading={loading} />
-          </div>
         </div>
       </DashboardLayout>
     );
