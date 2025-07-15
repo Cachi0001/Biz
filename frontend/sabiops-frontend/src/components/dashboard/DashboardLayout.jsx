@@ -1,12 +1,16 @@
 import React from 'react';
 import { MobileNavigation } from './MobileNavigation';
+import { ModernHeader } from './ModernHeader';
 import { cn } from '../../lib/utils/index.js';
 
 const DashboardLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-green-50">
-      {/* Mobile-first layout */}
-      <div className="pb-16"> {/* Bottom padding for mobile nav */}
+      {/* Modern Header */}
+      <ModernHeader />
+      
+      {/* Main content with proper spacing */}
+      <div className="pt-14 lg:pt-[60px] pb-16"> {/* Top padding for header, bottom padding for mobile nav */}
         {children}
       </div>
       

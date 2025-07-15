@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -568,22 +569,25 @@ const Invoices = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Plus className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading invoices...</p>
+      <DashboardLayout>
+        <div className="p-3 sm:p-4 flex items-center justify-center h-64">
+          <div className="text-center">
+            <Plus className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p>Loading invoices...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-muted-foreground">Manage your invoices and billing</p>
-        </div>
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoices</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage your invoices and billing</p>
+          </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -692,7 +696,8 @@ const Invoices = () => {
           <InvoiceForm isEdit={true} />
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

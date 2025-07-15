@@ -114,31 +114,32 @@ const UpgradeModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-6xl max-h-[90vh] overflow-y-auto border-green-200 bg-white">
-        <CardHeader className="text-center border-b border-green-100 bg-gradient-to-r from-green-50 to-blue-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <Card className="w-full max-w-7xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto border-green-200 bg-white rounded-lg sm:rounded-xl">
+        <CardHeader className="text-center border-b border-green-100 bg-gradient-to-r from-green-50 to-blue-50 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-green-900 flex items-center">
-              <Crown className="h-5 w-5 mr-2" />
-              Choose Your Plan
+            <CardTitle className="text-lg sm:text-xl font-bold text-green-900 flex items-center">
+              <Crown className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span className="hidden sm:inline">Choose Your Plan</span>
+              <span className="sm:hidden">Plans</span>
             </CardTitle>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={onClose}
               disabled={loading}
-              className="hover:bg-green-100"
+              className="hover:bg-green-100 p-2"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-green-600 mt-2">
+          <p className="text-green-600 mt-2 text-sm sm:text-base">
             Unlock all features and grow your business with SabiOps
           </p>
         </CardHeader>
         
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {plans.map((plan) => (
               <Card 
                 key={plan.id} 
@@ -156,13 +157,13 @@ const UpgradeModal = ({ isOpen, onClose }) => {
                   </div>
                 )}
                 
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-lg font-bold text-green-900">
+                <CardHeader className="text-center pb-3 sm:pb-4 p-3 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg font-bold text-green-900">
                     {plan.name}
                   </CardTitle>
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600">
                     {plan.displayPrice}
-                    <span className="text-sm font-normal text-green-500">
+                    <span className="text-xs sm:text-sm font-normal text-green-500">
                       {plan.period}
                     </span>
                   </div>

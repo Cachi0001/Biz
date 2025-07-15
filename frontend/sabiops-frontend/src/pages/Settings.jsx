@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -81,13 +82,14 @@ const Settings = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Manage your account and preferences</p>
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage your account and preferences</p>
+          </div>
         </div>
-      </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
@@ -347,7 +349,8 @@ const Settings = () => {
           </RoleBasedWrapper>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

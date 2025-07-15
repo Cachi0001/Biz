@@ -9,10 +9,10 @@ const ModernOverviewCards = ({ data, loading }) => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {[...Array(6)].map((_, i) => (
           <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="h-4 bg-gray-200 rounded mb-2"></div>
               <div className="h-6 bg-gray-200 rounded"></div>
             </CardContent>
@@ -80,10 +80,10 @@ const ModernOverviewCards = ({ data, loading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-2 sm:gap-3">
       {cards.map((card, index) => (
         <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between mb-2">
               <div className={`p-2 rounded-lg ${card.bgColor}`}>
                 <card.icon className={`h-4 w-4 ${card.color}`} />
@@ -95,9 +95,9 @@ const ModernOverviewCards = ({ data, loading }) => {
               )}
             </div>
             <div>
-              <p className="text-xs text-gray-600 mb-1">{card.title}</p>
-              <p className="text-lg font-bold text-gray-900">{card.value}</p>
-              <p className={`text-xs ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-xs text-gray-600 mb-1 truncate">{card.title}</p>
+              <p className="text-sm sm:text-lg font-bold text-gray-900 truncate">{card.value}</p>
+              <p className={`text-xs ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'} truncate`}>
                 {card.change}
               </p>
             </div>

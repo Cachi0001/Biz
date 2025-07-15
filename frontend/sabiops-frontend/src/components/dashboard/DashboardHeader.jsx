@@ -148,19 +148,19 @@ const DashboardHeader = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">
+    <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-bold text-sm sm:text-lg">
               {user?.full_name?.charAt(0) || user?.name?.charAt(0) || 'U'}
             </span>
           </div>
-          <div>
-            <h1 className="text-lg font-semibold">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm sm:text-lg font-semibold truncate">
               {getGreeting()}, {user?.full_name?.split(' ')[0] || user?.name?.split(' ')[0] || 'User'}!
             </h1>
-            <p className="text-green-100 text-sm">
+            <p className="text-green-100 text-xs sm:text-sm truncate">
               {user?.business_name || 'SabiOps Dashboard'} • {user?.role || 'User'}
             </p>
           </div>

@@ -1,24 +1,61 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, TrendingUp, PlusCircle, BarChart3, Settings } from 'lucide-react';
+import { 
+  Home, 
+  TrendingUp, 
+  PlusCircle, 
+  BarChart3, 
+  Settings,
+  Users,
+  Package,
+  FileText,
+  CreditCard,
+  Receipt,
+  UserPlus
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils/index.js';
 
 const MobileNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   
   const getNavigationItems = () => {
-    const baseItems = [
+    // Always show these core items
+    const coreItems = [
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
-      { icon: TrendingUp, label: 'Sales', path: '/sales' },
-      { icon: PlusCircle, label: 'Quick Add', path: '/products' },
-      { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-      { icon: Settings, label: 'Settings', path: '/settings' },
+      { icon: Users, label: 'Customers', path: '/customers' },
+      { icon: FileText, label: 'Invoices', path: '/invoices' },
+      { icon: TrendingUp, label: 'Sales', path: '/sales/report' },
     ];
 
-    return baseItems;
+    // Add the 5th item based on current page or role
+    let fifthItem;
+    
+    // If we're on a specific page, show relevant action
+    if (location.pathname.includes('/products')) {
+      fifthItem = { icon: Package, label: 'Products', path: '/products' };
+    } else if (location.pathname.includes('/expenses')) {
+      fifthItem = { icon: Receipt, label: 'Expenses', path: '/expenses' };
+    } else if (location.pathname.includes('/team')) {
+      fifthItem = { icon: UserPlus, label: 'Team', path: '/team' };
+    } else if (location.pathname.includes('/transactions')) {
+      fifthItem = { icon: CreditCard, label: 'Money', path: '/transactions' };
+    } else if (location.pathname.includes('/analytics')) {
+      fifthItem = { icon: BarChart3, label: 'Analytics', path: '/analytics' };
+    } else {
+      // Default 5th item based on role
+      if (isOwner) {
+        fifthItem = { icon: Package, label: 'Products', path: '/products' };
+      } else if (isAdmin) {
+        fifthItem = { icon: Package, label: 'Products', path: '/products' };
+      } else {
+        fifthItem = { icon: Settings, label: 'Settings', path: '/settings' };
+      }
+    }
+
+    return [...coreItems, fifthItem];
   };
 
   const navigationItems = getNavigationItems();

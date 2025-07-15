@@ -72,7 +72,7 @@ const Dashboard = () => {
         {/* Header */}
         <DashboardHeader />
 
-        <div className="p-4 space-y-6">
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
           {/* Subscription Status - Owner Only */}
           <SubscriptionStatus 
             subscription={subscriptionData}

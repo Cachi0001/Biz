@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Download, Eye, Edit, Trash2, ShoppingCart, TrendingUp, Calculator } from 'lucide-react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
+import { Plus, Search, Calendar, Download, Eye, Edit, Trash2, ShoppingCart, TrendingUp, Calculator, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -212,23 +213,26 @@ const Sales = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <ShoppingCart className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading sales...</p>
+      <DashboardLayout>
+        <div className="p-3 sm:p-4 flex items-center justify-center h-64">
+          <div className="text-center">
+            <ShoppingCart className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p>Loading sales...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Sales</h1>
-          <p className="text-muted-foreground">Record sales and track performance</p>
-        </div>
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Record sales and track performance</p>
+          </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -592,7 +596,8 @@ const Sales = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Plus, Search, Edit, Trash2, Users, Eye, EyeOff, UserCheck, UserX, RotateCcw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -355,23 +356,26 @@ const Team = () => {
 
   if (loading && teamMembers.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Users className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading team members...</p>
+      <DashboardLayout>
+        <div className="p-3 sm:p-4 flex items-center justify-center h-64">
+          <div className="text-center">
+            <Users className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p>Loading team members...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Team Management</h1>
-          <p className="text-muted-foreground">Manage your sales team and their permissions</p>
-        </div>
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Team Management</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage your sales team and their permissions</p>
+          </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -537,7 +541,8 @@ const Team = () => {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

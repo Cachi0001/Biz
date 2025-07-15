@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getInvoices, getExpenses, getSales, getPayments } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -235,24 +236,27 @@ const Transactions = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Transaction History</h1>
+      <DashboardLayout>
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transaction History</h1>
+          </div>
+          <div className="text-center py-8">Loading transactions...</div>
         </div>
-        <div className="text-center py-8">Loading transactions...</div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Transaction History</h1>
-          <p className="text-muted-foreground">
-            Complete overview of money flowing in and out of your business
-          </p>
-        </div>
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transaction History</h1>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Complete overview of money flowing in and out of your business
+            </p>
+          </div>
         <Button onClick={exportTransactions} variant="outline">
           <Download className="h-4 w-4 mr-2" />
           Export CSV
@@ -488,7 +492,8 @@ const Transactions = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
