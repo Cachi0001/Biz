@@ -5,6 +5,8 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import ModernOverviewCards from '../components/dashboard/ModernOverviewCards';
 import ModernChartsSection from '../components/dashboard/ModernChartsSection';
+import ModernQuickActions from '../components/dashboard/ModernQuickActions';
+import ModernRecentActivities from '../components/dashboard/ModernRecentActivities';
 import TeamManagement from '../components/team/TeamManagement';
 import ReferralWidget from '../components/referrals/ReferralWidget';
 import { Button } from '../components/ui/button';
@@ -69,73 +71,13 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <Button asChild className="h-16 flex-col bg-green-600 hover:bg-green-700">
-              <Link to="/invoices">
-                <FileText className="h-6 w-6 mb-1" />
-                <span className="text-sm">New Invoice</span>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-16 flex-col">
-              <Link to="/products">
-                <Package className="h-6 w-6 mb-1" />
-                <span className="text-sm">Add Product</span>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-16 flex-col">
-              <Link to="/customers">
-                <Users className="h-6 w-6 mb-1" />
-                <span className="text-sm">New Customer</span>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-16 flex-col">
-              <Link to="/sales">
-                <TrendingUp className="h-6 w-6 mb-1" />
-                <span className="text-sm">Record Sale</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
+        <ModernQuickActions />
 
         {/* Recent Activities */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activities</h2>
-          <Card>
-            <CardContent className="p-4">
-              {loading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : dashboardData?.recent_activities?.length > 0 ? (
-                <div className="space-y-3">
-                  {dashboardData.recent_activities.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-b-0 last:pb-0">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900">{activity.description}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatDateTime(activity.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No recent activities</p>
-                  <p className="text-sm text-gray-400 mt-1">Start by creating an invoice or recording a sale</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <ModernRecentActivities 
+          activities={dashboardData?.recent_activities} 
+          loading={loading} 
+        />
 
         {/* Subscription Status for Trial Users */}
         {isFreeTrial && (
