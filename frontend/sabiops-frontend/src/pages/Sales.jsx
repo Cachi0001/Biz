@@ -63,15 +63,20 @@ const Sales = () => {
   const fetchSales = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const response = await get('/sales/', {
         params: {
           start_date: selectedDate,
           end_date: selectedDate
         }
       });
-      setSales(response.data.sales || []);
+      
+      // Defensive programming - ensure we always have an array
+      const salesData = response?.data?.sales || response?.data?.data || response?.data || [];
+      setSales(Array.isArray(salesData) ? salesData : []);
     } catch (error) {
-      setError('Failed to fetch sales');
+      setError('Failed to fetch sales data. Please try again.');
+      setSales([]); // Ensure sales is always an array
       console.error('Error fetching sales:', error);
     } finally {
       setLoading(false);
@@ -81,18 +86,24 @@ const Sales = () => {
   const fetchProductsData = async () => {
     try {
       const response = await getProducts();
-      setProducts(response);
+      // Ensure products is always an array
+      const productsData = Array.isArray(response) ? response : [];
+      setProducts(productsData);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]); // Fallback to empty array
     }
   };
 
   const fetchCustomersData = async () => {
     try {
       const response = await getCustomers();
-      setCustomers(response);
+      // Ensure customers is always an array
+      const customersData = Array.isArray(response) ? response : [];
+      setCustomers(customersData);
     } catch (error) {
       console.error('Error fetching customers:', error);
+      setCustomers([]); // Fallback to empty array
     }
   };
 
@@ -102,6 +113,7 @@ const Sales = () => {
       setDailyReport(response);
     } catch (error) {
       console.error('Error fetching daily report:', error);
+      setDailyReport(null); // Clear daily report on error
     }
   };
 
@@ -206,10 +218,15 @@ const Sales = () => {
     return variants[status] || 'default';
   };
 
-  const filteredSales = sales.filter(sale =>
-    sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (sale.customer && sale.customer.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredSales = sales.filter(sale => {
+    if (!sale || !sale.sale_number) return false;
+    
+    const saleNumber = sale.sale_number.toLowerCase();
+    const customerName = sale.customer?.name?.toLowerCase() || '';
+    const searchLower = searchTerm.toLowerCase();
+    
+    return saleNumber.includes(searchLower) || customerName.includes(searchLower);
+  });
 
   if (loading) {
     return (
@@ -424,6 +441,26 @@ const Sales = () => {
         </Dialog>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center justify-between">
+            {error}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setError('');
+                fetchSales();
+                fetchDailyReport();
+              }}
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Daily Report Summary */}
       {dailyReport && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -432,7 +469,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
-                  <p className="text-2xl font-bold">{dailyReport.total_sales}</p>
+                  <p className="text-2xl font-bold">{dailyReport?.summary?.total_transactions || dailyReport?.total_sales || 0}</p>
                 </div>
                 <ShoppingCart className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -444,7 +481,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">₦{dailyReport.total_amount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₦{(dailyReport?.summary?.total_sales || dailyReport?.total_amount || 0).toLocaleString()}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -456,7 +493,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
-                  <p className="text-2xl font-bold">{dailyReport.total_quantity}</p>
+                  <p className="text-2xl font-bold">{dailyReport?.summary?.total_quantity || dailyReport?.total_quantity || 0}</p>
                 </div>
                 <Package className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -468,7 +505,7 @@ const Sales = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Avg. Sale</p>
-                  <p className="text-2xl font-bold">₦{dailyReport.average_sale.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₦{(dailyReport?.summary?.average_sale || dailyReport?.average_sale || 0).toLocaleString()}</p>
                 </div>
                 <Calculator className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -564,7 +601,7 @@ const Sales = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {sale.sale_items.length} item{sale.sale_items.length !== 1 ? 's' : ''}
+                          {(sale.sale_items && Array.isArray(sale.sale_items) ? sale.sale_items.length : 0)} item{(sale.sale_items && Array.isArray(sale.sale_items) ? sale.sale_items.length : 0) !== 1 ? 's' : ''}
                         </div>
                       </TableCell>
                       <TableCell>
