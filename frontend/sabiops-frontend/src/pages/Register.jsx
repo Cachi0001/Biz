@@ -131,6 +131,7 @@ const Register = () => {
                     />
                   </div>
           <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
+          <Label htmlFor="password">Password</Label>
                       <Input
                         id="password"
                         name="password"
