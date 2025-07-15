@@ -130,30 +130,32 @@ const Register = () => {
               autoComplete="tel"
                     />
                   </div>
-          <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-          <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Create password"
-              autoComplete="new-password"
-              inputMode="text"
-              spellCheck={false}
-              className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
-                      />
-            <button
-                        type="button"
-              tabIndex={-1}
-              className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-                    </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create password"
+                autoComplete="new-password"
+                inputMode="text"
+                spellCheck={false}
+                className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
           <div>
             <Label htmlFor="business_name">Business Name <span className="text-xs text-muted-foreground">(Optional)</span></Label>
                   <Input

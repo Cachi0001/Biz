@@ -61,51 +61,57 @@ const ResetPassword = () => {
           <p className="text-sm text-muted-foreground text-center mb-2">Enter your new password below.</p>
         </div>
         <form onSubmit={handleReset} className="w-full space-y-4" autoComplete="off" noValidate>
-          <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="New password"
-              autoComplete="new-password"
-              inputMode="text"
-              spellCheck={false}
-              className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+          <div>
+            <Label htmlFor="password">New Password</Label>
+            <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="New password"
+                autoComplete="new-password"
+                inputMode="text"
+                spellCheck={false}
+                className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              autoComplete="new-password"
-              inputMode="text"
-              spellCheck={false}
-              className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
-              onClick={() => setShowConfirmPassword((v) => !v)}
-            >
-              {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+          <div>
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                autoComplete="new-password"
+                inputMode="text"
+                spellCheck={false}
+                className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full mt-2" disabled={isResetting}>
             {isResetting ? (
