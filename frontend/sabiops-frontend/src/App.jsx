@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword'; // Import ForgotPassword
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Invoices from './pages/Invoices';
 import Products from './pages/Products';
 import Sales from './pages/Sales';
@@ -66,6 +67,7 @@ function App() {
             <Route path="/email-verified" element={<EmailVerified /> && (console.log('[APP] Route: /email-verified (EmailVerified)'), <EmailVerified />)} />
             {/* Protected routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute>{console.log('[APP] Route: /customers (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /customers'), <Customers />}</Layout>}</ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute>{console.log('[APP] Route: /products (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /products'), <Products />}</Layout>}</ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute>{console.log('[APP] Route: /sales (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /sales'), <Sales />}</Layout>}</ProtectedRoute>} />
