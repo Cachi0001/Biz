@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastProvider from './components/ToastProvider';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import Landing from './pages/Landing';
@@ -45,13 +46,14 @@ function NotificationPrompt() {
 
 function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <Router>
-            <NotificationPrompt />
-            <div className="min-h-screen bg-background">
-              <Routes>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <Router>
+              <NotificationPrompt />
+              <div className="min-h-screen bg-background">
+                <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
@@ -92,6 +94,7 @@ function App() {
         </NotificationProvider>
       </AuthProvider>
     </ToastProvider>
+    </ErrorBoundary>
   );
 }
 

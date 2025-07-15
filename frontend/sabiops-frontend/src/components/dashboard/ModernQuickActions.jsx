@@ -19,14 +19,14 @@ const ModernQuickActions = () => {
         icon: FileText,
         label: 'New Invoice',
         path: '/invoices',
-        color: 'bg-green-600 hover:bg-green-700',
+        variant: 'primary',
         description: 'Create invoice'
       },
       {
         icon: TrendingUp,
         label: 'Record Sale',
         path: '/sales',
-        color: 'bg-blue-600 hover:bg-blue-700',
+        variant: 'primary',
         description: 'Add new sale'
       }
     ];
@@ -37,14 +37,14 @@ const ModernQuickActions = () => {
           icon: Package,
           label: 'Add Product',
           path: '/products',
-          color: 'bg-purple-600 hover:bg-purple-700',
+          variant: 'primary',
           description: 'Manage inventory'
         },
         {
           icon: Users,
           label: 'New Customer',
           path: '/customers',
-          color: 'bg-orange-600 hover:bg-orange-700',
+          variant: 'primary',
           description: 'Add customer'
         }
       );
@@ -56,14 +56,14 @@ const ModernQuickActions = () => {
           icon: Calculator,
           label: 'Add Expense',
           path: '/expenses',
-          color: 'bg-red-600 hover:bg-red-700',
+          variant: 'secondary',
           description: 'Track expenses'
         },
         {
           icon: BarChart3,
           label: 'Analytics',
           path: '/analytics',
-          color: 'bg-indigo-600 hover:bg-indigo-700',
+          variant: 'primary',
           description: 'View reports'
         }
       );
@@ -75,7 +75,7 @@ const ModernQuickActions = () => {
           icon: Users,
           label: 'View Customers',
           path: '/customers',
-          color: 'bg-teal-600 hover:bg-teal-700',
+          variant: 'primary',
           description: 'Customer list'
         }
       );
@@ -87,14 +87,14 @@ const ModernQuickActions = () => {
         icon: CreditCard,
         label: 'Payments',
         path: '/payments',
-        color: 'bg-emerald-600 hover:bg-emerald-700',
+        variant: 'primary',
         description: 'Payment history'
       },
       {
         icon: Settings,
         label: 'Settings',
         path: '/settings',
-        color: 'bg-gray-600 hover:bg-gray-700',
+        variant: 'secondary',
         description: 'App settings'
       }
     );
@@ -113,8 +113,10 @@ const ModernQuickActions = () => {
         {actions.slice(0, 4).map((action, index) => (
           <Button
             key={index}
+            variant={action.variant}
+            size="lg"
             onClick={() => handleNavigation(action.path)}
-            className={`h-20 flex-col space-y-1 text-white ${action.color} shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}
+            className="h-20 flex-col space-y-1 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <action.icon className="h-6 w-6" />
             <div className="text-center">

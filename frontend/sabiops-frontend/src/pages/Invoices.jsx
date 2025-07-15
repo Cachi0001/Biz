@@ -167,25 +167,71 @@ const Invoices = () => {
     return itemsTotal - discount;
   };
 
+  const validateForm = () => {
+    const errors = [];
+    
+    if (!formData.customer_id) {
+      errors.push('Please select a customer');
+    }
+    
+    if (!formData.issue_date) {
+      errors.push('Please select an issue date');
+    }
+    
+    if (formData.items.length === 0) {
+      errors.push('Please add at least one invoice item');
+    }
+    
+    formData.items.forEach((item, index) => {
+      if (!item.description || item.description.trim() === '') {
+        errors.push(`Item ${index + 1}: Description is required`);
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        errors.push(`Item ${index + 1}: Quantity must be greater than 0`);
+      }
+      if (!item.unit_price || item.unit_price <= 0) {
+        errors.push(`Item ${index + 1}: Unit price must be greater than 0`);
+      }
+    });
+    
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (!formData.customer_id) {
-        toast.error('Please select a customer');
-        return;
-      }
-      if (formData.items.length === 0 || formData.items.some(item => !item.description || item.quantity <= 0 || item.unit_price <= 0)) {
-        toast.error('Please add valid invoice items with description, quantity, and unit price');
-        return;
-      }
+    
+    // Validate form
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0]); // Show first error
+      return;
+    }
 
+    try {
       setLoading(true);
       console.log('[INVOICES] Submitting invoice data:', formData);
 
+      // Format data for backend
       const invoiceData = {
-        ...formData,
+        customer_id: parseInt(formData.customer_id),
+        issue_date: formData.issue_date,
+        due_date: formData.due_date || null,
+        payment_terms: formData.payment_terms || 'Net 30',
+        notes: formData.notes || '',
+        terms_and_conditions: formData.terms_and_conditions || 'Payment is due within 30 days of invoice date.',
+        currency: formData.currency || 'NGN',
+        discount_amount: parseFloat(formData.discount_amount) || 0,
+        items: formData.items.map(item => ({
+          product_id: item.product_id ? parseInt(item.product_id) : null,
+          description: item.description.trim(),
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unit_price),
+          tax_rate: parseFloat(item.tax_rate) || 0,
+          discount_rate: parseFloat(item.discount_rate) || 0,
+        })),
         total_amount: calculateInvoiceTotal(),
         amount_due: calculateInvoiceTotal(),
+        status: 'draft'
       };
 
       if (selectedInvoice) {
