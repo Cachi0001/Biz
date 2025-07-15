@@ -126,6 +126,7 @@ export const AuthProvider = ({ children }) => {
       isFreeTrial: user?.subscription_status === 'trial',
       isPaidPlan: user?.subscription_status === 'active',
       trialDaysLeft: user?.trial_days_left || 0,
+      isTrialActive: user?.subscription_status === 'trial' && (user?.trial_days_left || 0) > 0,
       canAccessFeature: (feature) => {
         if (!user) return false;
         const role = user.role;

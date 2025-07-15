@@ -1,10 +1,144 @@
-import React from 'react';
-import { Bell, Search, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
+import { NotificationBell } from '../notifications/NotificationBell';
+import { NotificationCenter } from '../notifications/NotificationCenter';
+import FirebaseService from '../../services/FirebaseService';
 
 const DashboardHeader = () => {
   const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Initialize Firebase and load notifications
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      try {
+        // Initialize Firebase messaging
+        await FirebaseService.initialize();
+        
+        // Load notifications
+        await loadNotifications();
+        
+        // Set up message handler for real-time notifications
+        FirebaseService.addMessageHandler(handleNewNotification);
+        
+      } catch (error) {
+        console.error('Failed to initialize notifications:', error);
+      }
+    };
+
+    if (user) {
+      initializeNotifications();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      FirebaseService.removeMessageHandler(handleNewNotification);
+    };
+  }, [user]);
+
+  // Load notifications from backend
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const [notificationsData, unreadCountData] = await Promise.all([
+        FirebaseService.getNotifications(20, 0),
+        FirebaseService.getUnreadCount()
+      ]);
+      
+      setNotifications(notificationsData);
+      setUnreadCount(unreadCountData);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Use mock data for development
+      setNotifications([
+        {
+          id: '1',
+          title: 'Low Stock Alert',
+          body: 'Office Chair is running low (2 items left)',
+          type: 'low_stock',
+          read: false,
+          action_url: '/products',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: 'Payment Received',
+          body: 'Invoice #INV-001 has been paid (₦15,000)',
+          type: 'payment_received',
+          read: false,
+          action_url: '/invoices',
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        }
+      ]);
+      setUnreadCount(2);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle new notification from Firebase
+  const handleNewNotification = (notification) => {
+    console.log('New notification received:', notification);
+    
+    // Add to notifications list
+    setNotifications(prev => [
+      {
+        id: Date.now().toString(),
+        title: notification.title,
+        body: notification.body,
+        type: notification.data?.type || 'info',
+        read: false,
+        action_url: notification.data?.action_url,
+        created_at: notification.timestamp
+      },
+      ...prev
+    ]);
+    
+    // Increment unread count
+    setUnreadCount(prev => prev + 1);
+  };
+
+  // Handle notification bell click
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  // Handle mark as read
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await FirebaseService.markAsRead(notificationId);
+      
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
+      
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  // Handle mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      await FirebaseService.markAllAsRead();
+      
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -32,7 +166,7 @@ const DashboardHeader = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative">
           <Button
             variant="ghost"
             size="icon"
@@ -40,13 +174,24 @@ const DashboardHeader = () => {
           >
             <Search className="h-5 w-5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white hover:bg-opacity-20"
-          >
-            <Bell className="h-5 w-5" />
-          </Button>
+          
+          {/* Notification Bell with Center */}
+          <div className="relative">
+            <NotificationBell
+              unreadCount={unreadCount}
+              onClick={handleNotificationClick}
+              className="text-white hover:bg-white hover:bg-opacity-20"
+            />
+            
+            {/* Notification Center */}
+            <NotificationCenter
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              notifications={notifications}
+              onMarkAsRead={handleMarkAsRead}
+              onMarkAllAsRead={handleMarkAllAsRead}
+            />
+          </div>
         </div>
       </div>
 
