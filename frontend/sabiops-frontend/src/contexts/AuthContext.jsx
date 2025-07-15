@@ -77,26 +77,99 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // FIX: Send credentials as an object with correct keys
+      console.log('[AUTH] Attempting login for:', email);
       const response = await apiLogin({ login: email, password });
+      
       if (response.success) {
-        console.log('Login successful. Full API Response:', response); // Log full response
-        console.log('Login successful. Access Token from response.data:', response.data.access_token); // Added log
-        if (response.data.access_token) { // Access access_token from response.data
+        console.log('[AUTH] Login successful:', response);
+        if (response.data.access_token) {
           localStorage.setItem('token', response.data.access_token);
-          setIsAuthenticated(true); // Set isAuthenticated to true immediately on successful login
+          setIsAuthenticated(true);
+          await checkAuth(); // Re-check auth to get updated user data
+          toast.success('Login successful! Welcome back.');
+          return { success: true };
         } else {
-          console.warn('Login successful but access_token is missing from response.data.');
+          console.warn('[AUTH] Login successful but access_token is missing');
+          toast.error('Login failed: Invalid response from server');
+          return { success: false, message: 'Invalid response from server' };
         }
-        await checkAuth(); // Re-check auth to get updated user data including trial_days_left
-        return { success: true };
       } else {
-        return { success: false, message: response.message };
+        const errorMessage = response.message || 'Login failed';
+        toast.error(errorMessage);
+        return { success: false, message: errorMessage };
       }
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'An unexpected error occurred during login.';
-      window.toast && window.toast.error(errorMessage);
+      console.error('[AUTH] Login error:', error);
+      let errorMessage = 'Login failed. Please try again.';
+      
+      // Handle different types of errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message && !error.message.includes('Request failed')) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, { 
+        duration: 5000,
+        position: 'top-center'
+      });
+      return { success: false, message: errorMessage };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      console.log('[AUTH] Attempting registration for:', userData.email);
+      const response = await apiRegister(userData);
+      
+      if (response.success) {
+        console.log('[AUTH] Registration successful:', response);
+        toast.success('Registration successful! Please log in with your credentials.');
+        return { success: true, message: 'Registration successful' };
+      } else {
+        const errorMessage = response.message || 'Registration failed';
+        toast.error(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+    } catch (error) {
+      console.error('[AUTH] Registration error:', error);
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      // Handle different types of errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.response?.status === 409) {
+        errorMessage = 'Email already exists. Please use a different email or try logging in.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Invalid data provided. Please check your information.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message && !error.message.includes('Request failed')) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, { 
+        duration: 5000,
+        position: 'top-center'
+      });
       return { success: false, message: errorMessage };
     }
   };
@@ -114,6 +187,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated, 
       loading, 
       login, 
+      register,
       logout, 
       checkAuth,
       // Derived values aligned with database schema

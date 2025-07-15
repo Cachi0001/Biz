@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { register as apiRegister } from '../services/api';
-import { getErrorMessage } from '../services/api';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +21,7 @@ const Register = () => {
   const [showCheckEmail, setShowCheckEmail] = useState(false);
 
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,12 +32,26 @@ const Register = () => {
   };
 
   const validateForm = () => {
+    if (!formData.email.trim()) {
+      toast.error('Email address is required');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      toast.error('Phone number is required');
+      return false;
+    }
+    if (!formData.full_name.trim()) {
+      toast.error('Full name is required');
+      return false;
+    }
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters long');
       return false;
     }
-    if (!formData.email || !formData.phone || !formData.full_name) {
-      toast.error('Email, phone number, and full name are required');
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
       return false;
     }
     return true;
@@ -45,23 +59,22 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
     if (!validateForm()) {
-      setIsLoading(false);
       return;
     }
+    
+    setIsLoading(true);
     try {
-      const response = await apiRegister(formData);
-      if (response.success) {
+      const result = await register(formData);
+      if (result.success) {
         localStorage.setItem('pending_registration', JSON.stringify(formData));
         setShowCheckEmail(true);
-      } else {
-        const errorMsg = response.error || response.message || 'Registration failed. Please check your information and try again.';
-        toast.error(errorMsg);
       }
+      // Error handling is now done in the auth context
     } catch (error) {
-      const backendMsg = error?.response?.data?.error || error?.response?.data?.message;
-      toast.error(backendMsg || getErrorMessage(error, 'Registration failed. Please check your information and try again.'));
+      console.error('[REGISTER] Unexpected error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

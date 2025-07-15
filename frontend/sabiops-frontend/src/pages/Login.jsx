@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { getErrorMessage } from '../services/api';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
@@ -17,23 +17,36 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    
+    // Basic validation
+    if (!email.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    if (!password.trim()) {
+      toast.error('Please enter your password');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const result = await login(email, password);
       if (result.success) {
+        // Navigation will be handled by the auth context
+        // The toast success message is already shown in the auth context
         try {
           navigate('/dashboard');
         } catch (e) {
           window.location.href = '/dashboard';
         }
-      } else {
-        // Show error toast
-        window.toast && window.toast.error(result.message || 'Login failed.', { duration: 4000 });
       }
+      // Error handling is now done in the auth context
     } catch (err) {
-      window.toast && window.toast.error('Login failed. Please try again.', { duration: 4000 });
+      console.error('[LOGIN] Unexpected error:', err);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
