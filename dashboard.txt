@@ -1,7 +1,14 @@
 SabiOps Dashboard Integration Guide (Dashboard-Only, Role-Separated, Role-Rendered)
 ==================================================================================
 
-This file provides a **dashboard-only** integration guide for SabiOps, with all backend endpoints, fields, UI sections, and color branding, separated by user role. **The dashboard is always rendered based on the user's role after login.** All constraints and inheritance logic are included. Use this as the definitive reference for dashboard implementation.
+This file provides a **dashboard-only** integration guide for SabiOps, with all backend endpoints, fields, UI sections, and color branding, separated by user role. **The dashboard is always rendered based on the user's role after login.**
+
+**Frontend URL:** https://sabiops.vercel.app
+**Backend API Base URL:** https://sabiops-backend.vercel.app
+
+**After login, users are redirected to their role-based dashboard at the frontend URL above. All API calls use the backend base URL.**
+
+All constraints and inheritance logic are included. Use this as the definitive reference for dashboard implementation.
 
 ---
 
@@ -24,24 +31,68 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
 
 **The dashboard is rendered based on the user's role after login.**
 
+**After successful login at [https://sabiops.vercel.app/login](https://sabiops.vercel.app/login), users are redirected to their dashboard at [https://sabiops.vercel.app/dashboard](https://sabiops.vercel.app/dashboard), which is rendered according to their role (Owner, Admin, Salesperson).**
+
+## Subscription Plans & Pricing Tiers
+
+### Free Plan (Default for Expired/New Users)
+- **Limits:** 5 invoices/expenses monthly, basic reporting only
+- **Features:**
+  - Basic dashboard with limited metrics
+  - 5 invoices per month
+  - 5 expenses per month
+  - Basic customer management (view only)
+  - Basic product management (view only)
+  - No team management
+  - No referral system
+  - No advanced analytics
+  - No export/download features
+  - No push notifications
+- **Dashboard Rendering:** Limited cards, basic charts, upgrade prompts
+
+### Silver Weekly Plan (₦1,400)
+- **Features:** All features with 7-day free trial
+- **Trial:** 7-day free trial with crown indicator
+- **Limits:** Weekly billing cycle
+- **Dashboard Rendering:** Full features with crown indicator during trial
+
+### Silver Monthly Plan (₦4,500)
+- **Features:** All features with advanced analytics
+- **Limits:** Monthly billing cycle
+- **Dashboard Rendering:** Full features with upgrade suggestions
+
+### Silver Yearly Plan (₦50,000)
+- **Features:** All features with maximum benefits
+- **Limits:** Yearly billing cycle
+- **Dashboard Rendering:** Full features with premium indicators
+
+### Pro-rata Upgrades
+- **Owner-only feature:** Mid-cycle upgrades with prorated cost calculation
+- **Dashboard Rendering:** Upgrade prompts and cost calculations
+
 ## Owner
 - **Can sign up, reset password, and login**
 - **Can create team members (Admin, Salesperson)**
+- **Can upgrade subscription plans**
 - **Dashboard is rendered with:**
   - All metrics (revenue, COGS, gross/net profit, expenses, cash flow, inventory, top products/expenses, low stock)
   - All charts (revenue trend, top products, sales analytics)
   - All quick actions (add customer, add product, new invoice, view payments, etc.)
   - All notifications and push notifications (low stock, payment, etc.)
-  - Upgrade prompts, subscription status, crown indicator if on trial/weekly
+  - **Subscription status and trial indicator (crown if on trial/weekly)**
+  - **Upgrade prompts if on free plan or nearing limits**
   - Team management, referral earnings, withdrawal requests
   - Recent activities (sales, invoices, payments, etc.)
   - Offline/sync status indicator
   - Intelligent upgrade path suggestions (if nearing limits)
+  - **Download formats:** PDF, Excel, PNG, CSV for all reports (paid plans only)
 - **Subscription plan inherited by team members** (Admins/Salespeople get same plan/trial as owner)
 - **Constraints:**
   - Only Owners can access team management, subscription upgrade, and referrals dashboard sections
   - Only Owners can create/deactivate team, upgrade plan, or request withdrawals
   - Only Owners can see advanced upgrade suggestions and manage subscription
+  - **Free plan limits: 5 invoices/expenses monthly**
+  - **Trial period: 7 days for weekly plan with crown indicator**
 
 ## Admin
 - **Cannot sign up or reset password (must be created by Owner)**
@@ -53,13 +104,15 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
   - Notifications and push notifications
   - Recent activities (sales, invoices, payments, etc.)
   - Offline/sync status indicator
+  - **Download formats:** PDF, Excel, PNG, CSV for operational reports (inherits owner's plan)
 - **No access to:**
   - Team management, subscription upgrade, or referrals dashboard sections
-  - Cannot see or manage owner’s subscription status
+  - Cannot see or manage owner's subscription status
   - Cannot see upgrade suggestions
 - **Constraints:**
-  - Admins inherit owner’s subscription plan and trial period
+  - Admins inherit owner's subscription plan and trial period
   - Cannot create team or upgrade plan
+  - **If owner is on free plan: Limited to 5 invoices/expenses monthly**
 
 ## Salesperson
 - **Cannot sign up or reset password (must be created by Owner)**
@@ -71,12 +124,14 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
   - Notifications and push notifications
   - Recent activities (sales, invoices, payments, etc.)
   - Offline/sync status indicator
+  - **Download formats:** PDF, PNG for sales reports only (inherits owner's plan)
 - **No access to:**
   - Team management, subscription, referrals, expenses, or inventory management
   - Cannot see upgrade suggestions
 - **Constraints:**
-  - Salespeople inherit owner’s subscription plan and trial period
+  - Salespeople inherit owner's subscription plan and trial period
   - Cannot create team, upgrade plan, or manage products/expenses
+  - **If owner is on free plan: Limited to 5 invoices/expenses monthly**
 
 ---
 
@@ -84,51 +139,102 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
 
 **All dashboard endpoints are filtered and rendered by user role.**
 
+**All API endpoints are called using the backend base URL: https://sabiops-backend.vercel.app**
+
 ## Common Endpoints (All roles, but data filtered by role)
-- **GET /api/dashboard/overview**
+- **GET https://sabiops-backend.vercel.app/api/dashboard/overview**
   - Returns: revenue, customers, products, invoices (see below)
-- **GET /api/dashboard/financials**
+- **GET https://sabiops-backend.vercel.app/api/dashboard/financials**
   - Returns: revenue, cogs, gross/net profit, expenses, cash flow, inventory, low stock, top products/expenses
-- **GET /api/dashboard/revenue-chart**
+- **GET https://sabiops-backend.vercel.app/api/dashboard/revenue-chart**
   - Returns: 12-month revenue trend
-- **GET /api/dashboard/top-customers**
+- **GET https://sabiops-backend.vercel.app/api/dashboard/top-customers**
   - Returns: top customers by revenue
-- **GET /api/dashboard/top-products**
+- **GET https://sabiops-backend.vercel.app/api/dashboard/top-products**
   - Returns: top products by sales
-- **GET /api/sales/daily-report**
+- **GET https://sabiops-backend.vercel.app/api/sales/daily-report**
   - Returns: daily sales, payment methods, top products
-- **GET /api/sales/analytics**
+- **GET https://sabiops-backend.vercel.app/api/sales/analytics**
   - Returns: sales summary, daily revenue, top customers, payment methods
-- **GET /api/expense/stats**
+- **GET https://sabiops-backend.vercel.app/api/expense/stats**
   - Returns: total/average expenses, breakdown by category/month
-- **GET /api/invoice/stats**
+- **GET https://sabiops-backend.vercel.app/api/invoice/stats**
   - Returns: invoice counts, paid/overdue, outstanding amount
-- **GET /api/payment/stats**
+- **GET https://sabiops-backend.vercel.app/api/payment/stats**
   - Returns: payment counts, revenue, fees, recent payments
-- **GET /api/notifications/**
+- **GET https://sabiops-backend.vercel.app/api/notifications/**
   - Returns: notifications, unread count
-- **GET /api/activities** (if implemented)
+- **GET https://sabiops-backend.vercel.app/api/activities** (if implemented)
   - Returns: recent activities (sales, invoices, payments, etc.)
-- **GET /api/sync/status** (if implemented)
+- **GET https://sabiops-backend.vercel.app/api/sync/status** (if implemented)
   - Returns: offline/sync status
 
 ## Owner-Only Endpoints (for dashboard sections)
-- **GET /api/team** (team management)
-- **GET /api/referrals** (referral earnings)
-- **POST /api/withdrawal/request** (referral withdrawal)
-- **GET /api/subscription/plans** (subscription info)
-- **POST /api/subscription/upgrade** (upgrade plan)
-- **GET /api/upgrade/suggestions** (intelligent upgrade path)
+- **GET https://sabiops-backend.vercel.app/api/team** (team management)
+- **GET https://sabiops-backend.vercel.app/api/referrals** (referral earnings)
+- **POST https://sabiops-backend.vercel.app/api/withdrawal/request** (referral withdrawal)
+- **GET https://sabiops-backend.vercel.app/api/subscription/plans** (subscription info)
+- **POST https://sabiops-backend.vercel.app/api/subscription/upgrade** (upgrade plan)
+- **GET https://sabiops-backend.vercel.app/api/upgrade/suggestions** (intelligent upgrade path)
+
+## Subscription & Billing Endpoints
+- **GET https://sabiops-backend.vercel.app/api/subscription/status** - Get current subscription status
+- **GET https://sabiops-backend.vercel.app/api/subscription/usage** - Get usage limits and current usage
+- **POST https://sabiops-backend.vercel.app/api/subscription/upgrade** - Upgrade subscription
+- **GET https://sabiops-backend.vercel.app/api/subscription/trial-status** - Get trial status and remaining days
+- **POST https://sabiops-backend.vercel.app/api/paystack/initialize** - Initialize Paystack payment
+- **POST https://sabiops-backend.vercel.app/api/paystack/verify** - Verify Paystack payment
+
+## Export/Download Endpoints (Role-based access)
+- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=pdf** (Owner/Admin - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=excel** (Owner/Admin - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=csv** (Owner/Admin - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/sales/export?format=pdf** (All roles - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/sales/export?format=png** (All roles - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/customers/export?format=excel** (Owner/Admin - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/products/export?format=excel** (Owner/Admin - paid plans only)
+- **GET https://sabiops-backend.vercel.app/api/invoices/export?format=pdf** (All roles - paid plans only)
 
 ---
 
-# 4. Dashboard UI Sections (by Role)
+# 4. Dashboard UI Sections (by Role & Subscription)
 
-**The dashboard UI is always rendered based on the user's role.**
+**The dashboard UI is always rendered based on the user's role and subscription status.**
 
-## Owner
-- **Header:** Welcome, business at a glance, trial/upgrade status, crown if on trial/weekly
-- **Overview Cards:** Revenue, COGS, Gross Profit, Net Profit, Expenses, Cash Flow, Inventory Value, Top Expenses, Low Stock Alerts, Top Products
+## Owner (Free Plan - Default for Expired Users)
+- **Header:** Welcome, business at a glance, **upgrade prompts prominently displayed**
+- **Overview Cards:** Limited metrics (revenue, customers, basic sales)
+- **Charts:** Basic revenue trend only
+- **Quick Actions:** Limited (new invoice - up to 5/month, view basic reports)
+- **No access to:** Team management, referrals, advanced analytics
+- **Notifications:** Basic in-app notifications only
+- **Recent Activities:** Limited list
+- **Offline/Sync Status:** Basic indicator
+- **Error Handling:** All API errors surfaced in UI
+- **Color:** All cards/buttons/icons use green branding
+- **Social Links:** Twitter (Follow CEO @Caleb0533), WhatsApp Contact (+2348158025887)
+- **Download Options:** None (upgrade required)
+- **Upgrade Prompts:** Multiple prominent upgrade CTAs
+
+## Owner (Silver Weekly - Trial)
+- **Header:** Welcome, business at a glance, **crown indicator for trial status**
+- **Overview Cards:** All metrics with trial indicator
+- **Charts:** All charts with trial watermark
+- **Quick Actions:** All actions available during trial
+- **Team Management:** Available during trial
+- **Referrals:** Available during trial
+- **Notifications:** All notifications and push notifications
+- **Recent Activities:** Full list
+- **Offline/Sync Status:** Full indicator
+- **Error Handling:** All API errors surfaced in UI
+- **Color:** All cards/buttons/icons use green branding
+- **Social Links:** Twitter (Follow CEO @Caleb0533), WhatsApp Contact (+2348158025887)
+- **Download Options:** All formats available during trial
+- **Trial Indicator:** Crown icon and trial countdown
+
+## Owner (Silver Monthly/Yearly - Paid)
+- **Header:** Welcome, business at a glance, subscription status
+- **Overview Cards:** All metrics (revenue, COGS, gross/net profit, expenses, cash flow, inventory, top products/expenses, low stock)
 - **Charts:** Revenue Trend (line), Top Products (pie), Sales Analytics (bar/line)
 - **Quick Actions:** New Invoice, Add Customer, Add Product, View Payments, etc.
 - **Team Management:** List/add/deactivate team members
@@ -136,14 +242,16 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
 - **Notifications:** All, push notifications
 - **Recent Activities:** List of recent sales, invoices, payments, etc.
 - **Offline/Sync Status:** Indicator for offline mode and sync status
-- **Upgrade Prompt:** If on trial/weekly or nearing limits
+- **Upgrade Prompt:** If nearing limits
 - **Error Handling:** All API errors surfaced in UI
 - **Color:** All cards/buttons/icons use green branding
+- **Social Links:** Twitter (Follow CEO @Caleb0533), WhatsApp Contact (+2348158025887)
+- **Download Options:** PDF, Excel, PNG, CSV for all reports
 
-## Admin
+## Admin (Inherits Owner's Plan)
 - **Header:** Welcome, business at a glance
-- **Overview Cards:** Revenue, COGS, Gross Profit, Net Profit, Expenses, Cash Flow, Inventory Value, Top Expenses, Low Stock Alerts, Top Products
-- **Charts:** Revenue Trend, Top Products, Sales Analytics
+- **Overview Cards:** All operational metrics (inherits owner's access)
+- **Charts:** All charts (inherits owner's access)
 - **Quick Actions:** New Invoice, Add Customer, Add Product, View Payments
 - **Notifications:** All, push notifications
 - **Recent Activities:** List of recent sales, invoices, payments, etc.
@@ -151,48 +259,488 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
 - **Error Handling:** All API errors surfaced in UI
 - **No access to:** Team, Referrals, Subscription Upgrade, Upgrade Suggestions
 - **Color:** All cards/buttons/icons use green branding
+- **Social Links:** Twitter (Follow CEO @Caleb0533), WhatsApp Contact (+2348158025887)
+- **Download Options:** PDF, Excel, PNG, CSV for operational reports (inherits owner's plan)
 
-## Salesperson
+## Salesperson (Inherits Owner's Plan)
 - **Header:** Welcome, business at a glance
-- **Overview Cards:** Revenue, Sales, Customers, Invoices (no expenses, inventory, or team)
-- **Charts:** Revenue Trend (if allowed)
-- **Quick Actions:** New Invoice, Add Customer (if allowed)
+- **Overview Cards:** Sales-focused metrics (inherits owner's access)
+- **Charts:** Revenue Trend (inherits owner's access)
+- **Quick Actions:** New Invoice, Add Customer (inherits owner's access)
 - **Notifications:** All, push notifications
 - **Recent Activities:** List of recent sales, invoices, payments, etc.
 - **Offline/Sync Status:** Indicator for offline mode and sync status
 - **Error Handling:** All API errors surfaced in UI
 - **No access to:** Team, Referrals, Subscription, Expenses, Inventory, Upgrade Suggestions
 - **Color:** All cards/buttons/icons use green branding
+- **Social Links:** Twitter (Follow CEO @Caleb0533), WhatsApp Contact (+2348158025887)
+- **Download Options:** PDF, PNG for sales reports only (inherits owner's plan)
 
 ---
 
-# 5. Dashboard Data Fields (All Roles, Filtered by Role)
+# 5. Dashboard Data Fields (All Roles, Filtered by Role & Subscription)
 
 - **Revenue:** total, this_month
-- **COGS:** total, this_month (Owner/Admin)
-- **Gross Profit:** total, this_month (Owner/Admin)
-- **Net Profit:** total, this_month (Owner/Admin)
-- **Expenses:** total, this_month, by_category (Owner/Admin)
-- **Cash Flow:** money_in, money_out, net (Owner/Admin)
-- **Inventory Value:** value, low_stock (Owner/Admin)
-- **Top Expenses:** category, amount (Owner/Admin)
-- **Low Stock Alerts:** name, quantity (Owner/Admin)
-- **Top Products:** name, quantity (Owner/Admin)
+- **COGS:** total, this_month (Owner/Admin - paid plans)
+- **Gross Profit:** total, this_month (Owner/Admin - paid plans)
+- **Net Profit:** total, this_month (Owner/Admin - paid plans)
+- **Expenses:** total, this_month, by_category (Owner/Admin - paid plans)
+- **Cash Flow:** money_in, money_out, net (Owner/Admin - paid plans)
+- **Inventory Value:** value, low_stock (Owner/Admin - paid plans)
+- **Top Expenses:** category, amount (Owner/Admin - paid plans)
+- **Low Stock Alerts:** name, quantity (Owner/Admin - paid plans)
+- **Top Products:** name, quantity (Owner/Admin - paid plans)
 - **Customers:** total, new_this_month
-- **Invoices:** overdue
+- **Invoices:** overdue, monthly_count (limited to 5 for free plan)
 - **Sales:** total_sales, total_amount, total_quantity (Salesperson)
 - **Charts:** revenue trend, top products/customers, sales analytics
 - **Notifications:** unread_count, list
 - **Recent Activities:** type, description, timestamp
 - **Offline/Sync Status:** isOffline, lastSync, syncErrors
 - **Upgrade Suggestions:** suggestedPlan, reason (Owner only)
+- **Subscription Status:** plan_type, trial_days_left, usage_limits, current_usage
+- **Trial Indicator:** is_trial, trial_end_date, crown_display
 
 ---
 
-# 6. Constraints & Inheritance Logic
+# 6. Notification Implementation (Toast + Firebase Push)
+
+**SabiOps uses a dual notification system: Toast notifications for immediate feedback and Firebase push notifications for important alerts.**
+
+## Toast Notifications (Frontend)
+- **Library:** react-hot-toast
+- **Provider:** ToastProvider component
+- **Position:** top-right
+- **Duration:** 4-6 seconds
+- **Types:**
+  - Success: Green background, checkmark icon
+  - Error: Red background, X icon
+  - Warning: Yellow background, warning icon
+  - Info: Blue background, info icon
+- **Usage:** All API responses, user actions, system alerts
+- **Styling:** Green branding for success, consistent with dashboard theme
+
+## Firebase Push Notifications (Backend + Frontend)
+- **Service:** Firebase Cloud Messaging (FCM)
+- **Frontend:** NotificationContext, firebase.js
+- **Backend:** firebase_service.py, supabase_service.py
+- **VAPID Key:** BP2VpcX0H9VuYD8t-QWwFAyup3ikw1CqNdtlIkKhu4vxAabiqCjEcDCfj0K9-eXvr6NLmzrKUjQoTL2eSxxvOyI
+- **Project ID:** sabiops-9984f
+- **Service Worker:** firebase-messaging-sw.js
+- **Notification Types:**
+  - Low stock alerts (paid plans only)
+  - Payment received
+  - Invoice overdue
+  - Trial ending (7-day countdown)
+  - New sale recorded
+  - Subscription expired
+  - Usage limit warnings (free plan)
+- **Permission:** Requested on first login, stored in browser
+- **Device Token:** Saved to backend for targeted notifications
+
+## Notification Endpoints
+- **GET https://sabiops-backend.vercel.app/api/notifications/** - Fetch notifications
+- **POST https://sabiops-backend.vercel.app/api/notifications/mark-read** - Mark as read
+- **POST https://sabiops-backend.vercel.app/api/notifications/push/subscribe** - Subscribe to push
+- **POST https://sabiops-backend.vercel.app/api/notifications/send** - Send test notification
+
+## Notification UI Components
+- **NotificationCenter:** Bell icon with dropdown
+- **NotificationPrompt:** Bottom banner for permission request
+- **ToastProvider:** Global toast container
+- **Real-time updates:** WebSocket or polling for new notifications
+
+---
+
+# 7. Social Media & Contact Integration
+
+**Dashboard includes social media links and contact options for user engagement.**
+
+## Twitter Integration
+- **Icon:** Twitter/X icon in header
+- **URL:** https://x.com/Caleb0533
+- **Message:** "Follow our CEO"
+- **Tooltip:** "Follow our CEO for business insights"
+- **Position:** Header, next to notifications
+- **Styling:** Blue color (#1DA1F2), hover effects
+
+## WhatsApp Contact
+- **Icon:** Message circle icon in header
+- **URL:** https://wa.me/2348158025887
+- **Message:** "Contact us for feedback"
+- **Tooltip:** "Get support via WhatsApp"
+- **Position:** Header, next to Twitter icon
+- **Styling:** Green color (#25D366), hover effects
+
+## Contact Implementation
+- **Buttons:** Ghost variant, icon-only in header
+- **Mobile:** Visible in mobile header
+- **Desktop:** Visible in desktop header
+- **Accessibility:** Proper alt text and ARIA labels
+- **Target:** Opens in new tab/window
+
+---
+
+# 8. Download & Export Formats (Role-Based & Subscription-Based)
+
+**Download capabilities are restricted based on user role and subscription level.**
+
+## Free Plan Downloads (None)
+- **No download options available**
+- **Upgrade prompts shown instead**
+- **Error messages:** "Upgrade to download reports"
+
+## Owner Downloads (Paid Plans Only)
+- **PDF:** Financial reports, customer lists, product inventory
+- **Excel:** Detailed data exports, financial summaries
+- **PNG:** Charts and visual reports
+- **CSV:** Raw data for external analysis
+- **Endpoints:**
+  - GET /api/dashboard/export?format=pdf
+  - GET /api/dashboard/export?format=excel
+  - GET /api/dashboard/export?format=csv
+  - GET /api/sales/export?format=png
+
+## Admin Downloads (Inherits Owner's Plan)
+- **PDF:** Operational reports, sales summaries
+- **Excel:** Customer data, product data
+- **PNG:** Charts and visual reports
+- **CSV:** Sales and invoice data
+- **Endpoints:**
+  - GET /api/sales/export?format=pdf
+  - GET /api/customers/export?format=excel
+  - GET /api/products/export?format=excel
+
+## Salesperson Downloads (Inherits Owner's Plan)
+- **PDF:** Sales reports only
+- **PNG:** Sales charts only
+- **Endpoints:**
+  - GET /api/sales/export?format=pdf
+  - GET /api/sales/export?format=png
+
+## Export Service Implementation
+- **Backend:** excel_service.py, pdf_service.py
+- **Frontend:** Download buttons in respective pages
+- **File Naming:** {report-type}-{date}.{format}
+- **Error Handling:** Toast notifications for failed downloads
+- **Progress:** Loading states during export
+- **Subscription Check:** Verify paid plan before allowing downloads
+
+---
+
+# 9. Subscription & Billing Integration
+
+**Complete subscription management with Paystack integration and trial handling.**
+
+## Subscription Plans & Pricing
+- **Free Plan:** 5 invoices/expenses monthly, basic features
+- **Silver Weekly:** ₦1,400 with 7-day free trial
+- **Silver Monthly:** ₦4,500 with full features
+- **Silver Yearly:** ₦50,000 with maximum benefits
+
+## Pro-rata Upgrade Calculations
+- **Owner-only feature:** Mid-cycle upgrades with prorated cost calculation
+- **Formula:** (New Plan Price - Current Plan Price) × (Remaining Days / Total Days in Current Cycle)
+- **Example:** Upgrading from Monthly (₦4,500) to Yearly (₦50,000) with 15 days remaining:
+  - Daily rate difference: (₦50,000 - ₦4,500) ÷ 30 = ₦1,516.67
+  - Pro-rata amount: ₦1,516.67 × 15 = ₦22,750
+- **Processing:** Automatic calculation and Paystack payment
+- **Team Inheritance:** Team members get upgraded access immediately
+
+## Paystack Payment Integration
+- **Payment Gateway:** Paystack for Nigerian payments
+- **Currencies:** NGN (Nigerian Naira)
+- **Payment Methods:** Card, Bank Transfer, USSD, Mobile Money, QR Code
+- **Endpoints:**
+  - POST /api/paystack/initialize - Initialize payment with amount and metadata
+  - POST /api/paystack/verify - Verify payment status
+  - POST /api/paystack/webhook - Handle webhooks for payment confirmations
+  - GET /api/paystack/transaction/{reference} - Get transaction details
+- **Payment Flow:**
+  1. User selects plan and clicks upgrade
+  2. Frontend calls /api/paystack/initialize with plan details
+  3. Paystack returns payment URL and reference
+  4. User redirected to Paystack payment page
+  5. After payment, Paystack webhook updates subscription status
+  6. User redirected back to dashboard with success message
+
+## Trial Management
+- **Duration:** 7 days for weekly plan
+- **Inheritance:** Team members inherit owner's trial period
+- **Indicator:** Crown icon on owner's dashboard during trial
+- **Countdown:** Trial days remaining display
+- **Expiry:** Automatic downgrade to free plan after trial
+- **Notifications:** 3-day, 1-day, and expiry day warnings
+
+## Usage Tracking
+- **Invoices:** Monthly count tracking
+- **Expenses:** Monthly count tracking
+- **Limits:** 5 per month for free plan
+- **Warnings:** Notifications when nearing limits (80%, 90%, 100%)
+- **Upgrade Prompts:** Intelligent suggestions based on usage patterns
+
+---
+
+# 10. Referral System & Earnings
+
+**Comprehensive referral system with earnings tracking and privacy protection.**
+
+## Referral Earnings Structure
+- **Commission Rate:** 10% of referred user's subscription payment
+- **Eligible Plans:** Monthly (₦4,500) and Yearly (₦50,000) only
+- **Excluded Plans:** Free plan and Weekly plan (₦1,400)
+- **Earning Period:** First 3 months of referred user's subscription
+- **Minimum Withdrawal:** ₦3,000 via Paystack bank transfer
+
+## Referral Tracking Dashboard
+- **Referred Users List:** Array of people referred with details
+- **Earnings Tracking:** Real-time earnings from each referral
+- **Payment History:** Withdrawal requests and status
+- **Privacy Protection:** Partially encrypted phone numbers and emails
+
+## Referral Data Structure
+```json
+{
+  "referrals": [
+    {
+      "id": "uuid",
+      "referred_user": {
+        "name": "John Doe",
+        "email": "jo***@gmail.com",
+        "phone": "080****1234",
+        "subscription_plan": "silver_monthly",
+        "subscription_amount": 4500,
+        "joined_date": "2025-01-01T00:00:00Z",
+        "is_active": true
+      },
+      "earnings": {
+        "total_earned": 1350,
+        "monthly_earnings": [450, 450, 450],
+        "earning_period": "3 months",
+        "months_remaining": 2
+      },
+      "status": "active"
+    }
+  ],
+  "total_earnings": 1350,
+  "available_for_withdrawal": 1350,
+  "withdrawal_history": [
+    {
+      "id": "uuid",
+      "amount": 3000,
+      "status": "completed",
+      "bank_details": "Access Bank - 0123456789",
+      "processed_date": "2025-01-15T00:00:00Z"
+    }
+  ]
+}
+```
+
+## Referral Endpoints
+- **GET https://sabiops-backend.vercel.app/api/referrals/dashboard** - Get referral dashboard data
+- **GET https://sabiops-backend.vercel.app/api/referrals/list** - Get list of referred users
+- **GET https://sabiops-backend.vercel.app/api/referrals/earnings** - Get earnings summary
+- **POST https://sabiops-backend.vercel.app/api/referrals/withdraw** - Request withdrawal
+- **GET https://sabiops-backend.vercel.app/api/referrals/withdrawal-history** - Get withdrawal history
+
+## Referral UI Components
+- **Referral Dashboard:** Overview of total earnings and referrals
+- **Referred Users Table:** List with partially encrypted contact info
+- **Earnings Chart:** Visual representation of monthly earnings
+- **Withdrawal Form:** Bank details and amount input
+- **Referral Link:** Shareable link for new referrals
+
+## Data Privacy & Encryption
+- **Phone Numbers:** Display as "080****1234" (first 3 + last 4 digits)
+- **Email Addresses:** Display as "jo***@gmail.com" (first 2 + domain)
+- **Full Data Access:** Available only to system administrators
+- **Encryption:** Sensitive data encrypted at rest in database
+- **GDPR Compliance:** User consent for referral tracking
+
+---
+
+# 11. Payment Processing & Security
+
+**Secure payment processing with Paystack integration and fraud protection.**
+
+## Paystack Integration Details
+- **API Version:** Paystack API v1
+- **Environment:** Production and Test environments
+- **Authentication:** Secret key authentication
+- **Webhook Security:** HMAC signature verification
+- **Error Handling:** Comprehensive error responses
+
+## Payment Flow Implementation
+```javascript
+// Frontend Payment Flow
+const initializePayment = async (planDetails) => {
+  const response = await fetch('/api/paystack/initialize', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({
+      plan: planDetails.plan,
+      amount: planDetails.amount,
+      email: user.email,
+      callback_url: `${window.location.origin}/dashboard?payment=success`,
+      metadata: {
+        user_id: user.id,
+        plan_type: planDetails.plan,
+        upgrade_type: planDetails.upgradeType
+      }
+    })
+  });
+  
+  const data = await response.json();
+  window.location.href = data.authorization_url;
+};
+```
+
+## Payment Verification
+- **Webhook Processing:** Automatic subscription activation
+- **Manual Verification:** Fallback verification for failed webhooks
+- **Transaction Logging:** Complete audit trail of all payments
+- **Refund Handling:** Automatic refund processing for failed upgrades
+
+## Security Measures
+- **HTTPS Only:** All payment communications encrypted
+- **Token Validation:** JWT tokens for API authentication
+- **Input Sanitization:** All payment data validated and sanitized
+- **Rate Limiting:** API rate limiting to prevent abuse
+- **Fraud Detection:** Suspicious payment pattern detection
+
+---
+
+# 12. Pro-rata Calculation Examples
+
+**Detailed examples of pro-rata upgrade calculations.**
+
+## Monthly to Yearly Upgrade
+- **Current Plan:** Silver Monthly (₦4,500)
+- **New Plan:** Silver Yearly (₦50,000)
+- **Days Remaining:** 15 days in current month
+- **Calculation:**
+  - Monthly daily rate: ₦4,500 ÷ 30 = ₦150/day
+  - Yearly daily rate: ₦50,000 ÷ 365 = ₦137/day
+  - Daily difference: ₦137 - ₦150 = -₦13 (credit)
+  - Pro-rata amount: ₦50,000 - (₦150 × 15) = ₦47,750
+
+## Weekly to Monthly Upgrade
+- **Current Plan:** Silver Weekly (₦1,400)
+- **New Plan:** Silver Monthly (₦4,500)
+- **Days Remaining:** 3 days in current week
+- **Calculation:**
+  - Weekly daily rate: ₦1,400 ÷ 7 = ₦200/day
+  - Monthly daily rate: ₦4,500 ÷ 30 = ₦150/day
+  - Daily difference: ₦150 - ₦200 = -₦50 (credit)
+  - Pro-rata amount: ₦4,500 - (₦200 × 3) = ₦3,900
+
+## Free to Monthly Upgrade
+- **Current Plan:** Free Plan (₦0)
+- **New Plan:** Silver Monthly (₦4,500)
+- **Calculation:** Full amount (₦4,500) as no credit from free plan
+
+## Upgrade API Response
+```json
+{
+  "upgrade_calculation": {
+    "current_plan": "silver_monthly",
+    "new_plan": "silver_yearly",
+    "current_amount": 4500,
+    "new_amount": 50000,
+    "days_remaining": 15,
+    "daily_rate_current": 150,
+    "daily_rate_new": 137,
+    "pro_rata_amount": 47750,
+    "savings": 2250,
+    "payment_url": "https://checkout.paystack.com/xxx",
+    "reference": "PS_REF_123456789"
+  }
+}
+```
+
+---
+
+# 13. Referral Earnings Calculation
+
+**Detailed referral earnings calculation and tracking.**
+
+## Earnings Calculation Examples
+- **Monthly Plan Referral:** ₦4,500 × 10% = ₦450/month for 3 months = ₦1,350 total
+- **Yearly Plan Referral:** ₦50,000 × 10% = ₦5,000/month for 3 months = ₦15,000 total
+- **Multiple Referrals:** Cumulative earnings from all active referrals
+
+## Referral Status Tracking
+- **Active:** Referred user has active paid subscription
+- **Inactive:** Referred user on free plan or cancelled
+- **Expired:** 3-month earning period completed
+- **Pending:** Referral made but payment not yet processed
+
+## Withdrawal Processing
+- **Minimum Amount:** ₦3,000
+- **Processing Time:** 1-3 business days
+- **Bank Transfer:** Direct to Nigerian bank accounts
+- **Fee:** No withdrawal fees
+- **Status Tracking:** Pending, Processing, Completed, Failed
+
+## Referral Dashboard Metrics
+- **Total Referrals:** Number of successful referrals
+- **Active Referrals:** Currently earning referrals
+- **Total Earnings:** All-time earnings from referrals
+- **Available for Withdrawal:** Current balance
+- **Monthly Earnings:** Earnings for current month
+- **Projected Earnings:** Estimated earnings from active referrals
+
+---
+
+# 14. Data Privacy & Security
+
+**Comprehensive data protection and privacy features.**
+
+## Contact Information Encryption
+- **Phone Numbers:** 
+  - Stored: "08012345678"
+  - Displayed: "080****5678"
+  - Pattern: First 3 digits + asterisks + last 4 digits
+- **Email Addresses:**
+  - Stored: "john.doe@gmail.com"
+  - Displayed: "jo***@gmail.com"
+  - Pattern: First 2 characters + asterisks + @domain
+
+## Privacy Implementation
+```javascript
+// Phone number encryption
+const encryptPhone = (phone) => {
+  if (!phone || phone.length < 7) return phone;
+  return phone.substring(0, 3) + '****' + phone.substring(phone.length - 4);
+};
+
+// Email encryption
+const encryptEmail = (email) => {
+  if (!email || !email.includes('@')) return email;
+  const [local, domain] = email.split('@');
+  const encryptedLocal = local.substring(0, 2) + '***';
+  return `${encryptedLocal}@${domain}`;
+};
+```
+
+## Data Access Control
+- **Owner Access:** Full contact information for their referrals
+- **Admin Access:** Encrypted contact information only
+- **Salesperson Access:** No referral data access
+- **System Admin:** Full access for support purposes
+
+## GDPR Compliance
+- **Data Consent:** Explicit consent for referral tracking
+- **Data Portability:** Export personal data on request
+- **Right to Deletion:** Remove referral data on request
+- **Data Retention:** Automatic deletion after 3-month earning period
+
+---
+
+# 15. Constraints & Inheritance Logic
 - **Only Owners can sign up, reset password, or create team.**
 - **Admins/Salespeople can only login (must be created by Owner).**
-- **Team members (Admin/Salesperson) inherit Owner’s subscription plan and trial period.**
+- **Team members (Admin/Salesperson) inherit Owner's subscription plan and trial period.**
 - **Dashboard is always rendered based on user role after login.**
 - **All dashboard API endpoints require JWT token.**
 - **All dashboard data is filtered by role in backend and frontend.**
@@ -200,11 +748,26 @@ This file provides a **dashboard-only** integration guide for SabiOps, with all 
 - **All error messages must be user-friendly and surfaced in the dashboard UI.**
 - **Offline/sync status must be visible if offline mode is supported.**
 - **Push notifications must be enabled for all roles.**
+- **Download formats are restricted by role and subscription level.**
+- **Social media links are available to all roles.**
+- **Toast notifications are used for all user feedback.**
+- **Firebase push notifications are used for important business alerts.**
+- **Free plan limits: 5 invoices/expenses monthly.**
+- **Trial period: 7 days for weekly plan with crown indicator.**
+- **Subscription inheritance: Team members get same access as owner.**
+- **Pro-rata upgrades: Owner-only feature with Paystack integration.**
+- **Usage tracking: Monthly limits enforced for free plan.**
+- **Upgrade prompts: Intelligent suggestions based on usage patterns.**
+- **Referral earnings: 10% for 3 months on monthly/yearly plans only.**
+- **Minimum withdrawal: ₦3,000 via Paystack bank transfer.**
+- **Data privacy: Partially encrypted phone numbers and emails.**
+- **Payment processing: Secure Paystack integration with webhook verification.**
+- **Fraud protection: Rate limiting and suspicious pattern detection.**
 
 ---
 
-# 7. Example Dashboard API Response (Owner)
-GET /api/dashboard/financials
+# 16. Example Dashboard API Response (Owner - Paid Plan)
+GET https://sabiops-backend.vercel.app/api/dashboard/financials
 Headers: { Authorization: Bearer <token> }
 Returns:
 {
@@ -228,19 +791,73 @@ Returns:
   "offline_status": { "isOffline": false, "lastSync": "2025-01-07T07:00:00Z", "syncErrors": [] },
   "upgrade_suggestions": [
     { "suggestedPlan": "Silver Monthly", "reason": "You are nearing your invoice limit." }
+  ],
+  "subscription_status": {
+    "plan": "silver_monthly",
+    "status": "active",
+    "trial_days_left": 0,
+    "usage_limits": { "invoices": "unlimited", "expenses": "unlimited" },
+    "current_usage": { "invoices": 15, "expenses": 8 }
+  },
+  "referral_earnings": {
+    "total_earnings": 1350,
+    "available_for_withdrawal": 1350,
+    "active_referrals": 2,
+    "monthly_earnings": 900
+  }
+}
+
+## Example Dashboard API Response (Owner - Free Plan)
+{
+  "revenue": { "total": 50000, "this_month": 10000 },
+  "customers": { "total": 25, "new_this_month": 5 },
+  "invoices": { "overdue": 2, "monthly_count": 3 },
+  "recent_activities": [
+    { "type": "sale", "description": "Sold 1 Office Chair", "timestamp": "2025-01-07T10:00:00Z" }
+  ],
+  "notifications": [
+    { "id": 1, "message": "You have 2 invoices remaining this month", "read": false, "timestamp": "2025-01-07T08:00:00Z" }
+  ],
+  "subscription_status": {
+    "plan": "free",
+    "status": "active",
+    "usage_limits": { "invoices": 5, "expenses": 5 },
+    "current_usage": { "invoices": 3, "expenses": 2 }
+  },
+  "upgrade_prompts": [
+    { "type": "limit_warning", "message": "Upgrade to create unlimited invoices", "cta": "Upgrade Now" }
   ]
 }
 
 ---
 
-# 8. Dashboard Color Palette (for UI)
+# 17. Dashboard Color Palette (for UI)
 - **Primary Green:** #16a34a (Tailwind: green-600)
 - **Accent Green:** #22c55e (green-500)
 - **Dark Green:** #15803d (green-700)
 - **Light Green:** #bbf7d0 (green-100)
 - **Background Green:** #f0fdf4 (green-50)
-Add a twitter icon/button that has the mesage content "Follow our CEO" and that redirects users to this profile or username 'Caleb0533' on X
-'Contact us for feedback' button/message that redirects the user to this number on whatsapp '+2348158025887'
+
 ---
 
 **This file is now strictly dashboard-only, role-separated, and explicitly states that the dashboard is always rendered based on user role after login, with all fields, endpoints, UI sections, color branding, and constraints/inheritance logic included and aligned with backend, frontend, and PRD.** 
+
+**Summary:**
+- **Frontend URL:** https://sabiops.vercel.app (login and dashboard)
+- **Backend API Base URL:** https://sabiops-backend.vercel.app (all API endpoints)
+- **After login, users are redirected to their role-based dashboard at the frontend URL.**
+- **All API calls use the backend base URL.**
+- **Dashboard is always rendered based on user role after login.**
+- **Notifications:** Toast (react-hot-toast) + Firebase push notifications
+- **Social Links:** Twitter (@Caleb0533) + WhatsApp (+2348158025887)
+- **Download Formats:** Role-based access (PDF, Excel, PNG, CSV)
+- **Color Branding:** Consistent green theme throughout dashboard
+- **Subscription Plans:** Free (5 invoices/expenses), Silver Weekly (₦1,400), Monthly (₦4,500), Yearly (₦50,000)
+- **Trial Period:** 7-day free trial with crown indicator
+- **Default Dashboard:** Limited features for expired/free plans with upgrade prompts
+- **Team Inheritance:** Team members inherit owner's subscription plan and trial period
+- **Pro-rata Upgrades:** Owner-only with Paystack integration and detailed calculations
+- **Referral System:** 10% earnings for 3 months on monthly/yearly plans only
+- **Payment Processing:** Secure Paystack integration with webhook verification
+- **Data Privacy:** Partially encrypted phone numbers and emails for referral tracking
+- **Minimum Withdrawal:** ₦3,000 via Paystack bank transfer 
