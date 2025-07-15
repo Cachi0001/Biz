@@ -25,8 +25,27 @@ export const AuthProvider = ({ children }) => {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             userData.trial_days_left = Math.max(0, diffDays);
           } else {
-            userData.trial_days_left = 0; // No trial or trial ended
+            userData.trial_days_left = 0;
           }
+          
+          // Add subscription and role information for dashboard
+          userData.subscription = {
+            plan: userData.subscription_plan || 'weekly',
+            status: userData.subscription_status || 'trial',
+            is_trial: userData.subscription_status === 'trial',
+            trial_days_left: userData.trial_days_left,
+            current_usage: {
+              invoices: 0, // Will be populated by dashboard
+              expenses: 0
+            },
+            usage_limits: userData.subscription_plan === 'free' ? {
+              invoices: 5,
+              expenses: 5
+            } : {
+              invoices: 'unlimited',
+              expenses: 'unlimited'
+            }
+          };
           setUser(userData);
           setIsAuthenticated(true);
           console.log('checkAuth: isAuthenticated set to TRUE'); // Added log
@@ -97,41 +116,27 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       checkAuth,
-      // Role-based properties
-      isOwner: user?.role?.toLowerCase() === 'owner' || false,
-      isAdmin: user?.role?.toLowerCase() === 'admin' || false,
-      isSalesperson: user?.role?.toLowerCase() === 'salesperson' || false,
-      userRole: user?.role || null,
-      // Derived values with safe defaults
-      isFreeTrial: user?.subscription_status?.toLowerCase() === 'free_trial' || false,
-      isPremium: user?.subscription_status?.toLowerCase() === 'premium' || false,
-      isBasic: user?.subscription_status?.toLowerCase() === 'basic' || false,
+      // Derived values aligned with database schema
+      role: user?.role || null,
+      subscription: user?.subscription || null,
+      businessName: user?.business_name || '',
+      isOwner: user?.role === 'Owner',
+      isAdmin: user?.role === 'Admin', 
+      isSalesperson: user?.role === 'Salesperson',
+      isFreeTrial: user?.subscription_status === 'trial',
+      isPaidPlan: user?.subscription_status === 'active',
       trialDaysLeft: user?.trial_days_left || 0,
       canAccessFeature: (feature) => {
         if (!user) return false;
-        const subscription = user.subscription_status?.toLowerCase();
-        const role = user.role?.toLowerCase();
+        const role = user.role;
+        const status = user.subscription_status;
         
-        // Feature access logic based on role and subscription
-        const roleBasedFeatures = {
-          'team_management': ['owner'],
-          'subscription_upgrade': ['owner'],
-          'referrals': ['owner'],
-          'full_analytics': ['owner', 'admin'],
-          'sales_only': ['salesperson'],
-          'expenses': ['owner', 'admin'],
-          'customers': ['owner', 'admin', 'salesperson'],
-          'products': ['owner', 'admin'],
-          'invoices': ['owner', 'admin', 'salesperson'],
-          'dashboard': ['owner', 'admin', 'salesperson']
-        };
+        // Role-based access
+        if (feature === 'team_management') return role === 'Owner';
+        if (feature === 'referrals') return role === 'Owner' && status === 'active';
+        if (feature === 'analytics') return status === 'active' || role === 'Owner';
         
-        if (roleBasedFeatures[feature]) {
-          return roleBasedFeatures[feature].includes(role);
-        }
-        
-        // Default subscription-based access
-        return subscription === 'premium' || subscription === 'basic';
+        return true; // Basic features available to all
       }
     }}>
       {children}

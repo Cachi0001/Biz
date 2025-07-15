@@ -9,7 +9,8 @@ const NotificationContext = createContext();
 export const useNotification = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }) => {
-  const { user } = useAuth() || {}; // Fix: fallback to empty object if useAuth() is null
+  const authContext = useAuth();
+  const user = authContext?.user;
   const [permission, setPermission] = useState(Notification.permission);
   const [deviceToken, setDeviceToken] = useState(null);
   const [error, setError] = useState(null);

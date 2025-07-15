@@ -46,9 +46,9 @@ function NotificationPrompt() {
 function App() {
   console.log('[APP] App component render');
   return (
-    <NotificationProvider>
     <ToastProvider>
       <AuthProvider>
+        <NotificationProvider>
         {console.log('[APP] Inside AuthProvider')}
         <Router>
             {console.log('[APP] Inside Router')}
@@ -65,7 +65,7 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy /> && (console.log('[APP] Route: /privacy (PrivacyPolicy)'), <PrivacyPolicy />)} />
             <Route path="/email-verified" element={<EmailVerified /> && (console.log('[APP] Route: /email-verified (EmailVerified)'), <EmailVerified />)} />
             {/* Protected routes */}
-            <Route path="/dashboard" element={<ProtectedRoute>{console.log('[APP] Route: /dashboard (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /dashboard'), <Dashboard />}</Layout>}</ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute>{console.log('[APP] Route: /customers (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /customers'), <Customers />}</Layout>}</ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute>{console.log('[APP] Route: /products (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /products'), <Products />}</Layout>}</ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute>{console.log('[APP] Route: /sales (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /sales'), <Sales />}</Layout>}</ProtectedRoute>} />
@@ -78,13 +78,13 @@ function App() {
             <Route path="/expenses" element={<ProtectedRoute>{console.log('[APP] Route: /expenses (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /expenses'), <Expenses />}</Layout>}</ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute>{console.log('[APP] Route: /transactions (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /transactions'), <Transactions />}</Layout>}</ProtectedRoute>} />
             {/* 404 fallback */}
-            <Route path="*" element={<div className="min-h-screen flex items-center justify-center">{console.log('[APP] Route: 404'), <div className="text-center"><h1 className="text-4xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p></div>}</div>} />
+            <Route path="*" element={<div className="min-h-screen flex items-center justify-center"> <div className="text-center"><h1 className="text-4xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p></div>}</div>} />
           </Routes>
         </div>
       </Router>
-    </AuthProvider>
+        </NotificationProvider>
+      </AuthProvider>
     </ToastProvider>
-    </NotificationProvider>
   );
 }
 

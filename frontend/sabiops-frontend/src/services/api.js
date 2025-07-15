@@ -722,6 +722,8 @@ export function getErrorMessage(error, fallback = 'An unexpected error occurred'
   return error?.message || fallback;
 }
 
+// Dashboard API functions - using existing getDashboardOverview function above
+
 // Export axios methods for backward compatibility
 export const get = api.get;
 export const post = api.post;
