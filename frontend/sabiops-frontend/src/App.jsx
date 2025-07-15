@@ -78,7 +78,7 @@ function App() {
             <Route path="/expenses" element={<ProtectedRoute>{console.log('[APP] Route: /expenses (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /expenses'), <Expenses />}</Layout>}</ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute>{console.log('[APP] Route: /transactions (ProtectedRoute)'), <Layout>{console.log('[APP] Layout for /transactions'), <Transactions />}</Layout>}</ProtectedRoute>} />
             {/* 404 fallback */}
-            <Route path="*" element={<div className="min-h-screen flex items-center justify-center"> <div className="text-center"><h1 className="text-4xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p></div>}</div>} />
+            <Route path="*" element={<div className="min-h-screen flex items-center justify-center"><div className="text-center"><h1 className="text-4xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p></div></div>} />
           </Routes>
         </div>
       </Router>
