@@ -266,13 +266,29 @@ class PaystackService {
    */
   static getPlanConfig(planId) {
     const plans = {
+      free: {
+        id: 'free',
+        name: 'Free Plan',
+        price: 0,
+        displayPrice: '₦0',
+        period: 'forever',
+        duration: 'Forever',
+        features: ['5 invoices per month', '5 expenses per month', 'Basic reporting', 'Email support'],
+        referral_earning: 0,
+        popular: false
+      },
       weekly: {
         id: 'weekly',
-        name: 'Silver Weekly',
+        name: 'Silver Weekly (7-Day Free Trial)',
         price: 140000, // ₦1,400 in kobo
         displayPrice: '₦1,400',
         period: 'week',
-        trial_days: 7
+        duration: '7 days',
+        trial_days: 7,
+        features: ['7-day free trial', '100 invoices per week', '100 expenses per week', 'Advanced reporting', 'Team management', 'Priority support'],
+        referral_earning: 0,
+        popular: true,
+        note: 'No referral earnings during trial'
       },
       monthly: {
         id: 'monthly',
@@ -280,7 +296,10 @@ class PaystackService {
         price: 450000, // ₦4,500 in kobo
         displayPrice: '₦4,500',
         period: 'month',
-        trial_days: 0
+        duration: '30 days',
+        features: ['450 invoices per month', '450 expenses per month', 'Advanced reporting', 'Team management', 'Priority support', 'Referral earnings (10% for 3 months)'],
+        referral_earning: 450, // 10% of ₦4,500
+        popular: false
       },
       yearly: {
         id: 'yearly',
@@ -288,7 +307,11 @@ class PaystackService {
         price: 5000000, // ₦50,000 in kobo
         displayPrice: '₦50,000',
         period: 'year',
-        trial_days: 0
+        duration: '365 days',
+        features: ['6000 invoices per year', '6000 expenses per year', 'Advanced reporting', 'Team management', 'Priority support', 'Referral earnings (10% for 3 months)'],
+        referral_earning: 5000, // 10% of ₦50,000
+        popular: false,
+        savings: '₦4,000 saved vs monthly'
       }
     };
 

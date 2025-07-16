@@ -20,13 +20,15 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       period: '/week',
       trial: '7-day free trial',
       features: [
-        'Unlimited invoices & expenses',
         '7-day free trial',
-        'Team management (up to 5 members)',
-        'Basic analytics & reports',
-        'Customer management',
-        'Product inventory tracking'
+        '100 invoices per week',
+        '100 expenses per week',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'All other features unlimited'
       ],
+      popular: true,
     },
     {
       id: 'monthly',
@@ -34,15 +36,14 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       price: 450000, // ₦4,500 in kobo
       displayPrice: '₦4,500',
       period: '/month',
-      popular: true,
-      savings: 'Most Popular',
       features: [
-        'Everything in Weekly plan',
-        'Advanced analytics & insights',
-        'Export reports (PDF/Excel)',
-        'Priority customer support',
-        'Referral system access',
-        'Advanced team permissions'
+        '450 invoices per month',
+        '450 expenses per month',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'Referral earnings (10% for 3 months)',
+        'All other features unlimited'
       ],
     },
     {
@@ -53,12 +54,13 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       period: '/year',
       savings: 'Save ₦4,000 annually',
       features: [
-        'Everything in Monthly plan',
-        'Maximum cost savings',
-        'Priority support & training',
-        'Early access to new features',
-        'Advanced business insights',
-        'Custom integrations support'
+        '6000 invoices per year',
+        '6000 expenses per year',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'Referral earnings (10% for 3 months)',
+        'All other features unlimited'
       ],
     },
   ];

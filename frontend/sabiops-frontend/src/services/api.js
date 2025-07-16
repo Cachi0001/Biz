@@ -442,6 +442,40 @@ export async function getSubscriptionPlans() {
   }
 }
 
+// Referral System
+export async function getReferralDashboard() {
+  try {
+    const response = await api.get('/referrals/dashboard');
+    console.log("[DEBUG] getReferralDashboard response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getReferralDashboard failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
+export async function requestReferralWithdrawal() {
+  try {
+    const response = await api.post('/referrals/withdraw');
+    console.log("[DEBUG] requestReferralWithdrawal response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] requestReferralWithdrawal failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
+export async function validateReferralCode(code) {
+  try {
+    const response = await api.post('/referrals/validate', { referral_code: code });
+    console.log("[DEBUG] validateReferralCode response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] validateReferralCode failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 export async function upgradeSubscription(upgradeData) {
   const response = await api.post('/subscription-upgrade/upgrade', upgradeData);
   return response.data;

@@ -7,6 +7,7 @@ import { ModernRecentActivities } from '../components/dashboard/ModernRecentActi
 import { ModernChartsSection } from '../components/dashboard/ModernChartsSection';
 import { SubscriptionStatus } from '../components/subscription/SubscriptionStatus';
 import { UpgradeModal } from '../components/subscription/UpgradeModal';
+import { ReferralSystem } from '../components/referrals/ReferralSystem';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent } from '../components/ui/card';
@@ -95,6 +96,9 @@ const Dashboard = () => {
 
           {/* Recent Activities */}
           <ModernRecentActivities activities={dashboardData?.recent_activities} loading={loading} />
+
+          {/* Referral System - Owner Only with Paid Plans */}
+          <ReferralSystem />
 
           {/* Refresh Status */}
           <div className="text-center py-4">

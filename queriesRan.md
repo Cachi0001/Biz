@@ -460,3 +460,248 @@ BEGIN
   RETURN result;
 END;
 $$;
+-- Trigger function for sales activities
+CREATE OR REPLACE FUNCTION trigger_log_sale_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM log_activity(
+            NEW.owner_id,
+            NEW.owner_id, -- Assuming owner created the sale
+            'sale',
+            'New sale recorded for ' || COALESCE(NEW.customer_name, 'customer') || ' - ₦' || NEW.total_amount,
+            NEW.id,
+            'sales'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger function for invoice activities
+CREATE OR REPLACE FUNCTION trigger_log_invoice_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM log_activity(
+            NEW.owner_id,
+            NEW.owner_id,
+            'invoice',
+            'Invoice #' || NEW.invoice_number || ' created for ' || COALESCE(NEW.customer_name, 'customer'),
+            NEW.id,
+            'invoices'
+        );
+    ELSIF TG_OP = 'UPDATE' AND OLD.status != NEW.status AND NEW.status = 'paid' THEN
+        PERFORM log_activity(
+            NEW.owner_id,
+            NEW.owner_id,
+            'payment',
+            'Invoice #' || NEW.invoice_number || ' marked as paid - ₦' || NEW.total_amount,
+            NEW.id,
+            'invoices'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers
+DROP TRIGGER IF EXISTS sales_activity_trigger ON public.sales;
+CREATE TRIGGER sales_activity_trigger
+    AFTER INSERT ON public.sales
+    FOR EACH ROW EXECUTE FUNCTION trigger_log_sale_activity();
+
+DROP TRIGGER IF EXISTS invoice_activity_trigger ON public.invoices;
+CREATE TRIGGER invoice_activity_trigger
+    AFTER INSERT OR UPDATE ON public.invoices
+    FOR EACH ROW EXECUTE FUNCTION trigger_log_invoice_activity();
+    CREATE OR REPLACE FUNCTION reset_monthly_usage()
+RETURNS void AS $$
+BEGIN
+    UPDATE public.users 
+    SET 
+        current_month_invoices = 0,
+        current_month_expenses = 0,
+        usage_reset_date = CURRENT_DATE
+    WHERE usage_reset_date < DATE_TRUNC('month', CURRENT_DATE);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to increment usage counters
+CREATE OR REPLACE FUNCTION increment_usage_counter(user_uuid UUID, counter_type TEXT)
+RETURNS void AS $$
+BEGIN
+    IF counter_type = 'invoice' THEN
+        UPDATE public.users 
+        SET current_month_invoices = current_month_invoices + 1
+        WHERE id = user_uuid;
+    ELSIF counter_type = 'expense' THEN
+        UPDATE public.users 
+        SET current_month_expenses = current_month_expenses + 1
+        WHERE id = user_uuid;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to log activities
+CREATE OR REPLACE FUNCTION log_activity(
+    p_owner_id UUID,
+    p_user_id UUID,
+    p_activity_type TEXT,
+    p_description TEXT,
+    p_reference_id UUID DEFAULT NULL,
+    p_reference_table TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    activity_id UUID;
+BEGIN
+    INSERT INTO public.activities (
+        owner_id, user_id, activity_type, description, 
+        reference_id, reference_table
+    ) VALUES (
+        p_owner_id, p_user_id, p_activity_type, p_description,
+        p_reference_id, p_reference_table
+    ) RETURNING id INTO activity_id;
+    
+    RETURN activity_id;
+END;
+$$ LANGUAGE plpgsql;
+-- Add dashboard-friendly fields to existing tables
+ALTER TABLE public.sales 
+ADD COLUMN IF NOT EXISTS profit_margin DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS notes TEXT;
+
+ALTER TABLE public.invoices 
+ADD COLUMN IF NOT EXISTS payment_terms INTEGER DEFAULT 30, -- Days
+ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General',
+ADD COLUMN IF NOT EXISTS supplier TEXT,
+ADD COLUMN IF NOT EXISTS last_restocked_at TIMESTAMP WITH TIME ZONE;
+
+-- Create indexes for dashboard queries
+CREATE INDEX IF NOT EXISTS idx_sales_profit_margin ON public.sales(profit_margin);
+CREATE INDEX IF NOT EXISTS idx_invoices_payment_terms ON public.invoices(payment_terms);
+CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(category);
+ALTER TABLE public.users 
+ADD COLUMN IF NOT EXISTS dashboard_preferences JSONB DEFAULT '{"theme": "default", "currency": "NGN", "date_format": "DD/MM/YYYY"}';
+
+-- Create index for JSONB queries
+CREATE INDEX IF NOT EXISTS idx_users_dashboard_prefs ON public.users USING GIN (dashboard_preferences);
+CREATE TABLE IF NOT EXISTS public.activities (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    owner_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE, -- Who performed the action
+    activity_type TEXT NOT NULL CHECK (activity_type IN ('sale', 'invoice', 'payment', 'customer', 'product', 'expense')),
+    description TEXT NOT NULL,
+    reference_id UUID, -- ID of the related record (sale_id, invoice_id, etc.)
+    reference_table TEXT, -- Table name for the reference
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_activities_owner_id ON public.activities(owner_id);
+CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activities_type ON public.activities(activity_type);
+
+-- Enable RLS
+ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy for activities
+CREATE POLICY "Users can view their own activities" ON public.activities
+    FOR SELECT USING (owner_id = auth.uid() OR owner_id IN (
+        SELECT owner_id FROM public.users WHERE id = auth.uid()
+    ));
+
+CREATE POLICY "Users can insert their own activities" ON public.activities
+    FOR INSERT WITH CHECK (owner_id = auth.uid() OR owner_id IN (
+        SELECT owner_id FROM public.users WHERE id = auth.uid()
+    ));
+
+-- =============================================================================
+-- LATEST UPDATE: UI MODERNIZATION & ERROR HANDLING IMPROVEMENTS
+-- Date: December 2024
+-- Status: COMPLETED - Production Ready
+-- =============================================================================
+
+/*
+MAJOR FRONTEND IMPROVEMENTS COMPLETED:
+
+1. COMPONENT ARCHITECTURE OVERHAUL:
+   - Deleted old inconsistent Layout.jsx component
+   - Created unified DashboardLayout system for all pages
+   - Implemented ModernHeader with working hamburger menu
+   - Enhanced MobileNavigation with role-based navigation
+   - Built NotificationBell and NotificationCenter components
+
+2. ALL PAGES MODERNIZED:
+   - Dashboard.jsx: Already using modern layout ✅
+   - Customers.jsx: Completely refactored with SOC/DDD principles ✅
+   - Products.jsx: Mobile card view (2 per row) ✅
+   - Invoices.jsx: Modern DashboardLayout integration ✅
+   - Sales.jsx: Modern DashboardLayout integration ✅
+   - Team.jsx: Modern DashboardLayout integration ✅
+   - Settings.jsx: Modern DashboardLayout integration ✅
+   - Expenses.jsx: Modern DashboardLayout integration ✅
+   - Transactions.jsx: Modern DashboardLayout integration ✅
+
+3. ENHANCED ERROR HANDLING:
+   - AuthContext improved with comprehensive timeout handling
+   - Login.jsx enhanced with better error messages
+   - Register.jsx enhanced with validation and error handling
+   - Network timeout handling (10-second timeout configured)
+   - User-friendly error messages for all authentication flows
+
+4. MOBILE-FIRST DESIGN IMPLEMENTATION:
+   - Consistent green theme (bg-green-50) across all pages
+   - Cards displayed in pairs (2 per row) on mobile as requested
+   - Working hamburger menu with Sheet component
+   - Responsive headers and proper spacing
+   - Touch-friendly button sizes and interactions
+
+5. COMPONENT REFACTORING (SOC/DDD):
+   - CustomerCard.jsx: Mobile-responsive customer cards
+   - CustomerForm.jsx: Reusable form component  
+   - CustomerProfile.jsx: Detailed profile with tabs
+   - Large files (>500 lines) refactored with proper separation
+   - Clean component architecture with dedicated folders
+
+6. BUILD STATUS:
+   - ✅ All syntax errors fixed
+   - ✅ Successful build with no warnings
+   - ✅ All components properly exported/imported
+   - ✅ Consistent UI across all pages
+   - ✅ Mobile responsiveness verified
+
+7. ERROR HANDLING IMPROVEMENTS:
+   - Connection timeout: "Please check your internet connection"
+   - Network errors: "Network error. Please check your connection"
+   - Server errors: Specific handling for 401, 429, 500+ status codes
+   - Validation errors: Client-side validation with clear messages
+   - Toast notifications: Consistent error/success messaging
+
+CURRENT STATUS: PRODUCTION READY
+- All pages use consistent modern DashboardLayout
+- Hamburger menu working properly on mobile devices
+- Cards display in pairs (2 per row) as requested
+- Comprehensive error handling for authentication
+- Clean component architecture following SOC/DDD principles
+- Build successful with no syntax errors
+
+NEXT PRIORITIES:
+1. Implement SubscriptionStatus and UpgradeModal components
+2. Add Paystack payment integration
+3. Implement advanced analytics with charts
+4. Add offline functionality with sync capabilities
+5. Performance optimization and code splitting
+
+REFERENCE IMPLEMENTATION:
+- Target: C:\Users\DELL\Saas\sabiops-role-render-dashboard
+- Current: C:\Users\DELL\Saas\Biz (Updated with modern UI)
+- Deployment: sabiops.vercel.app (Ready for deployment)
+*/
+
+-- No database changes required for this UI modernization phase
+-- All improvements are frontend-only and maintain existing schema compatibility
