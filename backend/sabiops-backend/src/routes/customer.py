@@ -74,28 +74,42 @@ def create_customer():
         
         print(f"[CUSTOMER CREATE] Owner ID: {owner_id}, Data received: {data}")
         
+        # Validate required fields
+        if not data:
+            return error_response("No data provided", status_code=400)
+            
         required_fields = ["name"]
         for field in required_fields:
-            if not data.get(field):
+            if not data.get(field) or not data.get(field).strip():
                 print(f"[CUSTOMER CREATE ERROR] Missing required field: {field}")
                 return error_response(f"{field} is required", status_code=400)
+        
+        # Validate email format if provided
+        email = data.get("email", "").strip()
+        if email and "@" not in email:
+            return error_response("Invalid email format", status_code=400)
         
         customer_data = {
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
-            "name": data["name"],
-            "email": data.get("email", ""),
-            "phone": data.get("phone", ""),
-            "address": data.get("address", ""),
-            "business_name": data.get("business_name", ""),  # Added business_name
+            "name": data["name"].strip(),
+            "email": email,
+            "phone": data.get("phone", "").strip(),
+            "address": data.get("address", "").strip(),
+            "business_name": data.get("business_name", "").strip(),
+            "notes": data.get("notes", "").strip(),
             "purchase_history": [],
             "interactions": [],
             "total_purchases": 0,
+            "total_spent": 0,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
         
         result = get_supabase().table("customers").insert(customer_data).execute()
+        
+        if not result.data:
+            return error_response("Failed to create customer", status_code=500)
         
         print(f"[CUSTOMER CREATE SUCCESS] Customer created with ID: {result.data[0]['id']}")
         
@@ -109,7 +123,9 @@ def create_customer():
         
     except Exception as e:
         print(f"[CUSTOMER CREATE EXCEPTION] {str(e)}")
-        return error_response(str(e), status_code=500)
+        import traceback
+        traceback.print_exc()
+        return error_response("Failed to create customer. Please try again.", status_code=500)
 
 @customer_bp.route("/<customer_id>", methods=["PUT"])
 @jwt_required()

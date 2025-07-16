@@ -12,6 +12,35 @@ import { Plus, Search, Edit, Trash2, User, Eye } from 'lucide-react';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getSales, getInvoices, getErrorMessage } from "../services/api";
 import { toast } from 'react-hot-toast';
 
+// Configure toast with green branding
+const showSuccessToast = (message) => {
+  toast.success(message, {
+    style: {
+      background: '#10b981',
+      color: '#ffffff',
+      fontWeight: '500',
+    },
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#10b981',
+    },
+  });
+};
+
+const showErrorToast = (message) => {
+  toast.error(message, {
+    style: {
+      background: '#ef4444',
+      color: '#ffffff',
+      fontWeight: '500',
+    },
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#ef4444',
+    },
+  });
+};
+
 const Customers = () => {
   // State management
   const [customers, setCustomers] = useState([]);
@@ -60,7 +89,7 @@ const Customers = () => {
       }
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      toast.error(getErrorMessage(error, 'Failed to load customers'));
+      showErrorToast(getErrorMessage(error, 'Failed to load customers'));
       setCustomers([]);
     } finally {
       setLoading(false);
@@ -154,7 +183,7 @@ const Customers = () => {
       setCustomerHistory(history);
     } catch (error) {
       console.error('Failed to fetch customer history:', error);
-      toast.error(getErrorMessage(error, 'Failed to load customer history'));
+      showErrorToast(getErrorMessage(error, 'Failed to load customer history'));
     }
   };
 
@@ -162,7 +191,7 @@ const Customers = () => {
   const handleCreateCustomer = async () => {
     try {
       if (!formCustomer.name.trim()) {
-        toast.error('Customer name is required');
+        showErrorToast('Customer name is required');
         return;
       }
 
@@ -182,11 +211,11 @@ const Customers = () => {
         notes: ''
       });
 
-      toast.success("Customer created successfully!");
+      showSuccessToast("Customer created successfully!");
       await fetchCustomerStats();
     } catch (error) {
       console.error('Failed to create customer:', error);
-      toast.error(getErrorMessage(error, 'Failed to create customer'));
+      showErrorToast(getErrorMessage(error, 'Failed to create customer'));
     } finally {
       setLoading(false);
     }
@@ -195,7 +224,7 @@ const Customers = () => {
   const handleEditCustomer = async () => {
     try {
       if (!formCustomer.name.trim()) {
-        toast.error('Customer name is required');
+        showErrorToast('Customer name is required');
         return;
       }
 
@@ -212,11 +241,11 @@ const Customers = () => {
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
 
-      toast.success("Customer updated successfully!");
+      showSuccessToast("Customer updated successfully!");
       await fetchCustomerStats();
     } catch (error) {
       console.error('Failed to update customer:', error);
-      toast.error(getErrorMessage(error, 'Failed to update customer'));
+      showErrorToast(getErrorMessage(error, 'Failed to update customer'));
     } finally {
       setLoading(false);
     }
@@ -228,10 +257,10 @@ const Customers = () => {
         setLoading(true);
         await deleteCustomer(id);
         setCustomers(prev => prev.filter(customer => customer.id !== id));
-        toast.success("Customer deleted successfully!");
+        showSuccessToast("Customer deleted successfully!");
       } catch (error) {
         console.error('Failed to delete customer:', error);
-        toast.error(getErrorMessage(error, 'Failed to delete customer'));
+        showErrorToast(getErrorMessage(error, 'Failed to delete customer'));
       } finally {
         setLoading(false);
       }
