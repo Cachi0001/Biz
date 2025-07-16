@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { Crown, TrendingUp } from 'lucide-react';
+import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernChartsSection = ({ data, loading }) => {
   const { role, subscription, isFreeTrial } = useAuth();
@@ -59,10 +60,10 @@ const ModernChartsSection = ({ data, loading }) => {
               <LineChart data={revenueData.slice(0, 3)}>
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                 <YAxis hide />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="url(#revenueGradient)" 
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="url(#revenueGradient)"
                   strokeWidth={3}
                   dot={false}
                 />
@@ -158,26 +159,33 @@ const ModernChartsSection = ({ data, loading }) => {
   return (
     <div className="space-y-4">
       {charts.map((chart, index) => (
-        <Card key={index} className="bg-gradient-to-br from-green-50 via-white to-blue-50 border-green-200 shadow-lg overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-green-500 via-purple-500 to-blue-500 shadow-sm" />
-          <CardHeader className="pb-2 bg-gradient-to-r from-green-100 to-blue-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold text-green-900 flex items-center space-x-2">
-                  <span>{chart.title}</span>
-                  {isFreeTrial && index === 0 && (
-                    <Crown className="h-3 w-3 text-yellow-500" />
-                  )}
-                </CardTitle>
-                <p className="text-xs text-green-700 mt-1 font-medium">{chart.subtitle}</p>
+        <GradientCardWrapper
+          key={index}
+          className="shadow-lg hover:shadow-xl transition-shadow"
+          gradientFrom="from-blue-100"
+          gradientTo="to-blue-200"
+        >
+          <Card className="border-0 bg-transparent overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-green-500 via-purple-500 to-blue-500 shadow-sm" />
+            <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-green-900 flex items-center space-x-2">
+                    <span>{chart.title}</span>
+                    {isFreeTrial && index === 0 && (
+                      <Crown className="h-3 w-3 text-yellow-500" />
+                    )}
+                  </CardTitle>
+                  <p className="text-xs text-green-700 mt-1 font-medium">{chart.subtitle}</p>
+                </div>
+                <TrendingUp className="h-4 w-4 text-green-600" />
               </div>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4 bg-gradient-to-br from-white to-green-50">
-            {chart.component}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="pt-4 bg-gradient-to-br from-white to-green-50">
+              {chart.component}
+            </CardContent>
+          </Card>
+        </GradientCardWrapper>
       ))}
     </div>
   );

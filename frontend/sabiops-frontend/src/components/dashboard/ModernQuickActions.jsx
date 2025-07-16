@@ -4,6 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { FileText, Users, Package, TrendingUp, Calculator, CreditCard, Settings, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernQuickActions = () => {
   const navigate = useNavigate();
@@ -129,38 +130,48 @@ const ModernQuickActions = () => {
 
       {/* Secondary Actions */}
       {actions.length > 4 && (
-        <Card className="bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-2">
-              {actions.slice(4).map((action, index) => (
-                <Button
-                  key={index + 4}
-                  variant="outline"
-                  onClick={() => handleNavigation(action.path)}
-                  className="h-14 flex-col space-y-1 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                >
-                  <action.icon className="h-4 w-4 text-gray-600" />
-                  <div className="text-xs font-medium text-gray-700">{action.label}</div>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <GradientCardWrapper
+          gradientFrom="from-gray-100"
+          gradientTo="to-gray-200"
+        >
+          <Card className="border-0 bg-transparent">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                {actions.slice(4).map((action, index) => (
+                  <Button
+                    key={index + 4}
+                    variant="outline"
+                    onClick={() => handleNavigation(action.path)}
+                    className="h-14 flex-col space-y-1 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                  >
+                    <action.icon className="h-4 w-4 text-gray-600" />
+                    <div className="text-xs font-medium text-gray-700">{action.label}</div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </GradientCardWrapper>
       )}
 
       {/* Role-based Quick Stats */}
-      <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-700">
-              Role: <span className="font-bold text-green-700">{role}</span>
+      <GradientCardWrapper
+        gradientFrom="from-green-100"
+        gradientTo="to-blue-100"
+      >
+        <Card className="border-0 bg-transparent">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-700">
+                Role: <span className="font-bold text-green-700">{role}</span>
+              </div>
+              <div className="text-xs text-gray-600">
+                {actions.length} actions available
+              </div>
             </div>
-            <div className="text-xs text-gray-600">
-              {actions.length} actions available
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </GradientCardWrapper>
     </div>
   );
 };

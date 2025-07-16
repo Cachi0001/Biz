@@ -1,11 +1,23 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+
+interface GradientCardWrapperProps {
+  children: React.ReactNode;
+  className?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  gradientDirection?: string;
+  padding?: string;
+  borderRadius?: string;
+  innerBorderRadius?: string;
+  innerBackground?: string;
+  [key: string]: any;
+}
 
 /**
  * GradientCardWrapper - A reusable component that creates gradient borders around content
  * Follows the pattern: gradient wrapper with white inner content
  */
-const GradientCardWrapper = ({ 
+const GradientCardWrapper: React.FC<GradientCardWrapperProps> = ({ 
   children, 
   className = '',
   gradientFrom = 'from-green-100',
@@ -17,19 +29,23 @@ const GradientCardWrapper = ({
   innerBackground = 'bg-white',
   ...props 
 }) => {
+  const outerClasses = [
+    gradientDirection,
+    gradientFrom,
+    gradientTo,
+    borderRadius,
+    padding,
+    className
+  ].filter(Boolean).join(' ');
+
+  const innerClasses = [innerBackground, innerBorderRadius].filter(Boolean).join(' ');
+
   return (
     <div 
-      className={cn(
-        gradientDirection,
-        gradientFrom,
-        gradientTo,
-        borderRadius,
-        padding,
-        className
-      )}
+      className={outerClasses}
       {...props}
     >
-      <div className={cn(innerBackground, innerBorderRadius)}>
+      <div className={innerClasses}>
         {children}
       </div>
     </div>
@@ -41,7 +57,7 @@ const GradientCardWrapper = ({
  */
 const GradientCardVariants = {
   // Primary green gradient for main dashboard cards
-  primary: (props) => (
+  primary: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-green-100"
       gradientTo="to-green-200"
@@ -50,7 +66,7 @@ const GradientCardVariants = {
   ),
 
   // Secondary blue gradient for charts and analytics
-  secondary: (props) => (
+  secondary: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-blue-100"
       gradientTo="to-blue-200"
@@ -59,7 +75,7 @@ const GradientCardVariants = {
   ),
 
   // Accent teal gradient for special sections
-  accent: (props) => (
+  accent: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-green-200"
       gradientTo="to-teal-200"
@@ -68,7 +84,7 @@ const GradientCardVariants = {
   ),
 
   // Warning orange gradient for alerts
-  warning: (props) => (
+  warning: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-orange-100"
       gradientTo="to-orange-200"
@@ -77,7 +93,7 @@ const GradientCardVariants = {
   ),
 
   // Success emerald gradient for positive actions
-  success: (props) => (
+  success: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-emerald-100"
       gradientTo="to-emerald-200"
@@ -86,7 +102,7 @@ const GradientCardVariants = {
   ),
 
   // Subtle gray gradient for neutral content
-  neutral: (props) => (
+  neutral: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-gray-100"
       gradientTo="to-gray-200"
@@ -95,7 +111,7 @@ const GradientCardVariants = {
   ),
 
   // Purple gradient for premium features
-  premium: (props) => (
+  premium: (props: GradientCardWrapperProps) => (
     <GradientCardWrapper
       gradientFrom="from-purple-100"
       gradientTo="to-purple-200"
