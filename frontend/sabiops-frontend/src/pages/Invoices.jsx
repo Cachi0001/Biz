@@ -462,99 +462,120 @@ const Invoices = () => {
           </Button>
         </div>
         {formData.items.map((item, index) => (
-          <Card key={index} className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor={`product_id-${index}`}>Product</Label>
-                <Select
-                  value={item.product_id}
-                  onValueChange={(value) => handleItemChange(index, 'product_id', value)}
-                >
-                  <SelectTrigger id={`product_id-${index}`}>
-                    <SelectValue placeholder="Select product (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        No products available. Please add a product first.
-                      </SelectItem>
-                    ) : (
-                      products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
+          <Card key={index} className="p-3 sm:p-4 mb-4">
+            {/* Mobile-first layout */}
+            <div className="space-y-4">
+              {/* Product Selection - Full width on mobile */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`product_id-${index}`}>Product</Label>
+                  <Select
+                    value={item.product_id}
+                    onValueChange={(value) => handleItemChange(index, 'product_id', value)}
+                  >
+                    <SelectTrigger id={`product_id-${index}`}>
+                      <SelectValue placeholder="Select product (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          No products available. Please add a product first.
                         </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-4 space-y-2">
-                <Label htmlFor={`description-${index}`}>Description *</Label>
-                <Input
-                  id={`description-${index}`}
-                  name="description"
-                  value={item.description}
-                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                  placeholder="Item description"
-                  required
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <Label htmlFor={`quantity-${index}`}>Qty *</Label>
-                <Input
-                  id={`quantity-${index}`}
-                  name="quantity"
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
-                  required
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <Label htmlFor={`unit_price-${index}`}>Unit Price (₦) *</Label>
-                <Input
-                  id={`unit_price-${index}`}
-                  name="unit_price"
-                  type="number"
-                  step="0.01"
-                  value={item.unit_price}
-                  onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
-                  required
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <Label htmlFor={`tax_rate-${index}`}>Tax (%)</Label>
-                <Input
-                  id={`tax_rate-${index}`}
-                  name="tax_rate"
-                  type="number"
-                  step="0.01"
-                  value={item.tax_rate}
-                  onChange={(e) => handleItemChange(index, 'tax_rate', parseFloat(e.target.value))}
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <Label htmlFor={`discount_rate-${index}`}>Discount (%)</Label>
-                <Input
-                  id={`discount_rate-${index}`}
-                  name="discount_rate"
-                  type="number"
-                  step="0.01"
-                  value={item.discount_rate}
-                  onChange={(e) => handleItemChange(index, 'discount_rate', parseFloat(e.target.value))}
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <Label>Total</Label>
-                <div className="text-sm font-medium py-2">
-                  ₦{calculateItemTotal(item).toFixed(2)}
+                      ) : (
+                        products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`description-${index}`}>Description *</Label>
+                  <Input
+                    id={`description-${index}`}
+                    name="description"
+                    value={item.description}
+                    onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                    placeholder="Item description"
+                    required
+                  />
                 </div>
               </div>
-              <div className="col-span-1 flex justify-end">
+
+              {/* Quantity and Pricing - 2 columns on mobile, 4 on desktop */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor={`quantity-${index}`}>Qty *</Label>
+                  <Input
+                    id={`quantity-${index}`}
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`unit_price-${index}`}>Unit Price (₦) *</Label>
+                  <Input
+                    id={`unit_price-${index}`}
+                    name="unit_price"
+                    type="number"
+                    step="0.01"
+                    value={item.unit_price}
+                    onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`tax_rate-${index}`}>Tax (%)</Label>
+                  <Input
+                    id={`tax_rate-${index}`}
+                    name="tax_rate"
+                    type="number"
+                    step="0.01"
+                    value={item.tax_rate}
+                    onChange={(e) => handleItemChange(index, 'tax_rate', parseFloat(e.target.value))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`discount_rate-${index}`}>Discount (%)</Label>
+                  <Input
+                    id={`discount_rate-${index}`}
+                    name="discount_rate"
+                    type="number"
+                    step="0.01"
+                    value={item.discount_rate}
+                    onChange={(e) => handleItemChange(index, 'discount_rate', parseFloat(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              {/* Total and Remove Button */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-600">Total:</span>
+                  <span className="text-lg font-bold text-green-600">
+                    ₦{calculateItemTotal(item).toFixed(2)}
+                  </span>
+                </div>
                 {formData.items.length > 1 && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeItem(index)}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => removeItem(index)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
                     <Trash2 className="h-4 w-4" />
+                    <span className="ml-1 hidden sm:inline">Remove</span>
                   </Button>
                 )}
               </div>

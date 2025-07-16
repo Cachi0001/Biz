@@ -8,8 +8,8 @@ const DashboardLayout = ({ children }) => {
       {/* Modern Header */}
       <ModernHeader />
       
-      {/* Main content with proper spacing */}
-      <div className="pt-14 lg:pt-[60px] pb-16"> {/* Top padding for header, bottom padding for mobile nav */}
+      {/* Main content with proper spacing - adjusted for dynamic header height */}
+      <div className="pt-[120px] sm:pt-[100px] lg:pt-[90px] pb-20 sm:pb-16"> 
         {children}
       </div>
       

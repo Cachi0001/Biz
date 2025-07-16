@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getSalesReport, downloadSalesReport, getErrorMessage } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -51,17 +52,26 @@ const SalesReport = () => {
       const response = await getSalesReport(params);
       console.log('[SALES_REPORT] Response:', response);
       
-      // Handle different response formats
-      if (response && response.data) {
-        setSalesData(response.data);
-      } else if (response) {
-        setSalesData(response);
+      // Handle different response formats with defensive programming
+      if (response && typeof response === 'object') {
+        if (response.data) {
+          setSalesData(response.data);
+        } else if (response.summary || response.transactions) {
+          setSalesData(response);
+        } else {
+          setSalesData({
+            summary: { total_sales: 0, total_transactions: 0, total_quantity: 0, average_sale: 0 },
+            transactions: [],
+            payment_breakdown: {}
+          });
+        }
       } else {
         setSalesData(null);
       }
     } catch (error) {
       console.error('Failed to fetch sales report:', error);
-      toast.error(getErrorMessage(error, 'Failed to load sales report'));
+      const errorMessage = getErrorMessage(error, 'Failed to load sales report');
+      toast.error(errorMessage);
       setSalesData(null);
     } finally {
       setLoading(false);
@@ -141,31 +151,34 @@ const SalesReport = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <DashboardLayout>
+      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Sales Report</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales Report</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
             Professional sales reporting and analytics for your business
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={() => handleDownloadReport('pdf')}
             disabled={loading || !salesData}
+            className="w-full sm:w-auto"
           >
             <FileText className="h-4 w-4 mr-2" />
-            Download PDF
+            <span className="hidden sm:inline">Download </span>PDF
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDownloadReport('png')}
             disabled={loading || !salesData}
+            className="w-full sm:w-auto"
           >
             <ImageIcon className="h-4 w-4 mr-2" />
-            Download Image
+            <span className="hidden sm:inline">Download </span>Image
           </Button>
         </div>
       </div>
@@ -407,7 +420,8 @@ const SalesReport = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

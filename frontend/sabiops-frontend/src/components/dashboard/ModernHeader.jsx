@@ -297,35 +297,37 @@ const ModernHeader = () => {
 
         {/* Welcome Message */}
         <div className="mt-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex-1">
+              <h2 className="text-lg sm:text-xl font-bold text-white">
                 Good {getGreeting()}, {user?.full_name?.split(' ')[0]}!
               </h2>
-              <p className="text-sm text-green-100 flex items-center space-x-2">
-                <span>Business at a glance</span>
-                <span className="w-1 h-1 bg-green-200 rounded-full"></span>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-sm text-green-100">Business at a glance</span>
+                <span className="w-1 h-1 bg-green-200 rounded-full hidden sm:block"></span>
                 <span className="text-xs bg-green-600 text-green-100 px-2 py-0.5 rounded-full">
                   {role}
                 </span>
                 {user?.subscription_plan === 'free' && (
                   <>
-                    <span className="w-1 h-1 bg-green-200 rounded-full"></span>
-                    <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                    <span className="w-1 h-1 bg-green-200 rounded-full hidden sm:block"></span>
+                    <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Crown className="h-3 w-3" />
                       Free Plan
                     </span>
                   </>
                 )}
-              </p>
+              </div>
             </div>
             
             {user?.subscription_plan === 'free' && role === 'Owner' && (
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg mt-2 sm:mt-0"
               >
                 <Crown className="h-4 w-4 mr-1" />
-                Upgrade Now
+                <span className="hidden sm:inline">Upgrade Now</span>
+                <span className="sm:hidden">Upgrade</span>
               </Button>
             )}
           </div>
