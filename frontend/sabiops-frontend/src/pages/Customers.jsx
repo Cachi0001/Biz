@@ -19,7 +19,7 @@ const Customers = () => {
   const [customerHistory, setCustomerHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -47,7 +47,7 @@ const Customers = () => {
     try {
       setLoading(true);
       const response = await getCustomers();
-      
+
       // Handle different response formats
       if (response && Array.isArray(response)) {
         setCustomers(response);
@@ -74,13 +74,13 @@ const Customers = () => {
         getInvoices()
       ]);
 
-      const sales = Array.isArray(salesResponse) ? salesResponse : 
-                   salesResponse?.sales || salesResponse?.data?.sales || [];
-      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse : 
-                      invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
+      const sales = Array.isArray(salesResponse) ? salesResponse :
+        salesResponse?.sales || salesResponse?.data?.sales || [];
+      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse :
+        invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
 
       const stats = {};
-      
+
       // Calculate stats from sales
       sales.forEach(sale => {
         if (sale.customer_id) {
@@ -93,7 +93,7 @@ const Customers = () => {
           }
           stats[sale.customer_id].totalPurchases += 1;
           stats[sale.customer_id].totalSpent += parseFloat(sale.total_amount || sale.net_amount || 0);
-          
+
           const purchaseDate = new Date(sale.created_at || sale.date);
           if (!stats[sale.customer_id].lastPurchase || purchaseDate > stats[sale.customer_id].lastPurchase) {
             stats[sale.customer_id].lastPurchase = purchaseDate;
@@ -128,10 +128,10 @@ const Customers = () => {
         getInvoices()
       ]);
 
-      const sales = Array.isArray(salesResponse) ? salesResponse : 
-                   salesResponse?.sales || salesResponse?.data?.sales || [];
-      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse : 
-                      invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
+      const sales = Array.isArray(salesResponse) ? salesResponse :
+        salesResponse?.sales || salesResponse?.data?.sales || [];
+      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse :
+        invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
 
       const customerSales = sales.filter(sale => sale.customer_id === customerId);
       const customerInvoices = invoices.filter(invoice => invoice.customer_id === customerId);
@@ -168,10 +168,10 @@ const Customers = () => {
 
       setLoading(true);
       const response = await createCustomer(formCustomer);
-      
+
       const createdCustomer = response?.customer || response?.data?.customer || response;
       setCustomers(prev => [createdCustomer, ...prev]);
-      
+
       setIsCreateDialogOpen(false);
       setFormCustomer({
         name: '',
@@ -181,7 +181,7 @@ const Customers = () => {
         business_name: '',
         notes: ''
       });
-      
+
       toast.success("Customer created successfully!");
       await fetchCustomerStats();
     } catch (error) {
@@ -201,17 +201,17 @@ const Customers = () => {
 
       setLoading(true);
       const response = await updateCustomer(selectedCustomer.id, formCustomer);
-      
+
       const updatedCustomer = response?.customer || response?.data?.customer || formCustomer;
-      setCustomers(prev => 
-        prev.map(customer => 
+      setCustomers(prev =>
+        prev.map(customer =>
           customer.id === selectedCustomer.id ? { ...customer, ...updatedCustomer } : customer
         )
       );
-      
+
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
-      
+
       toast.success("Customer updated successfully!");
       await fetchCustomerStats();
     } catch (error) {
@@ -323,7 +323,7 @@ const Customers = () => {
               <User className="h-16 w-16 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium mb-2 text-gray-900">No customers found</h3>
               <p className="text-gray-600 mb-6">
-                {searchTerm 
+                {searchTerm
                   ? 'Try adjusting your search criteria'
                   : 'Get started by adding your first customer'}
               </p>
@@ -500,4 +500,4 @@ const Customers = () => {
   );
 };
 
-export default Customers;
+export default Customers;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   

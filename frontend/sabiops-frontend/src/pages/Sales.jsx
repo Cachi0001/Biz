@@ -42,7 +42,7 @@ const Sales = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [saleItems, setSaleItems] = useState([{ product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
+  const [saleItems, setSaleItems] = useState([{ id: Date.now(), product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
   const [formData, setFormData] = useState({
     customer_id: '',
     payment_method: 'cash',
@@ -133,7 +133,7 @@ const Sales = () => {
   };
 
   const addSaleItem = () => {
-    setSaleItems([...saleItems, { product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
+    setSaleItems([...saleItems, { id: Date.now() + Math.random(), product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
   };
 
   const removeSaleItem = (index) => {
@@ -318,7 +318,7 @@ const Sales = () => {
                 </div>
 
                 {saleItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-4">
                       <Label>Product</Label>
                       <Select 

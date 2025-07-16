@@ -32,7 +32,7 @@ const Invoices = () => {
     terms_and_conditions: 'Payment is due within 30 days of invoice date.',
     currency: 'NGN',
     discount_amount: 0,
-    items: [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+    items: [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
   });
 
   useEffect(() => {
@@ -122,23 +122,26 @@ const Invoices = () => {
   };
 
   const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index][field] = value;
+    setFormData(prev => {
+      const updatedItems = [...prev.items];
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
 
-    if (field === 'product_id') {
-      const product = products.find(p => p.id === value);
-      if (product) {
-        updatedItems[index].description = product.name;
-        updatedItems[index].unit_price = product.price;
+      if (field === 'product_id') {
+        const product = products.find(p => p.id === value);
+        if (product) {
+          updatedItems[index].description = product.name;
+          updatedItems[index].unit_price = product.price || product.unit_price || 0;
+        }
       }
-    }
-    setFormData(prev => ({ ...prev, items: updatedItems }));
+      
+      return { ...prev, items: updatedItems };
+    });
   };
 
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }]
+      items: [...prev.items, { id: Date.now() + Math.random(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }]
     }));
   };
 
@@ -266,7 +269,7 @@ const Invoices = () => {
       terms_and_conditions: 'Payment is due within 30 days of invoice date.',
       currency: 'NGN',
       discount_amount: 0,
-      items: [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+      items: [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
     });
     setSelectedInvoice(null);
   };
@@ -297,7 +300,8 @@ const Invoices = () => {
         currency: invoice.currency || 'NGN',
         discount_amount: invoice.discount_amount || 0,
         items: invoice.items && invoice.items.length > 0 
-          ? invoice.items.map(item => ({
+          ? invoice.items.map((item, index) => ({
+              id: item.id || Date.now() + index,
               product_id: item.product_id || '',
               description: item.description || '',
               quantity: item.quantity || 1,
@@ -305,7 +309,7 @@ const Invoices = () => {
               tax_rate: item.tax_rate || 0,
               discount_rate: item.discount_rate || 0,
             }))
-          : [{ product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+          : [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
       });
       setIsEditDialogOpen(true);
     } catch (error) {
@@ -462,7 +466,7 @@ const Invoices = () => {
           </Button>
         </div>
         {formData.items.map((item, index) => (
-          <Card key={index} className="p-3 sm:p-4 mb-4">
+          <Card key={item.id} className="p-3 sm:p-4 mb-4">
             {/* Mobile-first layout */}
             <div className="space-y-4">
               {/* Product Selection - Full width on mobile */}
