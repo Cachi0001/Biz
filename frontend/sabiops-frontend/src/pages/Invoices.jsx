@@ -122,6 +122,12 @@ const Invoices = () => {
   };
 
   const handleItemChange = (index, field, value) => {
+    // Prevent form submission on Enter key
+    if (typeof value === 'object' && value.preventDefault) {
+      value.preventDefault();
+      return;
+    }
+    
     setFormData(prev => {
       const updatedItems = [...prev.items];
       updatedItems[index] = { ...updatedItems[index], [field]: value };
@@ -203,11 +209,16 @@ const Invoices = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Prevent any default form submission behavior
+    if (e.target) {
+      e.target.preventDefault?.();
+    }
+    
     // Validate form
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       toast.error(validationErrors[0]); // Show first error
-      return;
+      return false; // Explicitly return false to prevent any form submission
     }
 
     try {
@@ -519,7 +530,7 @@ const Invoices = () => {
                     type="number"
                     min="1"
                     value={item.quantity}
-                    onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value === '' ? 1 : parseInt(e.target.value) || 1)}
                     required
                   />
                 </div>
@@ -532,7 +543,7 @@ const Invoices = () => {
                     type="number"
                     step="0.01"
                     value={item.unit_price}
-                    onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
+                    onChange={(e) => handleItemChange(index, 'unit_price', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                     required
                   />
                 </div>
@@ -545,7 +556,7 @@ const Invoices = () => {
                     type="number"
                     step="0.01"
                     value={item.tax_rate}
-                    onChange={(e) => handleItemChange(index, 'tax_rate', parseFloat(e.target.value))}
+                    onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 
@@ -557,7 +568,7 @@ const Invoices = () => {
                     type="number"
                     step="0.01"
                     value={item.discount_rate}
-                    onChange={(e) => handleItemChange(index, 'discount_rate', parseFloat(e.target.value))}
+                    onChange={(e) => handleItemChange(index, 'discount_rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                   />
                 </div>
               </div>

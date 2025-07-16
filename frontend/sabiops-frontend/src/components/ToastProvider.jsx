@@ -31,17 +31,17 @@ const ToastProvider = ({ children }) => {
             maxWidth: '400px',
           },
           
-          // Success toasts
+          // Success toasts - Updated to match SabiOps brand green
           success: {
             duration: 4000,
             style: {
-              background: '#10B981',
+              background: '#22C55E', // SabiOps brand green
               color: '#fff',
-              border: '1px solid #059669',
+              border: '1px solid #16A34A',
             },
             iconTheme: {
               primary: '#fff',
-              secondary: '#10B981',
+              secondary: '#22C55E',
             },
           },
           

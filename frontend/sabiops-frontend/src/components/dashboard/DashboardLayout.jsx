@@ -4,7 +4,7 @@ import { ModernHeader } from './ModernHeader';
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
       {/* Modern Header */}
       <ModernHeader />
       

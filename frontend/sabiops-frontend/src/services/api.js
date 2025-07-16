@@ -548,26 +548,29 @@ export async function getSalesReport(params) {
   try {
     console.log("[DEBUG] getSalesReport called with params:", params);
     
-    // Determine which backend endpoint to use based on params
-    let endpoint = '/sales/daily-report';
+    // Use the existing sales endpoint with date filtering
+    let endpoint = '/sales/';
     let apiParams = {};
     
     if (params.date) {
-      // Single date - use daily report
-      endpoint = '/sales/daily-report';
-      apiParams = { date: params.date };
+      // Single date - filter by date
+      apiParams = { 
+        start_date: params.date,
+        end_date: params.date 
+      };
     } else if (params.start_date && params.end_date) {
-      // Date range - use analytics
-      endpoint = '/sales/analytics';
-      const startDate = new Date(params.start_date);
-      const endDate = new Date(params.end_date);
-      const diffTime = Math.abs(endDate - startDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      apiParams = { period: diffDays };
+      // Date range
+      apiParams = { 
+        start_date: params.start_date,
+        end_date: params.end_date 
+      };
     } else {
-      // Default to daily report for today
-      endpoint = '/sales/daily-report';
-      apiParams = { date: new Date().toISOString().split('T')[0] };
+      // Default to today
+      const today = new Date().toISOString().split('T')[0];
+      apiParams = { 
+        start_date: today,
+        end_date: today 
+      };
     }
     
     console.log("[DEBUG] getSalesReport using endpoint:", endpoint, "with params:", apiParams);
@@ -575,25 +578,65 @@ export async function getSalesReport(params) {
     console.log("[DEBUG] getSalesReport response:", response.data);
     
     // Transform the response to match expected format
-    const data = response.data.data || response.data;
+    const salesData = response.data?.sales || response.data?.data || response.data || [];
     
-    // Transform to expected format for SalesReport component
+    // Calculate summary from sales data
+    const summary = {
+      total_sales: salesData.reduce((sum, sale) => sum + (parseFloat(sale.net_amount) || 0), 0),
+      total_transactions: salesData.length,
+      total_quantity: salesData.reduce((sum, sale) => {
+        const items = sale.sale_items || [];
+        return sum + items.reduce((itemSum, item) => itemSum + (parseInt(item.quantity) || 0), 0);
+      }, 0),
+      average_sale: salesData.length > 0 ? 
+        salesData.reduce((sum, sale) => sum + (parseFloat(sale.net_amount) || 0), 0) / salesData.length : 0
+    };
+    
+    // Calculate payment method breakdown
+    const payment_breakdown = {};
+    salesData.forEach(sale => {
+      const method = sale.payment_method || 'unknown';
+      if (!payment_breakdown[method]) {
+        payment_breakdown[method] = { amount: 0, count: 0 };
+      }
+      payment_breakdown[method].amount += parseFloat(sale.net_amount) || 0;
+      payment_breakdown[method].count += 1;
+    });
+    
+    // Transform transactions for display
+    const transactions = salesData.map(sale => ({
+      id: sale.id,
+      created_at: sale.created_at || sale.sale_date,
+      customer_name: sale.customer?.name || 'Walk-in Customer',
+      customer_email: sale.customer?.email || null,
+      items: sale.sale_items || [],
+      total_quantity: (sale.sale_items || []).reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0),
+      payment_method: sale.payment_method,
+      total_amount: parseFloat(sale.net_amount) || 0
+    }));
+    
     const transformed = {
-      summary: {
-        total_sales: data.summary?.total_amount || 0,
-        total_transactions: data.summary?.total_sales || 0,
-        total_quantity: data.summary?.total_quantity || 0,
-        average_sale: data.summary?.average_sale || data.summary?.average_order_value || 0
-      },
-      payment_breakdown: data.payment_methods || {},
-      transactions: data.sales || []
+      summary,
+      payment_breakdown,
+      transactions
     };
     
     console.log("[DEBUG] getSalesReport transformed data:", transformed);
     return transformed;
   } catch (error) {
     console.error("[ERROR] getSalesReport failed:", error.response ? error.response.data : error.message);
-    throw error;
+    
+    // Return empty data structure instead of throwing error
+    return {
+      summary: {
+        total_sales: 0,
+        total_transactions: 0,
+        total_quantity: 0,
+        average_sale: 0
+      },
+      payment_breakdown: {},
+      transactions: []
+    };
   }
 }
 

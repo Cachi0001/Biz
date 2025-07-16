@@ -1,8 +1,9 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { TrendingUp, TrendingDown, Users, FileText, DollarSign, Package, Crown, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { TrendingUp, TrendingDown, Users, FileText, DollarSign, Package, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency, formatNumber } from '../../lib/utils/index.js';
+import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernOverviewCards = ({ data, loading }) => {
   const { user } = useAuth();
@@ -80,29 +81,36 @@ const ModernOverviewCards = ({ data, loading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
       {cards.map((card, index) => (
-        <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                <card.icon className={`h-4 w-4 ${card.color}`} />
+        <GradientCardWrapper 
+          key={index} 
+          className="shadow-sm hover:shadow-md transition-shadow"
+          gradientFrom="from-green-100"
+          gradientTo="to-green-200"
+        >
+          <Card className="border-0 bg-transparent">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                  <card.icon className={`h-4 w-4 ${card.color}`} />
+                </div>
+                {card.trend === 'up' ? (
+                  <TrendingUp className="h-3 w-3 text-green-500" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-red-500" />
+                )}
               </div>
-              {card.trend === 'up' ? (
-                <TrendingUp className="h-3 w-3 text-green-500" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-500" />
-              )}
-            </div>
-            <div>
-              <p className="text-xs text-gray-600 mb-1 truncate">{card.title}</p>
-              <p className="text-sm sm:text-lg font-bold text-gray-900 truncate">{card.value}</p>
-              <p className={`text-xs ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'} truncate`}>
-                {card.change}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                <p className="text-xs text-gray-600 mb-1 truncate">{card.title}</p>
+                <p className="text-sm sm:text-lg font-bold text-gray-900 truncate">{card.value}</p>
+                <p className={`text-xs ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'} truncate`}>
+                  {card.change}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </GradientCardWrapper>
       ))}
     </div>
   );
