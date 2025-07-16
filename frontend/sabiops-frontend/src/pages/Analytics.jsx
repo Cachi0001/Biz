@@ -2,7 +2,6 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import DashboardHeader from '../components/dashboard/DashboardHeader';
 import ModernChartsSection from '../components/dashboard/ModernChartsSection';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -34,7 +33,6 @@ const Analytics = () => {
   if (!canAccessFeature('analytics')) {
     return (
       <DashboardLayout>
-        <DashboardHeader />
         <div className="p-4 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 min-h-screen">
           {/* Upgrade Notice for Non-Trial Users */}
           <Card className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-orange-300 shadow-lg">
@@ -64,7 +62,6 @@ const Analytics = () => {
 
   return (
     <DashboardLayout>
-      <DashboardHeader />
       <div className="p-4 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 min-h-screen">
         
         {/* Analytics Header */}

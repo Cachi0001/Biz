@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { ModernOverviewCards } from '../components/dashboard/ModernOverviewCards';
 import { ModernQuickActions } from '../components/dashboard/ModernQuickActions';
 import { ModernRecentActivities } from '../components/dashboard/ModernRecentActivities';
@@ -70,9 +69,6 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <DashboardHeader />
-
       {/* Main Dashboard Content with Responsive Grid Layout */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="space-y-6 sm:space-y-8">

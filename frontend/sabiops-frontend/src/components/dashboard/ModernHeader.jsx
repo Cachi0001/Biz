@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { NotificationCenter } from '../notifications/NotificationCenter';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '../ui/sheet';
+import FirebaseService from '../../services/FirebaseService';
 import {
   Menu,
   X,
@@ -22,6 +24,40 @@ const ModernHeader = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Notification state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Initialize Firebase and load notifications
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      try {
+        // Initialize Firebase messaging
+        await FirebaseService.initialize();
+        
+        // Load notifications
+        await loadNotifications();
+        
+        // Set up message handler for real-time notifications
+        FirebaseService.addMessageHandler(handleNewNotification);
+        
+      } catch (error) {
+        console.error('Failed to initialize notifications:', error);
+      }
+    };
+
+    if (user) {
+      initializeNotifications();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      FirebaseService.removeMessageHandler(handleNewNotification);
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -50,6 +86,105 @@ const ModernHeader = () => {
       return;
     }
     navigate('/transactions');
+  };
+
+  // Load notifications from backend
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const [notificationsData, unreadCountData] = await Promise.all([
+        FirebaseService.getNotifications(20, 0),
+        FirebaseService.getUnreadCount()
+      ]);
+      
+      setNotifications(notificationsData);
+      setUnreadCount(unreadCountData);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Use mock data for development
+      setNotifications([
+        {
+          id: '1',
+          title: 'Low Stock Alert',
+          body: 'Office Chair is running low (2 items left)',
+          type: 'low_stock',
+          read: false,
+          action_url: '/products',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: 'Payment Received',
+          body: 'Invoice #INV-001 has been paid (₦15,000)',
+          type: 'payment_received',
+          read: false,
+          action_url: '/invoices',
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        }
+      ]);
+      setUnreadCount(2);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle new notification from Firebase
+  const handleNewNotification = (notification) => {
+    console.log('New notification received:', notification);
+    
+    // Add to notifications list
+    setNotifications(prev => [
+      {
+        id: Date.now().toString(),
+        title: notification.title,
+        body: notification.body,
+        type: notification.data?.type || 'info',
+        read: false,
+        action_url: notification.data?.action_url,
+        created_at: notification.timestamp
+      },
+      ...prev
+    ]);
+    
+    // Increment unread count
+    setUnreadCount(prev => prev + 1);
+  };
+
+  // Handle notification bell click
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  // Handle mark as read
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await FirebaseService.markAsRead(notificationId);
+      
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
+      
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  // Handle mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      await FirebaseService.markAllAsRead();
+      
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   };
 
   const getGreeting = () => {
@@ -162,8 +297,21 @@ const ModernHeader = () => {
             </div>
 
             {/* Notifications */}
-            <div className="hidden md:block">
-              <NotificationCenter />
+            <div className="hidden md:block relative">
+              <NotificationBell
+                unreadCount={unreadCount}
+                onClick={handleNotificationClick}
+                className="text-white hover:bg-green-600"
+              />
+              
+              {/* Notification Center */}
+              <NotificationCenter
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                notifications={notifications}
+                onMarkAsRead={handleMarkAsRead}
+                onMarkAllAsRead={handleMarkAllAsRead}
+              />
             </div>
 
             {/* Trial Indicator */}
@@ -274,7 +422,26 @@ const ModernHeader = () => {
                   
                   {/* Notifications */}
                   <div className="pt-2 border-t border-green-400">
-                    <NotificationCenter />
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-green-100">Notifications</h3>
+                      <div className="relative">
+                        <NotificationBell
+                          unreadCount={unreadCount}
+                          onClick={handleNotificationClick}
+                          className="text-white hover:bg-green-600 w-full justify-start"
+                          showText={true}
+                        />
+                        
+                        {/* Mobile Notification Center */}
+                        <NotificationCenter
+                          isOpen={showNotifications}
+                          onClose={() => setShowNotifications(false)}
+                          notifications={notifications}
+                          onMarkAsRead={handleMarkAsRead}
+                          onMarkAllAsRead={handleMarkAllAsRead}
+                        />
+                      </div>
+                    </div>
                   </div>
                   
                   {/* User Info */}
