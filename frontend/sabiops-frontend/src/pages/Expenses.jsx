@@ -559,7 +559,7 @@ const Expenses = () => {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All categories</SelectItem>
+                      <SelectItem value="all">All categories</SelectItem>
                       {categories.map(category => (
                         <SelectItem key={category.name} value={category.name}>
                           {category.name}
@@ -576,7 +576,7 @@ const Expenses = () => {
                       <SelectValue placeholder="All methods" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All methods</SelectItem>
+                      <SelectItem value="all">All methods</SelectItem>
                       {paymentMethods.map(method => (
                         <SelectItem key={method.value} value={method.value}>
                           {method.label}

@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "total_tests": 11,
+    "passed": 2,
+    "failed": 9,
+    "success_rate": "18.2%",
+    "timestamp": "2025-07-17T13:30:17.875005"
+  },
+  "issues": {
+    "html_responses": 0,
+    "connection_errors": 0,
+    "timeouts": 0
+  },
+  "results": [
+    {
+      "endpoint": "/",
+      "success": true,
+      "status_code": 200,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:11.569494"
+    },
+    {
+      "endpoint": "/health",
+      "success": true,
+      "status_code": 200,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:12.327943"
+    },
+    {
+      "endpoint": "/customers/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:12.918320"
+    },
+    {
+      "endpoint": "/products/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:13.660773"
+    },
+    {
+      "endpoint": "/sales/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:14.215731"
+    },
+    {
+      "endpoint": "/expenses/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:14.781300"
+    },
+    {
+      "endpoint": "/invoices/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:15.457034"
+    },
+    {
+      "endpoint": "/dashboard/metrics",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:16.096580"
+    },
+    {
+      "endpoint": "/notifications/",
+      "success": false,
+      "status_code": 401,
+      "response_type": "JSON",
+      "message": "OK",
+      "timestamp": "2025-07-17T13:30:16.645835"
+    },
+    {
+      "endpoint": "/auth/register",
+      "success": false,
+      "status_code": 400,
+      "response_type": "JSON",
+      "message": "Error",
+      "timestamp": "2025-07-17T13:30:17.254948"
+    },
+    {
+      "endpoint": "/auth/login",
+      "success": false,
+      "status_code": 400,
+      "response_type": "JSON",
+      "message": "Email/Phone and password are required",
+      "timestamp": "2025-07-17T13:30:17.873005"
+    }
+  ],
+  "recommendations": [
+    "Critical: Most endpoints failing - backend may not be properly deployed"
+  ]
+}

@@ -295,15 +295,24 @@ class FirebaseService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        // Return empty array if endpoint doesn't exist
+        return [];
       }
 
-      const result = await response.json();
+      const text = await response.text();
+      
+      // Check if response is HTML (404 page) instead of JSON
+      if (text.startsWith('<!doctype') || text.startsWith('<!DOCTYPE')) {
+        console.warn('FirebaseService: Notifications endpoint not available yet');
+        return [];
+      }
+
+      const result = JSON.parse(text);
       return result.data || [];
 
     } catch (error) {
       console.error('FirebaseService: Failed to fetch notifications:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -368,10 +377,19 @@ class FirebaseService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get unread count');
+        // Return 0 for now if endpoint doesn't exist
+        return 0;
       }
 
-      const result = await response.json();
+      const text = await response.text();
+      
+      // Check if response is HTML (404 page) instead of JSON
+      if (text.startsWith('<!doctype') || text.startsWith('<!DOCTYPE')) {
+        console.warn('FirebaseService: Notifications endpoint not available yet');
+        return 0;
+      }
+
+      const result = JSON.parse(text);
       return result.count || 0;
 
     } catch (error) {

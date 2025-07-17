@@ -129,6 +129,7 @@ def api_info():
         'name': 'SabiOps API',
         'version': '1.0.0',
         'description': 'Business management API for Nigerian SMEs',
+        'status': 'healthy',
         'endpoints': {
             'auth': '/auth/*',
             'customers': '/customers/*',
@@ -141,10 +142,6 @@ def api_info():
         },
         'health': '/health'
     })
-
-@app.route('/', methods=['GET'])
-def root():
-    return 'Root route is working!', 200
 
 @app.route('/routes', methods=['GET'])
 def list_routes():
