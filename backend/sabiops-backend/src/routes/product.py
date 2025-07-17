@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timezone
 import uuid
 import logging
-from ..services.supabase_service import SupabaseService
+from src.services.supabase_service import SupabaseService
 
 product_bp = Blueprint("product", __name__)
 logger = logging.getLogger(__name__)

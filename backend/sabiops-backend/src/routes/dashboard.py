@@ -320,7 +320,7 @@ def get_accurate_metrics():
             return error_response("Database connection not available", 500)
         
         # Import data consistency service
-        from ..services.data_consistency_service import DataConsistencyService
+        from src.services.data_consistency_service import DataConsistencyService
         consistency_service = DataConsistencyService(supabase)
         
         # Get accurate metrics from actual data
@@ -344,7 +344,7 @@ def validate_data_consistency():
             return error_response("Database connection not available", 500)
         
         # Import data consistency service
-        from ..services.data_consistency_service import DataConsistencyService
+        from src.services.data_consistency_service import DataConsistencyService
         consistency_service = DataConsistencyService(supabase)
         
         # Validate data relationships
@@ -372,7 +372,7 @@ def fix_data_inconsistencies():
             return error_response("Database connection not available", 500)
         
         # Import data consistency service
-        from ..services.data_consistency_service import DataConsistencyService
+        from src.services.data_consistency_service import DataConsistencyService
         consistency_service = DataConsistencyService(supabase)
         
         # First validate to find inconsistencies
@@ -406,7 +406,7 @@ def ensure_complete_data_consistency():
             return error_response("Database connection not available", 500)
         
         # Import business operations manager
-        from ..utils.business_operations import BusinessOperationsManager
+        from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
         # Ensure complete data consistency
@@ -432,7 +432,7 @@ def sync_all_business_data():
             return error_response("Database connection not available", 500)
         
         # Import business operations manager
-        from ..utils.business_operations import BusinessOperationsManager
+        from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
         sync_report = {
@@ -523,7 +523,7 @@ def sync_all_business_data():
         
         # 4. Validate and fix data inconsistencies
         try:
-            from ..services.data_consistency_service import DataConsistencyService
+            from src.services.data_consistency_service import DataConsistencyService
             consistency_service = DataConsistencyService(supabase)
             
             inconsistencies = consistency_service.validate_data_relationships(user_id)

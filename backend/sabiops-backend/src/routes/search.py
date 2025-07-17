@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..services.supabase_service import supabase
+from src.services.supabase_service import supabase
 import logging
 
 search_bp = Blueprint('search', __name__)

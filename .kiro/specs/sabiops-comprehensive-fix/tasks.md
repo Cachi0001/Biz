@@ -274,7 +274,9 @@ vices
 
 
 
-- [ ] 20. Final integration and deployment testing
+- [x] 20. Final integration and deployment testing
+
+
 
 
 

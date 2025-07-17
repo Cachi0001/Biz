@@ -145,7 +145,7 @@ def create_sale():
             return error_response("Invalid numeric values provided", status_code=400)
         
         # Use business operations manager for data consistency
-        from ..utils.business_operations import BusinessOperationsManager
+        from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
         # Process the complete sale transaction with automatic inventory updates and transaction creation
@@ -415,7 +415,7 @@ def delete_sale(sale_id):
         owner_id = get_jwt_identity()
         
         # Use business operations manager for data consistency
-        from ..utils.business_operations import BusinessOperationsManager
+        from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
         # Reverse the complete sale transaction with automatic inventory restoration

@@ -245,7 +245,7 @@ def create_expense():
         }
         
         # Use business operations manager for data consistency
-        from ..utils.business_operations import BusinessOperationsManager
+        from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
         # Process the complete expense transaction with automatic transaction creation
