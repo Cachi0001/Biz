@@ -12,12 +12,11 @@ Deno.serve(async (req) => {
     // Environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Corrected name
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY'); // Corrected name
+
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://sabiops.vercel.app';
 
-    // Supabase clients
+    // Supabase client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- EMAIL VERIFICATION ---
     if (path === '/smooth-api/verify-email') {
@@ -92,8 +91,39 @@ Deno.serve(async (req) => {
         // Log error but still redirect to success as user email is confirmed
       }
 
-      // Redirect to a special endpoint that will handle authentication and redirect to dashboard
-      return Response.redirect(`${frontendUrl}/email-verified?token=${token}&email=${emailFromParam}&verified=true`, 302);
+      // Get the verified user data for redirect
+      try {
+        const { data: verifiedUser, error: userFetchError } = await supabaseAdmin
+          .from('users')
+          .select('*')
+          .eq('id', tokenData.user_id)
+          .single();
+
+        if (userFetchError || !verifiedUser) {
+          console.error('Failed to fetch verified user:', userFetchError);
+          // Email is verified but user fetch failed - redirect to login
+          return Response.redirect(`${frontendUrl}/email-verified?success=true&verified=true&email=${emailFromParam}`, 302);
+        }
+
+        // Email is verified successfully - redirect with user data for auto-login
+        const userData = encodeURIComponent(JSON.stringify({
+          id: verifiedUser.id,
+          email: verifiedUser.email,
+          phone: verifiedUser.phone,
+          full_name: verifiedUser.full_name,
+          business_name: verifiedUser.business_name,
+          role: verifiedUser.role,
+          subscription_plan: verifiedUser.subscription_plan,
+          subscription_status: verifiedUser.subscription_status,
+          trial_ends_at: verifiedUser.trial_ends_at
+        }));
+
+        return Response.redirect(`${frontendUrl}/email-verified?success=true&auto_login=true&user=${userData}`, 302);
+      } catch (fetchError) {
+        console.error('User fetch error:', fetchError);
+        // Email is verified but something went wrong - redirect to login
+        return Response.redirect(`${frontendUrl}/email-verified?success=true&verified=true&email=${emailFromParam}`, 302);
+      }
 
     }
 
