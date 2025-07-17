@@ -136,7 +136,6 @@ export const AuthProvider = ({ children }) => {
       
       if (response.success) {
         console.log('[AUTH] Registration successful:', response);
-        toast.success('Registration successful! Please log in with your credentials.');
         return { success: true, message: 'Registration successful' };
       } else {
         const errorMessage = response.message || 'Registration failed';

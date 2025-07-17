@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import BackButton from '@/components/ui/BackButton';
 
 const Login = () => {
   const [email, setEmail] = useState('');

@@ -79,10 +79,10 @@ export const runAllTests = async () => {
   return results;
 };
 
-// Auto-run tests in development
-if (process.env.NODE_ENV === 'development') {
-  // Run tests after a short delay to ensure everything is loaded
-  setTimeout(() => {
-    runAllTests();
-  }, 2000);
-}
+// Auto-run tests in development - DISABLED to prevent random toast messages
+// if (process.env.NODE_ENV === 'development') {
+//   // Run tests after a short delay to ensure everything is loaded
+//   setTimeout(() => {
+//     runAllTests();
+//   }, 2000);
+// }
