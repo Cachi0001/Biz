@@ -28,7 +28,7 @@ const CustomerForm = ({
         <div className="border-l-4 border-green-500 pl-4">
           <h3 className="text-sm font-semibold text-green-700 mb-2">Required Information</h3>
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-green-700">
+            <Label htmlFor="name" className="text-green-700 text-base">
               Full Name <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -37,7 +37,7 @@ const CustomerForm = ({
               value={customer.name || ''}
               onChange={(e) => handleInputChange('name', e.target.value)}
               required
-              className="border-green-200 focus:border-green-500 focus:ring-green-500"
+              className="border-green-200 focus:border-green-500 focus:ring-green-500 h-12 text-base touch-manipulation"
             />
             <p className="text-xs text-green-600">This field is mandatory for creating a customer</p>
           </div>
@@ -48,9 +48,9 @@ const CustomerForm = ({
       <div className="space-y-4">
         <div className="border-l-4 border-gray-300 pl-4">
           <h3 className="text-sm font-semibold text-gray-600 mb-2">Optional Information</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="business_name" className="text-gray-600">
+              <Label htmlFor="business_name" className="text-gray-600 text-base">
                 Business Name <span className="text-gray-400">(optional)</span>
               </Label>
               <Input
@@ -58,11 +58,11 @@ const CustomerForm = ({
                 placeholder="Enter business name (optional)"
                 value={customer.business_name || ''}
                 onChange={(e) => handleInputChange('business_name', e.target.value)}
-                className="border-gray-200 focus:border-green-500 focus:ring-green-500"
+                className="border-gray-200 focus:border-green-500 focus:ring-green-500 h-12 text-base touch-manipulation"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-600">
+              <Label htmlFor="email" className="text-gray-600 text-base">
                 Email Address <span className="text-gray-400">(optional)</span>
               </Label>
               <Input
@@ -71,26 +71,27 @@ const CustomerForm = ({
                 placeholder="Enter email address (optional)"
                 value={customer.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="border-gray-200 focus:border-green-500 focus:ring-green-500"
+                className="border-gray-200 focus:border-green-500 focus:ring-green-500 h-12 text-base touch-manipulation"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 gap-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-600">
+              <Label htmlFor="phone" className="text-gray-600 text-base">
                 Phone Number <span className="text-gray-400">(optional)</span>
               </Label>
               <Input
                 id="phone"
+                type="tel"
                 placeholder="Enter phone number (optional)"
                 value={customer.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="border-gray-200 focus:border-green-500 focus:ring-green-500"
+                className="border-gray-200 focus:border-green-500 focus:ring-green-500 h-12 text-base touch-manipulation"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address" className="text-gray-600">
+              <Label htmlFor="address" className="text-gray-600 text-base">
                 Address <span className="text-gray-400">(optional)</span>
               </Label>
               <Input
@@ -98,13 +99,13 @@ const CustomerForm = ({
                 placeholder="Enter customer address (optional)"
                 value={customer.address || ''}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                className="border-gray-200 focus:border-green-500 focus:ring-green-500"
+                className="border-gray-200 focus:border-green-500 focus:ring-green-500 h-12 text-base touch-manipulation"
               />
             </div>
           </div>
 
           <div className="space-y-2 mt-4">
-            <Label htmlFor="notes" className="text-gray-600">
+            <Label htmlFor="notes" className="text-gray-600 text-base">
               Notes <span className="text-gray-400">(optional)</span>
             </Label>
             <Textarea
@@ -113,20 +114,25 @@ const CustomerForm = ({
               value={customer.notes || ''}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="border-gray-200 focus:border-green-500 focus:ring-green-500"
+              className="border-gray-200 focus:border-green-500 focus:ring-green-500 text-base touch-manipulation min-h-[96px]"
             />
             <p className="text-xs text-gray-500">Add any additional information about this customer</p>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          className="h-12 text-base touch-manipulation"
+        >
           Cancel
         </Button>
         <Button 
           type="submit" 
-          className="bg-green-600 hover:bg-green-700 text-white"
+          className="bg-green-600 hover:bg-green-700 text-white h-12 text-base touch-manipulation"
           disabled={loading || !customer.name?.trim()}
         >
           {loading ? 'Saving...' : (isEditing ? 'Update Customer' : 'Add Customer')}

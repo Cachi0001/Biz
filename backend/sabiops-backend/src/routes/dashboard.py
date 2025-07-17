@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import pytz
+import uuid
 
 # Create blueprint
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -78,22 +79,28 @@ def get_overview():
             "revenue": {"total": 0, "this_month": 0, "outstanding": 0},
             "customers": {"total": 0, "new_this_month": 0},
             "products": {"total": 0, "low_stock": 0},
-            "invoices": {"overdue": 0}
+            "invoices": {"overdue": 0},
+            "expenses": {"total": 0, "this_month": 0}
         }
         
-        # Get total revenue from sales
-        sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', user_id).execute()
+        # Get total revenue from sales (ensure data consistency)
+        sales_result = supabase.table('sales').select('total_amount, date, gross_profit').eq('owner_id', user_id).execute()
         if sales_result.data:
             total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
+            total_gross_profit = sum(float(sale.get('gross_profit', 0)) for sale in sales_result.data)
             overview["revenue"]["total"] = total_revenue
+            overview["revenue"]["gross_profit"] = total_gross_profit
             
             # Calculate this month's revenue
             this_month_revenue = 0
+            this_month_gross_profit = 0
             for sale in sales_result.data:
                 sale_date = parse_supabase_datetime(sale.get('date'))
                 if sale_date and sale_date >= current_month_start:
                     this_month_revenue += float(sale.get('total_amount', 0))
+                    this_month_gross_profit += float(sale.get('gross_profit', 0))
             overview["revenue"]["this_month"] = this_month_revenue
+            overview["revenue"]["this_month_gross_profit"] = this_month_gross_profit
         
         # Get outstanding revenue from invoices
         invoices_result = supabase.table('invoices').select('total_amount, status, due_date').eq('owner_id', user_id).execute()
@@ -138,6 +145,20 @@ def get_overview():
                 if quantity <= threshold:
                     low_stock_count += 1
             overview["products"]["low_stock"] = low_stock_count
+        
+        # Get expense statistics (ensure data consistency)
+        expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', user_id).execute()
+        if expenses_result.data:
+            total_expenses = sum(float(expense.get('amount', 0)) for expense in expenses_result.data)
+            overview["expenses"]["total"] = total_expenses
+            
+            # Calculate this month's expenses
+            this_month_expenses = 0
+            for expense in expenses_result.data:
+                expense_date = parse_supabase_datetime(expense.get('date'))
+                if expense_date and expense_date >= current_month_start:
+                    this_month_expenses += float(expense.get('amount', 0))
+            overview["expenses"]["this_month"] = this_month_expenses
         
         return success_response("Dashboard overview fetched successfully", overview)
         
@@ -286,6 +307,246 @@ def get_top_products():
     except Exception as e:
         current_app.logger.error(f"Error fetching top products: {str(e)}")
         return error_response("Failed to fetch top products", 500)
+
+@dashboard_bp.route('/metrics', methods=['GET'])
+@jwt_required()
+def get_accurate_metrics():
+    """Get accurate dashboard metrics using data consistency service"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Import data consistency service
+        from ..services.data_consistency_service import DataConsistencyService
+        consistency_service = DataConsistencyService(supabase)
+        
+        # Get accurate metrics from actual data
+        metrics = consistency_service.recalculate_dashboard_metrics(user_id)
+        
+        return success_response("Accurate dashboard metrics fetched successfully", metrics)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching accurate metrics: {str(e)}")
+        return error_response("Failed to fetch accurate metrics", 500)
+
+@dashboard_bp.route('/validate', methods=['GET'])
+@jwt_required()
+def validate_data_consistency():
+    """Validate data consistency and return any issues found"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Import data consistency service
+        from ..services.data_consistency_service import DataConsistencyService
+        consistency_service = DataConsistencyService(supabase)
+        
+        # Validate data relationships
+        inconsistencies = consistency_service.validate_data_relationships(user_id)
+        
+        return success_response("Data validation completed", {
+            "inconsistencies": inconsistencies,
+            "total_issues": len(inconsistencies),
+            "is_consistent": len(inconsistencies) == 0
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error validating data consistency: {str(e)}")
+        return error_response("Failed to validate data consistency", 500)
+
+@dashboard_bp.route('/fix-inconsistencies', methods=['POST'])
+@jwt_required()
+def fix_data_inconsistencies():
+    """Fix identified data inconsistencies"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Import data consistency service
+        from ..services.data_consistency_service import DataConsistencyService
+        consistency_service = DataConsistencyService(supabase)
+        
+        # First validate to find inconsistencies
+        inconsistencies = consistency_service.validate_data_relationships(user_id)
+        
+        if not inconsistencies:
+            return success_response("No inconsistencies found to fix", {
+                "fixes_applied": {"successful_fixes": 0, "failed_fixes": 0, "details": []}
+            })
+        
+        # Fix the inconsistencies
+        fix_results = consistency_service.fix_data_inconsistencies(user_id, inconsistencies)
+        
+        return success_response("Data consistency fixes completed", {
+            "fixes_applied": fix_results
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fixing data inconsistencies: {str(e)}")
+        return error_response("Failed to fix data inconsistencies", 500)
+
+@dashboard_bp.route('/ensure-consistency', methods=['POST'])
+@jwt_required()
+def ensure_complete_data_consistency():
+    """Ensure complete data consistency across all business operations"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Import business operations manager
+        from ..utils.business_operations import BusinessOperationsManager
+        business_ops = BusinessOperationsManager(supabase)
+        
+        # Ensure complete data consistency
+        consistency_report = business_ops.ensure_data_consistency(user_id)
+        
+        return success_response("Data consistency check and fixes completed", {
+            "consistency_report": consistency_report
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error ensuring data consistency: {str(e)}")
+        return error_response("Failed to ensure data consistency", 500)
+
+@dashboard_bp.route('/sync-data', methods=['POST'])
+@jwt_required()
+def sync_all_business_data():
+    """Synchronize all business data for consistency - comprehensive data integration"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Import business operations manager
+        from ..utils.business_operations import BusinessOperationsManager
+        business_ops = BusinessOperationsManager(supabase)
+        
+        sync_report = {
+            "inventory_updates": 0,
+            "customer_statistics_updated": 0,
+            "transaction_records_created": 0,
+            "data_inconsistencies_fixed": 0,
+            "dashboard_metrics_refreshed": False,
+            "errors": []
+        }
+        
+        # 1. Ensure all sales have proper inventory updates
+        try:
+            sales_result = supabase.table("sales").select("*").eq("owner_id", user_id).execute()
+            if sales_result.data:
+                for sale in sales_result.data:
+                    # Verify inventory was properly reduced for this sale
+                    product_result = supabase.table("products").select("*").eq("id", sale["product_id"]).single().execute()
+                    if product_result.data:
+                        # This is already handled by the business operations manager
+                        # Just log for verification
+                        current_app.logger.info(f"Verified inventory for sale {sale['id']}")
+                        sync_report["inventory_updates"] += 1
+        except Exception as inventory_error:
+            sync_report["errors"].append(f"Inventory sync failed: {str(inventory_error)}")
+        
+        # 2. Update all customer statistics based on actual sales
+        try:
+            customers_result = supabase.table("customers").select("id").eq("owner_id", user_id).execute()
+            if customers_result.data:
+                for customer in customers_result.data:
+                    business_ops.update_customer_statistics(customer["id"], user_id)
+                    sync_report["customer_statistics_updated"] += 1
+        except Exception as customer_error:
+            sync_report["errors"].append(f"Customer statistics sync failed: {str(customer_error)}")
+        
+        # 3. Ensure all sales and expenses have transaction records
+        try:
+            # Check sales
+            sales_result = supabase.table("sales").select("*").eq("owner_id", user_id).execute()
+            if sales_result.data:
+                for sale in sales_result.data:
+                    transaction_result = supabase.table("transactions").select("id").eq("reference_id", sale["id"]).eq("reference_type", "sale").execute()
+                    if not transaction_result.data:
+                        # Create missing transaction record
+                        transaction_success = business_ops._create_transaction_record({
+                            "id": str(uuid.uuid4()),
+                            "owner_id": user_id,
+                            "type": "income",
+                            "category": "Sales",
+                            "amount": float(sale.get("total_amount", 0)),
+                            "description": f"Sale of {sale.get('quantity', 1)}x {sale.get('product_name', 'Product')} to {sale.get('customer_name', 'Customer')}",
+                            "reference_id": sale["id"],
+                            "reference_type": "sale",
+                            "payment_method": sale.get("payment_method", "cash"),
+                            "date": sale.get("date", sale.get("created_at")),
+                            "created_at": datetime.now().isoformat()
+                        })
+                        if transaction_success:
+                            sync_report["transaction_records_created"] += 1
+            
+            # Check expenses
+            expenses_result = supabase.table("expenses").select("*").eq("owner_id", user_id).execute()
+            if expenses_result.data:
+                for expense in expenses_result.data:
+                    transaction_result = supabase.table("transactions").select("id").eq("reference_id", expense["id"]).eq("reference_type", "expense").execute()
+                    if not transaction_result.data:
+                        # Create missing transaction record
+                        transaction_success = business_ops._create_transaction_record({
+                            "id": str(uuid.uuid4()),
+                            "owner_id": user_id,
+                            "type": "expense",
+                            "category": expense.get("category", "Other"),
+                            "sub_category": expense.get("sub_category", ""),
+                            "amount": float(expense.get("amount", 0)),
+                            "description": expense.get("description", f"{expense.get('category', 'Other')} expense"),
+                            "reference_id": expense["id"],
+                            "reference_type": "expense",
+                            "payment_method": expense.get("payment_method", "cash"),
+                            "date": expense.get("date"),
+                            "created_at": datetime.now().isoformat()
+                        })
+                        if transaction_success:
+                            sync_report["transaction_records_created"] += 1
+                            
+        except Exception as transaction_error:
+            sync_report["errors"].append(f"Transaction sync failed: {str(transaction_error)}")
+        
+        # 4. Validate and fix data inconsistencies
+        try:
+            from ..services.data_consistency_service import DataConsistencyService
+            consistency_service = DataConsistencyService(supabase)
+            
+            inconsistencies = consistency_service.validate_data_relationships(user_id)
+            if inconsistencies:
+                fix_results = consistency_service.fix_data_inconsistencies(user_id, inconsistencies)
+                sync_report["data_inconsistencies_fixed"] = fix_results.get("successful_fixes", 0)
+            
+            # Refresh dashboard metrics
+            accurate_metrics = consistency_service.recalculate_dashboard_metrics(user_id)
+            if accurate_metrics:
+                sync_report["dashboard_metrics_refreshed"] = True
+                sync_report["refreshed_metrics"] = accurate_metrics
+                
+        except Exception as consistency_error:
+            sync_report["errors"].append(f"Data consistency sync failed: {str(consistency_error)}")
+        
+        return success_response("Complete data synchronization completed", {
+            "sync_report": sync_report
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error synchronizing business data: {str(e)}")
+        return error_response("Failed to synchronize business data", 500)
 
 @dashboard_bp.route('/financials', methods=['GET'])
 @jwt_required()

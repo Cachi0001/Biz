@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, Package, AlertTriangle, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, AlertTriangle } from 'lucide-react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -34,6 +34,8 @@ import {
 import { getProducts, getCategories, updateProduct, createProduct, deleteProduct } from "../services/api";
 import { toast } from 'react-hot-toast'; // Corrected import
 import { getErrorMessage } from '../services/api';
+import { formatNaira } from '../utils/formatting';
+import { handleApiErrorWithToast, showSuccessToast } from '../utils/errorHandling';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -68,13 +70,17 @@ const Products = () => {
       const response = await getProducts();
       console.log('[PRODUCTS] Products response:', response);
       
-      // Handle different response formats
-      if (response && Array.isArray(response)) {
-        setProducts(response);
+      // Handle standardized API response format
+      if (response && response.success && response.data) {
+        setProducts(response.data.products || []);
+        // Update categories from API response if available
+        if (response.data.categories) {
+          setCategories(response.data.categories);
+        }
       } else if (response && response.products && Array.isArray(response.products)) {
         setProducts(response.products);
-      } else if (response && response.data && response.data.products && Array.isArray(response.data.products)) {
-        setProducts(response.data.products);
+      } else if (response && Array.isArray(response)) {
+        setProducts(response);
       } else {
         console.warn('[PRODUCTS] Unexpected response structure:', response);
         setProducts([]);
@@ -93,21 +99,57 @@ const Products = () => {
       const response = await getCategories();
       console.log('[PRODUCTS] Categories response:', response);
       
-      // Handle different response formats
-      if (response && Array.isArray(response)) {
-        setCategories(response);
+      // Handle standardized API response format
+      if (response && response.success && response.data) {
+        setCategories(response.data.all_categories || response.data.categories || []);
+      } else if (response && response.all_categories && Array.isArray(response.all_categories)) {
+        setCategories(response.all_categories);
       } else if (response && response.categories && Array.isArray(response.categories)) {
         setCategories(response.categories);
-      } else if (response && response.data && response.data.categories && Array.isArray(response.data.categories)) {
-        setCategories(response.data.categories);
+      } else if (response && Array.isArray(response)) {
+        setCategories(response);
       } else {
         console.warn('[PRODUCTS] Using fallback categories');
-        setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
+        // Use Nigerian business categories from formatting utils
+        setCategories([
+          'Electronics & Technology',
+          'Fashion & Clothing',
+          'Food & Beverages',
+          'Health & Beauty',
+          'Home & Garden',
+          'Automotive',
+          'Sports & Outdoors',
+          'Books & Media',
+          'Office Supplies',
+          'Agriculture',
+          'Construction Materials',
+          'Jewelry & Accessories',
+          'Toys & Games',
+          'Art & Crafts',
+          'Other'
+        ]);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error(getErrorMessage(error, 'Failed to load categories'));
-      setCategories(['Electronics', 'Clothing', 'Food & Beverages', 'Health & Beauty', 'Home & Garden', 'Sports & Outdoors', 'Books & Media', 'Automotive', 'Office Supplies', 'Other']);
+      // Use Nigerian business categories as fallback
+      setCategories([
+        'Electronics & Technology',
+        'Fashion & Clothing',
+        'Food & Beverages',
+        'Health & Beauty',
+        'Home & Garden',
+        'Automotive',
+        'Sports & Outdoors',
+        'Books & Media',
+        'Office Supplies',
+        'Agriculture',
+        'Construction Materials',
+        'Jewelry & Accessories',
+        'Toys & Games',
+        'Art & Crafts',
+        'Other'
+      ]);
     }
   };
 
@@ -122,34 +164,38 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Enhanced validation
     if (!formData.name.trim()) {
-      toast.error("Product name is required");
+      handleApiErrorWithToast(new Error("Product name is required"));
       return;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast.error("Valid selling price is required");
+      handleApiErrorWithToast(new Error("Valid selling price is required"));
       return;
     }
     if (!formData.quantity || parseInt(formData.quantity) < 0) {
-      toast.error("Valid stock quantity is required");
+      handleApiErrorWithToast(new Error("Valid stock quantity is required"));
       return;
     }
 
     try {
       setLoading(true);
+      let response;
+      
       if (editingProduct) {
-        const response = await updateProduct(editingProduct.id, formData);
+        response = await updateProduct(editingProduct.id, formData);
         console.log('[PRODUCTS] Update response:', response);
-        toast.success("Product updated successfully!");
+        showSuccessToast("Product updated successfully!");
         setShowEditDialog(false);
         setEditingProduct(null);
       } else {
-        const response = await createProduct(formData);
+        response = await createProduct(formData);
         console.log('[PRODUCTS] Create response:', response);
-        toast.success("Product created successfully!");
+        showSuccessToast("Product created successfully!");
         setShowAddDialog(false);
       }
       
+      // Reset form
       setFormData({
         name: '',
         description: '',
@@ -162,11 +208,12 @@ const Products = () => {
         image_url: ''
       });
       
+      // Refresh data
       await fetchProducts();
       await fetchCategories();
     } catch (error) {
       console.error('Failed to save product:', error);
-      toast.error(getErrorMessage(error, 'Failed to save product'));
+      handleApiErrorWithToast(error, 'Failed to save product');
     } finally {
       setLoading(false);
     }
@@ -194,11 +241,11 @@ const Products = () => {
         setLoading(true);
         const response = await deleteProduct(productId);
         console.log('[PRODUCTS] Delete response:', response);
-        toast.success("Product deleted successfully!");
+        showSuccessToast("Product deleted successfully!");
         await fetchProducts();
       } catch (error) {
         console.error('Failed to delete product:', error);
-        toast.error(getErrorMessage(error, 'Failed to delete product'));
+        handleApiErrorWithToast(error, 'Failed to delete product');
       } finally {
         setLoading(false);
       }
@@ -213,20 +260,52 @@ const Products = () => {
   });
 
   const getStockStatus = (product) => {
-    if (product.quantity <= product.low_stock_threshold) return 'Low Stock';
+    const quantity = Number(product.quantity) || 0;
+    const threshold = Number(product.low_stock_threshold) || 5;
+    
+    if (quantity === 0) return 'Out of Stock';
+    if (quantity <= threshold) return 'Low Stock';
     return 'In Stock';
   };
 
   const getStockBadgeVariant = (product) => {
-    if (product.quantity <= product.low_stock_threshold) return 'destructive';
+    const quantity = Number(product.quantity) || 0;
+    const threshold = Number(product.low_stock_threshold) || 5;
+    
+    if (quantity === 0) return 'destructive';
+    if (quantity <= threshold) return 'secondary';
     return 'default';
   };
 
+  const getStockColor = (product) => {
+    const quantity = Number(product.quantity) || 0;
+    const threshold = Number(product.low_stock_threshold) || 5;
+    
+    if (quantity === 0) return 'text-red-600';
+    if (quantity <= threshold) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  const isLowStock = (product) => {
+    const quantity = Number(product.quantity) || 0;
+    const threshold = Number(product.low_stock_threshold) || 5;
+    return quantity <= threshold;
+  };
+
+  const isOutOfStock = (product) => {
+    const quantity = Number(product.quantity) || 0;
+    return quantity === 0;
+  };
+
+  // Calculate low stock alerts
+  const lowStockProducts = filteredProducts.filter(product => isLowStock(product) && !isOutOfStock(product));
+  const outOfStockProducts = filteredProducts.filter(product => isOutOfStock(product));
+
   const ProductForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Product Name *</Label>
+          <Label htmlFor="name" className="text-base">Product Name *</Label>
           <Input
             id="name"
             name="name"
@@ -234,23 +313,25 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="Enter product name"
             required
+            className="h-12 text-base touch-manipulation"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="sku">SKU</Label>
+          <Label htmlFor="sku" className="text-base">SKU</Label>
           <Input
             id="sku"
             name="sku"
             value={formData.sku}
             onChange={handleInputChange}
             placeholder="Product SKU (optional)"
+            className="h-12 text-base touch-manipulation"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description" className="text-base">Description</Label>
         <Textarea
           id="description"
           name="description"
@@ -258,36 +339,29 @@ const Products = () => {
           onChange={handleInputChange}
           placeholder="Product description"
           rows={3}
+          className="text-base touch-manipulation min-h-[96px]"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <div className="flex gap-2">
-          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Select or enter category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            placeholder="Or type new category"
-            value={formData.category}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-            className="flex-1"
-          />
-        </div>
+        <Label htmlFor="category" className="text-base">Category</Label>
+        <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+          <SelectTrigger className="h-12 text-base touch-manipulation">
+            <SelectValue placeholder="Select product category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Selling Price (₦) *</Label>
+          <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
           <Input
             id="price"
             name="price"
@@ -297,11 +371,12 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0.00"
             required
+            className="h-12 text-base touch-manipulation"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cost_price">Cost Price (₦)</Label>
+          <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
           <Input
             id="cost_price"
             name="cost_price"
@@ -310,13 +385,14 @@ const Products = () => {
             value={formData.cost_price}
             onChange={handleInputChange}
             placeholder="0.00"
+            className="h-12 text-base touch-manipulation"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="quantity">Stock Quantity *</Label>
+          <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
           <Input
             id="quantity"
             name="quantity"
@@ -325,11 +401,12 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0"
             required
+            className="h-12 text-base touch-manipulation"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="low_stock_threshold">Low Stock Alert</Label>
+          <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
           <Input
             id="low_stock_threshold"
             name="low_stock_threshold"
@@ -337,22 +414,24 @@ const Products = () => {
             value={formData.low_stock_threshold}
             onChange={handleInputChange}
             placeholder="0"
+            className="h-12 text-base touch-manipulation"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="image_url">Image URL</Label>
+        <Label htmlFor="image_url" className="text-base">Image URL</Label>
         <Input
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
+          className="h-12 text-base touch-manipulation"
         />
       </div>
 
-      <div className="flex justify-end space-x-2">
+      <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
         <Button
           type="button"
           variant="outline"
@@ -361,10 +440,14 @@ const Products = () => {
             setShowEditDialog(false);
             setEditingProduct(null);
           }}
+          className="h-12 text-base touch-manipulation"
         >
           Cancel
         </Button>
-        <Button type="submit">
+        <Button 
+          type="submit"
+          className="h-12 text-base touch-manipulation"
+        >
           {editingProduct ? 'Update Product' : 'Add Product'}
         </Button>
       </div>
@@ -393,45 +476,74 @@ const Products = () => {
           </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="h-12 text-base touch-manipulation">
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Add New Product</DialogTitle>
               <DialogDescription>
                 Create a new product in your catalog
               </DialogDescription>
             </DialogHeader>
-            <ProductForm />
+            <div className="flex-1 overflow-y-auto px-1">
+              <ProductForm />
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Low Stock Alerts */}
+      {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
+        <div className="space-y-3">
+          {outOfStockProducts.length > 0 && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <strong>{outOfStockProducts.length} product{outOfStockProducts.length > 1 ? 's' : ''} out of stock:</strong>{' '}
+                {outOfStockProducts.slice(0, 3).map(p => p.name).join(', ')}
+                {outOfStockProducts.length > 3 && ` and ${outOfStockProducts.length - 3} more`}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {lowStockProducts.length > 0 && (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <strong>{lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low:</strong>{' '}
+                {lowStockProducts.slice(0, 3).map(p => `${p.name} (${p.quantity})`).join(', ')}
+                {lowStockProducts.length > 3 && ` and ${lowStockProducts.length - 3} more`}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search products by name or SKU..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 text-base touch-manipulation"
                 />
               </div>
             </div>
-            <div className="w-full md:w-48">
+            <div className="w-full">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base touch-manipulation">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="">All Categories</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -476,40 +588,42 @@ const Products = () => {
                           <h3 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight">
                             {product.name}
                           </h3>
-                          <div className="flex gap-1 ml-2">
+                          <div className="flex gap-1 ml-2 flex-shrink-0">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(product)}
-                              className="h-6 w-6 p-0 hover:bg-green-100"
+                              className="h-8 w-8 p-0 hover:bg-green-100 touch-manipulation"
                             >
-                              <Edit className="h-3 w-3 text-green-600" />
+                              <Edit className="h-4 w-4 text-green-600" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(product.id)}
-                              className="h-6 w-6 p-0 hover:bg-red-100"
+                              className="h-8 w-8 p-0 hover:bg-red-100 touch-manipulation"
                             >
-                              <Trash2 className="h-3 w-3 text-red-600" />
+                              <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
                         </div>
                         
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-500">Price</span>
                             <span className="text-sm font-semibold text-green-600">
-                              ₦{product.price?.toLocaleString()}
+                              {formatNaira(product.price)}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-500">Stock</span>
                             <div className="flex items-center gap-1">
-                              <span className="text-sm font-medium">{product.quantity}</span>
-                              {product.quantity <= product.low_stock_threshold && (
-                                <AlertTriangle className="h-3 w-3 text-red-500" />
+                              <span className={`text-sm font-medium ${getStockColor(product)}`}>
+                                {product.quantity}
+                              </span>
+                              {isLowStock(product) && (
+                                <AlertTriangle className={`h-3 w-3 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
                               )}
                             </div>
                           </div>
@@ -517,16 +631,31 @@ const Products = () => {
                           {product.category && (
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-gray-500">Category</span>
-                              <span className="text-xs text-gray-700 truncate max-w-20">
+                              <span className="text-xs text-gray-700 truncate max-w-20" title={product.category}>
                                 {product.category}
                               </span>
+                            </div>
+                          )}
+                          
+                          {product.sku && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-500">SKU</span>
+                              <code className="text-xs bg-gray-100 px-1 py-0.5 rounded text-gray-700">
+                                {product.sku}
+                              </code>
                             </div>
                           )}
                           
                           <div className="pt-1">
                             <Badge 
                               variant={getStockBadgeVariant(product)}
-                              className="text-xs px-2 py-0.5"
+                              className={`text-xs px-2 py-0.5 ${
+                                isOutOfStock(product) 
+                                  ? 'bg-red-100 text-red-800 border-red-200' 
+                                  : isLowStock(product) 
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                    : 'bg-green-100 text-green-800 border-green-200'
+                              }`}
                             >
                               {getStockStatus(product)}
                             </Badge>
@@ -580,17 +709,30 @@ const Products = () => {
                             </code>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">{product.category || 'Uncategorized'}</TableCell>
-                          <TableCell>₦{product.price?.toLocaleString()}</TableCell>
+                          <TableCell className="font-medium text-green-600">
+                            {formatNaira(product.price)}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span>{product.quantity}</span>
-                              {product.quantity <= product.low_stock_threshold && (
-                                <AlertTriangle className="h-4 w-4 text-destructive" />
+                              <span className={`font-medium ${getStockColor(product)}`}>
+                                {product.quantity}
+                              </span>
+                              {isLowStock(product) && (
+                                <AlertTriangle className={`h-4 w-4 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell">
-                            <Badge variant={getStockBadgeVariant(product)}>
+                            <Badge 
+                              variant={getStockBadgeVariant(product)}
+                              className={`${
+                                isOutOfStock(product) 
+                                  ? 'bg-red-100 text-red-800 border-red-200' 
+                                  : isLowStock(product) 
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                    : 'bg-green-100 text-green-800 border-green-200'
+                              }`}
+                            >
                               {getStockStatus(product)}
                             </Badge>
                           </TableCell>
@@ -624,14 +766,16 @@ const Products = () => {
 
         {/* Edit Dialog */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Edit Product</DialogTitle>
               <DialogDescription>
                 Update product information
               </DialogDescription>
             </DialogHeader>
-            <ProductForm />
+            <div className="flex-1 overflow-y-auto px-1">
+              <ProductForm />
+            </div>
           </DialogContent>
         </Dialog>
       </div>

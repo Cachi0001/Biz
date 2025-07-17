@@ -386,6 +386,17 @@ export async function deleteExpense(expenseId) {
   return response.data;
 }
 
+export async function getExpenseCategories() {
+  try {
+    const response = await api.get('/expenses/categories');
+    console.log("[DEBUG] getExpenseCategories response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 // Sales Management
 export async function getSales() {
   try {
@@ -543,6 +554,71 @@ export async function getFinancials() {
   return response.data.data;
 }
 
+// Get accurate dashboard metrics using data consistency service
+export async function getAccurateDashboardMetrics() {
+  try {
+    console.log("[DEBUG] getAccurateDashboardMetrics: Starting request");
+    const response = await api.get('/dashboard/metrics');
+    console.log("[DEBUG] getAccurateDashboardMetrics response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getAccurateDashboardMetrics failed:", error);
+    throw error;
+  }
+}
+
+// Validate data consistency
+export async function validateDataConsistency() {
+  try {
+    console.log("[DEBUG] validateDataConsistency: Starting request");
+    const response = await api.get('/dashboard/validate');
+    console.log("[DEBUG] validateDataConsistency response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] validateDataConsistency failed:", error);
+    throw error;
+  }
+}
+
+// Fix data inconsistencies
+export async function fixDataInconsistencies() {
+  try {
+    console.log("[DEBUG] fixDataInconsistencies: Starting request");
+    const response = await api.post('/dashboard/fix-inconsistencies');
+    console.log("[DEBUG] fixDataInconsistencies response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] fixDataInconsistencies failed:", error);
+    throw error;
+  }
+}
+
+// Ensure complete data consistency across all business operations
+export async function ensureDataConsistency() {
+  try {
+    console.log("[DEBUG] ensureDataConsistency: Starting request");
+    const response = await api.post('/dashboard/ensure-consistency');
+    console.log("[DEBUG] ensureDataConsistency response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] ensureDataConsistency failed:", error);
+    throw error;
+  }
+}
+
+// Synchronize all business data for comprehensive data integration
+export async function syncAllBusinessData() {
+  try {
+    console.log("[DEBUG] syncAllBusinessData: Starting comprehensive data sync");
+    const response = await api.post('/dashboard/sync-data');
+    console.log("[DEBUG] syncAllBusinessData response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] syncAllBusinessData failed:", error);
+    throw error;
+  }
+}
+
 // Sales Report
 export async function getSalesReport(params) {
   try {
@@ -679,17 +755,7 @@ export async function downloadSalesReport(params, format) {
   }
 }
 
-// Expense Categories
-export async function getExpenseCategories() {
-  try {
-    const response = await api.get('/expenses/categories');
-    console.log("[DEBUG] getExpenseCategories response:", response.data);
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error("[ERROR] getExpenseCategories failed:", error.response ? error.response.data : error.message);
-    throw error;
-  }
-}
+
 
 // IndexedDB utility for offline queue
 const DB_NAME = 'sabiops-offline-db';

@@ -13,12 +13,14 @@ import {
   Shield,
   CreditCard,
   Building,
-  Save
+  Save,
+  Database
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile, getErrorMessage } from "../services/api";
 import { toast } from 'react-hot-toast';
 import RoleBasedWrapper from '../components/ui/role-based-wrapper';
+import DataIntegrityWidget from '../components/data/DataIntegrityWidget';
 
 const Settings = () => {
   const { user, isOwner } = useAuth();
@@ -92,7 +94,7 @@ const Settings = () => {
         </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -104,6 +106,10 @@ const Settings = () => {
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             Subscription
+          </TabsTrigger>
+          <TabsTrigger value="system" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            System
           </TabsTrigger>
         </TabsList>
 
@@ -346,6 +352,52 @@ const Settings = () => {
                 </div>
               </CardContent>
             </Card>
+          </RoleBasedWrapper>
+        </TabsContent>
+
+        {/* System Tab - Only for Owners */}
+        <TabsContent value="system">
+          <RoleBasedWrapper allowedRoles={['owner']} fallback={
+            <Card>
+              <CardContent className="p-6">
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    Only business owners can access system administration tools. Contact your business owner if you need data consistency checks.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          }>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    System Administration
+                  </CardTitle>
+                  <CardDescription>
+                    Manage data integrity and system maintenance for your business
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4">
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      These tools help maintain data consistency across your business records. 
+                      Run these checks regularly or after bulk data operations to ensure accuracy.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+
+              <DataIntegrityWidget 
+                onDataSync={() => {
+                  // Refresh any cached data or trigger re-renders
+                  toast.success('Data synchronization completed. All pages will reflect updated data.');
+                }} 
+              />
+            </div>
           </RoleBasedWrapper>
         </TabsContent>
       </Tabs>

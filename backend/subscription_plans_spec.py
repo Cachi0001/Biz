@@ -75,7 +75,7 @@ SUBSCRIPTION_PLANS = {
             'Advanced reporting',
             'Team management',
             'Priority support',
-            'Referral earnings (10% for 3 months)'
+            'Referral earnings (10% for 3 years)'
         ],
         'referral_earning': 5000,  # 10% of ₦50,000
         'popular': False,

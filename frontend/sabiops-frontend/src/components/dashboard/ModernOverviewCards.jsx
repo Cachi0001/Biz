@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '../ui/card';
 import { TrendingUp, TrendingDown, Users, FileText, DollarSign, Package, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatCurrency, formatNumber } from '../../lib/utils/index.js';
+import { formatNaira } from '../../utils/formatting';
 import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernOverviewCards = ({ data, loading }) => {
@@ -23,11 +23,24 @@ const ModernOverviewCards = ({ data, loading }) => {
     );
   }
 
+  // Calculate accurate metrics
+  const totalRevenue = data?.revenue?.total || 0;
+  const thisMonthRevenue = data?.revenue?.this_month || 0;
+  const totalExpenses = data?.expenses?.total || 0;
+  const thisMonthExpenses = data?.expenses?.this_month || 0;
+  const netProfit = totalRevenue - totalExpenses;
+  const thisMonthNetProfit = thisMonthRevenue - thisMonthExpenses;
+  
+  // Calculate percentage changes (comparing this month to previous period)
+  const revenueGrowth = totalRevenue > thisMonthRevenue ? 
+    Math.round(((thisMonthRevenue / (totalRevenue - thisMonthRevenue)) * 100)) : 0;
+  const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
+
   const cards = [
     {
       title: 'Total Revenue',
-      value: formatCurrency(data?.revenue?.total || 0),
-      change: data?.revenue?.this_month || 0,
+      value: formatNaira(totalRevenue),
+      change: formatNaira(thisMonthRevenue),
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
@@ -35,8 +48,8 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'This Month',
-      value: formatCurrency(data?.revenue?.this_month || 0),
-      change: '+12%',
+      value: formatNaira(thisMonthRevenue),
+      change: revenueGrowth > 0 ? `+${revenueGrowth}%` : 'New business',
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
@@ -44,7 +57,7 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'Customers',
-      value: formatNumber(data?.customers?.total || 0),
+      value: (data?.customers?.total || 0).toLocaleString(),
       change: `+${data?.customers?.new_this_month || 0} new`,
       icon: Users,
       color: 'text-purple-600',
@@ -53,7 +66,7 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'Products',
-      value: formatNumber(data?.products?.total || 0),
+      value: (data?.products?.total || 0).toLocaleString(),
       change: data?.products?.low_stock > 0 ? `${data.products.low_stock} low stock` : 'All in stock',
       icon: Package,
       color: 'text-orange-600',
@@ -62,7 +75,7 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'Outstanding',
-      value: formatCurrency(data?.revenue?.outstanding || 0),
+      value: formatNaira(data?.revenue?.outstanding || 0),
       change: data?.invoices?.overdue > 0 ? `${data.invoices.overdue} overdue` : 'All current',
       icon: FileText,
       color: 'text-red-600',
@@ -71,12 +84,12 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'Net Profit',
-      value: formatCurrency((data?.revenue?.total || 0) - (data?.expenses?.total || 0)),
-      change: '+8.2%',
+      value: formatNaira(netProfit),
+      change: profitMargin > 0 ? `${profitMargin}% margin` : 'Break even',
       icon: Crown,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50',
-      trend: 'up'
+      trend: netProfit > 0 ? 'up' : 'down'
     }
   ];
 

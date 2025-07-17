@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Search, Calendar, Download, Eye, Edit, Trash2, ShoppingCart, TrendingUp, Calculator, Package } from 'lucide-react';
+import { Plus, Search, Download, Eye, Trash2, ShoppingCart, TrendingUp, Calculator, Package, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,39 +31,49 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { get, post, getProducts, getCustomers, getSalesReport as apiGetSalesReport } from "../services/api";
+import { get, post, getProducts, getCustomers } from "../services/api";
+import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
+import { formatNaira, formatDateTime, formatDate, formatPaymentMethod } from '../utils/formatting';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [saleItems, setSaleItems] = useState([{ id: Date.now(), product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
   const [formData, setFormData] = useState({
+    product_id: '',
     customer_id: '',
+    customer_name: '',
+    quantity: 1,
+    unit_price: 0,
+    total_amount: 0,
     payment_method: 'cash',
-    payment_status: 'completed',
-    discount_amount: 0,
-    tax_amount: 0,
-    notes: ''
+    date: new Date().toISOString().split('T')[0],
+    salesperson_id: ''
   });
-  const [dailyReport, setDailyReport] = useState(null);
+  const [salesStats, setSalesStats] = useState({
+    total_sales: 0,
+    total_transactions: 0,
+    today_sales: 0,
+    average_sale: 0
+  });
 
   useEffect(() => {
     fetchSales();
     fetchProductsData();
     fetchCustomersData();
-    fetchDailyReport();
+    fetchSalesStats();
   }, [selectedDate]);
 
   const fetchSales = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear previous errors
+      setError('');
       const response = await get('/sales/', {
         params: {
           start_date: selectedDate,
@@ -71,13 +81,18 @@ const Sales = () => {
         }
       });
       
-      // Defensive programming - ensure we always have an array
-      const salesData = response?.data?.sales || response?.data?.data || response?.data || [];
-      setSales(Array.isArray(salesData) ? salesData : []);
+      // Handle new API response format
+      const salesData = safeArray(response?.data?.sales || response?.data || response, []);
+      setSales(salesData);
+      
+      // Update stats from response
+      if (response?.data?.summary) {
+        setSalesStats(response.data.summary);
+      }
     } catch (error) {
-      setError('Failed to fetch sales data. Please try again.');
-      setSales([]); // Ensure sales is always an array
-      console.error('Error fetching sales:', error);
+      const errorMessage = handleApiError(error, 'Failed to fetch sales', false);
+      setError(errorMessage);
+      setSales([]);
     } finally {
       setLoading(false);
     }
@@ -86,116 +101,179 @@ const Sales = () => {
   const fetchProductsData = async () => {
     try {
       const response = await getProducts();
-      // Ensure products is always an array
-      const productsData = Array.isArray(response) ? response : [];
+      const productsData = safeArray(response?.data?.products || response?.data || response, []);
       setProducts(productsData);
     } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]); // Fallback to empty array
+      handleApiError(error, 'Failed to fetch products', false);
+      setProducts([]);
     }
   };
 
   const fetchCustomersData = async () => {
     try {
       const response = await getCustomers();
-      // Ensure customers is always an array
-      const customersData = Array.isArray(response) ? response : [];
+      const customersData = safeArray(response?.data?.customers || response?.data || response, []);
       setCustomers(customersData);
     } catch (error) {
-      console.error('Error fetching customers:', error);
-      setCustomers([]); // Fallback to empty array
+      handleApiError(error, 'Failed to fetch customers', false);
+      setCustomers([]);
     }
   };
 
-  const fetchDailyReport = async () => {
+  const fetchSalesStats = async () => {
     try {
-      const response = await apiGetSalesReport({ date: selectedDate });
-      setDailyReport(response);
+      const response = await get('/sales/stats', {
+        params: {
+          start_date: selectedDate,
+          end_date: selectedDate
+        }
+      });
+      
+      if (response?.data) {
+        setSalesStats(response.data);
+      }
     } catch (error) {
-      console.error('Error fetching daily report:', error);
-      setDailyReport(null); // Clear daily report on error
+      handleApiError(error, 'Failed to fetch sales statistics', false);
     }
   };
 
-  const handleProductSelect = (index, productId) => {
-    const product = products.find(p => p.id === parseInt(productId));
+  const handleProductSelect = (productId) => {
+    const product = products.find(p => p.id === productId || p.id === parseInt(productId));
     if (product) {
-      const newItems = [...saleItems];
-      newItems[index] = {
-        ...newItems[index],
+      setFormData(prev => ({
+        ...prev,
         product_id: productId,
-        product_name: product.name,
-        product_sku: product.sku,
-        unit_price: product.unit_price
-      };
-      setSaleItems(newItems);
+        unit_price: product.price || product.unit_price || 0,
+        total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
+      }));
     }
   };
 
-  const addSaleItem = () => {
-    setSaleItems([...saleItems, { id: Date.now() + Math.random(), product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
+  const handleQuantityChange = (quantity) => {
+    const qty = parseInt(quantity) || 1;
+    setFormData(prev => ({
+      ...prev,
+      quantity: qty,
+      total_amount: qty * prev.unit_price
+    }));
   };
 
-  const removeSaleItem = (index) => {
-    if (saleItems.length > 1) {
-      setSaleItems(saleItems.filter((_, i) => i !== index));
-    }
+  const handleUnitPriceChange = (price) => {
+    const unitPrice = parseFloat(price) || 0;
+    setFormData(prev => ({
+      ...prev,
+      unit_price: unitPrice,
+      total_amount: prev.quantity * unitPrice
+    }));
   };
 
-  const updateSaleItem = (index, field, value) => {
-    const newItems = [...saleItems];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setSaleItems(newItems);
+  const handleCustomerSelect = (customerId) => {
+    const customer = customers.find(c => c.id === customerId || c.id === parseInt(customerId));
+    setFormData(prev => ({
+      ...prev,
+      customer_id: customerId === 'walkin' ? '' : customerId,
+      customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
+    }));
   };
 
-  const calculateTotal = () => {
-    const subtotal = saleItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    return subtotal - formData.discount_amount + formData.tax_amount;
+  const resetForm = () => {
+    setFormData({
+      product_id: '',
+      customer_id: '',
+      customer_name: '',
+      quantity: 1,
+      unit_price: 0,
+      total_amount: 0,
+      payment_method: 'cash',
+      date: new Date().toISOString().split('T')[0],
+      salesperson_id: ''
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Validate required fields
+    if (!formData.product_id) {
+      setError('Please select a product');
+      return;
+    }
+    
+    if (formData.quantity <= 0) {
+      setError('Quantity must be greater than 0');
+      return;
+    }
+    
+    if (formData.unit_price <= 0) {
+      setError('Unit price must be greater than 0');
+      return;
+    }
+    
     try {
+      setSubmitting(true);
+      setError('');
+      
+      // Prepare sale data according to backend API format
       const saleData = {
-        ...formData,
-        sale_items: saleItems.filter(item => item.product_name && item.quantity > 0)
+        product_id: formData.product_id,
+        customer_id: formData.customer_id || null,
+        customer_name: formData.customer_name || 'Walk-in Customer',
+        quantity: formData.quantity,
+        unit_price: formData.unit_price,
+        total_amount: formData.total_amount,
+        payment_method: formData.payment_method,
+        date: formData.date,
+        salesperson_id: formData.salesperson_id || null
       };
 
       await post('/sales/', saleData);
+      showSuccessToast('Sale recorded successfully!');
       setShowAddDialog(false);
+      resetForm();
       
-      // Reset form
-      setFormData({
-        customer_id: '',
-        payment_method: 'cash',
-        payment_status: 'completed',
-        discount_amount: 0,
-        tax_amount: 0,
-        notes: ''
-      });
-      setSaleItems([{ product_id: '', product_name: '', quantity: 1, unit_price: 0 }]);
-      
+      // Refresh data
       fetchSales();
-      fetchDailyReport();
+      fetchSalesStats();
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to record sale');
+      const errorMessage = handleApiError(error, 'Failed to create sale');
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const downloadReport = async (format) => {
+  const downloadReport = async () => {
     try {
-      const response = await apiGetSalesReport({ date: selectedDate, format }, format);
-      
-      const url = window.URL.createObjectURL(new Blob([response]));
+      // Simple CSV download for now
+      const csvContent = generateCSVReport(sales);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `sales-report-${selectedDate}.${format}`);
+      link.setAttribute('download', `sales-report-${selectedDate}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       setError('Failed to download report');
     }
+  };
+
+  const generateCSVReport = (salesData) => {
+    const headers = ['Date', 'Customer', 'Product', 'Quantity', 'Unit Price', 'Total Amount', 'Payment Method'];
+    const rows = salesData.map(sale => [
+      formatDate(sale.date),
+      sale.customer_name || 'Walk-in Customer',
+      sale.product_name || 'Unknown Product',
+      sale.quantity || 0,
+      sale.unit_price || 0,
+      sale.total_amount || 0,
+      formatPaymentMethod(sale.payment_method)
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
   };
 
   const getPaymentMethodBadge = (method) => {
@@ -219,13 +297,13 @@ const Sales = () => {
   };
 
   const filteredSales = sales.filter(sale => {
-    if (!sale || !sale.sale_number) return false;
+    if (!sale) return false;
     
-    const saleNumber = sale.sale_number.toLowerCase();
-    const customerName = sale.customer?.name?.toLowerCase() || '';
+    const customerName = (sale.customer_name || '').toLowerCase();
+    const productName = (sale.product_name || '').toLowerCase();
     const searchLower = searchTerm.toLowerCase();
     
-    return saleNumber.includes(searchLower) || customerName.includes(searchLower);
+    return customerName.includes(searchLower) || productName.includes(searchLower);
   });
 
   if (loading) {
@@ -252,191 +330,152 @@ const Sales = () => {
           </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="h-12 text-base touch-manipulation">
               <Plus className="h-4 w-4 mr-2" />
               Record Sale
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Record New Sale</DialogTitle>
               <DialogDescription>
                 Add a new sale transaction
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            <div className="flex-1 overflow-y-auto px-1">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-              {/* Customer and Payment Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Customer Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="customer_id">Customer (Optional)</Label>
-                  <Select value={formData.customer_id} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
-                    <SelectTrigger>
+                  <Label htmlFor="customer_id" className="text-base">Customer (Optional)</Label>
+                  <Select value={formData.customer_id || 'walkin'} onValueChange={handleCustomerSelect}>
+                    <SelectTrigger className="h-12 text-base touch-manipulation">
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="walkin">Walk-in Customer</SelectItem>
                       {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id.toString()}>
-                          {customer.name} - {customer.email}
+                          {customer.name} {customer.email && `- ${customer.email}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
+                {/* Product Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="payment_method">Payment Method</Label>
-                  <Select value={formData.payment_method} onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
+                  <Label htmlFor="product_id" className="text-base">Product *</Label>
+                  <Select value={formData.product_id} onValueChange={handleProductSelect}>
+                    <SelectTrigger className="h-12 text-base touch-manipulation">
+                      <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="paystack">Paystack</SelectItem>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id.toString()}>
+                          {product.name} - {formatNaira(product.price || product.unit_price)} 
+                          {product.quantity !== undefined && ` (Stock: ${product.quantity})`}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Sale Items */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label>Sale Items</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addSaleItem}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
+                {/* Sale Details */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity" className="text-base">Quantity *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={formData.quantity}
+                      onChange={(e) => handleQuantityChange(e.target.value)}
+                      placeholder="1"
+                      className="h-12 text-base touch-manipulation"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
+                    <Input
+                      id="unit_price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.unit_price}
+                      onChange={(e) => handleUnitPriceChange(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12 text-base touch-manipulation"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-base">Total Amount</Label>
+                    <Input
+                      value={formatNaira(formData.total_amount)}
+                      disabled
+                      className="font-bold text-green-600 h-12 text-base"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Method and Date */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="payment_method" className="text-base">Payment Method</Label>
+                    <Select value={formData.payment_method} onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}>
+                      <SelectTrigger className="h-12 text-base touch-manipulation">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="pos">POS</SelectItem>
+                        <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                        <SelectItem value="online_payment">Online Payment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-base">Sale Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      className="h-12 text-base touch-manipulation"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowAddDialog(false)}
+                    className="h-12 text-base touch-manipulation"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={submitting}
+                    className="h-12 text-base touch-manipulation"
+                  >
+                    {submitting ? 'Recording...' : 'Record Sale'}
                   </Button>
                 </div>
-
-                {saleItems.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-4">
-                      <Label>Product</Label>
-                      <Select 
-                        value={item.product_id} 
-                        onValueChange={(value) => handleProductSelect(index, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id.toString()}>
-                              {product.name} - ₦{product.unit_price}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-2">
-                      <Label>Quantity</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateSaleItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <Label>Unit Price</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => updateSaleItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <Label>Total</Label>
-                      <Input
-                        value={`₦${(item.quantity * item.unit_price).toLocaleString()}`}
-                        disabled
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      {saleItems.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeSaleItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Discount and Tax */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="discount_amount">Discount (₦)</Label>
-                  <Input
-                    id="discount_amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.discount_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discount_amount: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tax_amount">Tax (₦)</Label>
-                  <Input
-                    id="tax_amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.tax_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tax_amount: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Total Amount</Label>
-                  <Input
-                    value={`₦${calculateTotal().toLocaleString()}`}
-                    disabled
-                    className="font-bold"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Additional notes about this sale"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  Record Sale
-                </Button>
-              </div>
-            </form>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -452,7 +491,7 @@ const Sales = () => {
               onClick={() => {
                 setError('');
                 fetchSales();
-                fetchDailyReport();
+                fetchSalesStats();
               }}
             >
               Retry
@@ -461,99 +500,96 @@ const Sales = () => {
         </Alert>
       )}
 
-      {/* Daily Report Summary */}
-      {dailyReport && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
-                  <p className="text-2xl font-bold">{dailyReport?.summary?.total_transactions || dailyReport?.total_sales || 0}</p>
-                </div>
-                <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+      {/* Sales Statistics Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
+                <p className="text-2xl font-bold">{salesStats.total_transactions || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+              <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">₦{(dailyReport?.summary?.total_sales || dailyReport?.total_amount || 0).toLocaleString()}</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-muted-foreground" />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold">{formatNaira(salesStats.total_sales || 0)}</p>
               </div>
-            </CardContent>
-          </Card>
+              <TrendingUp className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
-                  <p className="text-2xl font-bold">{dailyReport?.summary?.total_quantity || dailyReport?.total_quantity || 0}</p>
-                </div>
-                <Package className="h-8 w-8 text-muted-foreground" />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Today's Sales</p>
+                <p className="text-2xl font-bold">{formatNaira(salesStats.today_sales || 0)}</p>
               </div>
-            </CardContent>
-          </Card>
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Avg. Sale</p>
-                  <p className="text-2xl font-bold">₦{(dailyReport?.summary?.average_sale || dailyReport?.average_sale || 0).toLocaleString()}</p>
-                </div>
-                <Calculator className="h-8 w-8 text-muted-foreground" />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg. Sale</p>
+                <p className="text-2xl font-bold">{formatNaira(salesStats.average_sale_value || 0)}</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              <Calculator className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters and Date Selection */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by sale number or customer..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 text-base touch-manipulation"
                 />
               </div>
             </div>
-            <div className="w-full md:w-48">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-12 text-base touch-manipulation"
               />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => downloadReport('pdf')}>
+              <Button 
+                variant="outline" 
+                onClick={downloadReport}
+                className="h-12 text-base touch-manipulation"
+              >
                 <Download className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button variant="outline" onClick={() => downloadReport('png')}>
-                <Download className="h-4 w-4 mr-2" />
-                Image
+                Download CSV
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Sales Table */}
+      {/* Sales Display - Mobile Cards and Desktop Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Sales for {selectedDate}</CardTitle>
+          <CardTitle>Sales for {formatDate(selectedDate)}</CardTitle>
           <CardDescription>
             {filteredSales.length} sale{filteredSales.length !== 1 ? 's' : ''} found
           </CardDescription>
@@ -574,62 +610,129 @@ const Sales = () => {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sale #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell>
-                        <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                          {sale.sale_number}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        {sale.customer ? sale.customer.name : 'Walk-in Customer'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {(sale.sale_items && Array.isArray(sale.sale_items) ? sale.sale_items.length : 0)} item{(sale.sale_items && Array.isArray(sale.sale_items) ? sale.sale_items.length : 0) !== 1 ? 's' : ''}
+            <>
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+                {filteredSales.map((sale) => (
+                  <Card key={sale.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        {/* Header with customer and actions */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate">
+                              {sale.customer_name || 'Walk-in Customer'}
+                            </h3>
+                            <p className="text-sm text-gray-600 truncate">
+                              {sale.product_name || 'Unknown Product'}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
-                          {sale.payment_method.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>₦{sale.net_amount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadge(sale.payment_status)}>
-                          {sale.payment_status.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {sale.sale_time ? new Date(`2000-01-01T${sale.sale_time}`).toLocaleTimeString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+
+                        {/* Sale Details */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Quantity:</span>
+                            <span className="font-medium">{sale.quantity || 0}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Unit Price:</span>
+                            <span className="font-medium">{formatNaira(sale.unit_price || 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Payment:</span>
+                            <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
+                              {formatPaymentMethod(sale.payment_method)}
+                            </Badge>
+                          </div>
                         </div>
-                      </TableCell>
+
+                        {/* Total and Date */}
+                        <div className="pt-2 border-t border-gray-100">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              {formatDateTime(sale.created_at || sale.date)}
+                            </span>
+                            <span className="text-lg font-semibold text-green-600">
+                              {formatNaira(sale.total_amount || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSales.map((sale) => (
+                      <TableRow key={sale.id}>
+                        <TableCell>
+                          <div className="font-medium">
+                            {sale.customer_name || 'Walk-in Customer'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {sale.product_name || 'Unknown Product'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-center">
+                            {sale.quantity || 0}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {formatNaira(sale.unit_price || 0)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold text-green-600">
+                            {formatNaira(sale.total_amount || 0)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
+                            {formatPaymentMethod(sale.payment_method)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {formatDateTime(sale.created_at || sale.date)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -219,7 +219,7 @@ const ModernHeader = () => {
                   placeholder="Search customers, products, invoices..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-green-600/50 text-white pl-10 pr-4 py-2 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
                 />
               </div>
             </div>
@@ -474,7 +474,7 @@ const ModernHeader = () => {
                 placeholder="Search customers, products, invoices..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-green-600/50 text-white pl-10 pr-4 py-2 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300"
+                className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
               />
             </div>
           </div>

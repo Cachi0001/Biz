@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import uuid
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -28,6 +28,58 @@ def error_response(error, message="Error", status_code=400):
         "error": error,
         "message": message
     }), status_code
+
+def generate_invoice_number(owner_id):
+    """Generate unique invoice number with format INV-YYYYMMDD-XXXX"""
+    try:
+        supabase = get_supabase()
+        today = datetime.now().strftime('%Y%m%d')
+        
+        # Get count of invoices created today for this owner
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        
+        result = supabase.table("invoices").select("id").eq("owner_id", owner_id).gte("created_at", today_start.isoformat()).lt("created_at", today_end.isoformat()).execute()
+        
+        count = len(result.data) + 1
+        invoice_number = f"INV-{today}-{count:04d}"
+        
+        # Ensure uniqueness by checking if it already exists
+        existing = supabase.table("invoices").select("id").eq("invoice_number", invoice_number).execute()
+        while existing.data:
+            count += 1
+            invoice_number = f"INV-{today}-{count:04d}"
+            existing = supabase.table("invoices").select("id").eq("invoice_number", invoice_number).execute()
+        
+        return invoice_number
+    except Exception as e:
+        # Fallback to UUID-based number if there's an error
+        return f"INV-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+
+def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
+    """Create a transaction record when invoice is paid"""
+    try:
+        supabase = get_supabase()
+        
+        transaction_data = {
+            "id": str(uuid.uuid4()),
+            "owner_id": invoice_data["owner_id"],
+            "type": transaction_type,
+            "amount": float(invoice_data["total_amount"]),
+            "category": "Invoice Payment",
+            "description": f"Payment for Invoice {invoice_data['invoice_number']} - {invoice_data['customer_name']}",
+            "payment_method": "invoice",
+            "reference_id": invoice_data["id"],
+            "reference_type": "invoice",
+            "date": datetime.now().isoformat(),
+            "created_at": datetime.now().isoformat()
+        }
+        
+        result = supabase.table("transactions").insert(transaction_data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error creating transaction for invoice: {str(e)}")
+        return None
 
 @invoice_bp.route("/", methods=["GET"])
 @jwt_required()
@@ -107,15 +159,56 @@ def create_invoice():
         owner_id = get_jwt_identity()
         data = request.get_json()
         
+        # Validate required fields
         if not data.get("customer_id"):
             return error_response("Customer ID is required", status_code=400)
         
-        customer = get_supabase().table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
+        if not data.get("items") or len(data["items"]) == 0:
+            return error_response("At least one item is required", status_code=400)
+        
+        # Validate customer exists
+        customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
         if not customer.data:
             return error_response("Customer not found", status_code=404)
         
         # Generate unique invoice number
-        invoice_number = f"INV-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+        invoice_number = generate_invoice_number(owner_id)
+        
+        # Set default due date if not provided (30 days from now)
+        due_date = data.get("due_date")
+        if not due_date:
+            due_date = (datetime.now() + timedelta(days=30)).isoformat()
+        
+        # Process and validate items
+        processed_items = []
+        subtotal = 0
+        
+        for item in data["items"]:
+            if not item.get("description"):
+                return error_response("Item description is required", status_code=400)
+            if not item.get("quantity") or float(item["quantity"]) <= 0:
+                return error_response("Item quantity must be greater than 0", status_code=400)
+            if not item.get("unit_price") or float(item["unit_price"]) < 0:
+                return error_response("Item unit price must be 0 or greater", status_code=400)
+            
+            quantity = float(item["quantity"])
+            unit_price = float(item["unit_price"])
+            item_total = quantity * unit_price
+            
+            processed_item = {
+                "product_id": item.get("product_id"),
+                "description": item["description"],
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "total": item_total
+            }
+            
+            processed_items.append(processed_item)
+            subtotal += item_total
+        
+        # Calculate tax and total
+        tax_amount = float(data.get("tax_amount", 0))
+        total_amount = subtotal + tax_amount
         
         invoice_data = {
             "id": str(uuid.uuid4()),
@@ -123,39 +216,21 @@ def create_invoice():
             "customer_id": data["customer_id"],
             "customer_name": customer.data["name"],
             "invoice_number": invoice_number,
-            "amount": float(data.get("amount", 0)),
-            "tax_amount": float(data.get("tax_amount", 0)),
-            "total_amount": float(data.get("total_amount", 0)),
+            "amount": subtotal,
+            "tax_amount": tax_amount,
+            "total_amount": total_amount,
             "status": "draft",
-            "due_date": data.get("due_date"),
+            "due_date": due_date,
             "notes": data.get("notes", ""),
-            "items": data.get("items", []),
+            "items": processed_items,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
-        
-        # Calculate totals from items
-        total_amount = 0
-        total_cogs = 0
-        if data.get("items"):
-            for item in data["items"]:
-                item_total = float(item.get("quantity", 0)) * float(item.get("unit_price", 0))
-                total_amount += item_total
-                # Calculate COGS for each item
-                cost_price = 0
-                if item.get("product_id"):
-                    product_result = get_supabase().table("products").select("cost_price").eq("id", item["product_id"]).single().execute()
-                    if product_result.data and product_result.data.get("cost_price") is not None:
-                        cost_price = float(product_result.data["cost_price"])
-                item_cogs = float(item.get("quantity", 0)) * cost_price
-                total_cogs += item_cogs
-        
-        invoice_data["amount"] = total_amount
-        invoice_data["total_amount"] = total_amount + invoice_data["tax_amount"]
-        invoice_data["total_cogs"] = total_cogs
-        invoice_data["gross_profit"] = total_amount - total_cogs
 
-        result = get_supabase().table("invoices").insert(invoice_data).execute()
+        result = supabase.table("invoices").insert(invoice_data).execute()
+        
+        if not result.data:
+            return error_response("Failed to create invoice", status_code=500)
 
         return success_response(
             message="Invoice created successfully",
@@ -166,7 +241,7 @@ def create_invoice():
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        return error_response(str(e), "Failed to create invoice", status_code=500)
 
 @invoice_bp.route("/<invoice_id>", methods=["PUT"])
 @jwt_required()
@@ -174,7 +249,7 @@ def update_invoice(invoice_id):
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -188,66 +263,68 @@ def update_invoice(invoice_id):
         
         update_data = {"updated_at": datetime.now().isoformat()}
         
-        if data.get("issue_date"):
-            update_data["issue_date"] = data["issue_date"]
+        # Update basic fields
         if data.get("due_date"):
             update_data["due_date"] = data["due_date"]
-        if data.get("payment_terms"):
-            update_data["payment_terms"] = data["payment_terms"]
-        if data.get("notes"):
+        if data.get("notes") is not None:
             update_data["notes"] = data["notes"]
-        if data.get("terms_and_conditions"):
-            update_data["terms_and_conditions"] = data["terms_and_conditions"]
-        if data.get("currency"):
-            update_data["currency"] = data["currency"]
-        if data.get("discount_amount") is not None:
-            update_data["discount_amount"] = float(data["discount_amount"])
+        if data.get("tax_amount") is not None:
+            update_data["tax_amount"] = float(data["tax_amount"])
         
+        # Update items and recalculate totals
         if "items" in data:
-            # Delete existing items
-            get_supabase().table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
+            if not data["items"] or len(data["items"]) == 0:
+                return error_response("At least one item is required", status_code=400)
             
-            # Add new items and recalculate total_amount
-            new_invoice_items_data = []
-            new_total_amount = 0
-            for item_data in data["items"]:
-                if not item_data.get("description") or not item_data.get("quantity") or not item_data.get("unit_price"):
-                    return error_response("Item description, quantity, and unit_price are required", status_code=400)
+            # Process and validate items
+            processed_items = []
+            subtotal = 0
+            
+            for item in data["items"]:
+                if not item.get("description"):
+                    return error_response("Item description is required", status_code=400)
+                if not item.get("quantity") or float(item["quantity"]) <= 0:
+                    return error_response("Item quantity must be greater than 0", status_code=400)
+                if not item.get("unit_price") or float(item["unit_price"]) < 0:
+                    return error_response("Item unit price must be 0 or greater", status_code=400)
                 
-                item_quantity = int(item_data["quantity"])
-                item_unit_price = float(item_data["unit_price"])
-                item_tax_rate = float(item_data.get("tax_rate", 0))
-                item_discount_rate = float(item_data.get("discount_rate", 0))
-
-                item_total = item_quantity * item_unit_price
-                item_total -= item_total * (item_discount_rate / 100)
-                item_total += item_total * (item_tax_rate / 100)
-
-                new_invoice_items_data.append({
-                    "id": str(uuid.uuid4()),
-                    "invoice_id": invoice_id,
-                    "product_id": item_data.get("product_id"),
-                    "description": item_data["description"],
-                    "quantity": item_quantity,
-                    "unit_price": item_unit_price,
-                    "tax_rate": item_tax_rate,
-                    "discount_rate": item_discount_rate,
+                quantity = float(item["quantity"])
+                unit_price = float(item["unit_price"])
+                item_total = quantity * unit_price
+                
+                processed_item = {
+                    "product_id": item.get("product_id"),
+                    "description": item["description"],
+                    "quantity": quantity,
+                    "unit_price": unit_price,
                     "total": item_total
-                })
-                new_total_amount += item_total
+                }
+                
+                processed_items.append(processed_item)
+                subtotal += item_total
             
-            get_supabase().table("invoice_items").insert(new_invoice_items_data).execute()
-            update_data["total_amount"] = new_total_amount
-            update_data["amount_due"] = new_total_amount - update_data.get("discount_amount", invoice["discount_amount"])
+            # Update items and amounts
+            update_data["items"] = processed_items
+            update_data["amount"] = subtotal
+            
+            # Calculate total with tax
+            tax_amount = update_data.get("tax_amount", invoice.get("tax_amount", 0))
+            update_data["total_amount"] = subtotal + tax_amount
 
-        get_supabase().table("invoices").update(update_data).eq("id", invoice_id).execute()
+        result = supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
+        
+        if not result.data:
+            return error_response("Failed to update invoice", status_code=500)
         
         return success_response(
-            message="Invoice updated successfully"
+            message="Invoice updated successfully",
+            data={
+                "invoice": result.data[0]
+            }
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        return error_response(str(e), "Failed to update invoice", status_code=500)
 
 @invoice_bp.route("/<invoice_id>", methods=["DELETE"])
 @jwt_required()
@@ -255,7 +332,7 @@ def delete_invoice(invoice_id):
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
             return error_response("Invoice not found", status_code=404)
@@ -263,15 +340,18 @@ def delete_invoice(invoice_id):
         if invoice.data["status"] == "paid":
             return error_response("Cannot delete paid invoice", status_code=400)
         
-        get_supabase().table("invoice_items").delete().eq("invoice_id", invoice_id).execute()
-        get_supabase().table("invoices").delete().eq("id", invoice_id).execute()
+        # Delete the invoice (items are stored as JSONB, so no separate table to clean up)
+        result = supabase.table("invoices").delete().eq("id", invoice_id).execute()
+        
+        if not result.data:
+            return error_response("Failed to delete invoice", status_code=500)
         
         return success_response(
             message="Invoice deleted successfully"
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        return error_response(str(e), "Failed to delete invoice", status_code=500)
 
 @invoice_bp.route("/<invoice_id>/status", methods=["PUT"])
 @jwt_required()
@@ -279,7 +359,7 @@ def update_invoice_status(invoice_id):
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
             return error_response("Invoice not found", status_code=404)
@@ -291,23 +371,55 @@ def update_invoice_status(invoice_id):
         if new_status not in ["draft", "sent", "paid", "overdue", "cancelled"]:
             return error_response("Invalid status", status_code=400)
         
+        # Prevent changing from paid status
+        if invoice["status"] == "paid" and new_status != "paid":
+            return error_response("Cannot change status of paid invoice", status_code=400)
+        
         update_data = {"status": new_status, "updated_at": datetime.now().isoformat()}
+        transaction_created = None
 
         if new_status == "sent" and not invoice.get("sent_at"):
             update_data["sent_at"] = datetime.now().isoformat()
-        elif new_status == "paid":
-            update_data["amount_paid"] = invoice["total_amount"]
-            update_data["amount_due"] = 0
-            update_data["paid_at"] = datetime.now().isoformat()
+        elif new_status == "paid" and invoice["status"] != "paid":
+            # Mark as paid and create transaction
+            update_data["paid_date"] = datetime.now().isoformat()
+            
+            # Create transaction record for the payment
+            updated_invoice = {**invoice, **update_data}
+            transaction_created = create_transaction_for_invoice(updated_invoice)
+            
+            if transaction_created:
+                # Notify user of successful payment
+                try:
+                    supa_service = SupabaseService()
+                    supa_service.notify_user(
+                        str(owner_id),
+                        "Invoice Paid!",
+                        f"Invoice {invoice['invoice_number']} for ₦{invoice['total_amount']:,.2f} has been marked as paid.",
+                        "success"
+                    )
+                except:
+                    pass  # Don't fail if notification fails
         
-        get_supabase().table("invoices").update(update_data).eq("id", invoice_id).execute()
+        result = supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
+        
+        if not result.data:
+            return error_response("Failed to update invoice status", status_code=500)
+        
+        response_data = {
+            "invoice": result.data[0]
+        }
+        
+        if transaction_created:
+            response_data["transaction"] = transaction_created
         
         return success_response(
-            message="Invoice status updated successfully"
+            message="Invoice status updated successfully",
+            data=response_data
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        return error_response(str(e), "Failed to update invoice status", status_code=500)
 
 @invoice_bp.route("/<invoice_id>/send", methods=["POST"])
 @jwt_required()

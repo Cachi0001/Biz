@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { CustomerCard } from '../components/customers/CustomerCard';
 import { CustomerForm } from '../components/customers/CustomerForm';
@@ -6,40 +6,17 @@ import { CustomerProfile } from '../components/customers/CustomerProfile';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Plus, Search, Edit, Trash2, User, Eye } from 'lucide-react';
-import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getSales, getInvoices, getErrorMessage } from "../services/api";
-import { toast } from 'react-hot-toast';
-
-// Configure toast with green branding
-const showSuccessToast = (message) => {
-  toast.success(message, {
-    style: {
-      background: '#10b981',
-      color: '#ffffff',
-      fontWeight: '500',
-    },
-    iconTheme: {
-      primary: '#ffffff',
-      secondary: '#10b981',
-    },
-  });
-};
-
-const showErrorToast = (message) => {
-  toast.error(message, {
-    style: {
-      background: '#ef4444',
-      color: '#ffffff',
-      fontWeight: '500',
-    },
-    iconTheme: {
-      primary: '#ffffff',
-      secondary: '#ef4444',
-    },
-  });
-};
+import { Plus, Search, Edit, Trash2, User, Eye, RefreshCw } from 'lucide-react';
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getSales, getInvoices } from "../services/api";
+import { 
+  handleApiErrorWithToast, 
+  showSuccessToast, 
+  showErrorToast, 
+  safeArray
+} from '../utils/errorHandling';
+import { formatNaira } from '../utils/formatting';
 
 const Customers = () => {
   // State management
@@ -48,6 +25,7 @@ const Customers = () => {
   const [customerHistory, setCustomerHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -68,87 +46,51 @@ const Customers = () => {
   // Effects
   useEffect(() => {
     fetchCustomers();
-    fetchCustomerStats();
-  }, []);
+  }, [fetchCustomers]);
 
-  // API Functions
-  const fetchCustomers = async () => {
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // API Functions with improved error handling
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getCustomers();
 
-      // Handle different response formats
-      if (response && Array.isArray(response)) {
-        setCustomers(response);
-      } else if (response?.customers && Array.isArray(response.customers)) {
-        setCustomers(response.customers);
-      } else if (response?.data?.customers && Array.isArray(response.data.customers)) {
-        setCustomers(response.data.customers);
-      } else {
-        setCustomers([]);
-      }
+      // Use the new backend response format - customers with stats are already included
+      const customersData = safeArray(response?.data?.customers || response?.customers || response, []);
+      
+      setCustomers(customersData);
+      
+      // Extract stats from customer data if available (backend now provides this)
+      const stats = {};
+      customersData.forEach(customer => {
+        if (customer.id) {
+          stats[customer.id] = {
+            totalSpent: customer.total_spent || 0,
+            totalPurchases: customer.total_purchases || 0,
+            lastPurchase: customer.last_purchase_date ? new Date(customer.last_purchase_date) : null
+          };
+        }
+      });
+      setCustomerStats(stats);
+      
     } catch (error) {
-      console.error('Failed to fetch customers:', error);
-      showErrorToast(getErrorMessage(error, 'Failed to load customers'));
+      handleApiErrorWithToast(error, 'Failed to load customers');
       setCustomers([]);
+      setCustomerStats({});
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchCustomerStats = async () => {
-    try {
-      const [salesResponse, invoicesResponse] = await Promise.all([
-        getSales(),
-        getInvoices()
-      ]);
 
-      const sales = Array.isArray(salesResponse) ? salesResponse :
-        salesResponse?.sales || salesResponse?.data?.sales || [];
-      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse :
-        invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
-
-      const stats = {};
-
-      // Calculate stats from sales
-      sales.forEach(sale => {
-        if (sale.customer_id) {
-          if (!stats[sale.customer_id]) {
-            stats[sale.customer_id] = {
-              totalPurchases: 0,
-              totalSpent: 0,
-              lastPurchase: null
-            };
-          }
-          stats[sale.customer_id].totalPurchases += 1;
-          stats[sale.customer_id].totalSpent += parseFloat(sale.total_amount || sale.net_amount || 0);
-
-          const purchaseDate = new Date(sale.created_at || sale.date);
-          if (!stats[sale.customer_id].lastPurchase || purchaseDate > stats[sale.customer_id].lastPurchase) {
-            stats[sale.customer_id].lastPurchase = purchaseDate;
-          }
-        }
-      });
-
-      // Calculate stats from invoices
-      invoices.forEach(invoice => {
-        if (invoice.customer_id && invoice.status === 'paid') {
-          if (!stats[invoice.customer_id]) {
-            stats[invoice.customer_id] = {
-              totalPurchases: 0,
-              totalSpent: 0,
-              lastPurchase: null
-            };
-          }
-          stats[invoice.customer_id].totalSpent += parseFloat(invoice.total_amount || 0);
-        }
-      });
-
-      setCustomerStats(stats);
-    } catch (error) {
-      console.error('Failed to fetch customer stats:', error);
-    }
-  };
 
   const fetchCustomerHistory = async (customerId) => {
     try {
@@ -157,10 +99,8 @@ const Customers = () => {
         getInvoices()
       ]);
 
-      const sales = Array.isArray(salesResponse) ? salesResponse :
-        salesResponse?.sales || salesResponse?.data?.sales || [];
-      const invoices = Array.isArray(invoicesResponse) ? invoicesResponse :
-        invoicesResponse?.invoices || invoicesResponse?.data?.invoices || [];
+      const sales = safeArray(salesResponse?.data?.sales || salesResponse?.sales || salesResponse, []);
+      const invoices = safeArray(invoicesResponse?.data?.invoices || invoicesResponse?.invoices || invoicesResponse, []);
 
       const customerSales = sales.filter(sale => sale.customer_id === customerId);
       const customerInvoices = invoices.filter(invoice => invoice.customer_id === customerId);
@@ -182,12 +122,11 @@ const Customers = () => {
 
       setCustomerHistory(history);
     } catch (error) {
-      console.error('Failed to fetch customer history:', error);
-      showErrorToast(getErrorMessage(error, 'Failed to load customer history'));
+      handleApiErrorWithToast(error, 'Failed to load customer history');
     }
   };
 
-  // Event Handlers
+  // Event Handlers with improved error handling
   const handleCreateCustomer = async () => {
     try {
       if (!formCustomer.name.trim()) {
@@ -198,8 +137,28 @@ const Customers = () => {
       setLoading(true);
       const response = await createCustomer(formCustomer);
 
-      const createdCustomer = response?.customer || response?.data?.customer || response;
-      setCustomers(prev => [createdCustomer, ...prev]);
+      // Handle the new backend response format
+      const createdCustomer = response?.data?.customer || response?.customer || response;
+      
+      // Add the new customer to the list with default stats
+      const customerWithStats = {
+        ...createdCustomer,
+        total_spent: 0,
+        total_purchases: 0,
+        last_purchase_date: null
+      };
+      
+      setCustomers(prev => [customerWithStats, ...prev]);
+      
+      // Update stats
+      setCustomerStats(prev => ({
+        ...prev,
+        [createdCustomer.id]: {
+          totalSpent: 0,
+          totalPurchases: 0,
+          lastPurchase: null
+        }
+      }));
 
       setIsCreateDialogOpen(false);
       setFormCustomer({
@@ -212,10 +171,8 @@ const Customers = () => {
       });
 
       showSuccessToast("Customer created successfully!");
-      await fetchCustomerStats();
     } catch (error) {
-      console.error('Failed to create customer:', error);
-      showErrorToast(getErrorMessage(error, 'Failed to create customer'));
+      handleApiErrorWithToast(error, 'Failed to create customer');
     } finally {
       setLoading(false);
     }
@@ -231,21 +188,41 @@ const Customers = () => {
       setLoading(true);
       const response = await updateCustomer(selectedCustomer.id, formCustomer);
 
-      const updatedCustomer = response?.customer || response?.data?.customer || formCustomer;
+      // Handle the new backend response format
+      const updatedCustomer = response?.data?.customer || response?.customer || response;
+      
+      // Update the customer in the list while preserving stats
       setCustomers(prev =>
         prev.map(customer =>
-          customer.id === selectedCustomer.id ? { ...customer, ...updatedCustomer } : customer
+          customer.id === selectedCustomer.id ? { 
+            ...customer, 
+            ...updatedCustomer,
+            // Preserve existing stats if not provided in response
+            total_spent: updatedCustomer.total_spent ?? customer.total_spent,
+            total_purchases: updatedCustomer.total_purchases ?? customer.total_purchases,
+            last_purchase_date: updatedCustomer.last_purchase_date ?? customer.last_purchase_date
+          } : customer
         )
       );
+
+      // Update stats if provided in response
+      if (updatedCustomer.total_spent !== undefined || updatedCustomer.total_purchases !== undefined) {
+        setCustomerStats(prev => ({
+          ...prev,
+          [selectedCustomer.id]: {
+            totalSpent: updatedCustomer.total_spent ?? prev[selectedCustomer.id]?.totalSpent ?? 0,
+            totalPurchases: updatedCustomer.total_purchases ?? prev[selectedCustomer.id]?.totalPurchases ?? 0,
+            lastPurchase: updatedCustomer.last_purchase_date ? new Date(updatedCustomer.last_purchase_date) : prev[selectedCustomer.id]?.lastPurchase
+          }
+        }));
+      }
 
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
 
       showSuccessToast("Customer updated successfully!");
-      await fetchCustomerStats();
     } catch (error) {
-      console.error('Failed to update customer:', error);
-      showErrorToast(getErrorMessage(error, 'Failed to update customer'));
+      handleApiErrorWithToast(error, 'Failed to update customer');
     } finally {
       setLoading(false);
     }
@@ -257,10 +234,15 @@ const Customers = () => {
         setLoading(true);
         await deleteCustomer(id);
         setCustomers(prev => prev.filter(customer => customer.id !== id));
+        // Remove from stats as well
+        setCustomerStats(prev => {
+          const newStats = { ...prev };
+          delete newStats[id];
+          return newStats;
+        });
         showSuccessToast("Customer deleted successfully!");
       } catch (error) {
-        console.error('Failed to delete customer:', error);
-        showErrorToast(getErrorMessage(error, 'Failed to delete customer'));
+        handleApiErrorWithToast(error, 'Failed to delete customer');
       } finally {
         setLoading(false);
       }
@@ -291,12 +273,19 @@ const Customers = () => {
     fetchCustomerHistory(customer.id);
   };
 
-  // Computed values
-  const filteredCustomers = customers.filter(customer =>
-    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.business_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Computed values with debounced search
+  const filteredCustomers = customers.filter(customer => {
+    if (!debouncedSearchTerm) return true;
+    
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return (
+      customer.name?.toLowerCase().includes(searchLower) ||
+      customer.email?.toLowerCase().includes(searchLower) ||
+      customer.business_name?.toLowerCase().includes(searchLower) ||
+      customer.phone?.toLowerCase().includes(searchLower) ||
+      customer.address?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Loading state
   if (loading && customers.length === 0) {
@@ -322,25 +311,55 @@ const Customers = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Manage your customer relationships</p>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Manage your customer relationships ({customers.length} total)
+            </p>
           </div>
-          <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={fetchCustomers}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Customer
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
         <Card>
           <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search customers by name, email, or business..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search customers by name, email, business, phone, or address..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 text-base touch-manipulation"
+                />
+              </div>
+              {searchTerm && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-gray-600">
+                  <span>
+                    {filteredCustomers.length} of {customers.length} customers match "{searchTerm}"
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchTerm('')}
+                    className="text-gray-500 hover:text-gray-700 h-8 touch-manipulation"
+                  >
+                    Clear search
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -427,10 +446,10 @@ const Customers = () => {
                             </TableCell>
                             <TableCell>
                               <span className="font-medium text-green-600">
-                                ₦{(stats.totalSpent || 0).toLocaleString()}
+                                {formatNaira(stats.totalSpent || customer.total_spent || 0)}
                               </span>
                             </TableCell>
-                            <TableCell>{stats.totalPurchases || 0}</TableCell>
+                            <TableCell>{stats.totalPurchases || customer.total_purchases || 0}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Button
@@ -469,59 +488,65 @@ const Customers = () => {
 
         {/* Create Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>
                 Create a new customer profile for your business
               </DialogDescription>
             </DialogHeader>
-            <CustomerForm
-              customer={formCustomer}
-              onChange={setFormCustomer}
-              onSubmit={handleCreateCustomer}
-              onCancel={() => setIsCreateDialogOpen(false)}
-              loading={loading}
-            />
+            <div className="flex-1 overflow-y-auto px-1">
+              <CustomerForm
+                customer={formCustomer}
+                onChange={setFormCustomer}
+                onSubmit={handleCreateCustomer}
+                onCancel={() => setIsCreateDialogOpen(false)}
+                loading={loading}
+              />
+            </div>
           </DialogContent>
         </Dialog>
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Edit Customer</DialogTitle>
               <DialogDescription>
                 Update customer information
               </DialogDescription>
             </DialogHeader>
-            <CustomerForm
-              customer={formCustomer}
-              onChange={setFormCustomer}
-              onSubmit={handleEditCustomer}
-              onCancel={() => setIsEditDialogOpen(false)}
-              isEditing={true}
-              loading={loading}
-            />
+            <div className="flex-1 overflow-y-auto px-1">
+              <CustomerForm
+                customer={formCustomer}
+                onChange={setFormCustomer}
+                onSubmit={handleEditCustomer}
+                onCancel={() => setIsEditDialogOpen(false)}
+                isEditing={true}
+                loading={loading}
+              />
+            </div>
           </DialogContent>
         </Dialog>
 
         {/* View Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Customer Profile</DialogTitle>
               <DialogDescription>
                 Detailed customer information and purchase history
               </DialogDescription>
             </DialogHeader>
-            {selectedCustomer && (
-              <CustomerProfile
-                customer={selectedCustomer}
-                stats={customerStats[selectedCustomer.id]}
-                history={customerHistory}
-              />
-            )}
+            <div className="flex-1 overflow-y-auto px-1">
+              {selectedCustomer && (
+                <CustomerProfile
+                  customer={selectedCustomer}
+                  stats={customerStats[selectedCustomer.id]}
+                  history={customerHistory}
+                />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>

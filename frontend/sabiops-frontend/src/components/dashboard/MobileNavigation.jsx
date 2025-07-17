@@ -81,15 +81,16 @@ const MobileNavigation = () => {
                 key={index}
                 onClick={() => handleNavigation(item.path)}
                 className={cn(
-                  "flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-colors rounded-lg min-h-[60px]",
+                  "flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-colors rounded-lg min-h-[64px] touch-manipulation",
                   isActive
                     ? "text-white bg-green-600"
-                    : "text-white hover:text-green-100 hover:bg-green-600",
+                    : "text-white hover:text-green-100 hover:bg-green-600 active:bg-green-700",
                   item.path === '/analytics' && user?.subscription_status === 'trial' && "opacity-60"
                 )}
+                style={{ minHeight: '64px', minWidth: '48px' }}
               >
                 <item.icon className="h-5 w-5 mb-1 flex-shrink-0" />
-                <span className="text-center leading-tight truncate w-full">
+                <span className="text-center leading-tight truncate w-full text-[10px] sm:text-xs">
                   {item.label}
                 </span>
               </button>

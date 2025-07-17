@@ -46,7 +46,7 @@ const Analytics = () => {
               <p className="text-orange-800 mb-4">
                 Subscribe to access detailed business insights and advanced reporting.
               </p>
-              <Button 
+              <Button
                 className="bg-orange-600 hover:bg-orange-700 text-white"
                 onClick={() => window.location.href = '/subscription-upgrade'}
               >
@@ -63,7 +63,7 @@ const Analytics = () => {
   return (
     <DashboardLayout>
       <div className="p-4 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 min-h-screen">
-        
+
         {/* Analytics Header */}
         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
           <CardContent className="p-6">
@@ -88,7 +88,7 @@ const Analytics = () => {
               <p className="text-sm text-green-700 font-medium">Total Revenue</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-4 text-center">
               <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />

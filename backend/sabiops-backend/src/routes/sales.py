@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
+import logging
 
 sales_bp = Blueprint("sales", __name__)
 
@@ -30,7 +31,8 @@ def get_sales():
         supabase = get_supabase()
         owner_id = get_jwt_identity()
         
-        query = get_supabase().table("sales").select("*, customers(*), products(*)").eq("owner_id", owner_id)
+        # Build query with filters
+        query = supabase.table("sales").select("*").eq("owner_id", owner_id)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -49,16 +51,68 @@ def get_sales():
         if product_id:
             query = query.eq("product_id", product_id)
         
-        sales = query.order("date", desc=True).execute()
+        sales_result = query.order("date", desc=True).execute()
+        
+        if not sales_result.data:
+            return success_response(
+                data={
+                    "sales": [],
+                    "summary": {
+                        "total_sales": 0.0,
+                        "total_transactions": 0,
+                        "today_sales": 0.0
+                    }
+                }
+            )
+        
+        # Calculate summary statistics
+        sales_data = sales_result.data
+        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales_data)
+        total_transactions = len(sales_data)
+        
+        # Calculate today's sales
+        today = datetime.now().date().isoformat()
+        today_sales = sum(
+            float(sale.get("total_amount", 0)) 
+            for sale in sales_data 
+            if sale.get("date", "").startswith(today)
+        )
+        
+        # Format sales data for response
+        formatted_sales = []
+        for sale in sales_data:
+            formatted_sale = {
+                "id": sale.get("id"),
+                "customer_id": sale.get("customer_id"),
+                "customer_name": sale.get("customer_name", "Walk-in Customer"),
+                "product_id": sale.get("product_id"),
+                "product_name": sale.get("product_name"),
+                "quantity": sale.get("quantity"),
+                "unit_price": float(sale.get("unit_price", 0)),
+                "total_amount": float(sale.get("total_amount", 0)),
+                "total_cogs": float(sale.get("total_cogs", 0)),
+                "gross_profit": float(sale.get("gross_profit", 0)),
+                "payment_method": sale.get("payment_method", "cash"),
+                "date": sale.get("date"),
+                "salesperson_id": sale.get("salesperson_id"),
+                "created_at": sale.get("created_at")
+            }
+            formatted_sales.append(formatted_sale)
         
         return success_response(
             data={
-                "sales": sales.data
+                "sales": formatted_sales,
+                "summary": {
+                    "total_sales": total_sales,
+                    "total_transactions": total_transactions,
+                    "today_sales": today_sales
+                }
             }
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        logging.error(f"Error fetching sales: {str(e)}")
+        return error_response(str(e), "Failed to fetch sales", status_code=500)
 
 @sales_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -68,62 +122,49 @@ def create_sale():
         owner_id = get_jwt_identity()
         data = request.get_json()
         
+        # Validate required fields
         required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
         for field in required_fields:
             if not data.get(field):
                 return error_response(f"{field} is required", status_code=400)
         
-        # Get product details including cost_price
-        product_result = get_supabase().table("products").select("*").eq("id", data["product_id"]).eq("owner_id", owner_id).single().execute()
-        if not product_result.data:
-            return error_response("Product not found", status_code=404)
+        # Validate numeric fields
+        try:
+            quantity = int(data["quantity"])
+            unit_price = float(data["unit_price"])
+            total_amount = float(data["total_amount"])
+            
+            if quantity <= 0:
+                return error_response("Quantity must be greater than 0", status_code=400)
+            if unit_price < 0:
+                return error_response("Unit price cannot be negative", status_code=400)
+            if total_amount < 0:
+                return error_response("Total amount cannot be negative", status_code=400)
+                
+        except (ValueError, TypeError):
+            return error_response("Invalid numeric values provided", status_code=400)
         
-        product = product_result.data
-        if product["quantity"] < int(data["quantity"]):
-            return error_response("Not enough stock for this product", status_code=400)
+        # Use business operations manager for data consistency
+        from ..utils.business_operations import BusinessOperationsManager
+        business_ops = BusinessOperationsManager(supabase)
         
-        # Calculate COGS and gross profit
-        quantity = int(data["quantity"])
-        unit_price = float(data["unit_price"])
-        total_amount = float(data["total_amount"])
-        cost_price = float(product.get("cost_price", 0))
-        total_cogs = quantity * cost_price
-        gross_profit = total_amount - total_cogs
+        # Process the complete sale transaction with automatic inventory updates and transaction creation
+        success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
         
-        sale_data = {
-            "id": str(uuid.uuid4()),
-            "owner_id": owner_id,
-            "product_id": data["product_id"],
-            "product_name": product["name"],
-            "customer_id": data.get("customer_id"),
-            "customer_name": data.get("customer_name", ""),
-            "quantity": quantity,
-            "unit_price": unit_price,
-            "total_amount": total_amount,
-            "total_cogs": total_cogs,
-            "gross_profit": gross_profit,
-            "payment_method": data.get("payment_method", "cash"),
-            "salesperson_id": data.get("salesperson_id"),
-            "date": data.get("date", datetime.now().isoformat()),
-            "created_at": datetime.now().isoformat()
-        }
-        
-        result = get_supabase().table("sales").insert(sale_data).execute()
-        
-        # Update product stock
-        new_quantity = product_result.data["quantity"] - int(data["quantity"])
-        get_supabase().table("products").update({"quantity": new_quantity}).eq("id", data["product_id"]).execute()
+        if not success:
+            return error_response(error_message, status_code=400)
         
         return success_response(
-            message="Sale created successfully",
+            message="Sale created successfully with automatic inventory update and transaction record",
             data={
-                "sale": result.data[0]
+                "sale": sale_record
             },
             status_code=201
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        logging.error(f"Error creating sale: {str(e)}")
+        return error_response(str(e), "Failed to create sale", status_code=500)
 
 @sales_bp.route("/stats", methods=["GET"])
 @jwt_required()
@@ -135,7 +176,7 @@ def get_sales_stats():
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
         
-        query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
+        query = supabase.table("sales").select("*").eq("owner_id", owner_id)
         
         if start_date:
             query = query.gte("date", start_date)
@@ -143,45 +184,427 @@ def get_sales_stats():
         if end_date:
             query = query.lte("date", end_date)
         
-        sales = query.execute().data
+        sales_result = query.execute()
         
-        total_sales = sum(float(sale["total_price"]) for sale in sales)
+        if not sales_result.data:
+            return success_response(
+                data={
+                    "total_sales": 0.0,
+                    "total_transactions": 0,
+                    "average_sale_value": 0.0,
+                    "total_gross_profit": 0.0,
+                    "top_selling_products": [],
+                    "sales_by_payment_method": {},
+                    "monthly_sales": []
+                }
+            )
+        
+        sales = sales_result.data
+        
+        # Calculate basic statistics
+        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
         total_transactions = len(sales)
+        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
+        average_sale_value = total_sales / total_transactions if total_transactions > 0 else 0
         
+        # Calculate product sales statistics
         product_sales = {}
         for sale in sales:
-            product_id = sale["product_id"]
-            if product_id not in product_sales:
-                product_sales[product_id] = {"quantity": 0, "total_revenue": 0.0}
-            product_sales[product_id]["quantity"] += int(sale["quantity"])
-            product_sales[product_id]["total_revenue"] += float(sale["total_price"])
+            product_id = sale.get("product_id")
+            if product_id and product_id not in product_sales:
+                product_sales[product_id] = {
+                    "product_name": sale.get("product_name", "Unknown"),
+                    "quantity": 0, 
+                    "total_revenue": 0.0,
+                    "total_profit": 0.0
+                }
+            if product_id:
+                product_sales[product_id]["quantity"] += int(sale.get("quantity", 0))
+                product_sales[product_id]["total_revenue"] += float(sale.get("total_amount", 0))
+                product_sales[product_id]["total_profit"] += float(sale.get("gross_profit", 0))
         
-        # Fetch product names for better readability
-        product_ids = list(product_sales.keys())
-        products_result = get_supabase().table("products").select("id, name").in_("id", product_ids).execute().data
-        product_map = {p["id"]: p["name"] for p in products_result}
-        
+        # Get top selling products by revenue
         top_selling_products = sorted(
             [
-                {"product_id": pid, "product_name": product_map.get(pid, "Unknown"), **data} 
+                {"product_id": pid, **data} 
                 for pid, data in product_sales.items()
             ],
             key=lambda x: x["total_revenue"],
             reverse=True
         )[:5]
         
+        # Calculate sales by payment method
+        sales_by_payment_method = {}
+        for sale in sales:
+            payment_method = sale.get("payment_method", "cash")
+            if payment_method not in sales_by_payment_method:
+                sales_by_payment_method[payment_method] = {
+                    "count": 0,
+                    "total_amount": 0.0
+                }
+            sales_by_payment_method[payment_method]["count"] += 1
+            sales_by_payment_method[payment_method]["total_amount"] += float(sale.get("total_amount", 0))
+        
+        # Calculate monthly sales (last 12 months)
+        monthly_sales = {}
+        for sale in sales:
+            sale_date = sale.get("date", "")
+            if sale_date:
+                try:
+                    month_key = sale_date[:7]  # YYYY-MM format
+                    if month_key not in monthly_sales:
+                        monthly_sales[month_key] = {
+                            "month": month_key,
+                            "total_sales": 0.0,
+                            "transaction_count": 0,
+                            "gross_profit": 0.0
+                        }
+                    monthly_sales[month_key]["total_sales"] += float(sale.get("total_amount", 0))
+                    monthly_sales[month_key]["transaction_count"] += 1
+                    monthly_sales[month_key]["gross_profit"] += float(sale.get("gross_profit", 0))
+                except:
+                    continue
+        
+        # Sort monthly sales by month
+        monthly_sales_list = sorted(monthly_sales.values(), key=lambda x: x["month"], reverse=True)[:12]
+        
         return success_response(
             data={
                 "total_sales": total_sales,
                 "total_transactions": total_transactions,
-                "average_sale_value": total_sales / total_transactions if total_transactions > 0 else 0,
-                "top_selling_products": top_selling_products
+                "average_sale_value": round(average_sale_value, 2),
+                "total_gross_profit": total_gross_profit,
+                "top_selling_products": top_selling_products,
+                "sales_by_payment_method": sales_by_payment_method,
+                "monthly_sales": monthly_sales_list
             }
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        logging.error(f"Error fetching sales stats: {str(e)}")
+        return error_response(str(e), "Failed to fetch sales statistics", status_code=500)
 
 
 
 
+@sales_bp.route("/<sale_id>", methods=["GET"])
+@jwt_required()
+def get_sale_by_id(sale_id):
+    """Get a specific sale by ID"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        sale_result = supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
+        
+        if not sale_result.data:
+            return error_response("Sale not found", status_code=404)
+        
+        sale = sale_result.data
+        formatted_sale = {
+            "id": sale.get("id"),
+            "customer_id": sale.get("customer_id"),
+            "customer_name": sale.get("customer_name", "Walk-in Customer"),
+            "product_id": sale.get("product_id"),
+            "product_name": sale.get("product_name"),
+            "quantity": sale.get("quantity"),
+            "unit_price": float(sale.get("unit_price", 0)),
+            "total_amount": float(sale.get("total_amount", 0)),
+            "total_cogs": float(sale.get("total_cogs", 0)),
+            "gross_profit": float(sale.get("gross_profit", 0)),
+            "payment_method": sale.get("payment_method", "cash"),
+            "date": sale.get("date"),
+            "salesperson_id": sale.get("salesperson_id"),
+            "created_at": sale.get("created_at")
+        }
+        
+        return success_response(
+            data={"sale": formatted_sale}
+        )
+        
+    except Exception as e:
+        logging.error(f"Error fetching sale {sale_id}: {str(e)}")
+        return error_response(str(e), "Failed to fetch sale", status_code=500)
+
+@sales_bp.route("/<sale_id>", methods=["PUT"])
+@jwt_required()
+def update_sale(sale_id):
+    """Update a sale record"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # Check if sale exists
+        existing_sale_result = supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
+        if not existing_sale_result.data:
+            return error_response("Sale not found", status_code=404)
+        
+        existing_sale = existing_sale_result.data
+        
+        # Validate numeric fields if provided
+        if "quantity" in data:
+            try:
+                quantity = int(data["quantity"])
+                if quantity <= 0:
+                    return error_response("Quantity must be greater than 0", status_code=400)
+            except (ValueError, TypeError):
+                return error_response("Invalid quantity value", status_code=400)
+        
+        if "unit_price" in data:
+            try:
+                unit_price = float(data["unit_price"])
+                if unit_price < 0:
+                    return error_response("Unit price cannot be negative", status_code=400)
+            except (ValueError, TypeError):
+                return error_response("Invalid unit price value", status_code=400)
+        
+        if "total_amount" in data:
+            try:
+                total_amount = float(data["total_amount"])
+                if total_amount < 0:
+                    return error_response("Total amount cannot be negative", status_code=400)
+            except (ValueError, TypeError):
+                return error_response("Invalid total amount value", status_code=400)
+        
+        # Prepare update data
+        update_data = {}
+        allowed_fields = ["customer_id", "customer_name", "quantity", "unit_price", "total_amount", "payment_method", "date"]
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        # If quantity or unit_price changed, recalculate totals
+        if "quantity" in update_data or "unit_price" in update_data:
+            # Get product details for cost calculation
+            product_result = supabase.table("products").select("cost_price").eq("id", existing_sale["product_id"]).single().execute()
+            cost_price = float(product_result.data.get("cost_price", 0)) if product_result.data else 0
+            
+            new_quantity = update_data.get("quantity", existing_sale["quantity"])
+            new_unit_price = update_data.get("unit_price", existing_sale["unit_price"])
+            new_total_amount = update_data.get("total_amount", new_quantity * new_unit_price)
+            
+            new_total_cogs = new_quantity * cost_price
+            new_gross_profit = new_total_amount - new_total_cogs
+            
+            update_data.update({
+                "total_amount": new_total_amount,
+                "total_cogs": new_total_cogs,
+                "gross_profit": new_gross_profit
+            })
+        
+        # Update the sale
+        result = supabase.table("sales").update(update_data).eq("id", sale_id).execute()
+        
+        return success_response(
+            message="Sale updated successfully",
+            data={"sale": result.data[0]}
+        )
+        
+    except Exception as e:
+        logging.error(f"Error updating sale {sale_id}: {str(e)}")
+        return error_response(str(e), "Failed to update sale", status_code=500)
+
+@sales_bp.route("/<sale_id>", methods=["DELETE"])
+@jwt_required()
+def delete_sale(sale_id):
+    """Delete a sale record and restore inventory using business operations manager"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        # Use business operations manager for data consistency
+        from ..utils.business_operations import BusinessOperationsManager
+        business_ops = BusinessOperationsManager(supabase)
+        
+        # Reverse the complete sale transaction with automatic inventory restoration
+        success, error_message = business_ops.reverse_sale_transaction(sale_id, owner_id)
+        
+        if not success:
+            return error_response(error_message, status_code=404 if "not found" in error_message.lower() else 400)
+        
+        return success_response(
+            message="Sale deleted successfully with automatic inventory restoration and transaction cleanup"
+        )
+        
+    except Exception as e:
+        logging.error(f"Error deleting sale {sale_id}: {str(e)}")
+        return error_response(str(e), "Failed to delete sale", status_code=500)
+
+@sales_bp.route("/reports/daily", methods=["GET"])
+@jwt_required()
+def get_daily_sales_report():
+    """Get daily sales report"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        target_date = request.args.get("date", datetime.now().date().isoformat())
+        
+        # Get sales for the specific date
+        sales_result = supabase.table("sales").select("*").eq("owner_id", owner_id).gte("date", target_date).lt("date", target_date + "T23:59:59").execute()
+        
+        sales = sales_result.data
+        
+        if not sales:
+            return success_response(
+                data={
+                    "date": target_date,
+                    "total_sales": 0.0,
+                    "total_transactions": 0,
+                    "total_gross_profit": 0.0,
+                    "sales_by_hour": {},
+                    "top_products": [],
+                    "payment_methods": {}
+                }
+            )
+        
+        # Calculate daily statistics
+        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
+        total_transactions = len(sales)
+        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
+        
+        # Sales by hour
+        sales_by_hour = {}
+        for sale in sales:
+            try:
+                hour = datetime.fromisoformat(sale.get("date", "")).hour
+                if hour not in sales_by_hour:
+                    sales_by_hour[hour] = {"count": 0, "amount": 0.0}
+                sales_by_hour[hour]["count"] += 1
+                sales_by_hour[hour]["amount"] += float(sale.get("total_amount", 0))
+            except:
+                continue
+        
+        # Top products for the day
+        product_sales = {}
+        for sale in sales:
+            product_id = sale.get("product_id")
+            if product_id:
+                if product_id not in product_sales:
+                    product_sales[product_id] = {
+                        "product_name": sale.get("product_name", "Unknown"),
+                        "quantity": 0,
+                        "revenue": 0.0
+                    }
+                product_sales[product_id]["quantity"] += int(sale.get("quantity", 0))
+                product_sales[product_id]["revenue"] += float(sale.get("total_amount", 0))
+        
+        top_products = sorted(product_sales.values(), key=lambda x: x["revenue"], reverse=True)[:5]
+        
+        # Payment methods breakdown
+        payment_methods = {}
+        for sale in sales:
+            method = sale.get("payment_method", "cash")
+            if method not in payment_methods:
+                payment_methods[method] = {"count": 0, "amount": 0.0}
+            payment_methods[method]["count"] += 1
+            payment_methods[method]["amount"] += float(sale.get("total_amount", 0))
+        
+        return success_response(
+            data={
+                "date": target_date,
+                "total_sales": total_sales,
+                "total_transactions": total_transactions,
+                "total_gross_profit": total_gross_profit,
+                "sales_by_hour": sales_by_hour,
+                "top_products": top_products,
+                "payment_methods": payment_methods
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"Error generating daily sales report: {str(e)}")
+        return error_response(str(e), "Failed to generate daily sales report", status_code=500)
+
+@sales_bp.route("/reports/summary", methods=["GET"])
+@jwt_required()
+def get_sales_summary():
+    """Get comprehensive sales summary with various metrics"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        # Get all sales
+        sales_result = supabase.table("sales").select("*").eq("owner_id", owner_id).execute()
+        
+        if not sales_result.data:
+            return success_response(
+                data={
+                    "total_sales": 0.0,
+                    "total_transactions": 0,
+                    "total_gross_profit": 0.0,
+                    "average_sale_value": 0.0,
+                    "today_sales": 0.0,
+                    "this_week_sales": 0.0,
+                    "this_month_sales": 0.0,
+                    "growth_metrics": {
+                        "daily_growth": 0.0,
+                        "weekly_growth": 0.0,
+                        "monthly_growth": 0.0
+                    }
+                }
+            )
+        
+        sales = sales_result.data
+        now = datetime.now()
+        today = now.date().isoformat()
+        week_start = (now - datetime.timedelta(days=now.weekday())).date().isoformat()
+        month_start = now.replace(day=1).date().isoformat()
+        
+        # Calculate totals
+        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
+        total_transactions = len(sales)
+        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
+        average_sale_value = total_sales / total_transactions if total_transactions > 0 else 0
+        
+        # Calculate period-specific sales
+        today_sales = sum(
+            float(sale.get("total_amount", 0)) 
+            for sale in sales 
+            if sale.get("date", "").startswith(today)
+        )
+        
+        this_week_sales = sum(
+            float(sale.get("total_amount", 0)) 
+            for sale in sales 
+            if sale.get("date", "") >= week_start
+        )
+        
+        this_month_sales = sum(
+            float(sale.get("total_amount", 0)) 
+            for sale in sales 
+            if sale.get("date", "") >= month_start
+        )
+        
+        # Calculate growth metrics (simplified - comparing with previous periods)
+        yesterday = (now - datetime.timedelta(days=1)).date().isoformat()
+        yesterday_sales = sum(
+            float(sale.get("total_amount", 0)) 
+            for sale in sales 
+            if sale.get("date", "").startswith(yesterday)
+        )
+        
+        daily_growth = ((today_sales - yesterday_sales) / yesterday_sales * 100) if yesterday_sales > 0 else 0
+        
+        return success_response(
+            data={
+                "total_sales": total_sales,
+                "total_transactions": total_transactions,
+                "total_gross_profit": total_gross_profit,
+                "average_sale_value": round(average_sale_value, 2),
+                "today_sales": today_sales,
+                "this_week_sales": this_week_sales,
+                "this_month_sales": this_month_sales,
+                "growth_metrics": {
+                    "daily_growth": round(daily_growth, 2),
+                    "weekly_growth": 0.0,  # Would need more complex calculation
+                    "monthly_growth": 0.0  # Would need more complex calculation
+                }
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"Error generating sales summary: {str(e)}")
+        return error_response(str(e), "Failed to generate sales summary", status_code=500)

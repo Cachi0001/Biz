@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Edit, Trash2, Receipt, Eye, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Receipt, Eye, X, Search, Filter } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -10,20 +10,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { getExpenses, createExpense, updateExpense, deleteExpense, getCategories as getExpenseCategories, getErrorMessage } from "../services/api";
-import { toast } from 'react-hot-toast';
+import { getExpenses, createExpense, updateExpense, deleteExpense } from "../services/api";
+import { formatNaira, formatDate, formatPaymentMethod, getExpenseCategories } from '../utils/formatting';
+import { handleApiErrorWithToast, showSuccessToast, showErrorToast, validateFormData } from '../utils/errorHandling';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [summary, setSummary] = useState({
+    total_expenses: 0,
+    total_count: 0,
+    today_expenses: 0,
+    this_month_expenses: 0
+  });
+
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [dateRange, setDateRange] = useState({
+    start: '',
+    end: ''
+  });
 
   const [formData, setFormData] = useState({
     category: '',
+    sub_category: '',
     description: '',
     amount: '',
     receipt_url: '',
@@ -31,95 +50,189 @@ const Expenses = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
+  const [formErrors, setFormErrors] = useState({});
+
   const paymentMethods = [
-    'cash', 'bank_transfer', 'card', 'mobile_money', 'check', 'other'
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'pos', label: 'POS' },
+    { value: 'mobile_money', label: 'Mobile Money' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'online_payment', label: 'Online Payment' },
+    { value: 'credit', label: 'Credit' }
   ];
 
   useEffect(() => {
     fetchExpenses();
-    fetchCategories();
+    initializeCategories();
   }, []);
+
+  // Filter expenses when search/filter criteria change
+  useEffect(() => {
+    filterExpenses();
+  }, [expenses, searchTerm, selectedCategory, selectedPaymentMethod, dateRange]);
 
   const fetchExpenses = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await getExpenses();
-      console.log('[EXPENSES] Expenses response:', response);
+      console.log('[EXPENSES] API Response:', response);
 
-      // Handle different response formats
-      if (response && Array.isArray(response)) {
-        setExpenses(response);
-      } else if (response && response.expenses && Array.isArray(response.expenses)) {
-        setExpenses(response.expenses);
-      } else if (response && response.data && response.data.expenses && Array.isArray(response.data.expenses)) {
+      // Handle new API response format from backend
+      if (response?.success && response?.data) {
+        const { expenses: expensesList, summary: summaryData } = response.data;
+        setExpenses(expensesList || []);
+        setSummary(summaryData || {
+          total_expenses: 0,
+          total_count: 0,
+          today_expenses: 0,
+          this_month_expenses: 0
+        });
+      } else if (response?.data?.expenses) {
         setExpenses(response.data.expenses);
+        setSummary(response.data.summary || {});
+      } else if (Array.isArray(response)) {
+        setExpenses(response);
       } else {
         console.warn('[EXPENSES] Unexpected response structure:', response);
         setExpenses([]);
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err, 'Failed to fetch expenses');
+      const errorMessage = handleApiErrorWithToast(err, 'Failed to fetch expenses');
       setError(errorMessage);
-      console.error('Error fetching expenses:', err);
       setExpenses([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const response = await getExpenseCategories();
-      console.log('[EXPENSES] Categories response:', response);
-
-      // Handle different response formats
-      if (response && Array.isArray(response)) {
-        setCategories(response);
-      } else if (response && response.categories && Array.isArray(response.categories)) {
-        setCategories(response.categories);
-      } else if (response && response.data && response.data.categories && Array.isArray(response.data.categories)) {
-        setCategories(response.data.categories);
-      } else {
-        console.warn('[EXPENSES] Using fallback categories');
-        setCategories([
-          { "name": "Rent", "description": "Monthly rent for office or business space" },
-          { "name": "Utilities", "description": "Electricity, water, internet bills" },
-          { "name": "Salaries", "description": "Employee salaries and wages" },
-          { "name": "Marketing", "description": "Advertising and promotional expenses" },
-          { "name": "Supplies", "description": "Office or operational supplies" },
-          { "name": "Travel", "description": "Business travel expenses" },
-          { "name": "Maintenance", "description": "Repairs and maintenance" },
-          { "name": "Other", "description": "Miscellaneous expenses" }
-        ]);
+  const initializeCategories = () => {
+    // Use Nigerian SME expense categories from formatting utils
+    const nigerianCategories = [
+      {
+        name: "Inventory/Stock",
+        description: "Goods purchased for resale",
+        subcategories: ["Raw Materials", "Finished Goods", "Packaging Materials", "Import Duties"]
+      },
+      {
+        name: "Rent",
+        description: "Shop/office rent and related costs",
+        subcategories: ["Shop Rent", "Office Rent", "Warehouse Rent", "Equipment Rent"]
+      },
+      {
+        name: "Utilities",
+        description: "Basic business utilities",
+        subcategories: ["Electricity", "Water", "Internet", "Phone", "Generator Fuel"]
+      },
+      {
+        name: "Transportation",
+        description: "Business travel and logistics",
+        subcategories: ["Fuel", "Vehicle Maintenance", "Public Transport", "Delivery Costs", "Logistics"]
+      },
+      {
+        name: "Marketing",
+        description: "Advertising and promotional expenses",
+        subcategories: ["Social Media Ads", "Print Materials", "Radio/TV Ads", "Promotional Items", "Website"]
+      },
+      {
+        name: "Staff Salaries",
+        description: "Employee compensation and benefits",
+        subcategories: ["Basic Salary", "Overtime", "Bonuses", "Allowances", "Benefits"]
+      },
+      {
+        name: "Equipment",
+        description: "Business equipment and tools",
+        subcategories: ["Computers", "Machinery", "Furniture", "Tools", "Software"]
+      },
+      {
+        name: "Professional Services",
+        description: "External professional services",
+        subcategories: ["Accounting", "Legal", "Consulting", "IT Support", "Training"]
+      },
+      {
+        name: "Insurance",
+        description: "Business insurance premiums",
+        subcategories: ["Business Insurance", "Vehicle Insurance", "Health Insurance", "Property Insurance"]
+      },
+      {
+        name: "Taxes",
+        description: "Government taxes and levies",
+        subcategories: ["VAT", "Company Tax", "PAYE", "Local Government Levy", "Import Duty"]
+      },
+      {
+        name: "Bank Charges",
+        description: "Banking and financial service fees",
+        subcategories: ["Transaction Fees", "Account Maintenance", "Transfer Charges", "POS Charges"]
+      },
+      {
+        name: "Other",
+        description: "Miscellaneous business expenses",
+        subcategories: ["Miscellaneous", "Emergency Repairs", "Cleaning", "Security", "Stationery"]
       }
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      setCategories([
-        { "name": "Rent", "description": "Monthly rent for office or business space" },
-        { "name": "Utilities", "description": "Electricity, water, internet bills" },
-        { "name": "Salaries", "description": "Employee salaries and wages" },
-        { "name": "Marketing", "description": "Advertising and promotional expenses" },
-        { "name": "Supplies", "description": "Office or operational supplies" },
-        { "name": "Travel", "description": "Business travel expenses" },
-        { "name": "Maintenance", "description": "Repairs and maintenance" },
-        { "name": "Other", "description": "Miscellaneous expenses" }
-      ]);
+    ];
+    
+    setCategories(nigerianCategories);
+  };
+
+  const filterExpenses = () => {
+    let filtered = [...expenses];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(expense =>
+        expense.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.sub_category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
+
+    // Category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(expense => expense.category === selectedCategory);
+    }
+
+    // Payment method filter
+    if (selectedPaymentMethod) {
+      filtered = filtered.filter(expense => expense.payment_method === selectedPaymentMethod);
+    }
+
+    // Date range filter
+    if (dateRange.start) {
+      filtered = filtered.filter(expense => expense.date >= dateRange.start);
+    }
+    if (dateRange.end) {
+      filtered = filtered.filter(expense => expense.date <= dateRange.end);
+    }
+
+    setFilteredExpenses(filtered);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.category.trim()) {
-      toast.error('Category is required');
-      return;
-    }
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast.error('Valid amount is required');
-      return;
-    }
-    if (!formData.date) {
-      toast.error('Date is required');
+    // Validate form data using error handling utilities
+    const validationRules = {
+      category: { required: true, label: 'Category' },
+      amount: { 
+        required: true, 
+        type: 'number', 
+        min: 0.01, 
+        label: 'Amount',
+        validate: (value) => {
+          const num = parseFloat(value);
+          if (isNaN(num) || num <= 0) return 'Amount must be a valid number greater than 0';
+          return null;
+        }
+      },
+      date: { required: true, label: 'Date' }
+    };
+
+    const errors = validateFormData(formData, validationRules);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showErrorToast('Please fix the form errors before submitting');
       return;
     }
 
@@ -128,7 +241,8 @@ const Expenses = () => {
 
       const expenseData = {
         category: formData.category,
-        description: formData.description,
+        sub_category: formData.sub_category || '',
+        description: formData.description || '',
         amount: parseFloat(formData.amount),
         receipt_url: formData.receipt_url || '',
         payment_method: formData.payment_method || 'cash',
@@ -140,20 +254,18 @@ const Expenses = () => {
       if (editingExpense) {
         const response = await updateExpense(editingExpense.id, expenseData);
         console.log('[EXPENSES] Update response:', response);
-        toast.success('Expense updated successfully!');
+        showSuccessToast('Expense updated successfully!');
       } else {
         const response = await createExpense(expenseData);
         console.log('[EXPENSES] Create response:', response);
-        toast.success('Expense created successfully!');
+        showSuccessToast('Expense created successfully!');
       }
 
       await fetchExpenses();
       resetForm();
       setIsDialogOpen(false);
     } catch (err) {
-      const errorMessage = getErrorMessage(err, 'Failed to save expense');
-      setError(errorMessage);
-      toast.error(errorMessage);
+      handleApiErrorWithToast(err, 'Failed to save expense');
     } finally {
       setLoading(false);
     }
@@ -166,12 +278,10 @@ const Expenses = () => {
       setLoading(true);
       const response = await deleteExpense(expenseId);
       console.log('[EXPENSES] Delete response:', response);
-      toast.success('Expense deleted successfully!');
+      showSuccessToast('Expense deleted successfully!');
       await fetchExpenses();
     } catch (err) {
-      const errorMessage = getErrorMessage(err, 'Failed to delete expense');
-      setError(errorMessage);
-      toast.error(errorMessage);
+      handleApiErrorWithToast(err, 'Failed to delete expense');
     } finally {
       setLoading(false);
     }
@@ -180,27 +290,53 @@ const Expenses = () => {
   const resetForm = () => {
     setFormData({
       category: '',
+      sub_category: '',
       description: '',
       amount: '',
       receipt_url: '',
       payment_method: 'cash',
       date: new Date().toISOString().split('T')[0]
     });
+    setFormErrors({});
     setEditingExpense(null);
+    setSubcategories([]);
   };
 
   const openEditDialog = (expense) => {
     setEditingExpense(expense);
     setFormData({
       category: expense.category || '',
+      sub_category: expense.sub_category || '',
       description: expense.description || '',
       amount: expense.amount?.toString() || '',
       receipt_url: expense.receipt_url || '',
       payment_method: expense.payment_method || 'cash',
       date: expense.date ? expense.date.split('T')[0] : new Date().toISOString().split('T')[0]
     });
+    
+    // Set subcategories for the selected category
+    if (expense.category) {
+      const selectedCategory = categories.find(cat => cat.name === expense.category);
+      setSubcategories(selectedCategory?.subcategories || []);
+    }
+    
     setIsDialogOpen(true);
   };
+
+  const handleCategoryChange = (categoryName) => {
+    setFormData({ ...formData, category: categoryName, sub_category: '' });
+    const selectedCategory = categories.find(cat => cat.name === categoryName);
+    setSubcategories(selectedCategory?.subcategories || []);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+    setSelectedPaymentMethod('');
+    setDateRange({ start: '', end: '' });
+  };
+
+
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -267,8 +403,8 @@ const Expenses = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                      <SelectTrigger>
+                    <Select value={formData.category} onValueChange={handleCategoryChange}>
+                      <SelectTrigger className={formErrors.category ? 'border-red-500' : ''}>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -279,19 +415,46 @@ const Expenses = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.category && (
+                      <p className="text-sm text-red-500 mt-1">{formErrors.category}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="amount">Amount (₦) *</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      placeholder="0.00"
-                      required
-                    />
+                    <Label htmlFor="sub_category">Subcategory</Label>
+                    <Select 
+                      value={formData.sub_category} 
+                      onValueChange={(value) => setFormData({ ...formData, sub_category: value })}
+                      disabled={!formData.category}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subcategory (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subcategories.map(subcategory => (
+                          <SelectItem key={subcategory} value={subcategory}>
+                            {subcategory}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="amount">Amount (₦) *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="0.00"
+                    required
+                    className={formErrors.amount ? 'border-red-500' : ''}
+                  />
+                  {formErrors.amount && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.amount}</p>
+                  )}
                 </div>
 
                 <div>
@@ -314,8 +477,8 @@ const Expenses = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {paymentMethods.map(method => (
-                          <SelectItem key={method} value={method}>
-                            {method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          <SelectItem key={method.value} value={method.value}>
+                            {method.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -362,14 +525,99 @@ const Expenses = () => {
           </Alert>
         )}
 
+        {/* Search and Filter Section */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search expenses by category, subcategory, or description..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="whitespace-nowrap"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Clear Filters
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="filter-category">Category</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All categories</SelectItem>
+                      {categories.map(category => (
+                        <SelectItem key={category.name} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="filter-payment">Payment Method</Label>
+                  <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All methods" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All methods</SelectItem>
+                      {paymentMethods.map(method => (
+                        <SelectItem key={method.value} value={method.value}>
+                          {method.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="filter-start-date">Start Date</Label>
+                  <Input
+                    id="filter-start-date"
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="filter-end-date">End Date</Label>
+                  <Input
+                    id="filter-end-date"
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(getTotalExpenses())}</div>
+              <div className="text-2xl font-bold text-green-600">{formatNaira(summary.total_expenses || getTotalExpenses())}</div>
             </CardContent>
           </Card>
           <Card>
@@ -377,7 +625,15 @@ const Expenses = () => {
               <CardTitle className="text-sm font-medium text-gray-600">This Month</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(getMonthlyExpenses())}</div>
+              <div className="text-2xl font-bold text-blue-600">{formatNaira(summary.this_month_expenses || getMonthlyExpenses())}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Today</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{formatNaira(summary.today_expenses || 0)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -385,98 +641,190 @@ const Expenses = () => {
               <CardTitle className="text-sm font-medium text-gray-600">Total Records</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{expenses.length}</div>
+              <div className="text-2xl font-bold text-gray-900">{filteredExpenses.length} / {expenses.length}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Expenses List */}
-        <div className="grid grid-cols-1 gap-4">
-          {expenses.map((expense) => (
-            <Card key={expense.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold">{expense.category}</h3>
-                      {expense.category && (
+        {/* Expenses List - Mobile: 2 per row, Desktop: 1 per row */}
+        <div className="space-y-4">
+          {/* Mobile Card Layout (2 per row) */}
+          <div className="grid grid-cols-2 gap-3 md:hidden">
+            {filteredExpenses.map((expense) => (
+              <Card key={expense.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                <CardContent className="p-3">
+                  <div className="space-y-2">
+                    {/* Header with category and actions */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                          {expense.category}
+                        </h3>
+                        {expense.sub_category && (
+                          <p className="text-xs text-gray-600 truncate">
+                            {expense.sub_category}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 ml-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(expense)} className="h-6 w-6 p-0">
+                          <Edit className="h-3 w-3 text-green-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)} className="h-6 w-6 p-0">
+                          <Trash2 className="h-3 w-3 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="text-center">
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatNaira(expense.amount)}
+                      </p>
+                      <p className="text-xs text-gray-500">{formatDate(expense.date)}</p>
+                    </div>
+
+                    {/* Payment method */}
+                    <div className="text-center">
+                      <Badge variant="outline" className="text-xs">
+                        {formatPaymentMethod(expense.payment_method)}
+                      </Badge>
+                    </div>
+
+                    {/* Description (truncated) */}
+                    {expense.description && (
+                      <p className="text-xs text-gray-600 truncate" title={expense.description}>
+                        {expense.description}
+                      </p>
+                    )}
+
+                    {/* Receipt indicator */}
+                    {expense.receipt_url && (
+                      <div className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setViewingReceipt(expense)}
+                          className="h-6 text-xs"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Receipt
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop List Layout */}
+          <div className="hidden md:block space-y-4">
+            {filteredExpenses.map((expense) => (
+              <Card key={expense.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-semibold">{expense.category}</h3>
                         <Badge variant="outline">{expense.category}</Badge>
+                        {expense.sub_category && (
+                          <Badge variant="secondary">{expense.sub_category}</Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                        <div>
+                          <span className="font-medium">Amount:</span>
+                          <div className="text-lg font-bold text-green-600">
+                            {formatNaira(expense.amount)}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-medium">Date:</span>
+                          <div>{formatDate(expense.date)}</div>
+                        </div>
+                        <div>
+                          <span className="font-medium">Payment:</span>
+                          <div>{formatPaymentMethod(expense.payment_method)}</div>
+                        </div>
+                        <div>
+                          <span className="font-medium">Category:</span>
+                          <div>{expense.sub_category || 'General'}</div>
+                        </div>
+                      </div>
+
+                      {expense.description && (
+                        <p className="text-gray-600 mt-2">{expense.description}</p>
+                      )}
+
+                      {/* Receipt Section */}
+                      {expense.receipt_url && (
+                        <div className="mt-4">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setViewingReceipt(expense)}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Receipt
+                            </Button>
+                            <span className="text-sm text-gray-500">
+                              Receipt attached
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                      <div>
-                        <span className="font-medium">Amount:</span>
-                        <div className="text-lg font-bold text-gray-900">
-                          {formatCurrency(expense.amount)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Date:</span>
-                        <div>{formatDate(expense.date)}</div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Payment:</span>
-                        <div>{expense.payment_method?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
-                      </div>
+                    <div className="flex space-x-2 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(expense)}
+                      >
+                        <Edit className="w-4 h-4 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(expense.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-
-                    {expense.description && (
-                      <p className="text-gray-600 mt-2">{expense.description}</p>
-                    )}
-
-                    {/* Receipt Section */}
-                    {expense.receipt_url && (
-                      <div className="mt-4">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setViewingReceipt(expense)}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Receipt
-                          </Button>
-                          <span className="text-sm text-gray-500">
-                            Receipt attached
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
-
-                  <div className="flex space-x-2 ml-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(expense)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(expense.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
-        {expenses.length === 0 && !loading && (
+        {filteredExpenses.length === 0 && !loading && (
           <div className="text-center py-12">
             <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No expenses yet</h3>
-            <p className="text-gray-600 mb-4">Start tracking your business expenses to better manage your finances.</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Expense
-            </Button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {expenses.length === 0 ? 'No expenses yet' : 'No expenses match your filters'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {expenses.length === 0 
+                ? 'Start tracking your business expenses to better manage your finances.'
+                : 'Try adjusting your search criteria or clear the filters.'
+              }
+            </p>
+            {expenses.length === 0 ? (
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Expense
+              </Button>
+            ) : (
+              <Button onClick={clearFilters} variant="outline">
+                <Filter className="w-4 h-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
         )}
 

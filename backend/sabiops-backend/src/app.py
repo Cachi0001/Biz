@@ -28,6 +28,7 @@ from .routes.payment import payment_bp
 from .routes.dashboard import dashboard_bp
 from .routes.notifications import notifications_bp
 from .routes.search import search_bp
+from .routes.data_integrity import data_integrity_bp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -182,6 +183,7 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     app.register_blueprint(notifications_bp, url_prefix='/notifications')
     app.register_blueprint(search_bp, url_prefix='/api')
+    app.register_blueprint(data_integrity_bp, url_prefix='/api/data-integrity')
 
     @app.route('/debug', methods=['GET'])
     def debug():

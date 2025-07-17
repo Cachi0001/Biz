@@ -1,64 +1,210 @@
-import { useState, useEffect } from 'react';
-import { getDashboardOverview } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { getDashboardOverview, getAccurateDashboardMetrics, getSales, getInvoices, getExpenses, validateDataConsistency, syncAllBusinessData } from '../services/api';
+import { handleApiError, showToast } from '../utils/errorHandling';
+import { 
+  optimizedApiCall, 
+  performanceMonitor, 
+  globalLoadingManager 
+} from '../utils/performanceOptimizations';
 
 export const useDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(null);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (showLoadingState = true) => {
     try {
-      setLoading(true);
+      if (showLoadingState) {
+        setLoading(true);
+        globalLoadingManager.setLoading('dashboard', true);
+      }
       setError(null);
 
-      // Fetch real data from backend
-      const response = await getDashboardOverview();
+      // Start performance monitoring
+      performanceMonitor.startTimer('dashboard-fetch');
 
-      if (response && (response.success || response.data)) {
-        setDashboardData(response.data || response);
-      } else {
-        throw new Error(response?.message || 'Failed to fetch dashboard data');
+      // Use optimized API calls with caching
+      const [overviewResponse, accurateMetricsResponse] = await Promise.allSettled([
+        optimizedApiCall('dashboard-overview', getDashboardOverview, { 
+          cacheTtl: 60000, // 1 minute cache
+          useCache: true,
+          showLoading: false 
+        }),
+        optimizedApiCall('dashboard-metrics', getAccurateDashboardMetrics, { 
+          cacheTtl: 60000, // 1 minute cache
+          useCache: true,
+          showLoading: false 
+        })
+      ]);
+
+      let dashboardOverview = {};
+      let accurateMetrics = {};
+
+      // Process overview response
+      if (overviewResponse.status === 'fulfilled' && overviewResponse.value && (overviewResponse.value.success !== false)) {
+        dashboardOverview = overviewResponse.value.data || overviewResponse.value;
       }
+
+      // Process accurate metrics response (prioritize this for data consistency)
+      if (accurateMetricsResponse.status === 'fulfilled' && accurateMetricsResponse.value) {
+        accurateMetrics = accurateMetricsResponse.value;
+        console.log('[DEBUG] Using accurate metrics for dashboard:', accurateMetrics);
+      }
+
+      // Merge data with accurate metrics taking precedence
+      const mergedOverview = {
+        ...dashboardOverview,
+        ...accurateMetrics,
+        // Ensure we have proper structure
+        revenue: accurateMetrics.revenue || dashboardOverview.revenue || { total: 0, this_month: 0 },
+        expenses: accurateMetrics.expenses || dashboardOverview.expenses || { total: 0, this_month: 0 },
+        customers: accurateMetrics.customers || dashboardOverview.customers || { total: 0, new_this_month: 0 },
+        products: accurateMetrics.products || dashboardOverview.products || { total: 0, low_stock: 0 },
+        net_profit: accurateMetrics.net_profit || { total: 0, this_month: 0 }
+      };
+        
+      // Fetch recent activities from sales, invoices, and expenses
+      const [salesResponse, invoicesResponse, expensesResponse] = await Promise.allSettled([
+        getSales(),
+        getInvoices(), 
+        getExpenses()
+      ]);
+
+      // Process recent activities
+      const recentActivities = [];
+      
+      // Add recent sales
+      if (salesResponse.status === 'fulfilled' && salesResponse.value?.data?.sales) {
+        salesResponse.value.data.sales.slice(0, 3).forEach(sale => {
+          recentActivities.push({
+            type: 'sale',
+            description: `Sale to ${sale.customer_name || 'Walk-in Customer'} - ${sale.product_name || 'Product'}`,
+            timestamp: sale.created_at || sale.date,
+            amount: `₦${Number(sale.total_amount || 0).toLocaleString()}`
+          });
+        });
+      } else if (salesResponse.status === 'fulfilled' && salesResponse.value?.sales) {
+        salesResponse.value.sales.slice(0, 3).forEach(sale => {
+          recentActivities.push({
+            type: 'sale',
+            description: `Sale to ${sale.customer_name || 'Walk-in Customer'} - ${sale.product_name || 'Product'}`,
+            timestamp: sale.created_at || sale.date,
+            amount: `₦${Number(sale.total_amount || 0).toLocaleString()}`
+          });
+        });
+      }
+
+      // Add recent invoices
+      if (invoicesResponse.status === 'fulfilled' && invoicesResponse.value?.data?.invoices) {
+        invoicesResponse.value.data.invoices.slice(0, 2).forEach(invoice => {
+          recentActivities.push({
+            type: 'invoice',
+            description: `Invoice ${invoice.invoice_number} - ${invoice.customer_name || 'Customer'}`,
+            timestamp: invoice.created_at,
+            amount: `₦${Number(invoice.total_amount || 0).toLocaleString()}`
+          });
+        });
+      } else if (invoicesResponse.status === 'fulfilled' && invoicesResponse.value?.invoices) {
+        invoicesResponse.value.invoices.slice(0, 2).forEach(invoice => {
+          recentActivities.push({
+            type: 'invoice',
+            description: `Invoice ${invoice.invoice_number} - ${invoice.customer_name || 'Customer'}`,
+            timestamp: invoice.created_at,
+            amount: `₦${Number(invoice.total_amount || 0).toLocaleString()}`
+          });
+        });
+      }
+
+      // Add recent expenses
+      if (expensesResponse.status === 'fulfilled' && expensesResponse.value?.data?.expenses) {
+        expensesResponse.value.data.expenses.slice(0, 2).forEach(expense => {
+          recentActivities.push({
+            type: 'expense',
+            description: `${expense.category || 'Expense'} - ${expense.description || 'Business expense'}`,
+            timestamp: expense.created_at || expense.date,
+            amount: `₦${Number(expense.amount || 0).toLocaleString()}`
+          });
+        });
+      } else if (expensesResponse.status === 'fulfilled' && expensesResponse.value?.expenses) {
+        expensesResponse.value.expenses.slice(0, 2).forEach(expense => {
+          recentActivities.push({
+            type: 'expense',
+            description: `${expense.category || 'Expense'} - ${expense.description || 'Business expense'}`,
+            timestamp: expense.created_at || expense.date,
+            amount: `₦${Number(expense.amount || 0).toLocaleString()}`
+          });
+        });
+      }
+
+      // Sort activities by timestamp (most recent first)
+      recentActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      // Combine overview data with recent activities
+      const combinedData = {
+        ...mergedOverview,
+        recent_activities: recentActivities.slice(0, 5)
+      };
+
+      setDashboardData(combinedData);
+      setLastRefresh(new Date());
+      
+      if (!showLoadingState) {
+        showToast('success', 'Dashboard data refreshed with accurate metrics');
+      }
+
+      // Auto-sync data if inconsistencies are detected
+      try {
+        const { autoSyncDataOnInconsistency } = await import('../utils/dataIntegration');
+        
+        const syncApplied = await autoSyncDataOnInconsistency((result) => {
+          console.log('Auto-sync completed:', result);
+          
+          // Refresh dashboard data to show updated metrics
+          setTimeout(() => {
+            fetchDashboardData(false);
+          }, 1000);
+        });
+        
+        if (syncApplied) {
+          console.log('[DASHBOARD] Data auto-sync applied, dashboard will refresh');
+        }
+      } catch (syncError) {
+        console.warn('Auto data sync failed:', syncError);
+      }
+
     } catch (err) {
       console.error('Dashboard fetch error:', err);
-
-      // Don't set error for network issues, just use fallback data
-      if (err.name === 'NetworkError' || err.code === 'NETWORK_ERROR' || err.message.includes('fetch')) {
-        console.log('Network error detected, using fallback data');
-      } else {
-        setError(err.message || 'Failed to load dashboard data');
+      const errorMessage = handleApiError(err, 'Failed to load dashboard data');
+      setError(errorMessage);
+      
+      if (showLoadingState) {
+        showToast('error', errorMessage);
       }
-
-      // Fallback to mock data for development and network issues
-      const mockData = {
-        revenue: { total: 450000, this_month: 85000, outstanding: 25000 },
-        customers: { total: 145, new_this_month: 12 },
-        products: { total: 89, low_stock: 3 },
-        invoices: { overdue: 2 },
-        expenses: { total: 120000, this_month: 22000 },
-        recent_activities: [
-          { type: 'sale', description: 'Sold 2 Office Chairs to John Doe', timestamp: '2025-01-07T10:00:00Z' },
-          { type: 'invoice', description: 'Invoice #INV-1234 paid by Jane Smith', timestamp: '2025-01-07T09:30:00Z' },
-        ]
-      };
-      setDashboardData(mockData);
     } finally {
-      setLoading(false);
+      // End performance monitoring
+      performanceMonitor.endTimer('dashboard-fetch');
+      
+      if (showLoadingState) {
+        setLoading(false);
+        globalLoadingManager.setLoading('dashboard', false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
-  const refreshData = () => {
-    fetchDashboardData();
-  };
+  const refreshData = useCallback(() => {
+    fetchDashboardData(false);
+  }, [fetchDashboardData]);
 
   return {
     dashboardData,
     loading,
     error,
     refreshData,
+    lastRefresh,
   };
 };
