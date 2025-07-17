@@ -154,6 +154,8 @@ const Products = () => {
   };
 
   const handleInputChange = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -175,6 +177,15 @@ const Products = () => {
     }
     if (!formData.quantity || parseInt(formData.quantity) < 0) {
       handleApiErrorWithToast(new Error("Valid stock quantity is required"));
+      return;
+    }
+    
+    // Validate low stock threshold
+    const quantity = parseInt(formData.quantity) || 0;
+    const lowStockThreshold = parseInt(formData.low_stock_threshold) || 0;
+    
+    if (lowStockThreshold > quantity) {
+      handleApiErrorWithToast(new Error(`Low stock alert (${lowStockThreshold}) cannot be greater than stock quantity (${quantity})`));
       return;
     }
 
@@ -411,11 +422,16 @@ const Products = () => {
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
+            min="0"
+            max={formData.quantity || 999}
             value={formData.low_stock_threshold}
             onChange={handleInputChange}
-            placeholder="0"
+            placeholder="5"
             className="h-12 text-base touch-manipulation"
           />
+          <p className="text-xs text-gray-500">
+            Alert when stock falls below this number (max: {formData.quantity || 'stock quantity'})
+          </p>
         </div>
       </div>
 

@@ -46,7 +46,7 @@ const Customers = () => {
   // Effects
   useEffect(() => {
     fetchCustomers();
-  }, [fetchCustomers]);
+  }, []); // Remove fetchCustomers from dependency array to avoid circular dependency
 
   // Debounced search effect
   useEffect(() => {

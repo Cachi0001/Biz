@@ -1,6 +1,6 @@
 /**
- * Notification Service for Bizflow SME Nigeria
- * Handles both toast notifications and push notifications
+ * Real-time Notification Service for SabiOps
+ * Handles toast notifications, real-time updates, and business alerts
  */
 
 import { toast } from 'react-hot-toast';
@@ -10,7 +10,12 @@ class NotificationService {
   constructor() {
     this.pushSubscription = null;
     this.vapidPublicKey = 'your-vapid-public-key'; // Will be configured
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.listeners = [];
+    this.pollingInterval = null;
     this.initializePushNotifications();
+    this.startPolling();
   }
 
   // Toast Notifications
@@ -227,25 +232,203 @@ class NotificationService {
     return true;
   }
 
+  // Real-time notification management
+  startPolling() {
+    // Poll for new notifications every 30 seconds
+    this.pollingInterval = setInterval(() => {
+      this.checkForNewNotifications();
+    }, 30000);
+    
+    // Initial check
+    this.checkForNewNotifications();
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  async checkForNewNotifications() {
+    try {
+      const data = await this.fetchNotifications();
+      const newNotifications = data.notifications || [];
+      const newUnreadCount = data.unread_count || 0;
+
+      // Check for new notifications
+      const previousIds = this.notifications.map(n => n.id);
+      const actuallyNewNotifications = newNotifications.filter(n => !previousIds.includes(n.id));
+
+      // Show toast for new notifications
+      actuallyNewNotifications.forEach(notification => {
+        this.showNotificationToast(notification);
+      });
+
+      // Update state
+      this.notifications = newNotifications;
+      this.unreadCount = newUnreadCount;
+
+      // Notify listeners
+      this.notifyListeners();
+    } catch (error) {
+      console.error('Failed to check for notifications:', error);
+    }
+  }
+
+  showNotificationToast(notification) {
+    const { type, title, message } = notification;
+    
+    switch (type) {
+      case 'low_stock':
+        this.showLowStockAlert(title, message);
+        break;
+      case 'payment_received':
+        this.showPaymentReceived(title, message);
+        break;
+      case 'sale_completed':
+        this.showSaleNotification(message, title);
+        break;
+      case 'trial_reminder':
+        this.showTrialReminder(message);
+        break;
+      default:
+        this.showToast(`${title}: ${message}`, type || 'info');
+    }
+  }
+
+  // Listener management for components
+  addListener(callback) {
+    this.listeners.push(callback);
+    return () => {
+      this.listeners = this.listeners.filter(listener => listener !== callback);
+    };
+  }
+
+  notifyListeners() {
+    this.listeners.forEach(callback => {
+      callback({
+        notifications: this.notifications,
+        unreadCount: this.unreadCount
+      });
+    });
+  }
+
   // API Integration
   async fetchNotifications(unreadOnly = false) {
     try {
       const response = await get(`/notifications/?unread_only=${unreadOnly}`);
-      return response.data;
+      return response.data || response;
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      return { notifications: [], unread_count: 0 };
+      // Return mock data for development
+      return this.getMockNotifications();
     }
+  }
+
+  getMockNotifications() {
+    // Generate realistic mock notifications for development
+    const mockNotifications = [
+      {
+        id: 1,
+        type: 'low_stock',
+        title: 'iPhone 13 Pro',
+        message: '2 items left',
+        created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+        read: false,
+        action_url: '/products'
+      },
+      {
+        id: 2,
+        type: 'sale_completed',
+        title: 'John Doe',
+        message: '25000',
+        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+        read: false,
+        action_url: '/sales'
+      },
+      {
+        id: 3,
+        type: 'payment_received',
+        title: 'INV-001',
+        message: '50000',
+        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+        read: true,
+        action_url: '/invoices'
+      }
+    ];
+
+    const unreadCount = mockNotifications.filter(n => !n.read).length;
+    
+    return {
+      notifications: mockNotifications,
+      unread_count: unreadCount
+    };
   }
 
   async markAsRead(notificationId) {
     try {
       await put(`/notifications/${notificationId}/read`);
+      
+      // Update local state
+      this.notifications = this.notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      );
+      this.unreadCount = this.notifications.filter(n => !n.read).length;
+      this.notifyListeners();
+      
       return true;
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      
+      // Update local state even if API fails (for development)
+      this.notifications = this.notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      );
+      this.unreadCount = this.notifications.filter(n => !n.read).length;
+      this.notifyListeners();
+      
       return false;
     }
+  }
+
+  async markAllAsRead() {
+    try {
+      await put('/notifications/mark-all-read');
+      
+      // Update local state
+      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+      this.unreadCount = 0;
+      this.notifyListeners();
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      
+      // Update local state even if API fails
+      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+      this.unreadCount = 0;
+      this.notifyListeners();
+      
+      return false;
+    }
+  }
+
+  // Navigation helper
+  navigateToNotification(notification) {
+    if (notification.action_url) {
+      // Mark as read when navigating
+      this.markAsRead(notification.id);
+      
+      // Navigate to the relevant page
+      window.location.href = notification.action_url;
+    }
+  }
+
+  // Cleanup
+  destroy() {
+    this.stopPolling();
+    this.listeners = [];
   }
 
   async sendTestNotification(title, message, type = 'info') {

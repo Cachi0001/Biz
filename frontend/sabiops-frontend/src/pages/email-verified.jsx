@@ -20,7 +20,14 @@ const EmailVerified = () => {
     const verified = params.get('verified');
     const reason = params.get('reason');
 
-    console.log('Email verification params:', { success, autoLogin, token, email, verified, reason });
+    console.log('Email verification params:', { success, autoLogin, userData: userData ? 'present' : 'missing', token, email, verified, reason });
+
+    // Validate required parameters for successful verification
+    const hasValidSuccessParams = success === 'true' && autoLogin === 'true' && userData;
+    const hasLegacyVerifiedParams = verified === 'true';
+    const hasTokenParams = token && email;
+    
+    console.log('Parameter validation:', { hasValidSuccessParams, hasLegacyVerifiedParams, hasTokenParams });
 
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated) {
@@ -44,35 +51,39 @@ const EmailVerified = () => {
       return;
     }
 
-    // Handle successful verification with automatic login
-    if (success === 'true' && autoLogin === 'true' && userData) {
+    // Handle successful verification with automatic login (Priority Path)
+    if (hasValidSuccessParams) {
       try {
         const user = JSON.parse(decodeURIComponent(userData));
         console.log('Auto-login with user data:', user);
         
-        // Create a temporary JWT token by calling the backend
+        // Create authentication session using user data from URL
         const performAutoLogin = async () => {
           try {
-            // Use the backend's register confirmation endpoint to get a proper JWT
+            // Store user data directly since email is already verified
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Try to get a proper JWT token from backend
             const response = await authService.registerConfirmed({ 
               token: 'verified', // Special token to indicate already verified
               email: user.email 
             });
             
-            if (response.success && response.data && response.data.access_token) {
+            if (response && response.data && response.data.access_token) {
               localStorage.setItem('token', response.data.access_token);
-              localStorage.setItem('user', JSON.stringify(response.data.user));
               setStatus('success');
               toast.success('Email verified! Welcome to SabiOps!');
               
-              // Update auth context
+              // Update auth context and ensure authentication state is set
               await checkAuth();
               
+              // Give a moment for auth context to update, then navigate
               setTimeout(() => {
                 navigate('/dashboard');
               }, 1500);
             } else {
-              // Fallback: redirect to login with success message
+              // Even if backend call fails, email is verified, so redirect to login
+              console.log('Backend token generation failed, but email is verified');
               setStatus('verified-login');
               toast.success('Email verified! Please log in to continue.');
               setTimeout(() => {
@@ -81,7 +92,7 @@ const EmailVerified = () => {
             }
           } catch (error) {
             console.error('Auto-login failed:', error);
-            // Fallback: redirect to login with success message
+            // Email is still verified, so redirect to login instead of showing error
             setStatus('verified-login');
             toast.success('Email verified! Please log in to continue.');
             setTimeout(() => {
@@ -94,8 +105,9 @@ const EmailVerified = () => {
         return;
       } catch (parseError) {
         console.error('Failed to parse user data:', parseError);
-        // Fallback to manual login
+        // Even if parsing fails, we know email is verified from success=true
         setStatus('verified-login');
+        toast.success('Email verified! Please log in to continue.');
         setTimeout(() => {
           navigate('/login');
         }, 2000);
@@ -114,7 +126,7 @@ const EmailVerified = () => {
     }
 
     // Handle token-based verification (legacy flow)
-    if (token && email) {
+    if (hasTokenParams) {
       setStatus('verifying');
       const confirmRegistration = async () => {
         try {
@@ -151,9 +163,20 @@ const EmailVerified = () => {
       return;
     }
 
-    // No valid parameters
-    setStatus('error');
-    setError('Invalid or missing verification link. Please check your email and click the verification link.');
+    // No valid parameters - only show error if no valid verification parameters found
+    if (!hasValidSuccessParams && !hasLegacyVerifiedParams && !hasTokenParams) {
+      setStatus('error');
+      setError('Invalid or missing verification link. Please check your email and click the verification link.');
+    } else {
+      // If we have some parameters but reached here, something unexpected happened
+      // Default to login redirect to be safe
+      console.warn('Unexpected parameter combination, defaulting to login redirect');
+      setStatus('verified-login');
+      toast.success('Please log in to continue.');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    }
   }, [navigate, isAuthenticated, checkAuth]);
 
   return (

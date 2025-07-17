@@ -372,19 +372,33 @@ const Sales = () => {
                 {/* Product Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="product_id" className="text-base">Product *</Label>
+                  {error && error.includes('select a product') && (
+                    <p className="text-red-500 text-sm">Please select a product</p>
+                  )}
                   <Select value={formData.product_id} onValueChange={handleProductSelect}>
                     <SelectTrigger className="h-12 text-base touch-manipulation">
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id.toString()}>
-                          {product.name} - {formatNaira(product.price || product.unit_price)} 
-                          {product.quantity !== undefined && ` (Stock: ${product.quantity})`}
+                      {products.length === 0 ? (
+                        <SelectItem value="no-products" disabled>
+                          No products available
                         </SelectItem>
-                      ))}
+                      ) : (
+                        products.map((product) => (
+                          <SelectItem key={product.id} value={product.id.toString()}>
+                            {product.name} - {formatNaira(product.price || product.unit_price || 0)} 
+                            {product.quantity !== undefined && ` (Stock: ${product.quantity})`}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {products.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No products found. Please add products first.
+                    </p>
+                  )}
                 </div>
 
                 {/* Sale Details */}
