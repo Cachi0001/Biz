@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { getExpenses, createExpense, updateExpense, deleteExpense } from "../services/api";
 import { formatNaira, formatDate, formatPaymentMethod, getExpenseCategories } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast, validateFormData } from '../utils/errorHandling';
+import BackButton from '../components/ui/BackButton';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -380,7 +381,9 @@ const Expenses = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      <div className="relative">
+        <BackButton to="/dashboard" variant="floating" />
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Expense Tracking</h1>

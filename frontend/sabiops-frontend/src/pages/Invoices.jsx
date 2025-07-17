@@ -13,6 +13,7 @@ import { Plus, Search, Edit, Trash2, Download, Send, Filter, RefreshCw, Eye } fr
 import { getInvoices, getCustomers, getProducts, updateInvoice, createInvoice, getInvoice, deleteInvoice, downloadInvoicePdf, sendInvoice, updateInvoiceStatus } from "../services/api";
 import { handleApiError, showSuccessToast, showErrorToast, safeArray } from '../utils/errorHandling';
 import { formatNaira, formatDate, formatInvoiceStatus, getStatusColor } from '../utils/formatting';
+import BackButton from '../components/ui/BackButton';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -779,7 +780,9 @@ const Invoices = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      <div className="relative">
+        <BackButton to="/dashboard" variant="floating" />
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>

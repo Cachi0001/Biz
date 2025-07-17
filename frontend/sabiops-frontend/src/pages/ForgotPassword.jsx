@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { requestPasswordReset } from '../services/api';
+import BackButton from '@/components/ui/BackButton';
 
 const MAX_RESENDS_PER_DAY = 5;
 
@@ -53,7 +54,8 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-2 py-8 overflow-x-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-2 py-8 overflow-x-hidden relative">
+      <BackButton to="/login" variant="floating" />
       <div className="w-full max-w-xs sm:max-w-md bg-white rounded-2xl shadow-lg p-4 sm:p-8 flex flex-col items-center">
         {/* Logo inside card */}
         <div className="flex flex-col items-center mb-4">

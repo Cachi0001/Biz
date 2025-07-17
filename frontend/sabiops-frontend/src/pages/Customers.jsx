@@ -17,6 +17,7 @@ import {
   safeArray
 } from '../utils/errorHandling';
 import { formatNaira } from '../utils/formatting';
+import BackButton from '../components/ui/BackButton';
 
 const Customers = () => {
   // State management
@@ -306,7 +307,9 @@ const Customers = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      <div className="relative">
+        <BackButton to="/dashboard" variant="floating" />
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>

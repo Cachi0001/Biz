@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import BackButton from '@/components/ui/BackButton';
 import {
   Dialog,
   DialogContent,
@@ -321,7 +322,9 @@ const Sales = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      <div className="relative">
+        <BackButton to="/dashboard" variant="floating" />
+        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
