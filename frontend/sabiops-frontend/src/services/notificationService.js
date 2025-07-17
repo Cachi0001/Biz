@@ -15,7 +15,7 @@ class NotificationService {
     this.listeners = [];
     this.pollingInterval = null;
     this.initializePushNotifications();
-    this.startPolling();
+    // Don't start polling automatically - let components start it when user is authenticated
   }
 
   // Toast Notifications
@@ -251,6 +251,12 @@ class NotificationService {
   }
 
   async checkForNewNotifications() {
+    // Don't fetch notifications if user is not authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
     try {
       const data = await this.fetchNotifications();
       const newNotifications = data.notifications || [];
@@ -272,7 +278,11 @@ class NotificationService {
       // Notify listeners
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to check for notifications:', error);
+      console.error('Failed to fetch notifications:', error);
+      // If it's an auth error, stop polling to prevent infinite requests
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        this.stopPolling();
+      }
     }
   }
 
@@ -423,6 +433,22 @@ class NotificationService {
       // Navigate to the relevant page
       window.location.href = notification.action_url;
     }
+  }
+
+  // Authentication-aware polling control
+  startPollingIfAuthenticated() {
+    const token = localStorage.getItem('token');
+    if (token && !this.pollingInterval) {
+      this.startPolling();
+    }
+  }
+
+  stopPollingOnLogout() {
+    this.stopPolling();
+    // Clear notifications when user logs out
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.notifyListeners();
   }
 
   // Cleanup
