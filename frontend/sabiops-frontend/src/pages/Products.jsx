@@ -70,7 +70,7 @@ const Products = () => {
       setLoading(true);
       const response = await getProducts();
       console.log('[PRODUCTS] Products response:', response);
-      
+
       // Handle standardized API response format
       if (response && response.success && response.data) {
         setProducts(response.data.products || []);
@@ -99,7 +99,7 @@ const Products = () => {
     try {
       const response = await getCategories();
       console.log('[PRODUCTS] Categories response:', response);
-      
+
       // Handle standardized API response format
       if (response && response.success && response.data) {
         setCategories(response.data.all_categories || response.data.categories || []);
@@ -166,7 +166,7 @@ const Products = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Enhanced validation
     if (!formData.name.trim()) {
       handleApiErrorWithToast(new Error("Product name is required"));
@@ -180,11 +180,11 @@ const Products = () => {
       handleApiErrorWithToast(new Error("Valid stock quantity is required"));
       return;
     }
-    
+
     // Validate low stock threshold
     const quantity = parseInt(formData.quantity) || 0;
     const lowStockThreshold = parseInt(formData.low_stock_threshold) || 0;
-    
+
     if (lowStockThreshold > quantity) {
       handleApiErrorWithToast(new Error(`Low stock alert (${lowStockThreshold}) cannot be greater than stock quantity (${quantity})`));
       return;
@@ -193,7 +193,7 @@ const Products = () => {
     try {
       setLoading(true);
       let response;
-      
+
       if (editingProduct) {
         response = await updateProduct(editingProduct.id, formData);
         console.log('[PRODUCTS] Update response:', response);
@@ -206,7 +206,7 @@ const Products = () => {
         showSuccessToast("Product created successfully!");
         setShowAddDialog(false);
       }
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -219,7 +219,7 @@ const Products = () => {
         low_stock_threshold: '',
         image_url: ''
       });
-      
+
       // Refresh data
       await fetchProducts();
       await fetchCategories();
@@ -266,7 +266,7 @@ const Products = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+      product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -274,7 +274,7 @@ const Products = () => {
   const getStockStatus = (product) => {
     const quantity = Number(product.quantity) || 0;
     const threshold = Number(product.low_stock_threshold) || 5;
-    
+
     if (quantity === 0) return 'Out of Stock';
     if (quantity <= threshold) return 'Low Stock';
     return 'In Stock';
@@ -283,7 +283,7 @@ const Products = () => {
   const getStockBadgeVariant = (product) => {
     const quantity = Number(product.quantity) || 0;
     const threshold = Number(product.low_stock_threshold) || 5;
-    
+
     if (quantity === 0) return 'destructive';
     if (quantity <= threshold) return 'secondary';
     return 'default';
@@ -292,7 +292,7 @@ const Products = () => {
   const getStockColor = (product) => {
     const quantity = Number(product.quantity) || 0;
     const threshold = Number(product.low_stock_threshold) || 5;
-    
+
     if (quantity === 0) return 'text-red-600';
     if (quantity <= threshold) return 'text-yellow-600';
     return 'text-green-600';
@@ -461,7 +461,7 @@ const Products = () => {
         >
           Cancel
         </Button>
-        <Button 
+        <Button
           type="submit"
           className="h-12 text-base touch-manipulation"
         >
@@ -487,316 +487,315 @@ const Products = () => {
       <div className="relative">
         <BackButton to="/dashboard" variant="floating" />
         <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Manage your product catalog and inventory</p>
-          </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button className="h-12 text-base touch-manipulation">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>
-                Create a new product in your catalog
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-1">
-              <ProductForm />
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Manage your product catalog and inventory</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Low Stock Alerts */}
-      {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
-        <div className="space-y-3">
-          {outOfStockProducts.length > 0 && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                <strong>{outOfStockProducts.length} product{outOfStockProducts.length > 1 ? 's' : ''} out of stock:</strong>{' '}
-                {outOfStockProducts.slice(0, 3).map(p => p.name).join(', ')}
-                {outOfStockProducts.length > 3 && ` and ${outOfStockProducts.length - 3} more`}
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {lowStockProducts.length > 0 && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                <strong>{lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low:</strong>{' '}
-                {lowStockProducts.slice(0, 3).map(p => `${p.name} (${p.quantity})`).join(', ')}
-                {lowStockProducts.length > 3 && ` and ${lowStockProducts.length - 3} more`}
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      )}
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products by name or SKU..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 text-base touch-manipulation"
-                />
-              </div>
-            </div>
-            <div className="w-full">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-12 text-base touch-manipulation">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-        {/* Products Display */}
-        {filteredProducts.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2 text-gray-900">No products found</h3>
-              <p className="text-gray-600 mb-6">
-                {searchTerm || selectedCategory
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Get started by adding your first product'}
-              </p>
-              {!searchTerm && !selectedCategory && (
-                <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button className="h-12 text-base touch-manipulation">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Product
+                  Add Product
                 </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogHeader className="flex-shrink-0">
+                  <DialogTitle>Add New Product</DialogTitle>
+                  <DialogDescription>
+                    Create a new product in your catalog
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto px-1">
+                  <ProductForm />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Low Stock Alerts */}
+          {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
+            <div className="space-y-3">
+              {outOfStockProducts.length > 0 && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    <strong>{outOfStockProducts.length} product{outOfStockProducts.length > 1 ? 's' : ''} out of stock:</strong>{' '}
+                    {outOfStockProducts.slice(0, 3).map(p => p.name).join(', ')}
+                    {outOfStockProducts.length > 3 && ` and ${outOfStockProducts.length - 3} more`}
+                  </AlertDescription>
+                </Alert>
               )}
+
+              {lowStockProducts.length > 0 && (
+                <Alert className="border-yellow-200 bg-yellow-50">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    <strong>{lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low:</strong>{' '}
+                    {lowStockProducts.slice(0, 3).map(p => `${p.name} (${p.quantity})`).join(', ')}
+                    {lowStockProducts.length > 3 && ` and ${lowStockProducts.length - 3} more`}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products by name or SKU..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-12 text-base touch-manipulation"
+                    />
+                  </div>
+                </div>
+                <div className="w-full">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="h-12 text-base touch-manipulation">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <>
-            {/* Mobile Card View (2 cards per row) */}
-            <div className="block md:hidden">
-              <div className="grid grid-cols-2 gap-3">
-                {filteredProducts.map((product) => (
-                  <Card key={product.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight">
-                            {product.name}
-                          </h3>
-                          <div className="flex gap-1 ml-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(product)}
-                              className="h-8 w-8 p-0 hover:bg-green-100 touch-manipulation"
-                            >
-                              <Edit className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(product.id)}
-                              className="h-8 w-8 p-0 hover:bg-red-100 touch-manipulation"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Price</span>
-                            <span className="text-sm font-semibold text-green-600">
-                              {formatNaira(product.price)}
-                            </span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Stock</span>
-                            <div className="flex items-center gap-1">
-                              <span className={`text-sm font-medium ${getStockColor(product)}`}>
-                                {product.quantity}
-                              </span>
-                              {isLowStock(product) && (
-                                <AlertTriangle className={`h-3 w-3 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
-                              )}
-                            </div>
-                          </div>
-                          
-                          {product.category && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-500">Category</span>
-                              <span className="text-xs text-gray-700 truncate max-w-20" title={product.category}>
-                                {product.category}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {product.sku && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-500">SKU</span>
-                              <code className="text-xs bg-gray-100 px-1 py-0.5 rounded text-gray-700">
-                                {product.sku}
-                              </code>
-                            </div>
-                          )}
-                          
-                          <div className="pt-1">
-                            <Badge 
-                              variant={getStockBadgeVariant(product)}
-                              className={`text-xs px-2 py-0.5 ${
-                                isOutOfStock(product) 
-                                  ? 'bg-red-100 text-red-800 border-red-200' 
-                                  : isLowStock(product) 
-                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                    : 'bg-green-100 text-green-800 border-green-200'
-                              }`}
-                            >
-                              {getStockStatus(product)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
 
-            {/* Desktop Table View */}
-            <Card className="hidden md:block">
-              <CardHeader>
-                <CardTitle>Product Catalog</CardTitle>
-                <CardDescription>
-                  {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="hidden sm:table-cell">SKU</TableHead>
-                        <TableHead className="hidden md:table-cell">Category</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Stock</TableHead>
-                        <TableHead className="hidden lg:table-cell">Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredProducts.map((product) => (
-                        <TableRow key={product.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{product.name}</div>
-                              {product.description && (
-                                <div className="text-sm text-muted-foreground truncate max-w-xs">
-                                  {product.description}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                              {product.sku || 'N/A'}
-                            </code>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{product.category || 'Uncategorized'}</TableCell>
-                          <TableCell className="font-medium text-green-600">
-                            {formatNaira(product.price)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-medium ${getStockColor(product)}`}>
-                                {product.quantity}
-                              </span>
-                              {isLowStock(product) && (
-                                <AlertTriangle className={`h-4 w-4 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <Badge 
-                              variant={getStockBadgeVariant(product)}
-                              className={`${
-                                isOutOfStock(product) 
-                                  ? 'bg-red-100 text-red-800 border-red-200' 
-                                  : isLowStock(product) 
-                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                    : 'bg-green-100 text-green-800 border-green-200'
-                              }`}
-                            >
-                              {getStockStatus(product)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
+          {/* Products Display */}
+          {filteredProducts.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium mb-2 text-gray-900">No products found</h3>
+                <p className="text-gray-600 mb-6">
+                  {searchTerm || selectedCategory
+                    ? 'Try adjusting your search or filter criteria'
+                    : 'Get started by adding your first product'}
+                </p>
+                {!searchTerm && !selectedCategory && (
+                  <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Product
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Mobile Card View (2 cards per row) */}
+              <div className="block md:hidden">
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredProducts.map((product) => (
+                    <Card key={product.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-3">
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <h3 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight">
+                              {product.name}
+                            </h3>
+                            <div className="flex gap-1 ml-2 flex-shrink-0">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEdit(product)}
+                                className="h-8 w-8 p-0 hover:bg-green-100 touch-manipulation"
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-4 w-4 text-green-600" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDelete(product.id)}
+                                className="h-8 w-8 p-0 hover:bg-red-100 touch-manipulation"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+                          </div>
 
-        {/* Edit Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Edit Product</DialogTitle>
-              <DialogDescription>
-                Update product information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-1">
-              <ProductForm />
-            </div>
-          </DialogContent>
-        </Dialog>
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-500">Price</span>
+                              <span className="text-sm font-semibold text-green-600">
+                                {formatNaira(product.price)}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-500">Stock</span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-sm font-medium ${getStockColor(product)}`}>
+                                  {product.quantity}
+                                </span>
+                                {isLowStock(product) && (
+                                  <AlertTriangle className={`h-3 w-3 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
+                                )}
+                              </div>
+                            </div>
+
+                            {product.category && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-gray-500">Category</span>
+                                <span className="text-xs text-gray-700 truncate max-w-20" title={product.category}>
+                                  {product.category}
+                                </span>
+                              </div>
+                            )}
+
+                            {product.sku && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-gray-500">SKU</span>
+                                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded text-gray-700">
+                                  {product.sku}
+                                </code>
+                              </div>
+                            )}
+
+                            <div className="pt-1">
+                              <Badge
+                                variant={getStockBadgeVariant(product)}
+                                className={`text-xs px-2 py-0.5 ${isOutOfStock(product)
+                                  ? 'bg-red-100 text-red-800 border-red-200'
+                                  : isLowStock(product)
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                    : 'bg-green-100 text-green-800 border-green-200'
+                                  }`}
+                              >
+                                {getStockStatus(product)}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop Table View */}
+              <Card className="hidden md:block">
+                <CardHeader>
+                  <CardTitle>Product Catalog</CardTitle>
+                  <CardDescription>
+                    {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead className="hidden sm:table-cell">SKU</TableHead>
+                          <TableHead className="hidden md:table-cell">Category</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead className="hidden lg:table-cell">Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{product.name}</div>
+                                {product.description && (
+                                  <div className="text-sm text-muted-foreground truncate max-w-xs">
+                                    {product.description}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <code className="text-sm bg-muted px-1 py-0.5 rounded">
+                                {product.sku || 'N/A'}
+                              </code>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">{product.category || 'Uncategorized'}</TableCell>
+                            <TableCell className="font-medium text-green-600">
+                              {formatNaira(product.price)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${getStockColor(product)}`}>
+                                  {product.quantity}
+                                </span>
+                                {isLowStock(product) && (
+                                  <AlertTriangle className={`h-4 w-4 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <Badge
+                                variant={getStockBadgeVariant(product)}
+                                className={`${isOutOfStock(product)
+                                  ? 'bg-red-100 text-red-800 border-red-200'
+                                  : isLowStock(product)
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                    : 'bg-green-100 text-green-800 border-green-200'
+                                  }`}
+                              >
+                                {getStockStatus(product)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(product)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Edit Dialog */}
+          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Edit Product</DialogTitle>
+                <DialogDescription>
+                  Update product information
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                <ProductForm />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </DashboardLayout>
   );

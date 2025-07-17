@@ -860,6 +860,7 @@ const Expenses = () => {
             </Dialog>
           )}
         </div>
+      </div>
     </DashboardLayout>
   );
 };

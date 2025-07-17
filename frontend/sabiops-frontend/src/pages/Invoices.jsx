@@ -975,6 +975,7 @@ const Invoices = () => {
             <InvoiceForm isEdit={true} />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </DashboardLayout>
   );
