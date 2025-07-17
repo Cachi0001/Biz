@@ -172,7 +172,7 @@ const Expenses = () => {
         subcategories: ["Miscellaneous", "Emergency Repairs", "Cleaning", "Security", "Stationery"]
       }
     ];
-    
+
     setCategories(nigerianCategories);
   };
 
@@ -215,10 +215,10 @@ const Expenses = () => {
     // Validate form data using error handling utilities
     const validationRules = {
       category: { required: true, label: 'Category' },
-      amount: { 
-        required: true, 
-        type: 'number', 
-        min: 0.01, 
+      amount: {
+        required: true,
+        type: 'number',
+        min: 0.01,
         label: 'Amount',
         validate: (value) => {
           const num = parseFloat(value);
@@ -314,13 +314,13 @@ const Expenses = () => {
       payment_method: expense.payment_method || 'cash',
       date: expense.date ? expense.date.split('T')[0] : new Date().toISOString().split('T')[0]
     });
-    
+
     // Set subcategories for the selected category
     if (expense.category) {
       const selectedCategory = categories.find(cat => cat.name === expense.category);
       setSubcategories(selectedCategory?.subcategories || []);
     }
-    
+
     setIsDialogOpen(true);
   };
 
@@ -384,33 +384,185 @@ const Expenses = () => {
       <div className="relative">
         <BackButton to="/dashboard" variant="floating" />
         <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Expense Tracking</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Track and manage your business expenses</p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingExpense ? 'Edit Expense' : 'Add New Expense'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Expense Tracking</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Track and manage your business expenses</p>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Expense
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="category">Category *</Label>
+                      <Select value={formData.category} onValueChange={handleCategoryChange}>
+                        <SelectTrigger className={formErrors.category ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(category => (
+                            <SelectItem key={category.name} value={category.name}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {formErrors.category && (
+                        <p className="text-sm text-red-500 mt-1">{formErrors.category}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="sub_category">Subcategory</Label>
+                      <Select
+                        value={formData.sub_category}
+                        onValueChange={(value) => setFormData({ ...formData, sub_category: value })}
+                        disabled={!formData.category}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subcategory (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subcategories.map(subcategory => (
+                            <SelectItem key={subcategory} value={subcategory}>
+                              {subcategory}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={handleCategoryChange}>
-                      <SelectTrigger className={formErrors.category ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Select category" />
+                    <Label htmlFor="amount">Amount (₦) *</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      placeholder="0.00"
+                      required
+                      className={formErrors.amount ? 'border-red-500' : ''}
+                    />
+                    {formErrors.amount && (
+                      <p className="text-sm text-red-500 mt-1">{formErrors.amount}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter expense description"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="payment_method">Payment Method</Label>
+                      <Select value={formData.payment_method} onValueChange={(value) => setFormData({ ...formData, payment_method: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {paymentMethods.map(method => (
+                            <SelectItem key={method.value} value={method.value}>
+                              {method.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="date">Expense Date *</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="receipt_url">Receipt URL</Label>
+                    <Input
+                      id="receipt_url"
+                      value={formData.receipt_url}
+                      onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
+                      placeholder="Enter receipt URL (optional)"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Saving...' : editingExpense ? 'Update Expense' : 'Add Expense'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {error && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertDescription className="text-red-800">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Search and Filter Section */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search expenses by category, subcategory, or description..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="whitespace-nowrap"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="filter-category">Category</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
                         {categories.map(category => (
                           <SelectItem key={category.name} value={category.name}>
                             {category.name}
@@ -418,67 +570,16 @@ const Expenses = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    {formErrors.category && (
-                      <p className="text-sm text-red-500 mt-1">{formErrors.category}</p>
-                    )}
                   </div>
+
                   <div>
-                    <Label htmlFor="sub_category">Subcategory</Label>
-                    <Select 
-                      value={formData.sub_category} 
-                      onValueChange={(value) => setFormData({ ...formData, sub_category: value })}
-                      disabled={!formData.category}
-                    >
+                    <Label htmlFor="filter-payment">Payment Method</Label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select subcategory (optional)" />
+                        <SelectValue placeholder="All methods" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subcategories.map(subcategory => (
-                          <SelectItem key={subcategory} value={subcategory}>
-                            {subcategory}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="amount">Amount (₦) *</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    placeholder="0.00"
-                    required
-                    className={formErrors.amount ? 'border-red-500' : ''}
-                  />
-                  {formErrors.amount && (
-                    <p className="text-sm text-red-500 mt-1">{formErrors.amount}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Enter expense description"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="payment_method">Payment Method</Label>
-                    <Select value={formData.payment_method} onValueChange={(value) => setFormData({ ...formData, payment_method: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
+                        <SelectItem value="all">All methods</SelectItem>
                         {paymentMethods.map(method => (
                           <SelectItem key={method.value} value={method.value}>
                             {method.label}
@@ -487,379 +588,278 @@ const Expenses = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
-                    <Label htmlFor="date">Expense Date *</Label>
+                    <Label htmlFor="filter-start-date">Start Date</Label>
                     <Input
-                      id="date"
+                      id="filter-start-date"
                       type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      required
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                     />
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="receipt_url">Receipt URL</Label>
-                  <Input
-                    id="receipt_url"
-                    value={formData.receipt_url}
-                    onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
-                    placeholder="Enter receipt URL (optional)"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Saving...' : editingExpense ? 'Update Expense' : 'Add Expense'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertDescription className="text-red-800">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Search and Filter Section */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <div>
+                    <Label htmlFor="filter-end-date">End Date</Label>
                     <Input
-                      placeholder="Search expenses by category, subcategory, or description..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      id="filter-end-date"
+                      type="date"
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                     />
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="whitespace-nowrap"
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Clear Filters
-                </Button>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="filter-category">Category</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
-                      {categories.map(category => (
-                        <SelectItem key={category.name} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{formatNaira(summary.total_expenses || getTotalExpenses())}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">This Month</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{formatNaira(summary.this_month_expenses || getMonthlyExpenses())}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Today</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{formatNaira(summary.today_expenses || 0)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Records</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900">{filteredExpenses.length} / {expenses.length}</div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <div>
-                  <Label htmlFor="filter-payment">Payment Method</Label>
-                  <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All methods" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All methods</SelectItem>
-                      {paymentMethods.map(method => (
-                        <SelectItem key={method.value} value={method.value}>
-                          {method.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Expenses List - Mobile: 2 per row, Desktop: 1 per row */}
+          <div className="space-y-4">
+            {/* Mobile Card Layout (2 per row) */}
+            <div className="grid grid-cols-2 gap-3 md:hidden">
+              {filteredExpenses.map((expense) => (
+                <Card key={expense.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                  <CardContent className="p-3">
+                    <div className="space-y-2">
+                      {/* Header with category and actions */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-sm truncate">
+                            {expense.category}
+                          </h3>
+                          {expense.sub_category && (
+                            <p className="text-xs text-gray-600 truncate">
+                              {expense.sub_category}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 ml-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(expense)} className="h-6 w-6 p-0">
+                            <Edit className="h-3 w-3 text-green-600" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)} className="h-6 w-6 p-0">
+                            <Trash2 className="h-3 w-3 text-red-600" />
+                          </Button>
+                        </div>
+                      </div>
 
-                <div>
-                  <Label htmlFor="filter-start-date">Start Date</Label>
-                  <Input
-                    id="filter-start-date"
-                    type="date"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                  />
-                </div>
+                      {/* Amount */}
+                      <div className="text-center">
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatNaira(expense.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatDate(expense.date)}</p>
+                      </div>
 
-                <div>
-                  <Label htmlFor="filter-end-date">End Date</Label>
-                  <Input
-                    id="filter-end-date"
-                    type="date"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                  />
-                </div>
-              </div>
+                      {/* Payment method */}
+                      <div className="text-center">
+                        <Badge variant="outline" className="text-xs">
+                          {formatPaymentMethod(expense.payment_method)}
+                        </Badge>
+                      </div>
+
+                      {/* Description (truncated) */}
+                      {expense.description && (
+                        <p className="text-xs text-gray-600 truncate" title={expense.description}>
+                          {expense.description}
+                        </p>
+                      )}
+
+                      {/* Receipt indicator */}
+                      {expense.receipt_url && (
+                        <div className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingReceipt(expense)}
+                            className="h-6 text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Receipt
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatNaira(summary.total_expenses || getTotalExpenses())}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{formatNaira(summary.this_month_expenses || getMonthlyExpenses())}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Today</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{formatNaira(summary.today_expenses || 0)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{filteredExpenses.length} / {expenses.length}</div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Desktop List Layout */}
+            <div className="hidden md:block space-y-4">
+              {filteredExpenses.map((expense) => (
+                <Card key={expense.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold">{expense.category}</h3>
+                          <Badge variant="outline">{expense.category}</Badge>
+                          {expense.sub_category && (
+                            <Badge variant="secondary">{expense.sub_category}</Badge>
+                          )}
+                        </div>
 
-        {/* Expenses List - Mobile: 2 per row, Desktop: 1 per row */}
-        <div className="space-y-4">
-          {/* Mobile Card Layout (2 per row) */}
-          <div className="grid grid-cols-2 gap-3 md:hidden">
-            {filteredExpenses.map((expense) => (
-              <Card key={expense.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
-                <CardContent className="p-3">
-                  <div className="space-y-2">
-                    {/* Header with category and actions */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
-                          {expense.category}
-                        </h3>
-                        {expense.sub_category && (
-                          <p className="text-xs text-gray-600 truncate">
-                            {expense.sub_category}
-                          </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Amount:</span>
+                            <div className="text-lg font-bold text-green-600">
+                              {formatNaira(expense.amount)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Date:</span>
+                            <div>{formatDate(expense.date)}</div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Payment:</span>
+                            <div>{formatPaymentMethod(expense.payment_method)}</div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Category:</span>
+                            <div>{expense.sub_category || 'General'}</div>
+                          </div>
+                        </div>
+
+                        {expense.description && (
+                          <p className="text-gray-600 mt-2">{expense.description}</p>
+                        )}
+
+                        {/* Receipt Section */}
+                        {expense.receipt_url && (
+                          <div className="mt-4">
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setViewingReceipt(expense)}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Receipt
+                              </Button>
+                              <span className="text-sm text-gray-500">
+                                Receipt attached
+                              </span>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div className="flex gap-1 ml-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(expense)} className="h-6 w-6 p-0">
-                          <Edit className="h-3 w-3 text-green-600" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)} className="h-6 w-6 p-0">
-                          <Trash2 className="h-3 w-3 text-red-600" />
-                        </Button>
-                      </div>
-                    </div>
 
-                    {/* Amount */}
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-green-600">
-                        {formatNaira(expense.amount)}
-                      </p>
-                      <p className="text-xs text-gray-500">{formatDate(expense.date)}</p>
-                    </div>
-
-                    {/* Payment method */}
-                    <div className="text-center">
-                      <Badge variant="outline" className="text-xs">
-                        {formatPaymentMethod(expense.payment_method)}
-                      </Badge>
-                    </div>
-
-                    {/* Description (truncated) */}
-                    {expense.description && (
-                      <p className="text-xs text-gray-600 truncate" title={expense.description}>
-                        {expense.description}
-                      </p>
-                    )}
-
-                    {/* Receipt indicator */}
-                    {expense.receipt_url && (
-                      <div className="text-center">
+                      <div className="flex space-x-2 ml-4">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setViewingReceipt(expense)}
-                          className="h-6 text-xs"
+                          onClick={() => openEditDialog(expense)}
                         >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Receipt
+                          <Edit className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(expense.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          {/* Desktop List Layout */}
-          <div className="hidden md:block space-y-4">
-            {filteredExpenses.map((expense) => (
-              <Card key={expense.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold">{expense.category}</h3>
-                        <Badge variant="outline">{expense.category}</Badge>
-                        {expense.sub_category && (
-                          <Badge variant="secondary">{expense.sub_category}</Badge>
-                        )}
-                      </div>
+          {filteredExpenses.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {expenses.length === 0 ? 'No expenses yet' : 'No expenses match your filters'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {expenses.length === 0
+                  ? 'Start tracking your business expenses to better manage your finances.'
+                  : 'Try adjusting your search criteria or clear the filters.'
+                }
+              </p>
+              {expenses.length === 0 ? (
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Expense
+                </Button>
+              ) : (
+                <Button onClick={clearFilters} variant="outline">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-medium">Amount:</span>
-                          <div className="text-lg font-bold text-green-600">
-                            {formatNaira(expense.amount)}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Date:</span>
-                          <div>{formatDate(expense.date)}</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Payment:</span>
-                          <div>{formatPaymentMethod(expense.payment_method)}</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Category:</span>
-                          <div>{expense.sub_category || 'General'}</div>
-                        </div>
-                      </div>
-
-                      {expense.description && (
-                        <p className="text-gray-600 mt-2">{expense.description}</p>
-                      )}
-
-                      {/* Receipt Section */}
-                      {expense.receipt_url && (
-                        <div className="mt-4">
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewingReceipt(expense)}
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Receipt
-                            </Button>
-                            <span className="text-sm text-gray-500">
-                              Receipt attached
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex space-x-2 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(expense)}
-                      >
-                        <Edit className="w-4 h-4 text-green-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(expense.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Receipt Viewer Dialog */}
+          {viewingReceipt && (
+            <Dialog open={!!viewingReceipt} onOpenChange={() => setViewingReceipt(null)}>
+              <DialogContent className="max-w-4xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center justify-between">
+                    Receipt - {viewingReceipt.category}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewingReceipt(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex justify-center">
+                  {viewingReceipt.receipt_url && (
+                    <img
+                      src={viewingReceipt.receipt_url}
+                      alt="Receipt"
+                      className="max-w-full max-h-[70vh] object-contain"
+                    />
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
-
-        {filteredExpenses.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {expenses.length === 0 ? 'No expenses yet' : 'No expenses match your filters'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {expenses.length === 0 
-                ? 'Start tracking your business expenses to better manage your finances.'
-                : 'Try adjusting your search criteria or clear the filters.'
-              }
-            </p>
-            {expenses.length === 0 ? (
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Your First Expense
-              </Button>
-            ) : (
-              <Button onClick={clearFilters} variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* Receipt Viewer Dialog */}
-        {viewingReceipt && (
-          <Dialog open={!!viewingReceipt} onOpenChange={() => setViewingReceipt(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh]">
-              <DialogHeader>
-                <DialogTitle className="flex items-center justify-between">
-                  Receipt - {viewingReceipt.category}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewingReceipt(null)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex justify-center">
-                {viewingReceipt.receipt_url && (
-                  <img
-                    src={viewingReceipt.receipt_url}
-                    alt="Receipt"
-                    className="max-w-full max-h-[70vh] object-contain"
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
     </DashboardLayout>
   );
 };

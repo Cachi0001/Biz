@@ -753,6 +753,7 @@ const Sales = () => {
           )}
         </CardContent>
       </Card>
+        </div>
       </div>
     </DashboardLayout>
   );

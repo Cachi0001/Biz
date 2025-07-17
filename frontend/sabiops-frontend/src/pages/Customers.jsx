@@ -552,6 +552,7 @@ const Customers = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </DashboardLayout>
   );
