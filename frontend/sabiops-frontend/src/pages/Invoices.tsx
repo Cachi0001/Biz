@@ -195,15 +195,14 @@ const Invoices = () => {
     }
 
     // Update form data
-    const newFormData = {
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: processedValue
-    };
-    setFormData(newFormData);
+    }));
 
     // Mark field as touched and validate
     touchField(name);
-    await validateSingleField(name, processedValue, newFormData);
+    await validateSingleField(name, processedValue, { ...formData, [name]: processedValue });
   };
 
   const handleItemChange = async (index: number, field: string, value: any) => {
@@ -362,7 +361,7 @@ const Invoices = () => {
 
       // Format data for backend with proper validation
       const invoiceData = {
-        customer_id: parseInt(formData.customer_id as string),
+        customer_id: formData.customer_id, // UUID as string
         issue_date: formData.issue_date,
         due_date: formData.due_date || null,
         payment_terms: formData.payment_terms || 'Net 30',
@@ -371,7 +370,7 @@ const Invoices = () => {
         currency: formData.currency || 'NGN',
         discount_amount: parseFloat(formData.discount_amount as any) || 0,
         items: formData.items.map(item => ({
-          product_id: item.product_id ? parseInt(item.product_id as string) : null,
+          product_id: item.product_id || null, // UUID as string
           description: item.description.trim(),
           quantity: parseInt(item.quantity as any),
           unit_price: parseFloat(item.unit_price as any),
@@ -1155,14 +1154,16 @@ const Invoices = () => {
                     Create Invoice
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
+                <DialogContent className="w-full max-w-xs sm:max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh] p-0 bg-transparent border-0 shadow-none">
                   <DialogHeader>
                     <DialogTitle>Create New Invoice</DialogTitle>
                     <DialogDescription>
                       Create a new invoice for your customer
                     </DialogDescription>
                   </DialogHeader>
-                  <InvoiceForm />
+                  <div className="w-full flex justify-center items-center">
+                    <InvoiceForm />
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>
@@ -1317,14 +1318,16 @@ const Invoices = () => {
 
           {/* Edit Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-full max-w-xs sm:max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh] p-0 bg-transparent border-0 shadow-none">
               <DialogHeader>
                 <DialogTitle>Edit Invoice</DialogTitle>
                 <DialogDescription>
                   Update invoice details
                 </DialogDescription>
               </DialogHeader>
-              <InvoiceForm isEdit={true} />
+              <div className="w-full flex justify-center items-center">
+                <InvoiceForm isEdit={true} />
+              </div>
             </DialogContent>
           </Dialog>
 
