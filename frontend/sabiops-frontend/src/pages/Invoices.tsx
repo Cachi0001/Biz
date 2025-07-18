@@ -1154,14 +1154,14 @@ const Invoices = () => {
                     Create Invoice
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-full max-w-xs sm:max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh] p-0 bg-transparent border-0 shadow-none">
+                <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Create New Invoice</DialogTitle>
                     <DialogDescription>
                       Create a new invoice for your customer
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="w-full flex justify-center items-center">
+                  <div className="flex-1 overflow-y-auto px-2 sm:px-6 py-4">
                     <InvoiceForm />
                   </div>
                 </DialogContent>
@@ -1318,14 +1318,14 @@ const Invoices = () => {
 
           {/* Edit Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="w-full max-w-xs sm:max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh] p-0 bg-transparent border-0 shadow-none">
+            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
               <DialogHeader>
                 <DialogTitle>Edit Invoice</DialogTitle>
                 <DialogDescription>
                   Update invoice details
                 </DialogDescription>
               </DialogHeader>
-              <div className="w-full flex justify-center items-center">
+              <div className="flex-1 overflow-y-auto px-2 sm:px-6 py-4">
                 <InvoiceForm isEdit={true} />
               </div>
             </DialogContent>
