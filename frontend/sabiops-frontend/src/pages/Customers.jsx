@@ -136,10 +136,22 @@ const Customers = () => {
       }
 
       setLoading(true);
+      
+      // Debug authentication state before making request
+      console.log('[CUSTOMER CREATE] Authentication check:', {
+        hasToken: !!localStorage.getItem('token'),
+        tokenPreview: localStorage.getItem('token')?.substring(0, 20) + '...',
+        formData: formCustomer
+      });
+
       const response = await createCustomer(formCustomer);
 
       // Handle the new backend response format
       const createdCustomer = response?.data?.customer || response?.customer || response;
+      
+      if (!createdCustomer || !createdCustomer.id) {
+        throw new Error('Invalid response from server - no customer data received');
+      }
       
       // Add the new customer to the list with default stats
       const customerWithStats = {
@@ -173,7 +185,27 @@ const Customers = () => {
 
       showSuccessToast("Customer created successfully!");
     } catch (error) {
-      handleApiErrorWithToast(error, 'Failed to create customer');
+      console.error('[CUSTOMER CREATE ERROR] Full error details:', {
+        error,
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // Provide specific error messages based on the error type
+      if (error.response?.status === 401) {
+        showErrorToast('Authentication failed. Please log in again.');
+        // Optionally redirect to login
+      } else if (error.response?.status === 403) {
+        showErrorToast('You do not have permission to create customers.');
+      } else if (error.response?.status === 500) {
+        showErrorToast('Server error. Please try again or contact support.');
+      } else if (error.message?.includes('Missing Authorization Header')) {
+        showErrorToast('Authentication error. Please refresh the page and try again.');
+      } else {
+        handleApiErrorWithToast(error, 'Failed to create customer');
+      }
     } finally {
       setLoading(false);
     }

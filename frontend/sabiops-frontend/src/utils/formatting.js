@@ -4,27 +4,77 @@
  */
 
 /**
- * Format amount in Nigerian Naira with proper locale formatting
- * @param {number|string} amount - The amount to format
- * @param {boolean} showDecimals - Whether to show decimal places
- * @returns {string} Formatted Naira amount
+ * Currency symbols mapping
  */
-export const formatNaira = (amount, showDecimals = false) => {
-  if (!amount && amount !== 0) return '₦0';
+const CURRENCY_SYMBOLS = {
+  'NGN': '₦',
+  'USD': '$',
+  'EUR': '€',
+  'GBP': '£',
+  'ZAR': 'R',
+  'GHS': '₵',
+  'KES': 'KSh'
+};
+
+/**
+ * Currency locale mapping for proper number formatting
+ */
+const CURRENCY_LOCALES = {
+  'NGN': 'en-NG',
+  'USD': 'en-US',
+  'EUR': 'en-GB',
+  'GBP': 'en-GB',
+  'ZAR': 'en-ZA',
+  'GHS': 'en-GH',
+  'KES': 'en-KE'
+};
+
+/**
+ * Format amount with currency symbol and proper formatting
+ * @param {number|string} amount - The amount to format
+ * @param {boolean} showDecimals - Whether to show decimal places (default: true for consistency)
+ * @param {string} currency - Currency code (default: NGN)
+ * @returns {string} Formatted currency amount
+ */
+export const formatCurrency = (amount, showDecimals = true, currency = 'NGN') => {
+  if (!amount && amount !== 0) return showDecimals ? `${CURRENCY_SYMBOLS[currency] || '₦'}0.00` : `${CURRENCY_SYMBOLS[currency] || '₦'}0`;
   
   const numAmount = Number(amount);
-  if (isNaN(numAmount)) return '₦0';
+  if (isNaN(numAmount)) return showDecimals ? `${CURRENCY_SYMBOLS[currency] || '₦'}0.00` : `${CURRENCY_SYMBOLS[currency] || '₦'}0`;
   
-  return `₦${numAmount.toLocaleString('en-NG', {
+  // Ensure proper rounding to 2 decimal places
+  const roundedAmount = Math.round(numAmount * 100) / 100;
+  const symbol = CURRENCY_SYMBOLS[currency] || '₦';
+  const locale = CURRENCY_LOCALES[currency] || 'en-NG';
+  
+  // Special handling for KSh which goes before the amount
+  if (currency === 'KES') {
+    return `${symbol} ${roundedAmount.toLocaleString(locale, {
+      minimumFractionDigits: showDecimals ? 2 : 0,
+      maximumFractionDigits: showDecimals ? 2 : 0
+    })}`;
+  }
+  
+  return `${symbol}${roundedAmount.toLocaleString(locale, {
     minimumFractionDigits: showDecimals ? 2 : 0,
     maximumFractionDigits: showDecimals ? 2 : 0
   })}`;
 };
 
 /**
- * Format date for Nigerian context
+ * Format amount in Nigerian Naira with consistent ₦X,XXX.XX formatting
+ * @param {number|string} amount - The amount to format
+ * @param {boolean} showDecimals - Whether to show decimal places (default: true for consistency)
+ * @returns {string} Formatted Naira amount in ₦X,XXX.XX format
+ */
+export const formatNaira = (amount, showDecimals = true) => {
+  return formatCurrency(amount, showDecimals, 'NGN');
+};
+
+/**
+ * Format date for Nigerian context using DD/MM/YYYY format
  * @param {string|Date} dateString - Date to format
- * @returns {string} Formatted date
+ * @returns {string} Formatted date in DD/MM/YYYY format
  */
 export const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -33,11 +83,12 @@ export const formatDate = (dateString) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'N/A';
     
-    return date.toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    // Format as DD/MM/YYYY consistently
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
   } catch (error) {
     console.error('Error formatting date:', error);
     return 'N/A';
@@ -45,9 +96,9 @@ export const formatDate = (dateString) => {
 };
 
 /**
- * Format date and time for Nigerian context
+ * Format date and time for Nigerian context using DD/MM/YYYY format
  * @param {string|Date} dateString - Date to format
- * @returns {string} Formatted date and time
+ * @returns {string} Formatted date and time in DD/MM/YYYY HH:MM format
  */
 export const formatDateTime = (dateString) => {
   if (!dateString) return 'N/A';
@@ -56,13 +107,14 @@ export const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'N/A';
     
-    return date.toLocaleString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    // Format as DD/MM/YYYY HH:MM consistently
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   } catch (error) {
     console.error('Error formatting datetime:', error);
     return 'N/A';
@@ -370,6 +422,7 @@ export const getRelativeTime = (dateString) => {
 };
 
 export default {
+  formatCurrency,
   formatNaira,
   formatDate,
   formatDateTime,

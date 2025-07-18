@@ -222,6 +222,10 @@ def create_invoice():
             "status": "draft",
             "due_date": due_date,
             "notes": data.get("notes", ""),
+            "currency": data.get("currency", "NGN"),
+            "payment_terms": data.get("payment_terms", "Net 30"),
+            "terms_and_conditions": data.get("terms_and_conditions", "Payment is due within 30 days of invoice date."),
+            "discount_amount": float(data.get("discount_amount", 0)),
             "items": processed_items,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
@@ -270,6 +274,14 @@ def update_invoice(invoice_id):
             update_data["notes"] = data["notes"]
         if data.get("tax_amount") is not None:
             update_data["tax_amount"] = float(data["tax_amount"])
+        if data.get("currency") is not None:
+            update_data["currency"] = data["currency"]
+        if data.get("payment_terms") is not None:
+            update_data["payment_terms"] = data["payment_terms"]
+        if data.get("terms_and_conditions") is not None:
+            update_data["terms_and_conditions"] = data["terms_and_conditions"]
+        if data.get("discount_amount") is not None:
+            update_data["discount_amount"] = float(data["discount_amount"])
         
         # Update items and recalculate totals
         if "items" in data:
@@ -392,10 +404,18 @@ def update_invoice_status(invoice_id):
                 # Notify user of successful payment
                 try:
                     supa_service = SupabaseService()
+                    currency = invoice.get("currency", "NGN")
+                    currency_symbols = {
+                        'NGN': '₦', 'USD': '$', 'EUR': '€', 'GBP': '£', 
+                        'ZAR': 'R', 'GHS': '₵', 'KES': 'KSh'
+                    }
+                    symbol = currency_symbols.get(currency, '₦')
+                    amount_str = f"{symbol} {invoice['total_amount']:,.2f}" if currency == 'KES' else f"{symbol}{invoice['total_amount']:,.2f}"
+                    
                     supa_service.notify_user(
                         str(owner_id),
                         "Invoice Paid!",
-                        f"Invoice {invoice['invoice_number']} for ₦{invoice['total_amount']:,.2f} has been marked as paid.",
+                        f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid.",
                         "success"
                     )
                 except:
@@ -474,13 +494,30 @@ def send_invoice(invoice_id):
         p.line(inch, y_position, width - inch, y_position) # Horizontal line
         y_position -= 0.2 * inch
 
+        # Get currency symbol
+        currency = invoice.get("currency", "NGN")
+        currency_symbols = {
+            'NGN': '₦',
+            'USD': '$',
+            'EUR': '€',
+            'GBP': '£',
+            'ZAR': 'R',
+            'GHS': '₵',
+            'KES': 'KSh'
+        }
+        symbol = currency_symbols.get(currency, '₦')
+        
         # Items Table Rows
         p.setFont("Helvetica", 10)
         for item in invoice["items"]:
             p.drawString(inch, y_position, item["description"])
             p.drawString(4 * inch, y_position, str(item["quantity"]))
-            p.drawString(5 * inch, y_position, f"₦{item['unit_price']:,.2f}")
-            p.drawString(6.5 * inch, y_position, f"₦{item['total']:,.2f}")
+            if currency == 'KES':
+                p.drawString(5 * inch, y_position, f"{symbol} {item['unit_price']:,.2f}")
+                p.drawString(6.5 * inch, y_position, f"{symbol} {item['total']:,.2f}")
+            else:
+                p.drawString(5 * inch, y_position, f"{symbol}{item['unit_price']:,.2f}")
+                p.drawString(6.5 * inch, y_position, f"{symbol}{item['total']:,.2f}")
             y_position -= 0.2 * inch
 
         # Totals
@@ -490,17 +527,27 @@ def send_invoice(invoice_id):
 
         p.setFont("Helvetica-Bold", 10)
         p.drawString(5 * inch, y_position, "Subtotal:")
-        p.drawString(6.5 * inch, y_position, f"₦{invoice['total_amount']:,.2f}")
+        if currency == 'KES':
+            p.drawString(6.5 * inch, y_position, f"{symbol} {invoice['total_amount']:,.2f}")
+        else:
+            p.drawString(6.5 * inch, y_position, f"{symbol}{invoice['total_amount']:,.2f}")
         y_position -= 0.2 * inch
 
-        if invoice["discount_amount"] > 0:
+        if invoice.get("discount_amount", 0) > 0:
             p.drawString(5 * inch, y_position, "Discount:")
-            p.drawString(6.5 * inch, y_position, f"-₦{invoice['discount_amount']:,.2f}")
+            if currency == 'KES':
+                p.drawString(6.5 * inch, y_position, f"-{symbol} {invoice['discount_amount']:,.2f}")
+            else:
+                p.drawString(6.5 * inch, y_position, f"-{symbol}{invoice['discount_amount']:,.2f}")
             y_position -= 0.2 * inch
 
         p.setFont("Helvetica-Bold", 12)
         p.drawString(5 * inch, y_position, "Amount Due:")
-        p.drawString(6.5 * inch, y_position, f"₦{invoice['amount_due']:,.2f}")
+        amount_due = invoice.get('amount_due', invoice['total_amount'])
+        if currency == 'KES':
+            p.drawString(6.5 * inch, y_position, f"{symbol} {amount_due:,.2f}")
+        else:
+            p.drawString(6.5 * inch, y_position, f"{symbol}{amount_due:,.2f}")
 
         # Footer
         p.setFont("Helvetica", 8)
@@ -573,10 +620,18 @@ def get_overdue_invoices():
                 get_supabase().table("invoices").update({"status": "overdue", "updated_at": datetime.now().isoformat()}).eq("id", invoice["id"]).execute()
                 # Notify owner of overdue invoice
                 supa_service = SupabaseService()
+                currency = invoice.get("currency", "NGN")
+                currency_symbols = {
+                    'NGN': '₦', 'USD': '$', 'EUR': '€', 'GBP': '£', 
+                    'ZAR': 'R', 'GHS': '₵', 'KES': 'KSh'
+                }
+                symbol = currency_symbols.get(currency, '₦')
+                amount_str = f"{symbol} {invoice['total_amount']:,.2f}" if currency == 'KES' else f"{symbol}{invoice['total_amount']:,.2f}"
+                
                 supa_service.notify_user(
                     str(owner_id),
                     "Invoice Overdue!",
-                    f"Invoice {invoice['invoice_number']} for ₦{invoice['total_amount']:,.2f} is overdue.",
+                    f"Invoice {invoice['invoice_number']} for {amount_str} is overdue.",
                     "warning"
                 )
         

@@ -36,7 +36,7 @@ class NotificationService {
             color: '#fff',
           },
         });
-      
+
       case 'error':
         return toast.error(message, {
           ...defaultOptions,
@@ -46,7 +46,7 @@ class NotificationService {
             color: '#fff',
           },
         });
-      
+
       case 'warning':
         return toast(message, {
           ...defaultOptions,
@@ -56,7 +56,7 @@ class NotificationService {
             color: '#fff',
           },
         });
-      
+
       case 'info':
         return toast(message, {
           ...defaultOptions,
@@ -66,7 +66,7 @@ class NotificationService {
             color: '#fff',
           },
         });
-      
+
       default:
         return toast(message, defaultOptions);
     }
@@ -74,10 +74,10 @@ class NotificationService {
 
   // Business-specific toast notifications
   showSaleNotification(amount, customerName = '') {
-    const message = customerName 
+    const message = customerName
       ? `New sale of ₦${amount.toLocaleString()} to ${customerName}!`
       : `New sale of ₦${amount.toLocaleString()} recorded!`;
-    
+
     this.showToast(message, 'success', {
       duration: 6000,
       icon: '💰'
@@ -150,7 +150,7 @@ class NotificationService {
       // Register service worker
       // const registration = await navigator.serviceWorker.register("/sw.js");
       // console.log("Service Worker registered:", registration);
-      
+
       return true;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
@@ -177,7 +177,7 @@ class NotificationService {
     }
 
     const permission = await Notification.requestPermission();
-    
+
     if (permission === 'granted') {
       this.showToast('Push notifications enabled!', 'success');
       await this.subscribeToPush();
@@ -191,7 +191,7 @@ class NotificationService {
   async subscribeToPush() {
     try {
       const registration = await navigator.serviceWorker.ready;
-      
+
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
@@ -238,7 +238,7 @@ class NotificationService {
     this.pollingInterval = setInterval(() => {
       this.checkForNewNotifications();
     }, 30000);
-    
+
     // Initial check
     this.checkForNewNotifications();
   }
@@ -288,7 +288,7 @@ class NotificationService {
 
   showNotificationToast(notification) {
     const { type, title, message } = notification;
-    
+
     switch (type) {
       case 'low_stock':
         this.showLowStockAlert(title, message);
@@ -357,19 +357,10 @@ class NotificationService {
         read: false,
         action_url: '/sales'
       },
-      {
-        id: 3,
-        type: 'payment_received',
-        title: 'INV-001',
-        message: '50000',
-        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-        read: true,
-        action_url: '/invoices'
-      }
     ];
 
     const unreadCount = mockNotifications.filter(n => !n.read).length;
-    
+
     return {
       notifications: mockNotifications,
       unread_count: unreadCount
@@ -379,25 +370,25 @@ class NotificationService {
   async markAsRead(notificationId) {
     try {
       await put(`/notifications/${notificationId}/read`);
-      
+
       // Update local state
-      this.notifications = this.notifications.map(n => 
+      this.notifications = this.notifications.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       );
       this.unreadCount = this.notifications.filter(n => !n.read).length;
       this.notifyListeners();
-      
+
       return true;
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
-      
+
       // Update local state even if API fails (for development)
-      this.notifications = this.notifications.map(n => 
+      this.notifications = this.notifications.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       );
       this.unreadCount = this.notifications.filter(n => !n.read).length;
       this.notifyListeners();
-      
+
       return false;
     }
   }
@@ -405,21 +396,21 @@ class NotificationService {
   async markAllAsRead() {
     try {
       await put('/notifications/mark-all-read');
-      
+
       // Update local state
       this.notifications = this.notifications.map(n => ({ ...n, read: true }));
       this.unreadCount = 0;
       this.notifyListeners();
-      
+
       return true;
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
-      
+
       // Update local state even if API fails
       this.notifications = this.notifications.map(n => ({ ...n, read: true }));
       this.unreadCount = 0;
       this.notifyListeners();
-      
+
       return false;
     }
   }
@@ -429,7 +420,7 @@ class NotificationService {
     if (notification.action_url) {
       // Mark as read when navigating
       this.markAsRead(notification.id);
-      
+
       // Navigate to the relevant page
       window.location.href = notification.action_url;
     }

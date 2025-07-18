@@ -1,423 +1,337 @@
 /**
- * Performance Optimization Utilities for SabiOps
- * Implements caching, loading states, pagination, and API optimization
+ * Performance optimization utilities for invoice form
+ * Implements debouncing, memoization, and API call optimization
  */
 
-// Cache implementation with TTL (Time To Live)
-class CacheManager {
-  constructor() {
-    this.cache = new Map();
-    this.ttlMap = new Map();
-  }
+import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 
-  set(key, value, ttlMs = 300000) { // Default 5 minutes
-    this.cache.set(key, value);
-    this.ttlMap.set(key, Date.now() + ttlMs);
-  }
-
-  get(key) {
-    const ttl = this.ttlMap.get(key);
-    if (!ttl || Date.now() > ttl) {
-      this.cache.delete(key);
-      this.ttlMap.delete(key);
-      return null;
-    }
-    return this.cache.get(key);
-  }
-
-  has(key) {
-    return this.get(key) !== null;
-  }
-
-  clear() {
-    this.cache.clear();
-    this.ttlMap.clear();
-  }
-
-  delete(key) {
-    this.cache.delete(key);
-    this.ttlMap.delete(key);
-  }
-
-  // Clear expired entries
-  cleanup() {
-    const now = Date.now();
-    for (const [key, ttl] of this.ttlMap.entries()) {
-      if (now > ttl) {
-        this.cache.delete(key);
-        this.ttlMap.delete(key);
-      }
-    }
-  }
-}
-
-// Global cache instance
-export const apiCache = new CacheManager();
-
-// Cleanup expired cache entries every 5 minutes
-setInterval(() => {
-  apiCache.cleanup();
-}, 300000);
-
-// Request deduplication to prevent multiple identical API calls
-class RequestDeduplicator {
-  constructor() {
-    this.pendingRequests = new Map();
-  }
-
-  async deduplicate(key, requestFn) {
-    if (this.pendingRequests.has(key)) {
-      return this.pendingRequests.get(key);
-    }
-
-    const promise = requestFn().finally(() => {
-      this.pendingRequests.delete(key);
-    });
-
-    this.pendingRequests.set(key, promise);
-    return promise;
-  }
-}
-
-export const requestDeduplicator = new RequestDeduplicator();
-
-// Cached API wrapper
-export const cachedApiCall = async (cacheKey, apiFunction, ttlMs = 300000) => {
-  // Check cache first
-  const cached = apiCache.get(cacheKey);
-  if (cached) {
-    console.log(`[CACHE HIT] ${cacheKey}`);
-    return cached;
-  }
-
-  // Deduplicate identical requests
-  return requestDeduplicator.deduplicate(cacheKey, async () => {
-    console.log(`[CACHE MISS] ${cacheKey} - Fetching from API`);
-    const result = await apiFunction();
-    apiCache.set(cacheKey, result, ttlMs);
-    return result;
-  });
-};
-
-// Pagination utility
-export class PaginationManager {
-  constructor(pageSize = 20) {
-    this.pageSize = pageSize;
-    this.currentPage = 1;
-    this.totalItems = 0;
-    this.totalPages = 0;
-    this.hasNextPage = false;
-    this.hasPrevPage = false;
-  }
-
-  updatePagination(totalItems, currentPage = 1) {
-    this.totalItems = totalItems;
-    this.currentPage = currentPage;
-    this.totalPages = Math.ceil(totalItems / this.pageSize);
-    this.hasNextPage = currentPage < this.totalPages;
-    this.hasPrevPage = currentPage > 1;
-  }
-
-  getOffset() {
-    return (this.currentPage - 1) * this.pageSize;
-  }
-
-  getLimit() {
-    return this.pageSize;
-  }
-
-  nextPage() {
-    if (this.hasNextPage) {
-      this.currentPage++;
-      return true;
-    }
-    return false;
-  }
-
-  prevPage() {
-    if (this.hasPrevPage) {
-      this.currentPage--;
-      return true;
-    }
-    return false;
-  }
-
-  goToPage(page) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      return true;
-    }
-    return false;
-  }
-
-  getPaginationInfo() {
-    return {
-      currentPage: this.currentPage,
-      totalPages: this.totalPages,
-      totalItems: this.totalItems,
-      pageSize: this.pageSize,
-      hasNextPage: this.hasNextPage,
-      hasPrevPage: this.hasPrevPage,
-      startItem: this.getOffset() + 1,
-      endItem: Math.min(this.getOffset() + this.pageSize, this.totalItems)
-    };
-  }
-}
-
-// Loading state manager
-export class LoadingStateManager {
-  constructor() {
-    this.loadingStates = new Map();
-    this.listeners = new Set();
-  }
-
-  setLoading(key, isLoading) {
-    this.loadingStates.set(key, isLoading);
-    this.notifyListeners();
-  }
-
-  isLoading(key) {
-    return this.loadingStates.get(key) || false;
-  }
-
-  isAnyLoading() {
-    return Array.from(this.loadingStates.values()).some(loading => loading);
-  }
-
-  addListener(callback) {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-
-  notifyListeners() {
-    this.listeners.forEach(callback => callback(this.loadingStates));
-  }
-
-  clear() {
-    this.loadingStates.clear();
-    this.notifyListeners();
-  }
-}
-
-export const globalLoadingManager = new LoadingStateManager();
-
-// Optimized API call wrapper with loading states
-export const optimizedApiCall = async (key, apiFunction, options = {}) => {
-  const {
-    useCache = true,
-    cacheTtl = 300000,
-    showLoading = true,
-    loadingKey = key
-  } = options;
-
-  try {
-    if (showLoading) {
-      globalLoadingManager.setLoading(loadingKey, true);
-    }
-
-    if (useCache) {
-      return await cachedApiCall(key, apiFunction, cacheTtl);
-    } else {
-      return await apiFunction();
-    }
-  } finally {
-    if (showLoading) {
-      globalLoadingManager.setLoading(loadingKey, false);
-    }
-  }
-};
-
-// Batch API calls to reduce network requests
-export const batchApiCalls = async (calls) => {
-  const results = await Promise.allSettled(calls.map(call => call()));
+/**
+ * Enhanced debounce hook with configurable delay
+ * Prevents excessive function calls during rapid user input
+ */
+export const useDebounce = (callback, delay = 300) => {
+  const timeoutRef = useRef(null);
   
-  return results.map((result, index) => {
-    if (result.status === 'fulfilled') {
-      return { success: true, data: result.value, index };
-    } else {
-      console.error(`Batch API call ${index} failed:`, result.reason);
-      return { success: false, error: result.reason, index };
+  return useCallback((...args) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  });
-};
-
-// Debounced search function
-export const createDebouncedSearch = (searchFunction, delay = 300) => {
-  let timeoutId;
-  
-  return (...args) => {
-    clearTimeout(timeoutId);
     
-    return new Promise((resolve, reject) => {
-      timeoutId = setTimeout(async () => {
+    return new Promise((resolve) => {
+      timeoutRef.current = setTimeout(() => {
+        resolve(callback(...args));
+      }, delay);
+    });
+  }, [callback, delay]);
+};
+
+/**
+ * Debounced validation hook specifically for form fields
+ * Implements 300ms delay as specified in requirements
+ */
+export const useDebouncedValidation = (validationFn, delay = 300) => {
+  const [isValidating, setIsValidating] = useState(false);
+  const timeoutRef = useRef(null);
+  
+  const debouncedValidate = useCallback(async (...args) => {
+    setIsValidating(true);
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    return new Promise((resolve) => {
+      timeoutRef.current = setTimeout(async () => {
         try {
-          const result = await searchFunction(...args);
+          const result = await validationFn(...args);
           resolve(result);
         } catch (error) {
-          reject(error);
+          console.error('Validation error:', error);
+          resolve(null);
+        } finally {
+          setIsValidating(false);
         }
       }, delay);
     });
-  };
-};
-
-// Lazy loading utility for components
-export const createLazyLoader = (importFunction) => {
-  let componentPromise = null;
+  }, [validationFn, delay]);
   
-  return () => {
-    if (!componentPromise) {
-      componentPromise = importFunction();
-    }
-    return componentPromise;
-  };
-};
-
-// Performance monitoring
-export class PerformanceMonitor {
-  constructor() {
-    this.metrics = new Map();
-  }
-
-  startTimer(key) {
-    this.metrics.set(key, { startTime: performance.now() });
-  }
-
-  endTimer(key) {
-    const metric = this.metrics.get(key);
-    if (metric) {
-      metric.endTime = performance.now();
-      metric.duration = metric.endTime - metric.startTime;
-      console.log(`[PERFORMANCE] ${key}: ${metric.duration.toFixed(2)}ms`);
-      return metric.duration;
-    }
-    return 0;
-  }
-
-  getMetric(key) {
-    return this.metrics.get(key);
-  }
-
-  getAllMetrics() {
-    return Array.from(this.metrics.entries()).map(([key, metric]) => ({
-      key,
-      ...metric
-    }));
-  }
-
-  clear() {
-    this.metrics.clear();
-  }
-}
-
-export const performanceMonitor = new PerformanceMonitor();
-
-// Image optimization utility
-export const optimizeImageUrl = (url, width = 400, height = 300, quality = 80) => {
-  if (!url) return null;
-  
-  // If it's already optimized or a data URL, return as-is
-  if (url.includes('w_') || url.startsWith('data:')) {
-    return url;
-  }
-  
-  // For Cloudinary URLs, add optimization parameters
-  if (url.includes('cloudinary.com')) {
-    const parts = url.split('/upload/');
-    if (parts.length === 2) {
-      return `${parts[0]}/upload/w_${width},h_${height},c_fill,q_${quality}/${parts[1]}`;
-    }
-  }
-  
-  return url;
-};
-
-// Memory usage monitoring
-export const getMemoryUsage = () => {
-  if ('memory' in performance) {
-    return {
-      usedJSHeapSize: performance.memory.usedJSHeapSize,
-      totalJSHeapSize: performance.memory.totalJSHeapSize,
-      jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-      usagePercentage: (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }
-  return null;
+  }, []);
+  
+  return { debouncedValidate, isValidating };
 };
 
-// Network status monitoring
-export const createNetworkMonitor = () => {
-  const listeners = new Set();
+/**
+ * Memoized calculation hook for expensive operations
+ * Prevents recalculation when dependencies haven't changed
+ */
+export const useMemoizedCalculation = (calculationFn, dependencies) => {
+  return useMemo(() => {
+    try {
+      return calculationFn();
+    } catch (error) {
+      console.error('Calculation error:', error);
+      return 0;
+    }
+  }, dependencies);
+};
+
+/**
+ * Optimized API data loader with caching and deduplication
+ * Prevents multiple simultaneous requests for the same data
+ */
+export const useOptimizedApiLoader = () => {
+  const cacheRef = useRef(new Map());
+  const pendingRequestsRef = useRef(new Map());
   
-  const notifyListeners = (isOnline) => {
-    listeners.forEach(callback => callback(isOnline));
-  };
+  const loadData = useCallback(async (key, apiFunction, cacheTimeout = 5 * 60 * 1000) => {
+    // Check cache first
+    const cached = cacheRef.current.get(key);
+    if (cached && Date.now() - cached.timestamp < cacheTimeout) {
+      return cached.data;
+    }
+    
+    // Check if request is already pending
+    const pendingRequest = pendingRequestsRef.current.get(key);
+    if (pendingRequest) {
+      return pendingRequest;
+    }
+    
+    // Create new request
+    const request = apiFunction()
+      .then(data => {
+        // Cache the result
+        cacheRef.current.set(key, {
+          data,
+          timestamp: Date.now()
+        });
+        
+        // Remove from pending requests
+        pendingRequestsRef.current.delete(key);
+        
+        return data;
+      })
+      .catch(error => {
+        // Remove from pending requests on error
+        pendingRequestsRef.current.delete(key);
+        throw error;
+      });
+    
+    // Store pending request
+    pendingRequestsRef.current.set(key, request);
+    
+    return request;
+  }, []);
   
-  window.addEventListener('online', () => notifyListeners(true));
-  window.addEventListener('offline', () => notifyListeners(false));
+  const clearCache = useCallback((key) => {
+    if (key) {
+      cacheRef.current.delete(key);
+    } else {
+      cacheRef.current.clear();
+    }
+  }, []);
+  
+  const preloadData = useCallback(async (key, apiFunction) => {
+    // Preload data without waiting for it
+    loadData(key, apiFunction).catch(error => {
+      console.warn(`Preload failed for ${key}:`, error);
+    });
+  }, [loadData]);
+  
+  return { loadData, clearCache, preloadData };
+};
+
+/**
+ * Throttled function execution to limit frequency of expensive operations
+ */
+export const useThrottle = (callback, delay = 100) => {
+  const lastExecutedRef = useRef(0);
+  const timeoutRef = useRef(null);
+  
+  return useCallback((...args) => {
+    const now = Date.now();
+    const timeSinceLastExecution = now - lastExecutedRef.current;
+    
+    if (timeSinceLastExecution >= delay) {
+      lastExecutedRef.current = now;
+      return callback(...args);
+    } else {
+      // Schedule execution for later
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        lastExecutedRef.current = Date.now();
+        callback(...args);
+      }, delay - timeSinceLastExecution);
+    }
+  }, [callback, delay]);
+};
+
+/**
+ * Memoized calculation functions for invoice totals
+ * Prevents recalculation when item data hasn't changed
+ */
+export const calculateItemTotalMemoized = (item) => {
+  // Create a stable key for memoization
+  const key = `${item.quantity}-${item.unit_price}-${item.tax_rate}-${item.discount_rate}`;
+  
+  // Use a simple memoization cache
+  if (!calculateItemTotalMemoized.cache) {
+    calculateItemTotalMemoized.cache = new Map();
+  }
+  
+  if (calculateItemTotalMemoized.cache.has(key)) {
+    return calculateItemTotalMemoized.cache.get(key);
+  }
+  
+  // Prevent negative values using Math.max()
+  const quantity = Math.max(0, parseFloat(item.quantity) || 0);
+  const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
+  const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
+  
+  // Limit discount rates to 0-100% range
+  const discountRate = Math.max(0, Math.min(100, parseFloat(item.discount_rate) || 0));
+  
+  let total = quantity * unitPrice;
+  total -= total * (discountRate / 100);
+  total += total * (taxRate / 100);
+  
+  // Add proper rounding to 2 decimal places using Math.round()
+  const result = Math.round(total * 100) / 100;
+  
+  // Cache the result
+  calculateItemTotalMemoized.cache.set(key, result);
+  
+  // Limit cache size to prevent memory leaks
+  if (calculateItemTotalMemoized.cache.size > 100) {
+    const firstKey = calculateItemTotalMemoized.cache.keys().next().value;
+    calculateItemTotalMemoized.cache.delete(firstKey);
+  }
+  
+  return result;
+};
+
+/**
+ * Memoized invoice total calculation
+ */
+export const calculateInvoiceTotalMemoized = (items, discountAmount = 0) => {
+  // Create a stable key for memoization
+  const itemsKey = items.map(item => 
+    `${item.quantity}-${item.unit_price}-${item.tax_rate}-${item.discount_rate}`
+  ).join('|');
+  const key = `${itemsKey}-${discountAmount}`;
+  
+  // Use a simple memoization cache
+  if (!calculateInvoiceTotalMemoized.cache) {
+    calculateInvoiceTotalMemoized.cache = new Map();
+  }
+  
+  if (calculateInvoiceTotalMemoized.cache.has(key)) {
+    return calculateInvoiceTotalMemoized.cache.get(key);
+  }
+  
+  const itemsTotal = items.reduce((sum, item) => sum + calculateItemTotalMemoized(item), 0);
+  // Prevent negative discount amounts
+  const discount = Math.max(0, parseFloat(discountAmount) || 0);
+  const total = itemsTotal - discount;
+  
+  // Add proper rounding to 2 decimal places using Math.round()
+  const result = Math.round(Math.max(0, total) * 100) / 100;
+  
+  // Cache the result
+  calculateInvoiceTotalMemoized.cache.set(key, result);
+  
+  // Limit cache size to prevent memory leaks
+  if (calculateInvoiceTotalMemoized.cache.size > 100) {
+    const firstKey = calculateInvoiceTotalMemoized.cache.keys().next().value;
+    calculateInvoiceTotalMemoized.cache.delete(firstKey);
+  }
+  
+  return result;
+};
+
+/**
+ * Performance monitoring hook for development
+ */
+export const usePerformanceMonitor = (componentName) => {
+  const renderCountRef = useRef(0);
+  const lastRenderTimeRef = useRef(Date.now());
+  
+  useEffect(() => {
+    renderCountRef.current += 1;
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTimeRef.current;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PERF] ${componentName} render #${renderCountRef.current}, ${timeSinceLastRender}ms since last render`);
+    }
+    
+    lastRenderTimeRef.current = now;
+  });
   
   return {
-    isOnline: () => navigator.onLine,
-    addListener: (callback) => {
-      listeners.add(callback);
-      return () => listeners.delete(callback);
+    renderCount: renderCountRef.current,
+    logPerformance: (operation, duration) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PERF] ${componentName} - ${operation}: ${duration}ms`);
+      }
     }
   };
 };
 
-export const networkMonitor = createNetworkMonitor();
-
-// Cache invalidation strategies
-export const invalidateCache = (pattern) => {
-  if (typeof pattern === 'string') {
-    // Exact match
-    apiCache.delete(pattern);
-  } else if (pattern instanceof RegExp) {
-    // Pattern match
-    for (const key of apiCache.cache.keys()) {
-      if (pattern.test(key)) {
-        apiCache.delete(key);
-      }
+/**
+ * Optimized search/filter hook with debouncing
+ */
+export const useOptimizedSearch = (data, searchFields, delay = 300) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredData, setFilteredData] = useState(data);
+  const debouncedSearch = useDebounce((term) => {
+    if (!term.trim()) {
+      setFilteredData(data);
+      return;
     }
-  } else if (Array.isArray(pattern)) {
-    // Multiple keys
-    pattern.forEach(key => apiCache.delete(key));
-  }
-};
-
-// Preload critical data
-export const preloadCriticalData = async () => {
-  const criticalCalls = [
-    () => import('../services/api').then(api => api.getDashboardOverview()),
-    () => import('../services/api').then(api => api.getCustomers()),
-    () => import('../services/api').then(api => api.getProducts())
-  ];
+    
+    const filtered = data.filter(item => {
+      return searchFields.some(field => {
+        const value = item[field];
+        return value && value.toString().toLowerCase().includes(term.toLowerCase());
+      });
+    });
+    
+    setFilteredData(filtered);
+  }, delay);
   
-  try {
-    await batchApiCalls(criticalCalls);
-    console.log('[PRELOAD] Critical data preloaded successfully');
-  } catch (error) {
-    console.warn('[PRELOAD] Some critical data failed to preload:', error);
-  }
+  useEffect(() => {
+    setFilteredData(data);
+  }, [data]);
+  
+  useEffect(() => {
+    debouncedSearch(searchTerm);
+  }, [searchTerm, debouncedSearch]);
+  
+  return {
+    searchTerm,
+    setSearchTerm,
+    filteredData
+  };
 };
 
-// Export all utilities
-export default {
-  apiCache,
-  requestDeduplicator,
-  cachedApiCall,
-  PaginationManager,
-  LoadingStateManager,
-  globalLoadingManager,
-  optimizedApiCall,
-  batchApiCalls,
-  createDebouncedSearch,
-  createLazyLoader,
-  PerformanceMonitor,
-  performanceMonitor,
-  optimizeImageUrl,
-  getMemoryUsage,
-  networkMonitor,
-  invalidateCache,
-  preloadCriticalData
+/**
+ * Clear all memoization caches (useful for testing or memory management)
+ */
+export const clearAllCaches = () => {
+  if (calculateItemTotalMemoized.cache) {
+    calculateItemTotalMemoized.cache.clear();
+  }
+  if (calculateInvoiceTotalMemoized.cache) {
+    calculateInvoiceTotalMemoized.cache.clear();
+  }
 };

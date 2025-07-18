@@ -155,8 +155,6 @@ const Products = () => {
   };
 
   const handleInputChange = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,

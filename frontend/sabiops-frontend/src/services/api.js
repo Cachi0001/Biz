@@ -254,8 +254,27 @@ export async function getCustomers() {
 }
 
 export async function createCustomer(customerData) {
-  const response = await api.post('/customers/', customerData);
-  return response.data;
+  try {
+    console.log("[DEBUG] createCustomer: Starting request");
+    console.log("[DEBUG] createCustomer: Customer data:", customerData);
+    console.log("[DEBUG] createCustomer: Current token:", getAuthToken() ? 'Present' : 'Missing');
+    
+    const response = await api.post('/customers/', customerData);
+    console.log("[DEBUG] createCustomer: Success response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] createCustomer failed:");
+    console.error("- Error object:", error);
+    console.error("- Error message:", error.message);
+    console.error("- Error response:", error.response);
+    if (error.response) {
+      console.error("- Response status:", error.response.status);
+      console.error("- Response data:", error.response.data);
+      console.error("- Response headers:", error.response.headers);
+    }
+    console.error("- Request config:", error.config);
+    throw error;
+  }
 }
 
 export async function updateCustomer(customerId, customerData) {
@@ -654,7 +673,9 @@ export async function getSalesReport(params) {
     console.log("[DEBUG] getSalesReport response:", response.data);
     
     // Transform the response to match expected format
-    const salesData = response.data?.sales || response.data?.data || response.data || [];
+    const salesData = Array.isArray(response.data?.sales) ? response.data.sales : 
+                     Array.isArray(response.data?.data) ? response.data.data : 
+                     Array.isArray(response.data) ? response.data : [];
     
     // Calculate summary from sales data
     const summary = {

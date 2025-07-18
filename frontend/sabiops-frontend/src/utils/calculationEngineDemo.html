@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Calculation Engine Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+        .result {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        input {
+            margin: 5px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .interactive-section {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced Calculation Engine Demo</h1>
+        <p>This demo tests the enhanced calculation engine with edge case handling for the invoice form.</p>
+        
+        <div class="test-section">
+            <h2>Automated Test Results</h2>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="interactive-section">
+            <h2>Interactive Calculator</h2>
+            <p>Test the calculation engine with your own values:</p>
+            
+            <div style="margin: 10px 0;">
+                <label>Quantity: <input type="number" id="qty" value="2" min="0"></label>
+                <label>Unit Price (₦): <input type="number" id="price" value="100" min="0" step="0.01"></label>
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <label>Tax Rate (%): <input type="number" id="tax" value="10" min="0" step="0.01"></label>
+                <label>Discount Rate (%): <input type="number" id="discount" value="5" min="0" max="100" step="0.01"></label>
+            </div>
+            
+            <button onclick="calculateInteractive()">Calculate Item Total</button>
+            
+            <div id="interactive-result" style="margin: 15px 0; font-size: 18px; font-weight: bold;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Edge Case Tests</h2>
+            <div id="edge-case-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced calculation functions (copied from the invoice form)
+        const calculateItemTotal = (item) => {
+            // Prevent negative values using Math.max()
+            const quantity = Math.max(0, parseFloat(item.quantity) || 0);
+            const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
+            const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
+            
+            // Limit discount rates to 0-100% range
+            const discountRate = Math.max(0, Math.min(100, parseFloat(item.discount_rate) || 0));
+
+            let total = quantity * unitPrice;
+            total -= total * (discountRate / 100);
+            total += total * (taxRate / 100);
+            
+            // Add proper rounding to 2 decimal places using Math.round()
+            return Math.round(total * 100) / 100;
+        };
+
+        const calculateInvoiceTotal = (items, discountAmount = 0) => {
+            const itemsTotal = items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+            // Prevent negative discount amounts
+            const discount = Math.max(0, parseFloat(discountAmount) || 0);
+            const total = itemsTotal - discount;
+            
+            // Add proper rounding to 2 decimal places using Math.round()
+            return Math.round(Math.max(0, total) * 100) / 100;
+        };
+
+        // Test runner
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Basic calculation
+            const item1 = { quantity: 2, unit_price: 100, tax_rate: 10, discount_rate: 5 };
+            const result1 = calculateItemTotal(item1);
+            const expected1 = 209; // (2*100) - (200*0.05) + (190*0.10) = 200 - 10 + 19 = 209
+            results.push({
+                name: 'Basic calculation',
+                result: result1,
+                expected: expected1,
+                passed: result1 === expected1
+            });
+            
+            // Test 2: Negative quantity prevention
+            const item2 = { quantity: -5, unit_price: 100, tax_rate: 0, discount_rate: 0 };
+            const result2 = calculateItemTotal(item2);
+            results.push({
+                name: 'Negative quantity prevention',
+                result: result2,
+                expected: 0,
+                passed: result2 === 0
+            });
+            
+            // Test 3: Negative price prevention
+            const item3 = { quantity: 2, unit_price: -50, tax_rate: 0, discount_rate: 0 };
+            const result3 = calculateItemTotal(item3);
+            results.push({
+                name: 'Negative price prevention',
+                result: result3,
+                expected: 0,
+                passed: result3 === 0
+            });
+            
+            // Test 4: Discount rate clamping (negative)
+            const item4 = { quantity: 2, unit_price: 100, tax_rate: 0, discount_rate: -10 };
+            const result4 = calculateItemTotal(item4);
+            results.push({
+                name: 'Discount rate clamping (negative)',
+                result: result4,
+                expected: 200,
+                passed: result4 === 200
+            });
+            
+            // Test 5: Discount rate clamping (over 100%)
+            const item5 = { quantity: 2, unit_price: 100, tax_rate: 0, discount_rate: 150 };
+            const result5 = calculateItemTotal(item5);
+            results.push({
+                name: 'Discount rate clamping (over 100%)',
+                result: result5,
+                expected: 0,
+                passed: result5 === 0
+            });
+            
+            // Test 6: Invoice total with discount
+            const items = [{ quantity: 2, unit_price: 100, tax_rate: 0, discount_rate: 0 }];
+            const result6 = calculateInvoiceTotal(items, 50);
+            results.push({
+                name: 'Invoice total with discount',
+                result: result6,
+                expected: 150,
+                passed: result6 === 150
+            });
+            
+            // Test 7: Negative invoice total prevention
+            const result7 = calculateInvoiceTotal([{ quantity: 1, unit_price: 100, tax_rate: 0, discount_rate: 0 }], 150);
+            results.push({
+                name: 'Negative invoice total prevention',
+                result: result7,
+                expected: 0,
+                passed: result7 === 0
+            });
+            
+            // Test 8: Floating point precision
+            const item8 = { quantity: 0.1, unit_price: 0.2, tax_rate: 0, discount_rate: 0 };
+            const result8 = calculateItemTotal(item8);
+            results.push({
+                name: 'Floating point precision',
+                result: result8,
+                expected: 0.02,
+                passed: result8 === 0.02
+            });
+            
+            return results;
+        }
+        
+        function displayResults(results) {
+            const container = document.getElementById('test-results');
+            let html = '';
+            let passed = 0;
+            
+            results.forEach(test => {
+                if (test.passed) passed++;
+                html += `
+                    <div class="test-case">
+                        <strong>${test.name}:</strong> 
+                        <span class="${test.passed ? 'result' : 'error'}">
+                            ${test.passed ? '✅ PASSED' : '❌ FAILED'}
+                        </span>
+                        <br>
+                        Expected: ${test.expected}, Got: ${test.result}
+                    </div>
+                `;
+            });
+            
+            html = `
+                <div style="margin-bottom: 15px; font-size: 18px;">
+                    <strong>Test Summary: ${passed}/${results.length} tests passed</strong>
+                    ${passed === results.length ? ' 🎉' : ' ⚠️'}
+                </div>
+            ` + html;
+            
+            container.innerHTML = html;
+        }
+        
+        function calculateInteractive() {
+            const qty = document.getElementById('qty').value;
+            const price = document.getElementById('price').value;
+            const tax = document.getElementById('tax').value;
+            const discount = document.getElementById('discount').value;
+            
+            const item = {
+                quantity: qty,
+                unit_price: price,
+                tax_rate: tax,
+                discount_rate: discount
+            };
+            
+            const total = calculateItemTotal(item);
+            
+            document.getElementById('interactive-result').innerHTML = `
+                Item Total: ₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <br><small>
+                    Calculation: (${Math.max(0, qty)} × ₦${Math.max(0, price)}) 
+                    - ${Math.max(0, Math.min(100, discount))}% discount 
+                    + ${Math.max(0, tax)}% tax
+                </small>
+            `;
+        }
+        
+        function runEdgeCaseTests() {
+            const edgeCases = [
+                {
+                    name: 'Very large numbers',
+                    item: { quantity: 1000000, unit_price: 1000, tax_rate: 0, discount_rate: 0 },
+                    description: 'Should handle large calculations without overflow'
+                },
+                {
+                    name: 'Very small numbers',
+                    item: { quantity: 0.001, unit_price: 0.001, tax_rate: 0, discount_rate: 0 },
+                    description: 'Should round very small results to 0.00'
+                },
+                {
+                    name: 'String inputs',
+                    item: { quantity: "2", unit_price: "100.50", tax_rate: "7.5", discount_rate: "10" },
+                    description: 'Should handle string inputs correctly'
+                },
+                {
+                    name: 'Null/undefined values',
+                    item: { quantity: null, unit_price: undefined, tax_rate: '', discount_rate: NaN },
+                    description: 'Should default invalid values to 0'
+                },
+                {
+                    name: 'Maximum discount (100%)',
+                    item: { quantity: 5, unit_price: 200, tax_rate: 0, discount_rate: 100 },
+                    description: 'Should result in 0 with 100% discount'
+                }
+            ];
+            
+            let html = '';
+            edgeCases.forEach(testCase => {
+                const result = calculateItemTotal(testCase.item);
+                html += `
+                    <div class="test-case">
+                        <strong>${testCase.name}:</strong> ₦${result.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <br><small>${testCase.description}</small>
+                        <br><small>Input: ${JSON.stringify(testCase.item)}</small>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('edge-case-results').innerHTML = html;
+        }
+        
+        // Run tests when page loads
+        window.onload = function() {
+            const results = runTests();
+            displayResults(results);
+            runEdgeCaseTests();
+            calculateInteractive();
+        };
+    </script>
+</body>
+</html>
