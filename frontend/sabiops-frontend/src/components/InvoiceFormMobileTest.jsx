@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Plus, Trash2, CheckCircle, XCircle, Smartphone, Tablet, Monitor } from 'lucide-react';
+import StableInput from './ui/StableInput';
+import FocusManager from '../utils/focusManager';
+import DebugLogger from '../utils/debugLogger';
 import { 
   generateMobileResponsivenessReport, 
   logMobileResponsivenessReport,
-  getCurrentBreakpoint,
-  BREAKPOINTS 
+  getCurrentBreakpoint
 } from '../utils/mobileTestUtils';
 
 /**
@@ -87,14 +87,23 @@ const InvoiceFormMobileTest = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    DebugLogger.logFocusEvent('InvoiceForm', 'input-change', e.target, { name, value });
+    
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    });
   };
 
   const handleItemChange = (index, field, value) => {
-    setFormData(prev => {
-      const updatedItems = [...prev.items];
-      updatedItems[index] = { ...updatedItems[index], [field]: value };
-      return { ...prev, items: updatedItems };
+    DebugLogger.logFocusEvent('InvoiceForm', 'item-change', document.activeElement, { index, field, value });
+    
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => {
+        const updatedItems = [...prev.items];
+        updatedItems[index] = { ...updatedItems[index], [field]: value };
+        return { ...prev, items: updatedItems };
+      });
     });
   };
 
@@ -250,38 +259,41 @@ const InvoiceFormMobileTest = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="issue_date" className="text-sm font-medium">Issue Date *</Label>
-                <Input
+                <StableInput
                   id="issue_date"
                   name="issue_date"
                   type="date"
                   value={formData.issue_date}
                   onChange={handleInputChange}
                   className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                  componentName="InvoiceForm-IssueDate"
                   required
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="due_date" className="text-sm font-medium">Due Date</Label>
-                <Input
+                <StableInput
                   id="due_date"
                   name="due_date"
                   type="date"
                   value={formData.due_date}
                   onChange={handleInputChange}
                   className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                  componentName="InvoiceForm-DueDate"
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="payment_terms" className="text-sm font-medium">Payment Terms</Label>
-                <Input
+                <StableInput
                   id="payment_terms"
                   name="payment_terms"
                   value={formData.payment_terms}
                   onChange={handleInputChange}
                   placeholder="e.g., Net 30"
                   className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                  componentName="InvoiceForm-PaymentTerms"
                 />
               </div>
             </div>
@@ -332,13 +344,14 @@ const InvoiceFormMobileTest = () => {
                       
                       <div className="space-y-2">
                         <Label htmlFor={`description-${index}`} className="text-sm font-medium">Description *</Label>
-                        <Input
+                        <StableInput
                           id={`description-${index}`}
                           name="description"
                           value={item.description}
                           onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                           placeholder="Item description"
                           className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                          componentName={`InvoiceForm-ItemDescription-${index}`}
                           required
                         />
                       </div>
@@ -348,7 +361,7 @@ const InvoiceFormMobileTest = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor={`quantity-${index}`} className="text-sm font-medium">Qty *</Label>
-                        <Input
+                        <StableInput
                           id={`quantity-${index}`}
                           name="quantity"
                           type="number"
@@ -356,13 +369,14 @@ const InvoiceFormMobileTest = () => {
                           value={item.quantity}
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                           className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                          componentName={`InvoiceForm-ItemQuantity-${index}`}
                           required
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor={`unit_price-${index}`} className="text-sm font-medium">Unit Price (₦) *</Label>
-                        <Input
+                        <StableInput
                           id={`unit_price-${index}`}
                           name="unit_price"
                           type="number"
@@ -371,13 +385,14 @@ const InvoiceFormMobileTest = () => {
                           value={item.unit_price}
                           onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
                           className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                          componentName={`InvoiceForm-ItemUnitPrice-${index}`}
                           required
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor={`tax_rate-${index}`} className="text-sm font-medium">Tax (%)</Label>
-                        <Input
+                        <StableInput
                           id={`tax_rate-${index}`}
                           name="tax_rate"
                           type="number"
@@ -386,12 +401,13 @@ const InvoiceFormMobileTest = () => {
                           value={item.tax_rate}
                           onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
                           className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                          componentName={`InvoiceForm-ItemTaxRate-${index}`}
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor={`discount_rate-${index}`} className="text-sm font-medium">Discount (%)</Label>
-                        <Input
+                        <StableInput
                           id={`discount_rate-${index}`}
                           name="discount_rate"
                           type="number"
@@ -401,6 +417,7 @@ const InvoiceFormMobileTest = () => {
                           value={item.discount_rate}
                           onChange={(e) => handleItemChange(index, 'discount_rate', e.target.value)}
                           className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                          componentName={`InvoiceForm-ItemDiscountRate-${index}`}
                         />
                       </div>
                     </div>
@@ -435,7 +452,7 @@ const InvoiceFormMobileTest = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
                     <Label htmlFor="discount_amount" className="text-sm font-medium whitespace-nowrap">Overall Discount (₦)</Label>
-                    <Input
+                    <StableInput
                       id="discount_amount"
                       name="discount_amount"
                       type="number"
@@ -444,6 +461,7 @@ const InvoiceFormMobileTest = () => {
                       value={formData.discount_amount}
                       onChange={handleInputChange}
                       className="w-full sm:w-32 h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                      componentName="InvoiceForm-DiscountAmount"
                     />
                   </div>
                   <div className="text-right w-full sm:w-auto">
@@ -459,25 +477,29 @@ const InvoiceFormMobileTest = () => {
             <div className="space-y-4 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
-                <Textarea
+                <StableInput
                   id="notes"
                   name="notes"
                   placeholder="Additional notes for the invoice"
                   value={formData.notes}
                   onChange={handleInputChange}
                   className="min-h-[96px] text-base sm:text-sm touch-manipulation resize-y"
+                  component="textarea"
+                  componentName="InvoiceForm-Notes"
                   rows={4}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="terms_and_conditions" className="text-sm font-medium">Terms and Conditions</Label>
-                <Textarea
+                <StableInput
                   id="terms_and_conditions"
                   name="terms_and_conditions"
                   placeholder="Terms and conditions for the invoice"
                   value={formData.terms_and_conditions}
                   onChange={handleInputChange}
                   className="min-h-[96px] text-base sm:text-sm touch-manipulation resize-y"
+                  component="textarea"
+                  componentName="InvoiceForm-TermsAndConditions"
                   rows={4}
                 />
               </div>

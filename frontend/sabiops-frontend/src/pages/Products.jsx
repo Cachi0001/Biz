@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Package, AlertTriangle } from 'lucide-react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
-import { Textarea } from '../components/ui/textarea';
 import BackButton from '../components/ui/BackButton';
+import StableInput from '../components/ui/StableInput';
+import FocusManager from '../utils/focusManager';
+import DebugLogger from '../utils/debugLogger';
 import {
   Dialog,
   DialogContent,
@@ -156,10 +157,15 @@ const Products = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    DebugLogger.logFocusEvent('ProductsPage', 'input-change', e.target, { name, value });
+    
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -316,7 +322,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <Input
+          <StableInput
             id="name"
             name="name"
             value={formData.name}
@@ -324,25 +330,27 @@ const Products = () => {
             placeholder="Enter product name"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Name"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <Input
+          <StableInput
             id="sku"
             name="sku"
             value={formData.sku}
             onChange={handleInputChange}
             placeholder="Product SKU (optional)"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-SKU"
           />
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-base">Description</Label>
-        <Textarea
+        <StableInput
           id="description"
           name="description"
           value={formData.description}
@@ -350,12 +358,19 @@ const Products = () => {
           placeholder="Product description"
           rows={3}
           className="text-base touch-manipulation min-h-[96px]"
+          component="textarea"
+          componentName="ProductForm-Description"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="category" className="text-base">Category</Label>
-        <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+        <Select value={formData.category} onValueChange={(value) => {
+          DebugLogger.logFocusEvent('ProductsPage', 'category-change', document.activeElement, { value });
+          FocusManager.preserveFocus(() => {
+            setFormData(prev => ({ ...prev, category: value }));
+          });
+        }}>
           <SelectTrigger className="h-12 text-base touch-manipulation">
             <SelectValue placeholder="Select product category" />
           </SelectTrigger>
@@ -372,7 +387,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <Input
+          <StableInput
             id="price"
             name="price"
             type="number"
@@ -382,12 +397,13 @@ const Products = () => {
             placeholder="0.00"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Price"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <Input
+          <StableInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -396,6 +412,7 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0.00"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-CostPrice"
           />
         </div>
       </div>
@@ -403,7 +420,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <Input
+          <StableInput
             id="quantity"
             name="quantity"
             type="number"
@@ -412,12 +429,13 @@ const Products = () => {
             placeholder="0"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Quantity"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <Input
+          <StableInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -427,6 +445,7 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="5"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-LowStockThreshold"
           />
           <p className="text-xs text-gray-500">
             Alert when stock falls below this number (max: {formData.quantity || 'stock quantity'})
@@ -436,13 +455,14 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <Input
+        <StableInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
           className="h-12 text-base touch-manipulation"
+          componentName="ProductForm-ImageURL"
         />
       </div>
 
@@ -546,11 +566,12 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <StableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => FocusManager.preserveFocus(() => setSearchTerm(e.target.value))}
                       className="pl-10 h-12 text-base touch-manipulation"
+                      componentName="ProductsPage-Search"
                     />
                   </div>
                 </div>

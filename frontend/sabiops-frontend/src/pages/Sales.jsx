@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import BackButton from '@/components/ui/BackButton';
 import {
   Dialog,
@@ -32,8 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { get, post, getProducts, getCustomers } from "../services/api";
+import { get, post } from "../services/api";
+import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validateSaleData } from "../services/enhancedApi";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
+import StableInput from '../components/ui/StableInput';
+import FocusManager from '../utils/focusManager';
+import DebugLogger from '../utils/debugLogger';
 import { formatNaira, formatDateTime, formatDate, formatPaymentMethod } from '../utils/formatting';
 
 const Sales = () => {
@@ -101,10 +104,21 @@ const Sales = () => {
 
   const fetchProductsData = async () => {
     try {
-      const response = await getProducts();
-      const productsData = safeArray(response?.data?.products || response?.data || response, []);
-      setProducts(productsData);
+      DebugLogger.logApiCall('/products', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
+      
+      const normalizedData = await enhancedGetProducts();
+      
+      DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', normalizedData.products, null);
+      
+      setProducts(normalizedData.products || []);
+      
+      // Log if no products found for dropdown
+      if (!normalizedData.products || normalizedData.products.length === 0) {
+        DebugLogger.logDropdownIssue('SalesPage', [], null, 'No products available for sales dropdown');
+      }
+      
     } catch (error) {
+      DebugLogger.logApiError('/products', error, 'SalesPage');
       handleApiError(error, 'Failed to fetch products', false);
       setProducts([]);
     }
@@ -112,10 +126,16 @@ const Sales = () => {
 
   const fetchCustomersData = async () => {
     try {
-      const response = await getCustomers();
-      const customersData = safeArray(response?.data?.customers || response?.data || response, []);
-      setCustomers(customersData);
+      DebugLogger.logApiCall('/customers', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
+      
+      const customersData = await enhancedGetCustomers();
+      
+      DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', customersData, null);
+      
+      setCustomers(customersData || []);
+      
     } catch (error) {
+      DebugLogger.logApiError('/customers', error, 'SalesPage');
       handleApiError(error, 'Failed to fetch customers', false);
       setCustomers([]);
     }
@@ -139,42 +159,54 @@ const Sales = () => {
   };
 
   const handleProductSelect = (productId) => {
+    DebugLogger.logDropdownEvent('SalesPage', 'product-selected', products, productId);
+    
     const product = products.find(p => p.id === productId || p.id === parseInt(productId));
     if (product) {
-      setFormData(prev => ({
-        ...prev,
-        product_id: productId,
-        unit_price: product.price || product.unit_price || 0,
-        total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
-      }));
+      FocusManager.preserveFocus(() => {
+        setFormData(prev => ({
+          ...prev,
+          product_id: productId,
+          unit_price: product.price || product.unit_price || 0,
+          total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
+        }));
+      });
+    } else {
+      DebugLogger.logDropdownIssue('SalesPage', products, productId, 'Selected product not found in products array');
     }
   };
 
   const handleQuantityChange = (quantity) => {
     const qty = parseInt(quantity) || 1;
-    setFormData(prev => ({
-      ...prev,
-      quantity: qty,
-      total_amount: qty * prev.unit_price
-    }));
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        quantity: qty,
+        total_amount: qty * prev.unit_price
+      }));
+    });
   };
 
   const handleUnitPriceChange = (price) => {
     const unitPrice = parseFloat(price) || 0;
-    setFormData(prev => ({
-      ...prev,
-      unit_price: unitPrice,
-      total_amount: prev.quantity * unitPrice
-    }));
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        unit_price: unitPrice,
+        total_amount: prev.quantity * unitPrice
+      }));
+    });
   };
 
   const handleCustomerSelect = (customerId) => {
     const customer = customers.find(c => c.id === customerId || c.id === parseInt(customerId));
-    setFormData(prev => ({
-      ...prev,
-      customer_id: customerId === 'walkin' ? '' : customerId,
-      customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
-    }));
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        customer_id: customerId === 'walkin' ? '' : customerId,
+        customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
+      }));
+    });
   };
 
   const resetForm = () => {
@@ -195,19 +227,13 @@ const Sales = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Validate required fields
-    if (!formData.product_id) {
-      setError('Please select a product');
-      return;
-    }
+    DebugLogger.logFormSubmit('SalesPage', formData, 'submit');
     
-    if (formData.quantity <= 0) {
-      setError('Quantity must be greater than 0');
-      return;
-    }
-    
-    if (formData.unit_price <= 0) {
-      setError('Unit price must be greater than 0');
+    // Use enhanced validation
+    const errors = validateSaleData(formData);
+    if (Object.keys(errors).length > 0) {
+      const errorMessage = Object.values(errors)[0];
+      setError(errorMessage);
       return;
     }
     
@@ -228,7 +254,9 @@ const Sales = () => {
         salesperson_id: formData.salesperson_id || null
       };
 
-      await post('/sales/', saleData);
+      DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
+
+      await enhancedCreateSale(saleData);
       showSuccessToast('Sale recorded successfully!');
       setShowAddDialog(false);
       resetForm();
@@ -408,7 +436,7 @@ const Sales = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                    <Input
+                    <StableInput
                       id="quantity"
                       type="number"
                       min="1"
@@ -416,12 +444,13 @@ const Sales = () => {
                       onChange={(e) => handleQuantityChange(e.target.value)}
                       placeholder="1"
                       className="h-12 text-base touch-manipulation"
+                      componentName="SalesPage-Quantity"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                    <Input
+                    <StableInput
                       id="unit_price"
                       type="number"
                       step="0.01"
@@ -430,15 +459,17 @@ const Sales = () => {
                       onChange={(e) => handleUnitPriceChange(e.target.value)}
                       placeholder="0.00"
                       className="h-12 text-base touch-manipulation"
+                      componentName="SalesPage-UnitPrice"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-base">Total Amount</Label>
-                    <Input
+                    <StableInput
                       value={formatNaira(formData.total_amount)}
                       disabled
                       className="font-bold text-green-600 h-12 text-base"
+                      componentName="SalesPage-TotalAmount"
                     />
                   </div>
                 </div>
@@ -447,7 +478,12 @@ const Sales = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="payment_method" className="text-base">Payment Method</Label>
-                    <Select value={formData.payment_method} onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}>
+                    <Select value={formData.payment_method} onValueChange={(value) => {
+                      DebugLogger.logFocusEvent('SalesPage', 'payment-method-change', document.activeElement, { value });
+                      FocusManager.preserveFocus(() => {
+                        setFormData(prev => ({ ...prev, payment_method: value }));
+                      });
+                    }}>
                       <SelectTrigger className="h-12 text-base touch-manipulation">
                         <SelectValue />
                       </SelectTrigger>
@@ -464,12 +500,13 @@ const Sales = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="date" className="text-base">Sale Date</Label>
-                    <Input
+                    <StableInput
                       id="date"
                       type="date"
                       value={formData.date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      onChange={(e) => FocusManager.preserveFocus(() => setFormData(prev => ({ ...prev, date: e.target.value })))}
                       className="h-12 text-base touch-manipulation"
+                      componentName="SalesPage-Date"
                     />
                   </div>
                 </div>
