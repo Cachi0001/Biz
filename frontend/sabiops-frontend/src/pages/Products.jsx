@@ -7,9 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
-import StableInput from '../components/ui/StableInput';
-import FocusManager from '../utils/focusManager';
-import DebugLogger from '../utils/debugLogger';
+import SimpleFocusInput from '../components/ui/SimpleFocusInput';
 import {
   Dialog,
   DialogContent,
@@ -157,15 +155,11 @@ const Products = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    DebugLogger.logFocusEvent('ProductsPage', 'input-change', e.target, { name, value });
-    
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    });
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -322,7 +316,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <StableInput
+          <SimpleFocusInput
             id="name"
             name="name"
             value={formData.name}
@@ -330,7 +324,6 @@ const Products = () => {
             placeholder="Enter product name"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Name"
           />
         </div>
 

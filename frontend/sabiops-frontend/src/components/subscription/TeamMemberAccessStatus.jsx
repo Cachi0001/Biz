@@ -52,7 +52,7 @@ const TeamMemberAccessStatus = ({ className = '' }) => {
       case 'silver_monthly':
         return { invoices: 450, expenses: 450, features: 'Advanced' };
       case 'silver_yearly':
-        return { invoices: 'Unlimited', expenses: 'Unlimited', features: 'Premium' };
+        return { invoices: 6000, expenses: 6000, features: 'Advanced' };
       default:
         return { invoices: 5, expenses: 5, features: 'Basic' };
     }

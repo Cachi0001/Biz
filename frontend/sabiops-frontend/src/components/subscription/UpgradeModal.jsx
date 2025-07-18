@@ -18,9 +18,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       price: 140000, // ₦1,400 in kobo for Paystack
       displayPrice: '₦1,400',
       period: '/week',
-      trial: '7-day free trial',
       features: [
-        '7-day free trial',
         '100 invoices per week',
         '100 expenses per week',
         'Advanced reporting',
@@ -59,7 +57,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
         'Advanced reporting',
         'Team management',
         'Priority support',
-        'Referral earnings (10% for 3 months)',
+        'Referral earnings (10% for 3 payments)',
         'All other features unlimited'
       ],
     },

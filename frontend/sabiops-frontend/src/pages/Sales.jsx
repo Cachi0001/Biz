@@ -303,9 +303,16 @@ const Sales = () => {
       setShowAddDialog(false);
       resetForm();
       
-      // Refresh data
-      fetchSales();
-      fetchSalesStats();
+      // Refresh all data immediately
+      await Promise.all([
+        fetchSales(),
+        fetchSalesStats()
+      ]);
+      
+      // Force a page refresh of dashboard data if needed
+      if (window.location.pathname === '/sales') {
+        window.dispatchEvent(new CustomEvent('salesUpdated'));
+      }
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to create sale');
       setError(errorMessage);

@@ -9,9 +9,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Plus, Trash2, Calculator } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import StableInput from '../ui/StableInput';
-import FocusManager from '../../utils/focusManager';
-import DebugLogger from '../../utils/debugLogger';
+import SimpleFocusInput from '../ui/SimpleFocusInput';
 import { enhancedGetCustomers, enhancedGetProducts } from '../../services/enhancedApi';
 
 const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
@@ -68,23 +66,16 @@ const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     
-    DebugLogger.logFocusEvent('InvoiceForm', 'input-change', e.target, { name, value });
-    
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => ({ ...prev, [name]: value }));
-      // Clear field-specific errors
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: null }));
-      }
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear field-specific errors
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   }, [errors]);
 
   const handleItemChange = useCallback((index, field, value) => {
-    DebugLogger.logFocusEvent('InvoiceForm', 'item-change', document.activeElement, { index, field, value });
-    
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => {
-        const updatedItems = [...prev.items];
+    setFormData(prev => {
+      const updatedItems = [...prev.items];
         updatedItems[index] = { ...updatedItems[index], [field]: value };
         return { ...prev, items: updatedItems };
       });
@@ -260,14 +251,13 @@ const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
               <Label htmlFor="issue_date" className="text-sm font-medium">
                 Issue Date *
               </Label>
-              <StableInput
+              <SimpleFocusInput
                 id="issue_date"
                 name="issue_date"
                 type="date"
                 value={formData.issue_date}
                 onChange={handleInputChange}
                 className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
-                componentName="InvoiceForm-IssueDate"
                 required
               />
               {errors.issue_date && (
@@ -356,14 +346,13 @@ const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
                       <Label htmlFor={`description-${index}`} className="text-sm font-medium">
                         Description *
                       </Label>
-                      <StableInput
+                      <SimpleFocusInput
                         id={`description-${index}`}
                         name="description"
                         value={item.description}
                         onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                         placeholder="Item description"
                         className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
-                        componentName={`InvoiceForm-ItemDescription-${index}`}
                         required
                       />
                       {errors[`item_${index}_description`] && (
