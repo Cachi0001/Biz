@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ToastProvider from './components/ToastProvider';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { Card, CardContent } from './components/ui/card';
 
 // Pages
 import Landing from './pages/Landing';
@@ -35,9 +36,18 @@ function NotificationPrompt() {
   
   if (permission === 'default') {
     return (
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-300 rounded-lg px-4 py-2 shadow-lg z-50 flex items-center gap-2">
-        <span className="text-green-800">Enable push notifications for important business alerts!</span>
-        <button onClick={requestPermission} className="ml-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Enable</button>
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xs sm:max-w-md px-2">
+        <Card className="shadow-lg border-green-300 bg-green-50">
+          <CardContent className="flex flex-col items-center gap-3 p-4 sm:flex-row sm:justify-between sm:gap-4">
+            <span className="text-green-900 text-center text-sm font-medium">Enable push notifications for important business alerts!</span>
+            <button
+              onClick={requestPermission}
+              className="w-full sm:w-auto mt-2 sm:mt-0 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold shadow hover:bg-green-700 transition"
+            >
+              Enable
+            </button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
