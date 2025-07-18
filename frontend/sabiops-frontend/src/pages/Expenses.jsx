@@ -12,12 +12,15 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { enhancedGetExpenses, enhancedCreateExpense, enhancedUpdateExpense, enhancedDeleteExpense, validateExpenseData } from "../services/enhancedApi";
 import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
+import { useUsageTracking } from '../hooks/useUsageTracking';
+import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
 import StableInput from '../components/ui/StableInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
 import BackButton from '../components/ui/BackButton';
 
 const Expenses = () => {
+  const { canCreateExpense, expenseStatus, usage } = useUsageTracking();
   const [expenses, setExpenses] = useState([]);
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -214,6 +217,12 @@ const Expenses = () => {
     e.preventDefault();
 
     DebugLogger.logFormSubmit('ExpensesPage', formData, 'submit');
+
+    // Check usage limits for new expenses (not for edits)
+    if (!editingExpense && !canCreateExpense) {
+      showErrorToast('You have reached your expense limit for this month. Please upgrade your plan to continue.');
+      return;
+    }
 
     // Use enhanced validation
     const errors = validateExpenseData(formData);

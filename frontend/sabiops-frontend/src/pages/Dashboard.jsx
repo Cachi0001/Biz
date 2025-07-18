@@ -3,22 +3,31 @@ import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { ModernOverviewCards } from '../components/dashboard/ModernOverviewCards';
 import { ModernQuickActions } from '../components/dashboard/ModernQuickActions';
 import { ModernRecentActivities } from '../components/dashboard/ModernRecentActivities';
-import { ModernChartsSection } from '../components/dashboard/ModernChartsSection';
+
 import { SubscriptionStatus } from '../components/subscription/SubscriptionStatus';
 import { UpgradeModal } from '../components/subscription/UpgradeModal';
 import { ReferralSystem } from '../components/referrals/ReferralSystem';
+import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
+import RealTimeUsageMonitor from '../components/subscription/RealTimeUsageMonitor';
+import IntelligentUpgradePrompt from '../components/subscription/IntelligentUpgradePrompt';
+import { TeamMemberAccessStatus } from '../components/subscription/PlanLimitEnforcement';
+import RealTimePlanMonitor from '../components/subscription/RealTimePlanMonitor';
+import SmartUpgradeSystem from '../components/subscription/SmartUpgradeSystem';
+import { useUsageTracking } from '../hooks/useUsageTracking';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GradientCardWrapper } from '../components/ui/gradient-card-wrapper';
 
 const Dashboard = () => {
   const { dashboardData, loading, error, refreshData, lastRefresh } = useDashboard();
-  const { user, subscription, trialDaysLeft, role } = useAuth();
+  const { user, subscription, trialDaysLeft, role, getUpgradeRecommendations } = useAuth();
+  const { usage, invoiceStatus, expenseStatus, upgradePrompts, clearUpgradePrompts } = useUsageTracking();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showIntelligentPrompt, setShowIntelligentPrompt] = useState(false);
 
   // Auto-refresh data every 30 seconds
   useEffect(() => {
@@ -28,6 +37,23 @@ const Dashboard = () => {
 
     return () => clearInterval(interval);
   }, [refreshData]);
+
+  // Show intelligent upgrade prompt based on usage patterns
+  useEffect(() => {
+    if (user && subscription?.plan === 'free') {
+      const recommendations = getUpgradeRecommendations();
+      const hasHighPriorityRecs = recommendations.some(r => r.priority === 'high');
+      
+      if (hasHighPriorityRecs && !showIntelligentPrompt) {
+        // Show intelligent prompt after a short delay
+        const timer = setTimeout(() => {
+          setShowIntelligentPrompt(true);
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user, subscription, getUpgradeRecommendations, showIntelligentPrompt]);
 
   const handleUpgrade = () => {
     setShowUpgradeModal(true);
@@ -71,6 +97,24 @@ const Dashboard = () => {
       {/* Main Dashboard Content with Enhanced Mobile Responsiveness */}
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-7xl">
         <div className="space-y-4 sm:space-y-6">
+          {/* Real-time Plan Monitoring System */}
+          <section className="w-full">
+            <RealTimePlanMonitor 
+              compact={true}
+              showUpgradePrompts={true}
+              showTeamStatus={true}
+              onUpgrade={handleUpgrade}
+            />
+          </section>
+
+          {/* Smart Upgrade System */}
+          <section className="w-full">
+            <SmartUpgradeSystem 
+              showProactivePrompts={subscription?.plan === 'free'}
+              showBehaviorInsights={true}
+            />
+          </section>
+
           {/* Subscription Status Section */}
           <section className="w-full">
             <GradientCardWrapper
@@ -86,20 +130,33 @@ const Dashboard = () => {
             </GradientCardWrapper>
           </section>
 
+
+
           {/* Overview Cards Section */}
           <section className="w-full">
             <ModernOverviewCards data={dashboardData} loading={loading} />
           </section>
 
+          {/* Quick Actions Section - Prominent and Balanced */}
+          <section className="w-full">
+            <ModernQuickActions />
+          </section>
+
           {/* Main Content Grid - Mobile: 1 column, Desktop: 2 columns */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Left Column */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Charts Section */}
+              {/* Recent Activities */}
               <section>
-                <ModernChartsSection data={dashboardData} loading={loading} />
+                <ModernRecentActivities 
+                  activities={dashboardData?.recent_activities} 
+                  loading={loading}
+                />
               </section>
+            </div>
 
+            {/* Right Column */}
+            <div className="space-y-4 sm:space-y-6">
               {/* Owner-only sections */}
               {role === 'Owner' && subscription?.plan !== 'free' && (
                 <section>
@@ -111,21 +168,28 @@ const Dashboard = () => {
                   </GradientCardWrapper>
                 </section>
               )}
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Quick Actions */}
+              {/* Analytics Preview Card - Link to full Analytics page */}
               <section>
-                <ModernQuickActions />
-              </section>
-
-              {/* Recent Activities */}
-              <section>
-                <ModernRecentActivities 
-                  activities={dashboardData?.recent_activities} 
-                  loading={loading}
-                />
+                <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                      onClick={() => window.location.href = '/analytics'}>
+                  <CardContent className="p-6 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="p-3 bg-blue-500 rounded-full">
+                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">View Detailed Analytics</h3>
+                    <p className="text-sm text-blue-700 mb-4">
+                      Get comprehensive insights into your business performance, top products, and financial trends.
+                    </p>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                      Open Analytics →
+                    </Button>
+                  </CardContent>
+                </Card>
               </section>
             </div>
           </div>

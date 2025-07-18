@@ -1,260 +1,343 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { getSubscriptionPlans } from '../services/api';
-import PaymentModal from '../components/ui/payment-modal';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { CheckCircle, Star, Crown, Zap } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Crown, Check, X, Loader2, ArrowLeft, Shield } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
+import PaystackService from '../services/PaystackService';
 
 const SubscriptionUpgrade = () => {
-  const { user, updateUser } = useAuth();
-  const [plans, setPlans] = useState({});
-  const [loading, setLoading] = useState(true);
+  const { user, subscription, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
-      try {
-      setLoading(true);
-      const response = await getSubscriptionPlans();
-      setPlans(response.plans || {});
-      } catch (error) {
-      console.error('Error fetching plans:', error);
-      setError('Failed to load subscription plans');
-    } finally {
-      setLoading(false);
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
     }
-  };
+  }, [isAuthenticated, navigate]);
 
-  const handlePlanSelect = (planKey) => {
-    setSelectedPlan({ key: planKey, ...plans[planKey] });
-    setShowPaymentModal(true);
-  };
+  const plans = [
+    {
+      id: 'weekly',
+      name: 'Silver Weekly',
+      price: 140000, // ₦1,400 in kobo for Paystack
+      displayPrice: '₦1,400',
+      period: '/week',
+      trial: '7-day free trial',
+      features: [
+        '7-day free trial',
+        '100 invoices per week',
+        '100 expenses per week',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'All other features unlimited'
+      ],
+      popular: true,
+      color: 'green'
+    },
+    {
+      id: 'monthly',
+      name: 'Silver Monthly',
+      price: 450000, // ₦4,500 in kobo
+      displayPrice: '₦4,500',
+      period: '/month',
+      features: [
+        '450 invoices per month',
+        '450 expenses per month',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'Referral earnings (10% for 3 months)',
+        'All other features unlimited'
+      ],
+      color: 'blue'
+    },
+    {
+      id: 'yearly',
+      name: 'Silver Yearly',
+      price: 5000000, // ₦50,000 in kobo
+      displayPrice: '₦50,000',
+      period: '/year',
+      savings: 'Save ₦4,000 annually',
+      features: [
+        '6000 invoices per year',
+        '6000 expenses per year',
+        'Advanced reporting',
+        'Team management',
+        'Priority support',
+        'Referral earnings (10% for 3 months)',
+        'All other features unlimited'
+      ],
+      color: 'purple'
+    },
+  ];
 
-  const handlePaymentSuccess = (response) => {
-    // Update user context with new subscription info
-    if (updateUser) {
-      updateUser({
-        ...user,
-        subscription_plan: selectedPlan.key,
-        subscription_status: 'active'
-      });
+  const handleUpgrade = async (plan) => {
+    if (!user?.email) {
+      toast.error('User email not found. Please refresh and try again.');
+      return;
     }
+
+    setLoading(true);
+    setSelectedPlan(plan.id);
     
-    // Show success message
-    alert('Subscription upgraded successfully! You now have access to all premium features.');
-  };
-
-  const handlePaymentError = (error) => {
-    console.error('Payment error:', error);
-    setError('Payment failed. Please try again.');
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-    }).format(amount);
-  };
-
-  const getPlanIcon = (planKey) => {
-    switch (planKey) {
-      case 'free':
-        return <CheckCircle className="h-6 w-6" />;
-      case 'weekly':
-        return <Zap className="h-6 w-6" />;
-      case 'monthly':
-        return <Star className="h-6 w-6" />;
-      case 'yearly':
-        return <Crown className="h-6 w-6" />;
-      default:
-        return <CheckCircle className="h-6 w-6" />;
+    try {
+      await PaystackService.processPayment(
+        plan,
+        user,
+        // Success callback
+        (result) => {
+          console.log('Payment and subscription update successful:', result);
+          toast.success(`Successfully upgraded to ${plan.name}!`);
+          
+          // Navigate back to dashboard after successful upgrade
+          setTimeout(() => {
+            navigate('/dashboard');
+            window.location.reload();
+          }, 1500);
+        },
+        // Error callback
+        (error) => {
+          console.error('Payment processing error:', error);
+          toast.error(error.message || 'Payment processing failed. Please try again.');
+          setLoading(false);
+          setSelectedPlan(null);
+        },
+        // Cancel callback
+        () => {
+          console.log('Payment cancelled by user');
+          toast.error('Payment was cancelled');
+          setLoading(false);
+          setSelectedPlan(null);
+        }
+      );
+      
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      toast.error(error.message || 'Failed to initialize payment');
+      setLoading(false);
+      setSelectedPlan(null);
     }
   };
 
-  const getPlanColor = (planKey) => {
-    switch (planKey) {
-      case 'free':
-        return 'bg-gray-100 text-gray-700';
-      case 'weekly':
-        return 'bg-blue-100 text-blue-700';
-      case 'monthly':
-        return 'bg-green-100 text-green-700';
-      case 'yearly':
-        return 'bg-purple-100 text-purple-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  if (loading) {
-  return (
-      <div className="container mx-auto px-4 py-8">
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2">Loading subscription plans...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Choose Your Plan
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Select the perfect plan for your business needs. All plans include our core features with additional benefits as you upgrade.
-          </p>
-      </div>
-
-      {/* Current Plan Status */}
-        {user && (
-          <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-                <div>
-                <h3 className="font-medium text-blue-900">Current Plan</h3>
-                <p className="text-blue-700">
-                  {user.subscription_plan ? 
-                    `${user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1)} Plan` : 
-                    'Free Plan'
-                    }
-                  </p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="hover:bg-green-100"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Subscription Plans</h1>
+                <p className="text-sm text-gray-600">Choose the perfect plan for your business</p>
               </div>
-              <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
-                {user.subscription_status || 'Free'}
-              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">S</span>
+              </div>
+              <span className="text-sm font-medium text-gray-700">SabiOps</span>
             </div>
           </div>
-      )}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-4">
+            <Crown className="h-8 w-8 text-yellow-500 mr-2" />
+            <h2 className="text-3xl font-bold text-gray-900">Upgrade Your Business</h2>
+          </div>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Unlock powerful features to streamline your operations, boost productivity, and grow your business with SabiOps.
+          </p>
+        </div>
+
+        {/* Current Plan Status */}
+        {subscription && (
+          <div className="max-w-md mx-auto mb-8">
+            <Card className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300">
+              <CardContent className="p-4 text-center">
+                <h3 className="font-medium text-orange-900 mb-2">Current Plan</h3>
+                <p className="text-sm text-orange-800">
+                  {subscription.plan === 'free' || subscription.plan === 'basic' 
+                    ? 'Basic Plan - Active' 
+                    : `${subscription.plan} Plan - ${subscription.status}`}
+                </p>
+                {subscription.plan === 'free' && (
+                  <div className="mt-2 text-xs text-orange-700">
+                    <p>Invoices: {subscription.current_usage?.invoices || 0}/5 this month</p>
+                    <p>Expenses: {subscription.current_usage?.expenses || 0}/5 this month</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {Object.entries(plans).map(([planKey, plan]) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
+          {plans.map((plan) => (
             <Card 
-              key={planKey} 
-              className={`relative ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}
+              key={plan.id} 
+              className={`relative border-2 transition-all duration-300 hover:shadow-xl ${
+                plan.popular 
+                  ? 'border-green-500 shadow-lg transform scale-105' 
+                  : 'border-gray-200 hover:border-green-400'
+              } ${selectedPlan === plan.id ? 'opacity-75' : ''}`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-blue-500 text-white">Most Popular</Badge>
+                  <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
+                    Most Popular
+                  </span>
                 </div>
               )}
               
               <CardHeader className="text-center pb-4">
-                <div className={`inline-flex p-3 rounded-full ${getPlanColor(planKey)} mb-4`}>
-                  {getPlanIcon(planKey)}
-            </div>
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-3xl font-bold">
-                    {plan.price === 0 ? 'Free' : formatCurrency(plan.price)}
+                <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                  {plan.name}
+                </CardTitle>
+                <div className="text-4xl font-bold text-green-600 mb-2">
+                  {plan.displayPrice}
+                  <span className="text-sm font-normal text-gray-500">
+                    {plan.period}
                   </span>
-                  {plan.price > 0 && (
-                    <span className="text-gray-500">/{plan.duration}</span>
-                  )}
-            </div>
+                </div>
+                {plan.trial && (
+                  <div className="flex items-center justify-center text-blue-600">
+                    <Crown className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">{plan.trial}</span>
+                  </div>
+                )}
                 {plan.savings && (
-                  <p className="text-sm text-green-600 font-medium">{plan.savings}</p>
+                  <div className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">
+                    {plan.savings}
+                  </div>
                 )}
-          </CardHeader>
-
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
+              </CardHeader>
+              
+              <CardContent>
+                <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>{feature}</span>
-              </li>
+                    <li key={index} className="flex items-start text-sm">
+                      <Check className="h-4 w-4 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
                   ))}
-            </ul>
-
-                {plan.referral_earning > 0 && (
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-700 font-medium">
-                      Referral Bonus: {formatCurrency(plan.referral_earning)}
-                    </p>
-            </div>
-          )}
-
-                {plan.note && (
-                  <p className="text-xs text-gray-500 italic">{plan.note}</p>
-                )}
-
-            <Button 
-                  className="w-full"
-                  variant={plan.popular ? 'default' : 'outline'}
-                  onClick={() => handlePlanSelect(planKey)}
-                  disabled={planKey === 'free' || (user && user.subscription_plan === planKey)}
-            >
-                  {planKey === 'free' ? 'Current Plan' : 
-                   user && user.subscription_plan === planKey ? 'Current Plan' :
-                   plan.price === 0 ? 'Start Free Trial' : 'Upgrade Now'}
-            </Button>
-          </CardContent>
-        </Card>
+                </ul>
+                
+                <Button
+                  className={`w-full text-white font-medium py-3 ${
+                    plan.popular 
+                      ? 'bg-green-600 hover:bg-green-700 shadow-lg' 
+                      : 'bg-gray-600 hover:bg-gray-700'
+                  } transition-all duration-200`}
+                  onClick={() => handleUpgrade(plan)}
+                  disabled={loading}
+                >
+                  {loading && selectedPlan === plan.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="h-4 w-4 mr-2" />
+                      Upgrade to {plan.name}
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
           ))}
-      </div>
+        </div>
 
-        {/* Referral Information */}
-        {plans.referral_info && (
-          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-        <CardHeader>
-              <CardTitle className="text-green-800">Referral Program</CardTitle>
-              <CardDescription className="text-green-700">
-                Earn money by referring other businesses to our platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="font-medium text-green-800">Minimum Withdrawal</p>
-                  <p className="text-green-700">{formatCurrency(plans.referral_info.minimum_withdrawal)}</p>
+        {/* Security & Support Section */}
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-6 text-center">
+                <Shield className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-blue-900 mb-2">Secure Payment</h3>
+                <p className="text-sm text-blue-700">
+                  Your payment information is encrypted and secure. Powered by Paystack, Nigeria's leading payment processor.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-6 text-center">
+                <Crown className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                <h3 className="font-semibold text-green-900 mb-2">Premium Support</h3>
+                <p className="text-sm text-green-700">
+                  Get priority customer support and dedicated assistance to help your business succeed.
+                </p>
+              </CardContent>
+            </Card>
           </div>
-              <div>
-                  <p className="font-medium text-green-800">Earning Plans</p>
-                  <p className="text-green-700">{plans.referral_info.earning_plans.join(', ')}</p>
-              </div>
-              <div>
-                  <p className="font-medium text-green-800">Note</p>
-                  <p className="text-green-700">{plans.referral_info.note}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        )}
+        </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700">{error}</p>
-              </div>
-        )}
+        {/* FAQ Section */}
+        <div className="max-w-2xl mx-auto mt-12">
+          <h3 className="text-xl font-bold text-center text-gray-900 mb-6">Frequently Asked Questions</h3>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Can I cancel anytime?</h4>
+                <p className="text-sm text-gray-600">
+                  Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium text-gray-900 mb-2">What happens to my data if I downgrade?</h4>
+                <p className="text-sm text-gray-600">
+                  Your data is always safe. If you downgrade, you'll just have limited access to certain features, but all your data remains intact.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Do you offer refunds?</h4>
+                <p className="text-sm text-gray-600">
+                  We offer a 7-day free trial for the weekly plan. For other plans, please contact our support team for refund requests.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-
-      {/* Payment Modal */}
-      {selectedPlan && (
-      <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          plan={selectedPlan.key}
-          amount={selectedPlan.price}
-        onSuccess={handlePaymentSuccess}
-        onError={handlePaymentError}
-      />
-      )}
     </div>
   );
 };
 
 export default SubscriptionUpgrade;
-

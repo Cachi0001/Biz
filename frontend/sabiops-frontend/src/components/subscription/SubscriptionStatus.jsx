@@ -17,14 +17,14 @@ const SubscriptionStatus = ({
   const plan = subscription.plan || 'free';
   const trialDaysLeft = subscription.trial_days_left || 0;
 
-  // Free Plan Display (No Crown)
-  if (plan === 'free' && isOwner) {
+  // Basic/Free Plan Display (No Crown) - Show as "Basic Plan - Active"
+  if ((plan === 'free' || plan === 'basic') && isOwner) {
     return (
       <Card className="bg-gradient-to-r from-orange-100 to-red-100 border-orange-200 shadow-lg">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-orange-800 flex items-center">
             <CreditCard className="h-4 w-4 mr-2" />
-            Free Plan - Limited Features
+            Basic Plan - Active
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
@@ -68,7 +68,7 @@ const SubscriptionStatus = ({
             urgencyLevel === 'warning' ? 'text-yellow-800' : 'text-blue-800'
             }`}>
             <Crown className="h-4 w-4 mr-2" />
-            Free Weekly Plan Trial
+            Silver Weekly Plan - Trial
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
@@ -106,23 +106,32 @@ const SubscriptionStatus = ({
   }
 
   // Active Paid Plan Display (With Crown)
-  if (isOwner && (plan === 'weekly' || plan === 'monthly' || plan === 'yearly')) {
+  if (isOwner && (plan === 'weekly' || plan === 'silver_weekly' || plan === 'monthly' || plan === 'silver_monthly' || plan === 'yearly' || plan === 'silver_yearly')) {
     const planNames = {
       weekly: 'Silver Weekly Plan',
-      monthly: 'Silver Monthly Plan',
-      yearly: 'Silver Yearly Plan'
+      silver_weekly: 'Silver Weekly Plan',
+      monthly: 'Silver Monthly Plan', 
+      silver_monthly: 'Silver Monthly Plan',
+      yearly: 'Silver Yearly Plan',
+      silver_yearly: 'Silver Yearly Plan'
     };
 
     const planPrices = {
       weekly: '₦1,400/week',
+      silver_weekly: '₦1,400/week',
       monthly: '₦4,500/month',
-      yearly: '₦50,000/year'
+      silver_monthly: '₦4,500/month',
+      yearly: '₦50,000/year',
+      silver_yearly: '₦50,000/year'
     };
 
     const planLimits = {
       weekly: { invoices: 100, expenses: 100, period: 'week' },
+      silver_weekly: { invoices: 100, expenses: 100, period: 'week' },
       monthly: { invoices: 450, expenses: 450, period: 'month' },
-      yearly: { invoices: 6000, expenses: 6000, period: 'year' }
+      silver_monthly: { invoices: 450, expenses: 450, period: 'month' },
+      yearly: { invoices: 6000, expenses: 6000, period: 'year' },
+      silver_yearly: { invoices: 6000, expenses: 6000, period: 'year' }
     };
 
     const currentPlanLimits = planLimits[plan];
@@ -147,7 +156,8 @@ const SubscriptionStatus = ({
               <p className="text-xs text-green-600 mt-1">
                 Next billing: {subscription.next_billing_date || 'N/A'}
               </p>
-              {(plan === 'monthly' || plan === 'yearly') && (
+              {/* Only show referral earnings for monthly and yearly plans, not weekly */}
+              {(plan === 'monthly' || plan === 'silver_monthly' || plan === 'yearly' || plan === 'silver_yearly') && (
                 <p className="text-xs text-blue-600 mt-1 flex items-center">
                   <Crown className="h-3 w-3 mr-1" />
                   Referral earnings: 10% for 3 months per user

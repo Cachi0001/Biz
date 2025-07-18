@@ -199,6 +199,62 @@ export async function createTeamMember(memberData) {
   return response.data;
 }
 
+// Usage Tracking and Plan Limits
+export async function getCurrentUsage() {
+  try {
+    const response = await api.get('/usage/current');
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] getCurrentUsage failed:', error);
+    throw error;
+  }
+}
+
+export async function updateUsage(actionType, amount = 1) {
+  try {
+    const response = await api.post('/usage/increment', {
+      action_type: actionType,
+      amount: amount
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] updateUsage failed:', error);
+    throw error;
+  }
+}
+
+export async function validateActionLimit(actionType) {
+  try {
+    const response = await api.post('/usage/validate', {
+      action_type: actionType
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] validateActionLimit failed:', error);
+    throw error;
+  }
+}
+
+export async function getSubscriptionLimits() {
+  try {
+    const response = await api.get('/subscription/limits');
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] getSubscriptionLimits failed:', error);
+    throw error;
+  }
+}
+
+export async function getUpgradeRecommendations() {
+  try {
+    const response = await api.get('/subscription/recommendations');
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] getUpgradeRecommendations failed:', error);
+    throw error;
+  }
+}
+
 export async function getTeamMembers() {
   try {
     const response = await api.get('/team/');
@@ -438,16 +494,34 @@ export async function getPayments() {
   try {
     const response = await api.get('/payments/');
     console.log("[DEBUG] getPayments response:", response.data);
-    return response.data.data || response.data;
+    
+    // Ensure we always return an array
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    } else if (response.data?.payments && Array.isArray(response.data.payments)) {
+      return response.data.payments;
+    } else {
+      console.warn("[DEBUG] getPayments: Unexpected response format, returning empty array");
+      return [];
+    }
   } catch (error) {
     console.error("[ERROR] getPayments failed:", error.response ? error.response.data : error.message);
-    throw error;
+    // Return empty array instead of throwing to prevent UI crashes
+    return [];
   }
 }
 
 export async function recordPayment(paymentData) {
-  const response = await api.post('/payments/', paymentData);
-  return response.data;
+  try {
+    const response = await api.post('/payments/', paymentData);
+    console.log("[DEBUG] recordPayment response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[ERROR] recordPayment failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
 }
 
 export async function initializePayment(paymentData) {

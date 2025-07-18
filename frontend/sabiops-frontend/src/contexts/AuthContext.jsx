@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { verifyToken, login as apiLogin, register as apiRegister } from '../services/api';
 import { toast } from 'react-hot-toast';
 import notificationService from '../services/notificationService';
+import usageTrackingService from '../services/usageTrackingService';
 
 const AuthContext = createContext(null);
 
@@ -30,37 +31,57 @@ export const AuthProvider = ({ children }) => {
           }
 
           // Add subscription and role information for dashboard
+          const plan = userData.subscription_plan || 'free';
+          const getPlanLimits = (planType) => {
+            switch (planType) {
+              case 'free':
+              case 'basic':
+                return { invoices: 5, expenses: 5 };
+              case 'silver_weekly':
+              case 'weekly':
+                return { invoices: 100, expenses: 100 };
+              case 'silver_monthly':
+              case 'monthly':
+                return { invoices: 450, expenses: 450 };
+              case 'silver_yearly':
+              case 'yearly':
+                return { invoices: 6000, expenses: 6000 };
+              default:
+                return { invoices: 5, expenses: 5 };
+            }
+          };
+
           userData.subscription = {
-            plan: userData.subscription_plan || 'weekly',
+            plan: plan,
             status: userData.subscription_status || 'trial',
             is_trial: userData.subscription_status === 'trial',
             trial_days_left: userData.trial_days_left,
             current_usage: {
-              invoices: 0, // Will be populated by dashboard
-              expenses: 0
+              invoices: userData.current_month_invoices || 0,
+              expenses: userData.current_month_expenses || 0
             },
-            usage_limits: userData.subscription_plan === 'free' ? {
-              invoices: 5,
-              expenses: 5
-            } : {
-              invoices: 'unlimited',
-              expenses: 'unlimited'
-            }
+            usage_limits: getPlanLimits(plan)
           };
           setUser(userData);
           setIsAuthenticated(true);
           // Start notification polling when user is authenticated
           notificationService.startPollingIfAuthenticated();
+          // Start real-time usage tracking
+          usageTrackingService.startTracking(userData);
           console.log('checkAuth: isAuthenticated set to TRUE'); // Added log
         } else {
           localStorage.removeItem('token');
           setUser(null);
           setIsAuthenticated(false);
+          // Stop usage tracking when token is invalid
+          usageTrackingService.stopTracking();
           console.log('checkAuth: isAuthenticated set to FALSE (token invalid)'); // Added log
         }
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        // Stop usage tracking when no token
+        usageTrackingService.stopTracking();
         console.log('checkAuth: isAuthenticated set to FALSE (no token)'); // Added log
       }
     } catch (error) {
@@ -68,6 +89,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
+      // Stop usage tracking on error
+      usageTrackingService.stopTracking();
       console.log('checkAuth: isAuthenticated set to FALSE (error)'); // Added log
     } finally {
       setLoading(false);
@@ -182,6 +205,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     // Stop notification polling when user logs out
     notificationService.stopPollingOnLogout();
+    // Stop usage tracking when user logs out
+    usageTrackingService.stopTracking();
     toast.success('Logged out successfully!');
   };
 
@@ -209,16 +234,52 @@ export const AuthProvider = ({ children }) => {
         if (!user) return false;
         const role = user.role;
         const status = user.subscription_status;
+        const plan = user.subscription_plan || 'free';
 
         // Trial users get FULL access (they're experiencing the paid plan)
         const hasAccess = status === 'active' || status === 'trial';
+        const isBasicPlan = plan === 'free' || plan === 'basic';
 
         // Role-based access
         if (feature === 'team_management') return role === 'Owner' && hasAccess;
         if (feature === 'referrals') return role === 'Owner' && hasAccess;
-        if (feature === 'analytics') return hasAccess;
+        if (feature === 'analytics') {
+          // Basic plan users need to upgrade for analytics
+          if (isBasicPlan && status !== 'trial') return false;
+          return hasAccess;
+        }
+        if (feature === 'advanced_analytics') {
+          // Only paid plans get advanced analytics
+          if (isBasicPlan && status !== 'trial') return false;
+          return hasAccess;
+        }
 
         return true; // Basic features available to all
+      },
+      hasReachedLimit: (limitType) => {
+        return usageTrackingService.hasReachedLimit(limitType, user);
+      },
+      isNearLimit: (limitType, threshold = 0.8) => {
+        return usageTrackingService.isNearLimit(limitType, user, threshold);
+      },
+      // Enhanced real-time methods
+      validateAction: (actionType) => {
+        return usageTrackingService.validateAction(actionType, user);
+      },
+      getUsageStatus: (limitType) => {
+        return usageTrackingService.getUsageStatus(limitType, user);
+      },
+      getEffectiveSubscription: () => {
+        return usageTrackingService.getEffectiveSubscription(user);
+      },
+      incrementUsage: (limitType, amount = 1) => {
+        return usageTrackingService.incrementUsage(limitType, amount);
+      },
+      getUpgradeRecommendations: () => {
+        return usageTrackingService.getUpgradeRecommendations(user);
+      },
+      showUpgradePrompt: (actionType) => {
+        usageTrackingService.showIntelligentUpgradePrompt(user, actionType);
       }
     }}>
       {children}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Activity, TrendingUp, FileText, CreditCard, Package, Users, Crown, Minus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +8,7 @@ import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernRecentActivities = ({ activities, loading }) => {
   const { subscription, isFreeTrial } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -121,7 +123,10 @@ const ModernRecentActivities = ({ activities, loading }) => {
           
           {/* View All Button */}
           <div className="mt-4 pt-3 border-t border-blue-100">
-            <button className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium py-2 hover:bg-blue-50 rounded-lg transition-colors">
+            <button 
+              onClick={() => navigate('/transactions')}
+              className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium py-2 hover:bg-blue-50 rounded-lg transition-colors"
+            >
               View All Activities →
             </button>
           </div>

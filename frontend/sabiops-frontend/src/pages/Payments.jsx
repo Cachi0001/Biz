@@ -27,10 +27,12 @@ import {
   Eye
 } from 'lucide-react';
 import { getPayments, recordPayment } from "../services/api";
+import { normalizePaymentResponse, safeFilter, safeReduce, normalizePaymentObject } from "../utils/responseNormalizer";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
@@ -106,18 +108,25 @@ const Payments = () => {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      // For now, use sample data since backend might not be ready
-      // setTimeout(() => {
-      //   setPayments(samplePayments);
-      //   setLoading(false);
-      // }, 1000);
+      setError(null);
       
-      // Uncomment when backend is ready
+      console.log('[DEBUG] getPayments request starting...');
       const response = await getPayments();
-      setPayments(response || []);
+      console.log('[DEBUG] getPayments response:', response);
+      
+      // Use the response normalizer to handle different response formats
+      const paymentsArray = normalizePaymentResponse(response);
+      console.log('[DEBUG] Normalized payments array:', paymentsArray);
+      
+      // Normalize each payment object to ensure consistent structure
+      const normalizedPayments = paymentsArray.map(payment => normalizePaymentObject(payment)).filter(Boolean);
+      setPayments(normalizedPayments);
+      
     } catch (error) {
-      console.error('Failed to fetch payments:', error);
-      setPayments(samplePayments); // Fallback to sample data
+      console.error('[ERROR] Failed to fetch payments:', error);
+      setError('Failed to load payments. Please try again.');
+      // Always ensure payments is an array to prevent filter errors
+      setPayments([]);
     } finally {
       setLoading(false);
     }
@@ -126,6 +135,7 @@ const Payments = () => {
   const handleRecordPayment = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Generate a reference number if not provided
       const referenceNumber = newPayment.reference_number || 
@@ -137,18 +147,27 @@ const Payments = () => {
         amount: parseFloat(newPayment.amount)
       };
 
-      // For now, add to local state since backend might not be ready
-      // const newPaymentRecord = {
-      //   id: Date.now(),
-      //   ...paymentData,
-      //   customer_name: newPayment.customer_name || 'Walk-in Customer'
-      // };
-      
-      // setPayments(prev => [newPaymentRecord, ...prev]);
-      
-      // Uncomment when backend is ready
+      console.log('[DEBUG] Recording payment:', paymentData);
       const response = await recordPayment(paymentData);
-      setPayments(prev => [response || response, ...prev]);
+      console.log('[DEBUG] Payment recorded:', response);
+      
+      // Handle different response formats
+      let newPaymentRecord;
+      if (response?.data) {
+        newPaymentRecord = response.data;
+      } else if (response?.id) {
+        newPaymentRecord = response;
+      } else {
+        // Create a local record if response doesn't have expected format
+        newPaymentRecord = {
+          id: Date.now(),
+          ...paymentData,
+          customer_name: newPayment.customer_name || 'Walk-in Customer'
+        };
+      }
+      
+      // Update payments list
+      setPayments(prev => Array.isArray(prev) ? [newPaymentRecord, ...prev] : [newPaymentRecord]);
       
       // Reset form and close dialog
       setNewPayment({
@@ -163,9 +182,13 @@ const Payments = () => {
         status: 'completed'
       });
       setShowRecordDialog(false);
+      
+      // Show success message
+      console.log('Payment recorded successfully');
+      
     } catch (error) {
-      console.error('Failed to record payment:', error);
-      alert('Failed to record payment. Please try again.');
+      console.error('[ERROR] Failed to record payment:', error);
+      setError('Failed to record payment. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -209,24 +232,31 @@ const Payments = () => {
     }
   };
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.reference_number.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPayments = safeFilter(payments, payment => {
+    // Ensure payment object has required properties
+    if (!payment || typeof payment !== 'object') return false;
+    
+    const customerName = payment.customer_name || '';
+    const invoiceNumber = payment.invoice_number || payment.invoice_id || '';
+    const referenceNumber = payment.reference_number || '';
+    
+    const matchesSearch = customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         referenceNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     const matchesMethod = methodFilter === 'all' || payment.payment_method === methodFilter;
     
     return matchesSearch && matchesStatus && matchesMethod;
   });
 
-  const totalPayments = payments.reduce((sum, payment) => 
-    payment.status === 'completed' ? sum + payment.amount : sum, 0
+  const totalPayments = safeReduce(payments, (sum, payment) => 
+    payment?.status === 'completed' ? sum + (Number(payment.amount) || 0) : sum, 0
   );
-  const pendingPayments = payments.reduce((sum, payment) => 
-    payment.status === 'pending' ? sum + payment.amount : sum, 0
+  const pendingPayments = safeReduce(payments, (sum, payment) => 
+    payment?.status === 'pending' ? sum + (Number(payment.amount) || 0) : sum, 0
   );
-  const completedCount = payments.filter(p => p.status === 'completed').length;
-  const pendingCount = payments.filter(p => p.status === 'pending').length;
+  const completedCount = safeFilter(payments, p => p?.status === 'completed').length;
+  const pendingCount = safeFilter(payments, p => p?.status === 'pending').length;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -472,7 +502,18 @@ const Payments = () => {
             </Button>
           </div>
 
-          {loading ? (
+          {error ? (
+            <div className="text-center py-8">
+              <Alert className="mb-4">
+                <AlertDescription className="text-red-600">
+                  {error}
+                </AlertDescription>
+              </Alert>
+              <Button onClick={fetchPayments} variant="outline">
+                Try Again
+              </Button>
+            </div>
+          ) : loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
               <p className="mt-2 text-gray-600">Loading payments...</p>

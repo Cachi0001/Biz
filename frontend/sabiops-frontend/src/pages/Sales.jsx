@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { get, post } from "../services/api";
 import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validateSaleData } from "../services/enhancedApi";
+import { recordPayment } from "../services/api";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
 import StableInput from '../components/ui/StableInput';
 import FocusManager from '../utils/focusManager';
@@ -256,8 +257,36 @@ const Sales = () => {
 
       DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
 
-      await enhancedCreateSale(saleData);
-      showSuccessToast('Sale recorded successfully!');
+      // Create the sale first
+      const saleResponse = await enhancedCreateSale(saleData);
+      
+      // If payment method is provided and not 'pending', create a payment record
+      if (saleData.payment_method && saleData.payment_method !== 'pending') {
+        try {
+          const paymentData = {
+            customer_name: saleData.customer_name || 'Walk-in Customer',
+            amount: saleData.total_amount,
+            payment_method: saleData.payment_method,
+            payment_date: saleData.date,
+            reference_number: `SALE-${Date.now()}`,
+            notes: `Payment for sale - ${saleData.customer_name || 'Walk-in Customer'}`,
+            status: 'completed'
+          };
+          
+          await recordPayment(paymentData);
+          DebugLogger.logFormSubmit('SalesPage', paymentData, 'payment-recorded');
+        } catch (paymentError) {
+          // Don't fail the sale if payment recording fails, just log it
+          DebugLogger.logApiError('/payments', paymentError, 'SalesPage-PaymentRecord');
+          console.warn('Sale created but payment recording failed:', paymentError);
+        }
+      }
+      
+      if (saleData.payment_method && saleData.payment_method !== 'pending') {
+        showSuccessToast('Sale and payment recorded successfully!');
+      } else {
+        showSuccessToast('Sale recorded successfully!');
+      }
       setShowAddDialog(false);
       resetForm();
       
@@ -494,6 +523,7 @@ const Sales = () => {
                         <SelectItem value="mobile_money">Mobile Money</SelectItem>
                         <SelectItem value="cheque">Cheque</SelectItem>
                         <SelectItem value="online_payment">Online Payment</SelectItem>
+                        <SelectItem value="pending">Pending Payment</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

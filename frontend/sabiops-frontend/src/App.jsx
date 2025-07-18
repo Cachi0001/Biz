@@ -28,8 +28,10 @@ import Expenses from './pages/Expenses';
 import Transactions from './pages/Transactions';
 import EmailVerified from './pages/email-verified';
 import ResetPassword from './pages/reset-password';
+import SubscriptionUpgrade from './pages/SubscriptionUpgrade';
 
 import './App.css';
+import './styles/mobile.css';
 
 function NotificationPrompt() {
   const { permission, requestPermission } = useNotification();
@@ -88,6 +90,8 @@ function App() {
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
                 <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+                <Route path="/subscription-upgrade" element={<ProtectedRoute><SubscriptionUpgrade /></ProtectedRoute>} />
+                <Route path="/pricing" element={<ProtectedRoute><SubscriptionUpgrade /></ProtectedRoute>} />
                 
                 {/* 404 fallback */}
                 <Route path="*" element={
