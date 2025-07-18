@@ -22,6 +22,7 @@ import { AlertTriangle, Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GradientCardWrapper } from '../components/ui/gradient-card-wrapper';
 import ErrorBoundary from '../components/ErrorBoundary';
+import dataFlowDebugger from '../utils/dataFlowDebugger';
 
 const Dashboard = () => {
   const { dashboardData, loading, error, refreshData, lastRefresh } = useDashboard();
@@ -37,6 +38,44 @@ const Dashboard = () => {
     }, 30000);
 
     return () => clearInterval(interval);
+  }, [refreshData]);
+
+  // Initialize data flow debugger in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      dataFlowDebugger.startListening();
+      return () => dataFlowDebugger.stopListening();
+    }
+  }, []);
+
+  // Listen for sales updates from other pages
+  useEffect(() => {
+    const handleSalesUpdate = (event) => {
+      console.log('[Dashboard] Sales updated, refreshing dashboard data...', event.detail);
+      refreshData(true); // Force cache invalidation
+    };
+
+    const handleDataUpdate = (event) => {
+      console.log('[Dashboard] Data updated, refreshing dashboard...', event.detail);
+      refreshData(true); // Force cache invalidation
+    };
+
+    // Listen for various data update events
+    window.addEventListener('salesUpdated', handleSalesUpdate);
+    window.addEventListener('expenseUpdated', handleDataUpdate);
+    window.addEventListener('invoiceUpdated', handleDataUpdate);
+    window.addEventListener('customerUpdated', handleDataUpdate);
+    window.addEventListener('productUpdated', handleDataUpdate);
+    window.addEventListener('dataUpdated', handleDataUpdate);
+
+    return () => {
+      window.removeEventListener('salesUpdated', handleSalesUpdate);
+      window.removeEventListener('expenseUpdated', handleDataUpdate);
+      window.removeEventListener('invoiceUpdated', handleDataUpdate);
+      window.removeEventListener('customerUpdated', handleDataUpdate);
+      window.removeEventListener('productUpdated', handleDataUpdate);
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
   }, [refreshData]);
 
   // Show intelligent upgrade prompt based on usage patterns

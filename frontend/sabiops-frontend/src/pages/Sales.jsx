@@ -309,10 +309,22 @@ const Sales = () => {
         fetchSalesStats()
       ]);
       
-      // Force a page refresh of dashboard data if needed
-      if (window.location.pathname === '/sales') {
-        window.dispatchEvent(new CustomEvent('salesUpdated'));
-      }
+      // Dispatch events to update other parts of the application
+      window.dispatchEvent(new CustomEvent('salesUpdated', { 
+        detail: { 
+          sale: saleResponse, 
+          timestamp: new Date().toISOString() 
+        } 
+      }));
+      
+      // Also dispatch a general data update event
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          type: 'sale', 
+          data: saleResponse,
+          timestamp: new Date().toISOString() 
+        } 
+      }));
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to create sale');
       setError(errorMessage);

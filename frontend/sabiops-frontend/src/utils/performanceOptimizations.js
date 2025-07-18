@@ -423,3 +423,27 @@ export const optimizedApiCall = async (key, apiFunction, options = {}) => {
   }
 };
 
+/**
+ * Invalidates specific cache entries or all cache
+ * @param {string|Array} keys - Cache key(s) to invalidate, or null for all
+ */
+export const invalidateCache = (keys = null) => {
+  if (!optimizedApiCall.cache) return;
+  
+  if (keys === null) {
+    // Clear all cache
+    optimizedApiCall.cache.clear();
+    console.log('[Cache] All cache entries invalidated');
+  } else if (Array.isArray(keys)) {
+    // Clear multiple specific keys
+    keys.forEach(key => {
+      optimizedApiCall.cache.delete(key);
+      console.log(`[Cache] Cache entry '${key}' invalidated`);
+    });
+  } else {
+    // Clear single key
+    optimizedApiCall.cache.delete(keys);
+    console.log(`[Cache] Cache entry '${keys}' invalidated`);
+  }
+};
+

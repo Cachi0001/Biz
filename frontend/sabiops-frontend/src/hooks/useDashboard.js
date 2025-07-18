@@ -4,7 +4,8 @@ import { handleApiError, showToast } from '../utils/errorHandling';
 import { 
   optimizedApiCall, 
   performanceMonitor, 
-  globalLoadingManager 
+  globalLoadingManager,
+  invalidateCache 
 } from '../utils/performanceOptimizations';
 
 export const useDashboard = () => {
@@ -196,7 +197,11 @@ export const useDashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback((invalidateFirst = true) => {
+    if (invalidateFirst) {
+      // Invalidate dashboard-related cache entries
+      invalidateCache(['dashboard-overview', 'dashboard-metrics']);
+    }
     fetchDashboardData(false);
   }, [fetchDashboardData]);
 

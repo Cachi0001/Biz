@@ -33,7 +33,8 @@ export class FocusManager {
     
     // Restore focus after React has finished re-rendering
     requestAnimationFrame(() => {
-      if (activeElement && document.contains(activeElement)) {
+      // Check if the original element still exists and is visible
+      if (activeElement && document.contains(activeElement) && activeElement.offsetParent !== null) {
         try {
           activeElement.focus();
           
@@ -49,9 +50,52 @@ export class FocusManager {
           console.warn('[FocusManager] Failed to restore focus:', error);
         }
       } else {
-        console.warn('[FocusManager] Element no longer exists in DOM');
+        // Try to find a similar element if the original is gone
+        const fallbackElement = this.findFallbackElement(activeElement);
+        if (fallbackElement) {
+          try {
+            fallbackElement.focus();
+            console.log('[FocusManager] Focus restored to fallback element');
+          } catch (error) {
+            console.log('[FocusManager] Element no longer exists in DOM');
+          }
+        } else {
+          console.log('[FocusManager] Element no longer exists in DOM');
+        }
       }
     });
+  }
+
+  /**
+   * Finds a fallback element when the original is no longer available
+   * @param {HTMLElement} originalElement - The original element that lost focus
+   * @returns {HTMLElement|null} - Fallback element or null
+   */
+  static findFallbackElement(originalElement) {
+    if (!originalElement) return null;
+    
+    // Try to find by ID
+    if (originalElement.id) {
+      const byId = document.getElementById(originalElement.id);
+      if (byId && byId !== originalElement) return byId;
+    }
+    
+    // Try to find by name
+    if (originalElement.name) {
+      const byName = document.querySelector(`[name="${originalElement.name}"]`);
+      if (byName && byName !== originalElement) return byName;
+    }
+    
+    // Try to find by similar attributes
+    const tagName = originalElement.tagName.toLowerCase();
+    const className = originalElement.className;
+    
+    if (className) {
+      const byClass = document.querySelector(`${tagName}.${className.split(' ')[0]}`);
+      if (byClass && byClass !== originalElement) return byClass;
+    }
+    
+    return null;
   }
 
   /**

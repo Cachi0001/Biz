@@ -248,11 +248,12 @@ const Expenses = () => {
 
       DebugLogger.logFormSubmit('ExpensesPage', expenseData, 'processed-data');
 
+      let result;
       if (editingExpense) {
-        await enhancedUpdateExpense(editingExpense.id, expenseData);
+        result = await enhancedUpdateExpense(editingExpense.id, expenseData);
         showSuccessToast('Expense updated successfully!');
       } else {
-        await enhancedCreateExpense(expenseData);
+        result = await enhancedCreateExpense(expenseData);
         showSuccessToast('Expense created successfully!');
       }
 
@@ -260,6 +261,25 @@ const Expenses = () => {
       await fetchExpenses();
       resetForm();
       setIsDialogOpen(false);
+      
+      // Dispatch events to update other parts of the application
+      window.dispatchEvent(new CustomEvent('expenseUpdated', { 
+        detail: { 
+          expense: result, 
+          action: editingExpense ? 'updated' : 'created',
+          timestamp: new Date().toISOString() 
+        } 
+      }));
+      
+      // Also dispatch a general data update event
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          type: 'expense', 
+          action: editingExpense ? 'updated' : 'created',
+          data: result,
+          timestamp: new Date().toISOString() 
+        } 
+      }));
     } catch (err) {
       handleApiErrorWithToast(err, 'Failed to save expense');
     } finally {
@@ -275,6 +295,25 @@ const Expenses = () => {
       await enhancedDeleteExpense(expenseId);
       showSuccessToast('Expense deleted successfully!');
       await fetchExpenses();
+      
+      // Dispatch events to update other parts of the application
+      window.dispatchEvent(new CustomEvent('expenseUpdated', { 
+        detail: { 
+          expenseId, 
+          action: 'deleted',
+          timestamp: new Date().toISOString() 
+        } 
+      }));
+      
+      // Also dispatch a general data update event
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          type: 'expense', 
+          action: 'deleted',
+          id: expenseId,
+          timestamp: new Date().toISOString() 
+        } 
+      }));
     } catch (err) {
       handleApiErrorWithToast(err, 'Failed to delete expense');
     } finally {
