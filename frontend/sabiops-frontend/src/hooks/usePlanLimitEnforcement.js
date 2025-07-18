@@ -339,6 +339,50 @@ export const usePlanLimitEnforcement = () => {
     });
   }, []);
 
+  // Get smart recommendations based on usage patterns
+  const getSmartRecommendations = useCallback(() => {
+    const limits = getPlanLimits();
+    const usage = getCurrentUsage();
+    const recommendations = [];
+    
+    // Check for blocked actions
+    const blockedActions = [];
+    Object.keys(limits).forEach(key => {
+      if (typeof limits[key] === 'number' && usage[key] >= limits[key]) {
+        blockedActions.push(key);
+      }
+    });
+    
+    if (blockedActions.length > 0) {
+      recommendations.push({
+        type: 'blocked_actions',
+        priority: 'high',
+        reason: `You've reached your limit for ${blockedActions.join(', ')}`,
+        blockedActions,
+        suggestedPlan: 'silver_weekly',
+        benefits: ['100 invoices & expenses per week', 'Advanced analytics', 'Priority support']
+      });
+    }
+    
+    // Check for high usage (80%+)
+    Object.keys(limits).forEach(key => {
+      if (typeof limits[key] === 'number' && usage[key] !== undefined) {
+        const percentage = (usage[key] / limits[key]) * 100;
+        if (percentage >= 80 && percentage < 100) {
+          recommendations.push({
+            type: 'high_usage',
+            priority: 'medium',
+            reason: `You're using ${Math.round(percentage)}% of your ${key} limit`,
+            suggestedPlan: 'silver_weekly',
+            benefits: ['Higher limits', 'No interruptions', 'Advanced features']
+          });
+        }
+      }
+    });
+    
+    return recommendations;
+  }, [getPlanLimits, getCurrentUsage]);
+
   return {
     canPerformAction,
     enforceAction,
@@ -346,6 +390,7 @@ export const usePlanLimitEnforcement = () => {
     clearEnforcementState,
     getPlanLimits,
     getCurrentUsage,
-    enforcementState
+    enforcementState,
+    getSmartRecommendations
   };
 };

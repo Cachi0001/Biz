@@ -10,9 +10,9 @@ import { ReferralSystem } from '../components/referrals/ReferralSystem';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
 import RealTimeUsageMonitor from '../components/subscription/RealTimeUsageMonitor';
 import IntelligentUpgradePrompt from '../components/subscription/IntelligentUpgradePrompt';
-import { TeamMemberAccessStatus } from '../components/subscription/PlanLimitEnforcement';
-import RealTimePlanMonitor from '../components/subscription/RealTimePlanMonitor';
-import SmartUpgradeSystem from '../components/subscription/SmartUpgradeSystem';
+// import { TeamMemberAccessStatus } from '../components/subscription/PlanLimitEnforcement';
+import SafeRealTimePlanMonitor from '../components/subscription/SafeRealTimePlanMonitor';
+import SafeSmartUpgradeSystem from '../components/subscription/SafeSmartUpgradeSystem';
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,7 @@ import { Button } from '../components/ui/button';
 import { AlertTriangle, Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GradientCardWrapper } from '../components/ui/gradient-card-wrapper';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const Dashboard = () => {
   const { dashboardData, loading, error, refreshData, lastRefresh } = useDashboard();
@@ -99,7 +100,7 @@ const Dashboard = () => {
         <div className="space-y-4 sm:space-y-6">
           {/* Real-time Plan Monitoring System */}
           <section className="w-full">
-            <RealTimePlanMonitor 
+            <SafeRealTimePlanMonitor 
               compact={true}
               showUpgradePrompts={true}
               showTeamStatus={true}
@@ -109,7 +110,7 @@ const Dashboard = () => {
 
           {/* Smart Upgrade System */}
           <section className="w-full">
-            <SmartUpgradeSystem 
+            <SafeSmartUpgradeSystem 
               showProactivePrompts={subscription?.plan === 'free'}
               showBehaviorInsights={true}
             />
@@ -164,7 +165,9 @@ const Dashboard = () => {
                     gradientFrom="from-green-200"
                     gradientTo="to-teal-200"
                   >
-                    <ReferralSystem />
+                    <ErrorBoundary fallbackMessage="Referral system temporarily unavailable">
+                      <ReferralSystem />
+                    </ErrorBoundary>
                   </GradientCardWrapper>
                 </section>
               )}

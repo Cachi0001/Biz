@@ -32,11 +32,39 @@ const ReferralSystem = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setReferralData(data.data);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          setReferralData(data.data);
+        } else {
+          console.warn('Referral API returned non-JSON response');
+          // Set default/mock data
+          setReferralData({
+            referralCode: 'REF123',
+            totalReferrals: 0,
+            totalEarnings: 0,
+            pendingEarnings: 0
+          });
+        }
+      } else {
+        console.warn('Referral API not available');
+        // Set default/mock data
+        setReferralData({
+          referralCode: 'REF123',
+          totalReferrals: 0,
+          totalEarnings: 0,
+          pendingEarnings: 0
+        });
       }
     } catch (error) {
       console.error('Failed to fetch referral data:', error);
+      // Set default/mock data on error
+      setReferralData({
+        referralCode: 'REF123',
+        totalReferrals: 0,
+        totalEarnings: 0,
+        pendingEarnings: 0
+      });
     } finally {
       setLoading(false);
     }

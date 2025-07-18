@@ -298,6 +298,77 @@ export const useUsageTracking = () => {
     return summary;
   }, [usage, subscription, getPlanLimits]);
 
+  // Get upgrade recommendations based on usage
+  const getUpgradeRecommendations = useCallback(() => {
+    const planLimits = getPlanLimits();
+    const recommendations = [];
+    
+    Object.keys(planLimits).forEach(resourceType => {
+      if (typeof planLimits[resourceType] === 'number') {
+        const currentUsage = usage[resourceType] || 0;
+        const limit = planLimits[resourceType];
+        const percentage = (currentUsage / limit) * 100;
+        
+        if (percentage >= 100) {
+          recommendations.push({
+            type: resourceType,
+            priority: 'high',
+            reason: `You've reached your ${resourceType} limit`,
+            usage: currentUsage,
+            limit,
+            percentage: 100
+          });
+        } else if (percentage >= 80) {
+          recommendations.push({
+            type: resourceType,
+            priority: 'medium',
+            reason: `You're approaching your ${resourceType} limit`,
+            usage: currentUsage,
+            limit,
+            percentage: Math.round(percentage)
+          });
+        }
+      }
+    });
+    
+    return recommendations;
+  }, [usage, getPlanLimits]);
+
+  // Validate if an action can be performed
+  const validateAction = useCallback((actionType) => {
+    const resourceType = getResourceTypeFromAction(actionType);
+    if (!resourceType) return { allowed: true };
+    
+    const planLimits = getPlanLimits();
+    const currentUsage = usage[resourceType] || 0;
+    const limit = planLimits[resourceType];
+    
+    if (typeof limit !== 'number') return { allowed: true };
+    
+    return {
+      allowed: currentUsage < limit,
+      resourceType,
+      currentUsage,
+      limit,
+      remaining: Math.max(0, limit - currentUsage)
+    };
+  }, [usage, getPlanLimits]);
+
+  // Get resource type from action type
+  const getResourceTypeFromAction = (actionType) => {
+    const actionMap = {
+      'create_invoice': 'invoices',
+      'invoices': 'invoices',
+      'create_expense': 'expenses', 
+      'expenses': 'expenses',
+      'add_customer': 'customers',
+      'customers': 'customers',
+      'add_product': 'products',
+      'products': 'products'
+    };
+    return actionMap[actionType];
+  };
+
   return {
     // Usage data
     usage,
@@ -317,11 +388,20 @@ export const useUsageTracking = () => {
     getRemainingUsage,
     getPlanLimits,
     
+    // Recommendations and validation
+    getUpgradeRecommendations,
+    validateAction,
+    
     // Server sync
     syncUsageWithServer,
     fetchUsageFromServer,
     
     // Utility
-    loadUsageFromStorage
+    loadUsageFromStorage,
+    
+    // Additional properties that components expect
+    loading: false,
+    upgradePrompts: [],
+    clearUpgradePrompts: () => {}
   };
 };
