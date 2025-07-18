@@ -10,14 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Search, Edit, Trash2, User, Eye, RefreshCw } from 'lucide-react';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getSales, getInvoices } from "../services/api";
-import { 
-  handleApiErrorWithToast, 
-  showSuccessToast, 
-  showErrorToast, 
+import {
+  handleApiErrorWithToast,
+  showSuccessToast,
+  showErrorToast,
   safeArray
 } from '../utils/errorHandling';
 import { formatNaira } from '../utils/formatting';
 import BackButton from '../components/ui/BackButton';
+import StableInput from '../components/ui/StableInput';
+import FocusManager from '../utils/focusManager';
 
 const Customers = () => {
   // State management
@@ -66,9 +68,9 @@ const Customers = () => {
 
       // Use the new backend response format - customers with stats are already included
       const customersData = safeArray(response?.data?.customers || response?.customers || response, []);
-      
+
       setCustomers(customersData);
-      
+
       // Extract stats from customer data if available (backend now provides this)
       const stats = {};
       customersData.forEach(customer => {
@@ -81,7 +83,7 @@ const Customers = () => {
         }
       });
       setCustomerStats(stats);
-      
+
     } catch (error) {
       handleApiErrorWithToast(error, 'Failed to load customers');
       setCustomers([]);
@@ -136,7 +138,7 @@ const Customers = () => {
       }
 
       setLoading(true);
-      
+
       // Debug authentication state before making request
       console.log('[CUSTOMER CREATE] Authentication check:', {
         hasToken: !!localStorage.getItem('token'),
@@ -148,11 +150,11 @@ const Customers = () => {
 
       // Handle the new backend response format
       const createdCustomer = response?.data?.customer || response?.customer || response;
-      
+
       if (!createdCustomer || !createdCustomer.id) {
         throw new Error('Invalid response from server - no customer data received');
       }
-      
+
       // Add the new customer to the list with default stats
       const customerWithStats = {
         ...createdCustomer,
@@ -160,9 +162,9 @@ const Customers = () => {
         total_purchases: 0,
         last_purchase_date: null
       };
-      
+
       setCustomers(prev => [customerWithStats, ...prev]);
-      
+
       // Update stats
       setCustomerStats(prev => ({
         ...prev,
@@ -192,7 +194,7 @@ const Customers = () => {
         status: error.response?.status,
         data: error.response?.data
       });
-      
+
       // Provide specific error messages based on the error type
       if (error.response?.status === 401) {
         showErrorToast('Authentication failed. Please log in again.');
@@ -223,12 +225,12 @@ const Customers = () => {
 
       // Handle the new backend response format
       const updatedCustomer = response?.data?.customer || response?.customer || response;
-      
+
       // Update the customer in the list while preserving stats
       setCustomers(prev =>
         prev.map(customer =>
-          customer.id === selectedCustomer.id ? { 
-            ...customer, 
+          customer.id === selectedCustomer.id ? {
+            ...customer,
             ...updatedCustomer,
             // Preserve existing stats if not provided in response
             total_spent: updatedCustomer.total_spent ?? customer.total_spent,
@@ -309,7 +311,7 @@ const Customers = () => {
   // Computed values with debounced search
   const filteredCustomers = customers.filter(customer => {
     if (!debouncedSearchTerm) return true;
-    
+
     const searchLower = debouncedSearchTerm.toLowerCase();
     return (
       customer.name?.toLowerCase().includes(searchLower) ||
@@ -342,248 +344,249 @@ const Customers = () => {
       <div className="relative">
         <BackButton to="/dashboard" variant="floating" />
         <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
-            <p className="text-gray-600 text-sm sm:text-base">
-              Manage your customer relationships ({customers.length} total)
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={fetchCustomers}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Customer
-            </Button>
-          </div>
-        </div>
-
-        {/* Search */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search customers by name, email, business, phone, or address..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 text-base touch-manipulation"
-                />
-              </div>
-              {searchTerm && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-gray-600">
-                  <span>
-                    {filteredCustomers.length} of {customers.length} customers match "{searchTerm}"
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSearchTerm('')}
-                    className="text-gray-500 hover:text-gray-700 h-8 touch-manipulation"
-                  >
-                    Clear search
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Customers Display */}
-        {filteredCustomers.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <User className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2 text-gray-900">No customers found</h3>
-              <p className="text-gray-600 mb-6">
-                {searchTerm
-                  ? 'Try adjusting your search criteria'
-                  : 'Get started by adding your first customer'}
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Manage your customer relationships ({customers.length} total)
               </p>
-              {!searchTerm && (
-                <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Customer
-                </Button>
-              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={fetchCustomers}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Customer
+              </Button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <StableInput
+                    placeholder="Search customers by name, email, business, phone, or address..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12 text-base touch-manipulation"
+                    componentName="CustomersPage-Search"
+                  />
+                </div>
+                {searchTerm && (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-gray-600">
+                    <span>
+                      {filteredCustomers.length} of {customers.length} customers match "{searchTerm}"
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchTerm('')}
+                      className="text-gray-500 hover:text-gray-700 h-8 touch-manipulation"
+                    >
+                      Clear search
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <>
-            {/* Mobile Card View (2 cards per row) */}
-            <div className="block md:hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredCustomers.map((customer) => (
-                  <CustomerCard
-                    key={customer.id}
-                    customer={customer}
-                    stats={customerStats[customer.id]}
-                    onEdit={openEditDialog}
-                    onDelete={handleDeleteCustomer}
-                    onView={openViewDialog}
-                  />
-                ))}
-              </div>
-            </div>
 
-            {/* Desktop Table View */}
-            <Card className="hidden md:block">
-              <CardHeader>
-                <CardTitle>Customer List</CardTitle>
-                <CardDescription>
-                  {filteredCustomers.length} customer{filteredCustomers.length !== 1 ? 's' : ''} found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Total Spent</TableHead>
-                        <TableHead>Orders</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCustomers.map((customer) => {
-                        const stats = customerStats[customer.id] || {};
-                        return (
-                          <TableRow key={customer.id}>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{customer.name}</div>
-                                {customer.business_name && (
-                                  <div className="text-sm text-gray-500">{customer.business_name}</div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {customer.email && (
-                                  <div className="text-sm">{customer.email}</div>
-                                )}
-                                {customer.phone && (
-                                  <div className="text-sm text-gray-500">{customer.phone}</div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium text-green-600">
-                                {formatNaira(stats.totalSpent || customer.total_spent || 0)}
-                              </span>
-                            </TableCell>
-                            <TableCell>{stats.totalPurchases || customer.total_purchases || 0}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openViewDialog(customer)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEditDialog(customer)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteCustomer(customer.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+          {/* Customers Display */}
+          {filteredCustomers.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <User className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium mb-2 text-gray-900">No customers found</h3>
+                <p className="text-gray-600 mb-6">
+                  {searchTerm
+                    ? 'Try adjusting your search criteria'
+                    : 'Get started by adding your first customer'}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Customer
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          </>
-        )}
+          ) : (
+            <>
+              {/* Mobile Card View (2 cards per row) */}
+              <div className="block md:hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {filteredCustomers.map((customer) => (
+                    <CustomerCard
+                      key={customer.id}
+                      customer={customer}
+                      stats={customerStats[customer.id]}
+                      onEdit={openEditDialog}
+                      onDelete={handleDeleteCustomer}
+                      onView={openViewDialog}
+                    />
+                  ))}
+                </div>
+              </div>
 
-        {/* Create Dialog */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Add New Customer</DialogTitle>
-              <DialogDescription>
-                Create a new customer profile for your business
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-1">
-              <CustomerForm
-                customer={formCustomer}
-                onChange={setFormCustomer}
-                onSubmit={handleCreateCustomer}
-                onCancel={() => setIsCreateDialogOpen(false)}
-                loading={loading}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+              {/* Desktop Table View */}
+              <Card className="hidden md:block">
+                <CardHeader>
+                  <CardTitle>Customer List</CardTitle>
+                  <CardDescription>
+                    {filteredCustomers.length} customer{filteredCustomers.length !== 1 ? 's' : ''} found
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Total Spent</TableHead>
+                          <TableHead>Orders</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredCustomers.map((customer) => {
+                          const stats = customerStats[customer.id] || {};
+                          return (
+                            <TableRow key={customer.id}>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{customer.name}</div>
+                                  {customer.business_name && (
+                                    <div className="text-sm text-gray-500">{customer.business_name}</div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  {customer.email && (
+                                    <div className="text-sm">{customer.email}</div>
+                                  )}
+                                  {customer.phone && (
+                                    <div className="text-sm text-gray-500">{customer.phone}</div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-medium text-green-600">
+                                  {formatNaira(stats.totalSpent || customer.total_spent || 0)}
+                                </span>
+                              </TableCell>
+                              <TableCell>{stats.totalPurchases || customer.total_purchases || 0}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openViewDialog(customer)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditDialog(customer)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteCustomer(customer.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Edit Customer</DialogTitle>
-              <DialogDescription>
-                Update customer information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-1">
-              <CustomerForm
-                customer={formCustomer}
-                onChange={setFormCustomer}
-                onSubmit={handleEditCustomer}
-                onCancel={() => setIsEditDialogOpen(false)}
-                isEditing={true}
-                loading={loading}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* View Dialog */}
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Customer Profile</DialogTitle>
-              <DialogDescription>
-                Detailed customer information and purchase history
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-1">
-              {selectedCustomer && (
-                <CustomerProfile
-                  customer={selectedCustomer}
-                  stats={customerStats[selectedCustomer.id]}
-                  history={customerHistory}
+          {/* Create Dialog */}
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Add New Customer</DialogTitle>
+                <DialogDescription>
+                  Create a new customer profile for your business
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                <CustomerForm
+                  customer={formCustomer}
+                  onChange={setFormCustomer}
+                  onSubmit={handleCreateCustomer}
+                  onCancel={() => setIsCreateDialogOpen(false)}
+                  loading={loading}
                 />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Edit Customer</DialogTitle>
+                <DialogDescription>
+                  Update customer information
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                <CustomerForm
+                  customer={formCustomer}
+                  onChange={setFormCustomer}
+                  onSubmit={handleEditCustomer}
+                  onCancel={() => setIsEditDialogOpen(false)}
+                  isEditing={true}
+                  loading={loading}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* View Dialog */}
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Customer Profile</DialogTitle>
+                <DialogDescription>
+                  Detailed customer information and purchase history
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                {selectedCustomer && (
+                  <CustomerProfile
+                    customer={selectedCustomer}
+                    stats={customerStats[selectedCustomer.id]}
+                    history={customerHistory}
+                  />
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </DashboardLayout>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Search, Download, Eye, Trash2, ShoppingCart, TrendingUp, Calculator, Package, Edit } from 'lucide-react';
+import { Plus, Search, Download, Eye, Trash2, ShoppingCart, TrendingUp, Calculator, Package, Edit, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -106,19 +106,28 @@ const Sales = () => {
   const fetchProductsData = async () => {
     try {
       DebugLogger.logApiCall('/products', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
+      console.log('[SalesPage] Fetching products for dropdown...');
       
       const normalizedData = await enhancedGetProducts();
       
+      console.log('[SalesPage] Products fetched:', normalizedData);
       DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', normalizedData.products, null);
       
-      setProducts(normalizedData.products || []);
+      const productsArray = normalizedData.products || [];
+      setProducts(productsArray);
+      
+      console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
       
       // Log if no products found for dropdown
-      if (!normalizedData.products || normalizedData.products.length === 0) {
+      if (productsArray.length === 0) {
+        console.warn('[SalesPage] No products available for sales dropdown');
         DebugLogger.logDropdownIssue('SalesPage', [], null, 'No products available for sales dropdown');
+      } else {
+        console.log('[SalesPage] Products available:', productsArray.map(p => ({ id: p.id, name: p.name, price: p.price || p.unit_price })));
       }
       
     } catch (error) {
+      console.error('[SalesPage] Error fetching products:', error);
       DebugLogger.logApiError('/products', error, 'SalesPage');
       handleApiError(error, 'Failed to fetch products', false);
       setProducts([]);
@@ -388,7 +397,15 @@ const Sales = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales</h1>
             <p className="text-gray-600 text-sm sm:text-base">Record sales and track performance</p>
           </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <Dialog open={showAddDialog} onOpenChange={(open) => {
+          setShowAddDialog(open);
+          if (open) {
+            // Refresh products when dialog opens
+            console.log('[SalesPage] Dialog opened, refreshing products...');
+            fetchProductsData();
+            fetchCustomersData();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="h-12 text-base touch-manipulation">
               <Plus className="h-4 w-4 mr-2" />
@@ -435,9 +452,21 @@ const Sales = () => {
                   {error && error.includes('select a product') && (
                     <p className="text-red-500 text-sm">Please select a product</p>
                   )}
-                  <Select value={formData.product_id} onValueChange={handleProductSelect}>
+                  
+                  {/* Debug info for products */}
+                  <div className="text-xs text-gray-500 mb-2">
+                    Products loaded: {products.length} | Status: {products.length > 0 ? 'Available' : 'Loading...'}
+                  </div>
+                  
+                  <Select 
+                    value={formData.product_id} 
+                    onValueChange={(value) => {
+                      DebugLogger.logDropdownEvent('SalesPage', 'product-select-change', products, value);
+                      handleProductSelect(value);
+                    }}
+                  >
                     <SelectTrigger className="h-12 text-base touch-manipulation">
-                      <SelectValue placeholder="Select product" />
+                      <SelectValue placeholder={products.length === 0 ? "Loading products..." : "Select product"} />
                     </SelectTrigger>
                     <SelectContent>
                       {products.length === 0 ? (
@@ -454,10 +483,25 @@ const Sales = () => {
                       )}
                     </SelectContent>
                   </Select>
+                  
                   {products.length === 0 && (
-                    <p className="text-sm text-gray-500">
-                      No products found. Please add products first.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-500">
+                        No products found. Please add products first.
+                      </p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          console.log('Refreshing products...');
+                          fetchProductsData();
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh Products
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -642,20 +686,22 @@ const Sales = () => {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
+                <StableInput
                   placeholder="Search by sale number or customer..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 h-12 text-base touch-manipulation"
+                  componentName="SalesPage-Search"
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
+              <StableInput
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="h-12 text-base touch-manipulation"
+                componentName="SalesPage-DateFilter"
               />
               <Button 
                 variant="outline" 
