@@ -335,3 +335,91 @@ export const clearAllCaches = () => {
     calculateInvoiceTotalMemoized.cache.clear();
   }
 };
+
+/**
+ * Performance monitoring utilities
+ */
+export const performanceMonitor = {
+  timers: new Map(),
+  
+  startTimer: (name) => {
+    performanceMonitor.timers.set(name, Date.now());
+  },
+  
+  endTimer: (name) => {
+    const startTime = performanceMonitor.timers.get(name);
+    if (startTime) {
+      const duration = Date.now() - startTime;
+      performanceMonitor.timers.delete(name);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PERF] ${name}: ${duration}ms`);
+      }
+      return duration;
+    }
+    return 0;
+  }
+};
+
+/**
+ * Global loading manager for coordinating loading states
+ */
+export const globalLoadingManager = {
+  loadingStates: new Map(),
+  
+  setLoading: (key, isLoading) => {
+    globalLoadingManager.loadingStates.set(key, isLoading);
+  },
+  
+  isLoading: (key) => {
+    return globalLoadingManager.loadingStates.get(key) || false;
+  },
+  
+  isAnyLoading: () => {
+    return Array.from(globalLoadingManager.loadingStates.values()).some(loading => loading);
+  }
+};
+
+/**
+ * Optimized API call wrapper with caching and loading management
+ */
+export const optimizedApiCall = async (key, apiFunction, options = {}) => {
+  const {
+    cacheTtl = 60000,
+    useCache = true,
+    showLoading = true
+  } = options;
+  
+  try {
+    if (showLoading) {
+      globalLoadingManager.setLoading(key, true);
+    }
+    
+    // Simple cache implementation
+    if (useCache && optimizedApiCall.cache) {
+      const cached = optimizedApiCall.cache.get(key);
+      if (cached && Date.now() - cached.timestamp < cacheTtl) {
+        return cached.data;
+      }
+    }
+    
+    const result = await apiFunction();
+    
+    // Cache the result
+    if (useCache) {
+      if (!optimizedApiCall.cache) {
+        optimizedApiCall.cache = new Map();
+      }
+      optimizedApiCall.cache.set(key, {
+        data: result,
+        timestamp: Date.now()
+      });
+    }
+    
+    return result;
+  } finally {
+    if (showLoading) {
+      globalLoadingManager.setLoading(key, false);
+    }
+  }
+};
+

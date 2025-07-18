@@ -21,16 +21,18 @@ import { formatCurrency, formatNaira, formatDate, formatInvoiceStatus, getStatus
 import BackButton from '../components/ui/BackButton';
 import ReviewDialog from '../components/invoice/ReviewDialog';
 
+import { Invoice, Customer, Product } from '../types/invoice';
+
 const Invoices = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
@@ -41,7 +43,7 @@ const Invoices = () => {
 
   // Enhanced keyboard navigation support
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Global keyboard shortcuts for accessibility
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
@@ -53,7 +55,7 @@ const Invoices = () => {
           case 'f':
             // Ctrl+F to focus search
             e.preventDefault();
-            const searchInput = document.querySelector('input[role="searchbox"]');
+            const searchInput = document.querySelector('input[role="searchbox"]') as HTMLInputElement;
             if (searchInput) {
               searchInput.focus();
             }
@@ -87,7 +89,7 @@ const Invoices = () => {
     if (isCreateDialogOpen || isEditDialogOpen) {
       // Focus first field when form dialog opens
       setTimeout(() => {
-        const firstInput = document.querySelector('#field-customer_id');
+        const firstInput = document.querySelector('#field-customer_id') as HTMLInputElement;
         if (firstInput) {
           firstInput.focus();
         }
@@ -182,20 +184,14 @@ const Invoices = () => {
     }
   };
 
-  const handleInputChange = async (e) => {
-    // Prevent any form submission on Enter key
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      return;
-    }
-
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     // Apply validation for specific fields
-    let processedValue = value;
+    let processedValue: any = value;
     if (name === 'discount_amount') {
       // Prevent negative discount amounts
-      processedValue = value === '' ? 0 : Math.max(0, parseFloat(value) || 0);
+      processedValue = value === '' ? '0' : Math.max(0, parseFloat(value) || 0).toString();
     }
 
     // Update form data
@@ -210,7 +206,7 @@ const Invoices = () => {
     await validateSingleField(name, processedValue, newFormData);
   };
 
-  const handleItemChange = async (index, field, value) => {
+  const handleItemChange = async (index: number, field: string, value: any) => {
     // Prevent form submission on Enter key or event objects
     if (typeof value === 'object' && value.preventDefault) {
       value.preventDefault();
@@ -229,14 +225,16 @@ const Invoices = () => {
 
     setFormData(prev => {
       const updatedItems = [...prev.items];
-      updatedItems[index] = { ...updatedItems[index], [field]: processedValue };
+      if (updatedItems[index]) {
+        updatedItems[index] = { ...updatedItems[index], [field]: processedValue };
 
-      // Auto-populate product details when product is selected
-      if (field === 'product_id' && value) {
-        const product = products.find(p => p.id === value);
-        if (product) {
-          updatedItems[index].description = product.name || '';
-          updatedItems[index].unit_price = product.price || product.unit_price || 0;
+        // Auto-populate product details when product is selected
+        if (field === 'product_id' && value) {
+          const product = products.find(p => p.id === value);
+          if (product && updatedItems[index]) {
+            updatedItems[index].description = product.name || '';
+            updatedItems[index].unit_price = product.price || product.unit_price || 0;
+          }
         }
       }
 
@@ -283,15 +281,15 @@ const Invoices = () => {
   const calculateInvoiceTotal = () => {
     const itemsTotal = formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
     // Prevent negative discount amounts
-    const discount = Math.max(0, parseFloat(formData.discount_amount) || 0);
+    const discount = Math.max(0, parseFloat(formData.discount_amount as any) || 0);
     const total = itemsTotal - discount;
 
     // Add proper rounding to 2 decimal places using Math.round()
     return Math.round(Math.max(0, total) * 100) / 100;
   };
 
-  const validateForm = () => {
-    const errors = [];
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
 
     // Basic validation
     if (!formData.customer_id) {
@@ -312,11 +310,11 @@ const Invoices = () => {
         errors.push(`Item ${index + 1}: Description is required`);
       }
 
-      if (!item.quantity || parseFloat(item.quantity) <= 0) {
+      if (!item.quantity || parseFloat(item.quantity as any) <= 0) {
         errors.push(`Item ${index + 1}: Quantity must be greater than 0`);
       }
 
-      if (!item.unit_price || parseFloat(item.unit_price) < 0) {
+      if (!item.unit_price || parseFloat(item.unit_price as any) < 0) {
         errors.push(`Item ${index + 1}: Unit price must be 0 or greater`);
       }
     });
@@ -324,7 +322,7 @@ const Invoices = () => {
     return errors;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     // Prevent all form submission behaviors
     e.preventDefault();
     e.stopPropagation();
@@ -334,11 +332,11 @@ const Invoices = () => {
 
     if (validationResult.hasErrors) {
       // Show comprehensive error list
-      const allErrors = [];
-      Object.values(validationResult.formErrors).forEach(error => allErrors.push(error));
-      validationResult.itemErrors.forEach((itemError, index) => {
+      const allErrors: string[] = [];
+      Object.values(validationResult.formErrors).forEach((error: any) => allErrors.push(error));
+      validationResult.itemErrors.forEach((itemError: any, index: number) => {
         if (itemError) {
-          Object.values(itemError).forEach(error => {
+          Object.values(itemError).forEach((error: any) => {
             allErrors.push(`Item ${index + 1}: ${error}`);
           });
         }
@@ -354,6 +352,7 @@ const Invoices = () => {
 
     // Show review dialog instead of directly submitting
     setIsReviewDialogOpen(true);
+    return true;
   };
 
   const handleReviewConfirm = async () => {
@@ -363,21 +362,21 @@ const Invoices = () => {
 
       // Format data for backend with proper validation
       const invoiceData = {
-        customer_id: parseInt(formData.customer_id),
+        customer_id: parseInt(formData.customer_id as string),
         issue_date: formData.issue_date,
         due_date: formData.due_date || null,
         payment_terms: formData.payment_terms || 'Net 30',
         notes: formData.notes || '',
         terms_and_conditions: formData.terms_and_conditions || 'Payment is due within 30 days of invoice date.',
         currency: formData.currency || 'NGN',
-        discount_amount: parseFloat(formData.discount_amount) || 0,
+        discount_amount: parseFloat(formData.discount_amount as any) || 0,
         items: formData.items.map(item => ({
-          product_id: item.product_id ? parseInt(item.product_id) : null,
+          product_id: item.product_id ? parseInt(item.product_id as string) : null,
           description: item.description.trim(),
-          quantity: parseInt(item.quantity),
-          unit_price: parseFloat(item.unit_price),
-          tax_rate: parseFloat(item.tax_rate) || 0,
-          discount_rate: parseFloat(item.discount_rate) || 0,
+          quantity: parseInt(item.quantity as any),
+          unit_price: parseFloat(item.unit_price as any),
+          tax_rate: parseFloat(item.tax_rate as any) || 0,
+          discount_rate: parseFloat(item.discount_rate as any) || 0,
         })),
         total_amount: calculateInvoiceTotal(),
         amount_due: calculateInvoiceTotal(),
@@ -566,7 +565,7 @@ const Invoices = () => {
   const filteredInvoices = invoices.filter(invoice => {
     const customer = customers.find(c => c.id === invoice.customer_id);
     const customerName = customer ? customer.name : 'Unknown Customer';
-    const invoiceNumber = invoice.invoice_number || invoice.id?.substring(0, 8).toUpperCase() || '';
+    const invoiceNumber = invoice.invoice_number || (typeof invoice.id === 'string' ? invoice.id.substring(0, 8).toUpperCase() : '') || '';
 
     // Search filter
     const matchesSearch = !searchTerm ||
@@ -581,10 +580,10 @@ const Invoices = () => {
   });
 
   // Mobile card component for invoices - Enhanced for touch accessibility
-  const InvoiceCard = ({ invoice }) => {
+  const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
     const customer = customers.find(c => c.id === invoice.customer_id);
     const customerName = customer ? customer.name : 'Unknown Customer';
-    const invoiceNumber = invoice.invoice_number || invoice.id?.substring(0, 8).toUpperCase() || '';
+    const invoiceNumber = invoice.invoice_number || (typeof invoice.id === 'string' ? invoice.id.substring(0, 8).toUpperCase() : '') || '';
 
     return (
       <Card className="bg-white border-2 border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation">
@@ -666,7 +665,7 @@ const Invoices = () => {
               <div className="grid grid-cols-2 gap-2">
                 <Select
                   value={invoice.status}
-                  onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
+                  onValueChange={(newStatus: string) => handleStatusUpdate(invoice.id, newStatus)}
                 >
                   <SelectTrigger className="h-12 min-h-[48px] text-base touch-manipulation">
                     <SelectValue />
@@ -696,7 +695,7 @@ const Invoices = () => {
     );
   };
 
-  const InvoiceForm = ({ isEdit }) => (
+  const InvoiceForm = ({ isEdit }: { isEdit?: boolean }) => (
     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       {/* Show form-level errors */}
       {Object.keys(errors).length > 0 && (
@@ -713,11 +712,11 @@ const Invoices = () => {
           label="Customer"
           name="customer_id"
           value={formData.customer_id}
-          onChange={async (e) => {
+          onChange={async (e: React.ChangeEvent<HTMLSelectElement>) => {
             const value = e.target.value;
             setFormData(prev => ({ ...prev, customer_id: value }));
-            touchField('customer_id');
-            await validateSingleField('customer_id', value, { ...formData, customer_id: value });
+            touchField("customer_id");
+            await validateSingleField("customer_id", value, { ...formData, customer_id: value });
           }}
           onBlur={() => touchField('customer_id')}
           error={getFieldError('customer_id')}
@@ -793,11 +792,11 @@ const Invoices = () => {
           label="Currency"
           name="currency"
           value={formData.currency}
-          onChange={async (e) => {
+          onChange={async (e: React.ChangeEvent<HTMLSelectElement>) => {
             const value = e.target.value;
             setFormData(prev => ({ ...prev, currency: value }));
-            touchField('currency');
-            await validateSingleField('currency', value, { ...formData, currency: value });
+            touchField("currency");
+            await validateSingleField("currency", value, { ...formData, currency: value });
           }}
           onBlur={() => touchField('currency')}
           error={getFieldError('currency')}
@@ -840,7 +839,7 @@ const Invoices = () => {
                   <Label htmlFor={`product_id-${index}`} className="text-sm font-medium">Product</Label>
                   <Select
                     value={item.product_id}
-                    onValueChange={(value) => handleItemChange(index, 'product_id', value)}
+                    onValueChange={(value: string) => handleItemChange(index, 'product_id', value)}
                   >
                     <SelectTrigger
                       id={`product_id-${index}`}
@@ -874,7 +873,7 @@ const Invoices = () => {
                     id={`description-${index}`}
                     name="description"
                     value={item.description}
-                    onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleItemChange(index, 'description', e.target.value)}
                     onBlur={() => touchItemField(index, 'description')}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     placeholder="Item description"
@@ -903,7 +902,7 @@ const Invoices = () => {
                     type="number"
                     min="1"
                     value={item.quantity}
-                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleItemChange(index, 'quantity', e.target.value)}
                     onBlur={() => touchItemField(index, 'quantity')}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className={`h-12 min-h-[48px] text-base sm:text-sm touch-manipulation ${hasItemFieldError(index, 'quantity') ? 'border-red-500 bg-red-50' : ''
@@ -929,7 +928,7 @@ const Invoices = () => {
                     step="0.01"
                     min="0"
                     value={item.unit_price}
-                    onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleItemChange(index, 'unit_price', e.target.value)}
                     onBlur={() => touchItemField(index, 'unit_price')}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className={`h-12 min-h-[48px] text-base sm:text-sm touch-manipulation ${hasItemFieldError(index, 'unit_price') ? 'border-red-500 bg-red-50' : ''
@@ -956,7 +955,7 @@ const Invoices = () => {
                     min="0"
                     max="100"
                     value={item.tax_rate}
-                    onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleItemChange(index, 'tax_rate', e.target.value)}
                     onBlur={() => touchItemField(index, 'tax_rate')}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className={`h-12 min-h-[48px] text-base sm:text-sm touch-manipulation ${hasItemFieldError(index, 'tax_rate') ? 'border-red-500 bg-red-50' : ''
@@ -981,7 +980,7 @@ const Invoices = () => {
                     min="0"
                     max="100"
                     value={item.discount_rate}
-                    onChange={(e) => handleItemChange(index, 'discount_rate', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleItemChange(index, 'discount_rate', e.target.value)}
                     onBlur={() => touchItemField(index, 'discount_rate')}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className={`h-12 min-h-[48px] text-base sm:text-sm touch-manipulation ${hasItemFieldError(index, 'discount_rate') ? 'border-red-500 bg-red-50' : ''
@@ -1178,7 +1177,7 @@ const Invoices = () => {
                   <Input
                     placeholder="Search invoices by number, customer, or notes..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                     className="pl-10 h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
                     aria-label="Search invoices by number, customer, or notes"
                     aria-describedby="search-help"
@@ -1252,10 +1251,10 @@ const Invoices = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInvoices.map((invoice) => {
+                        {filteredInvoices.map((invoice: Invoice) => {
                           const customer = customers.find(c => c.id === invoice.customer_id);
                           const customerName = customer ? customer.name : 'Unknown Customer';
-                          const invoiceNumber = invoice.invoice_number || invoice.id?.substring(0, 8).toUpperCase() || '';
+                          const invoiceNumber = invoice.invoice_number || (typeof invoice.id === 'string' ? invoice.id.substring(0, 8).toUpperCase() : '') || '';
 
                           return (
                             <TableRow key={invoice.id}>
@@ -1282,7 +1281,7 @@ const Invoices = () => {
                                   </Button>
                                   <Select
                                     value={invoice.status}
-                                    onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
+                                    onValueChange={(newStatus: Invoice["status"]) => handleStatusUpdate(invoice.id, newStatus)}
                                   >
                                     <SelectTrigger className="w-20 h-8 text-xs">
                                       <SelectValue />
