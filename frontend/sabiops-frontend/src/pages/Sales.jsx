@@ -118,12 +118,16 @@ const Sales = () => {
       
       console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
       
+      // Force a re-render by updating a dummy state
+      setError(''); // Clear any previous errors
+      
       // Log if no products found for dropdown
       if (productsArray.length === 0) {
         console.warn('[SalesPage] No products available for sales dropdown');
         DebugLogger.logDropdownIssue('SalesPage', [], null, 'No products available for sales dropdown');
       } else {
         console.log('[SalesPage] Products available:', productsArray.map(p => ({ id: p.id, name: p.name, price: p.price || p.unit_price })));
+        console.log('[SalesPage] First product example:', productsArray[0]);
       }
       
     } catch (error) {
@@ -456,6 +460,11 @@ const Sales = () => {
                   {/* Debug info for products */}
                   <div className="text-xs text-gray-500 mb-2">
                     Products loaded: {products.length} | Status: {products.length > 0 ? 'Available' : 'Loading...'}
+                    {products.length > 0 && (
+                      <div className="mt-1">
+                        Products: {products.map(p => p.name).join(', ')}
+                      </div>
+                    )}
                   </div>
                   
                   <Select 

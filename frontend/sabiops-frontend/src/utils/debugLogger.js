@@ -46,6 +46,45 @@ export class DebugLogger {
   }
 
   /**
+   * Logs dropdown events for debugging dropdown issues
+   * @param {string} component - Component name
+   * @param {string} event - Event type (loaded, selected, etc.)
+   * @param {Array} items - Items in dropdown
+   * @param {*} selectedValue - Selected value
+   */
+  static logDropdownEvent(component, event, items, selectedValue) {
+    if (!this.isEnabled) return;
+    
+    console.group(`🔽 [${component}] Dropdown ${event}`);
+    console.log('📋 Items:', items);
+    console.log('📋 Items Count:', Array.isArray(items) ? items.length : 'Not an array');
+    if (selectedValue !== null && selectedValue !== undefined) {
+      console.log('🎯 Selected Value:', selectedValue);
+    }
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.groupEnd();
+  }
+
+  /**
+   * Logs dropdown issues for debugging
+   * @param {string} component - Component name
+   * @param {Array} items - Items that should be in dropdown
+   * @param {*} selectedValue - Value that was selected
+   * @param {string} issue - Description of the issue
+   */
+  static logDropdownIssue(component, items, selectedValue, issue) {
+    if (!this.isEnabled) return;
+    
+    console.group(`⚠️ [${component}] Dropdown Issue: ${issue}`);
+    console.log('📋 Items:', items);
+    console.log('📋 Items Count:', Array.isArray(items) ? items.length : 'Not an array');
+    console.log('🎯 Selected Value:', selectedValue);
+    console.log('❌ Issue:', issue);
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.groupEnd();
+  }
+
+  /**
    * Logs API errors with detailed information
    * @param {string} endpoint - API endpoint
    * @param {Error} error - Error object
