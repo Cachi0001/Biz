@@ -384,6 +384,97 @@ export const safeArrayExtract = (data, key = null, fallback = []) => {
   }
 };
 
+/**
+ * Shows success toast notification
+ * @param {string} message - Success message to display
+ */
+export const showToast = (message, type = 'success') => {
+  // Try to use react-hot-toast if available
+  if (typeof window !== 'undefined' && window.toast) {
+    if (type === 'success') {
+      window.toast.success(message);
+    } else if (type === 'error') {
+      window.toast.error(message);
+    } else {
+      window.toast(message);
+    }
+  } else {
+    // Fallback to console
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  }
+};
+
+/**
+ * Shows success toast notification
+ * @param {string} message - Success message to display
+ */
+export const showSuccessToast = (message) => {
+  showToast(message, 'success');
+};
+
+/**
+ * Shows error toast notification
+ * @param {string} message - Error message to display
+ */
+export const showErrorToast = (message) => {
+  showToast(message, 'error');
+};
+
+/**
+ * Handles API errors and shows toast notification
+ * @param {Error} error - The API error
+ * @param {string} defaultMessage - Default error message
+ * @param {boolean} showToastNotification - Whether to show toast
+ * @returns {string} - Error message
+ */
+export const handleApiError = (error, defaultMessage = 'An error occurred', showToastNotification = true) => {
+  let errorMessage = defaultMessage;
+  
+  if (error.response?.data?.message) {
+    errorMessage = error.response.data.message;
+  } else if (error.message) {
+    errorMessage = error.message;
+  }
+  
+  console.error('API Error:', error);
+  
+  if (showToastNotification) {
+    showErrorToast(errorMessage);
+  }
+  
+  return errorMessage;
+};
+
+/**
+ * Handles API errors with toast notification
+ * @param {Error} error - The API error
+ * @param {string} defaultMessage - Default error message
+ * @returns {string} - Error message
+ */
+export const handleApiErrorWithToast = (error, defaultMessage = 'An error occurred') => {
+  return handleApiError(error, defaultMessage, true);
+};
+
+/**
+ * Validates form data with basic rules
+ * @param {Object} data - Form data to validate
+ * @param {Object} rules - Validation rules
+ * @returns {Object} - Validation errors
+ */
+export const validateFormData = (data, rules) => {
+  return validateFormDataEnhanced(data, rules);
+};
+
+/**
+ * Safe array helper function
+ * @param {*} data - Data to convert to array
+ * @param {Array} fallback - Fallback array
+ * @returns {Array} - Safe array
+ */
+export const safeArray = (data, fallback = []) => {
+  return safeArrayExtract(data, null, fallback);
+};
+
 export default {
   handleFocusError,
   handleApiDisplayError,
@@ -391,5 +482,12 @@ export default {
   handleDropdownError,
   createRetryMechanism,
   validateFormDataEnhanced,
-  safeArrayExtract
+  safeArrayExtract,
+  showToast,
+  showSuccessToast,
+  showErrorToast,
+  handleApiError,
+  handleApiErrorWithToast,
+  validateFormData,
+  safeArray
 };
