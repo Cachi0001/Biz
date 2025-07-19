@@ -2,7 +2,7 @@
  * Enhanced API error handler with specific error messages and suggested actions
  */
 import { getApiErrorMessage, ERROR_MESSAGES } from './validationService';
-import { showErrorToast, showWarningToast, retryApiCall } from '../utils/errorHandling';
+import { showErrorToast, showSuccessToast, showToast } from '../utils/errorHandling';
 
 /**
  * Enhanced API error handler with specific error types and suggested actions
@@ -177,12 +177,12 @@ export class ApiErrorHandler {
       case 'network':
       case 'timeout':
         if (enableRetry && onRetry) {
-          showWarningToast(`${message} Click to retry.`, {
+          showToast(`${message} Click to retry.`, {
             ...notificationOptions,
             onClick: onRetry
           });
         } else {
-          showWarningToast(message, notificationOptions);
+          showToast(message, notificationOptions);
         }
         break;
       

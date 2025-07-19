@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import BackButton from '@/components/ui/BackButton';
+import SimpleStableInput from '../components/ui/SimpleStableInput';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,6 @@ import { get, post } from "../services/api";
 import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validateSaleData } from "../services/enhancedApi";
 import { recordPayment } from "../services/api";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
-import BulletproofInput from '../components/ui/BulletproofInput';
 import DebugLogger from '../utils/debugLogger';
 import { handleApiErrorWithToast, showErrorToast } from '../utils/errorHandling';
 import notificationService from '../services/notificationService';
@@ -583,7 +583,7 @@ const Sales = () => {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                          <BulletproofInput
+                          <SimpleStableInput
                             id="quantity"
                             type="number"
                             min="1"
@@ -598,7 +598,7 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                          <BulletproofInput
+                          <SimpleStableInput
                             id="unit_price"
                             type="number"
                             step="0.01"
@@ -614,7 +614,7 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label className="text-base">Total Amount</Label>
-                          <BulletproofInput
+                          <SimpleStableInput
                             value={formatNaira(formData.total_amount)}
                             disabled
                             className="font-bold text-green-600 h-12 text-base"
@@ -649,7 +649,7 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="date" className="text-base">Sale Date</Label>
-                          <BulletproofInput
+                          <SimpleStableInput
                             id="date"
                             type="date"
                             value={formData.date}
@@ -762,7 +762,7 @@ const Sales = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <BulletproofInput
+                      <SimpleStableInput
                         placeholder="Search by sale number or customer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -773,7 +773,7 @@ const Sales = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <BulletproofInput
+                    <SimpleStableInput
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}

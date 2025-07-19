@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
-import BulletproofInput from '../components/ui/BulletproofInput';
+import SimpleStableInput from '../components/ui/SimpleStableInput';
 import DebugLogger from '../utils/debugLogger';
 import {
   Dialog,
@@ -316,7 +316,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="name"
             name="name"
             value={formData.name}
@@ -331,7 +331,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="sku"
             name="sku"
             value={formData.sku}
@@ -379,7 +379,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="price"
             name="price"
             type="number"
@@ -396,7 +396,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -414,7 +414,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="quantity"
             name="quantity"
             type="number"
@@ -430,7 +430,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <BulletproofInput
+          <SimpleStableInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -451,7 +451,7 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <BulletproofInput
+        <SimpleStableInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
@@ -563,7 +563,7 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <BulletproofInput
+                    <SimpleStableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}

@@ -18,7 +18,8 @@ import {
 } from '../utils/errorHandling';
 import { formatNaira } from '../utils/formatting';
 import BackButton from '../components/ui/BackButton';
-import BulletproofInput from '../components/ui/BulletproofInput';
+import SimpleStableInput from '../components/ui/SimpleStableInput';
+import DebugLogger from '../utils/debugLogger';
 
 const Customers = () => {
   // State management
@@ -374,7 +375,7 @@ const Customers = () => {
               <div className="space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <BulletproofInput
+                  <SimpleStableInput
                     placeholder="Search customers by name, email, business, phone, or address..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}

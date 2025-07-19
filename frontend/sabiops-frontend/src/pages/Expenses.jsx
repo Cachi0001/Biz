@@ -14,7 +14,7 @@ import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formattin
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
-import BulletproofInput from '../components/ui/BulletproofInput';
+import SimpleStableInput from '../components/ui/SimpleStableInput';
 import DebugLogger from '../utils/debugLogger';
 import BackButton from '../components/ui/BackButton';
 
@@ -86,7 +86,10 @@ const Expenses = () => {
       
       const normalizedData = await enhancedGetExpenses();
       
-      DebugLogger.logDataDisplay('ExpensesPage', 'expenses', normalizedData.expenses, null);
+      // Log expenses data for debugging
+      if (normalizedData.expenses) {
+        console.log('[ExpensesPage] Expenses loaded:', normalizedData.expenses.length, 'items');
+      }
       
       setExpenses(normalizedData.expenses || []);
       setSummary(normalizedData.summary || {
@@ -482,7 +485,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="amount">Amount (₦) *</Label>
-                    <BulletproofInput
+                    <SimpleStableInput
                       id="amount"
                       type="number"
                       step="0.01"
@@ -501,7 +504,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="description">Description</Label>
-                    <BulletproofInput
+                    <SimpleStableInput
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -534,7 +537,7 @@ const Expenses = () => {
                     </div>
                     <div>
                       <Label htmlFor="date">Expense Date *</Label>
-                      <BulletproofInput
+                      <SimpleStableInput
                         id="date"
                         type="date"
                         value={formData.date}
@@ -548,7 +551,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="receipt_url">Receipt URL</Label>
-                    <BulletproofInput
+                    <SimpleStableInput
                       id="receipt_url"
                       value={formData.receipt_url}
                       onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
@@ -585,7 +588,7 @@ const Expenses = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <BulletproofInput
+                      <SimpleStableInput
                         placeholder="Search expenses by category, subcategory, or description..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -642,7 +645,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-start-date">Start Date</Label>
-                    <BulletproofInput
+                    <SimpleStableInput
                       id="filter-start-date"
                       type="date"
                       value={dateRange.start}
@@ -654,7 +657,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-end-date">End Date</Label>
-                    <BulletproofInput
+                    <SimpleStableInput
                       id="filter-end-date"
                       type="date"
                       value={dateRange.end}
