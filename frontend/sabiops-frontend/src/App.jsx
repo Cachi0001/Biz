@@ -7,7 +7,7 @@ import { NotificationProvider, useNotification } from './contexts/NotificationCo
 import ErrorBoundary from './components/ErrorBoundary';
 import { Card, CardContent } from './components/ui/card';
 import ScriptErrorIsolation from './utils/scriptErrorIsolation';
-import PageReloadPrevention from './utils/pageReloadPrevention';
+// import PageReloadPrevention from './utils/pageReloadPrevention'; // Auto-initializes itself
 import ErrorRecoverySystem from './utils/errorRecoverySystem';
 
 // Pages
@@ -63,7 +63,7 @@ function App() {
   // Initialize error handling and stability systems on app startup
   useEffect(() => {
     ScriptErrorIsolation.init();
-    PageReloadPrevention.init();
+    // PageReloadPrevention.init(); // Already auto-initialized when module loads
     ErrorRecoverySystem.init();
     console.log('[App] Comprehensive error handling and stability systems initialized');
   }, []);

@@ -189,19 +189,31 @@ export class PageReloadPrevention {
    * Prevent script errors from causing reloads
    */
   static preventScriptReloads() {
-    // Override location.reload
-    const originalReload = window.location.reload;
-    window.location.reload = function(forcedReload) {
-      console.warn('[PageReloadPrevention] Reload attempt intercepted');
+    // Override location.reload safely
+    try {
+      const originalReload = window.location.reload;
       
-      // Allow reload if explicitly forced or if there are critical errors
-      if (forcedReload || PageReloadPrevention.shouldAllowReload()) {
-        console.log('[PageReloadPrevention] Allowing reload');
-        originalReload.call(window.location, forcedReload);
-      } else {
-        console.log('[PageReloadPrevention] Reload prevented');
-      }
-    };
+      // Use Object.defineProperty to safely override the reload method
+      Object.defineProperty(window.location, 'reload', {
+        value: function(forcedReload) {
+          console.warn('[PageReloadPrevention] Reload attempt intercepted');
+          
+          // Allow reload if explicitly forced or if there are critical errors
+          if (forcedReload || PageReloadPrevention.shouldAllowReload()) {
+            console.log('[PageReloadPrevention] Allowing reload');
+            originalReload.call(window.location, forcedReload);
+          } else {
+            console.log('[PageReloadPrevention] Reload prevented');
+            PageReloadPrevention.reloadAttempts++;
+          }
+        },
+        writable: true,
+        configurable: true
+      });
+    } catch (error) {
+      // If we can't override reload, just log and continue
+      console.warn('[PageReloadPrevention] Could not override location.reload:', error.message);
+    }
 
     // Monitor for programmatic navigation that might cause reloads
     const originalAssign = window.location.assign;
@@ -329,9 +341,13 @@ export class PageReloadPrevention {
   }
 }
 
-// Auto-initialize when module loads
+// Auto-initialize when module loads (but safely)
 if (typeof window !== 'undefined') {
-  PageReloadPrevention.init();
+  try {
+    PageReloadPrevention.init();
+  } catch (error) {
+    console.warn('[PageReloadPrevention] Failed to initialize:', error.message);
+  }
 }
 
 export default PageReloadPrevention;
