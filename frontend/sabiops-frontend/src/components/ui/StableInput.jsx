@@ -1,6 +1,14 @@
 import React, { useRef, useCallback, useEffect, memo } from 'react';
-import { debounce } from 'lodash';
 import { Input } from './input';
+
+// Simple debounce implementation without lodash
+const simpleDebounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
 
 const StableInput = ({ value, onChange, type = 'text', name, className, placeholder, ...props }) => {
   const inputRef = useRef(null);
@@ -143,9 +151,9 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
     e.stopPropagation();
   }, [name]);
 
-  // Enhanced debounced onChange
+  // Enhanced debounced onChange using simple debounce
   const debouncedOnChange = useCallback(
-    debounce((e) => {
+    simpleDebounce((e) => {
       console.log(`⏱️ StableInput (${name}) DEBOUNCED onChange`, {
         timestamp: new Date().toISOString(),
         value: e.target.value,
