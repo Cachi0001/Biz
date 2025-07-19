@@ -3,6 +3,7 @@ import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import FocusStableInput from '../components/ui/FocusStableInput';
+import UltraStableInput from '../components/ui/UltraStableInput';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
@@ -906,7 +907,7 @@ const Invoices = () => {
                   <Label htmlFor={`description-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'description') ? 'text-red-700' : ''}`}>
                     Description *
                   </Label>
-                  <FocusStableInput
+                  <UltraStableInput
                     id={`description-${index}`}
                     name="description"
                     value={item.description}
@@ -933,7 +934,7 @@ const Invoices = () => {
                   <Label htmlFor={`quantity-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'quantity') ? 'text-red-700' : ''}`}>
                     Qty *
                   </Label>
-                  <FocusStableInput
+                  <UltraStableInput
                     id={`quantity-${index}`}
                     name="quantity"
                     type="number"
@@ -958,7 +959,7 @@ const Invoices = () => {
                   <Label htmlFor={`unit_price-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'unit_price') ? 'text-red-700' : ''}`}>
                     Unit Price (₦) *
                   </Label>
-                  <FocusStableInput
+                  <UltraStableInput
                     id={`unit_price-${index}`}
                     name="unit_price"
                     type="number"

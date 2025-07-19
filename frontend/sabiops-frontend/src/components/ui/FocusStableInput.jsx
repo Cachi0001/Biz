@@ -18,36 +18,16 @@ const FocusStableInput = React.forwardRef(({
 }, ref) => {
   const inputRef = useRef(null);
   const finalRef = ref || inputRef;
-  const lastValueRef = useRef(value);
   const isFocusedRef = useRef(false);
+  const cursorPositionRef = useRef(0);
 
-  // Stable change handler that doesn't cause re-renders
   const handleChange = useCallback((e) => {
-    const newValue = e.target.value;
-    const cursorPosition = e.target.selectionStart;
-    
-    // Store the cursor position before calling onChange
-    const restoreCursor = () => {
-      if (finalRef.current && isFocusedRef.current && document.activeElement === finalRef.current) {
-        try {
-          finalRef.current.setSelectionRange(cursorPosition, cursorPosition);
-        } catch (error) {
-          // Ignore errors in case the input is not focusable
-        }
-      }
-    };
-
-    // Call the onChange handler
+    // Store cursor position before state update
+    cursorPositionRef.current = e.target.selectionStart;
     if (onChange) {
       onChange(e);
     }
-    
-    // Update our ref
-    lastValueRef.current = newValue;
-    
-    // Restore cursor position after React updates
-    requestAnimationFrame(restoreCursor);
-  }, [onChange, finalRef]);
+  }, [onChange]);
 
   const handleFocus = useCallback((e) => {
     isFocusedRef.current = true;
@@ -69,50 +49,40 @@ const FocusStableInput = React.forwardRef(({
       e.preventDefault();
       e.stopPropagation();
     }
-    
     if (onKeyDown) {
       onKeyDown(e);
     }
   }, [onKeyDown]);
 
-  // Prevent parent elements from stealing focus
-  const handleMouseDown = useCallback((e) => {
-    // Only prevent default if the input is already focused
-    if (isFocusedRef.current && document.activeElement === finalRef.current) {
-      e.stopPropagation();
-    }
-  }, [finalRef]);
-
-  // Effect to maintain focus stability
+  // Effect to restore focus and cursor position after re-renders
   useEffect(() => {
-    if (finalRef.current && isFocusedRef.current && document.activeElement !== finalRef.current) {
-      // Re-focus if we lost focus unexpectedly
+    if (isFocusedRef.current && finalRef.current && document.activeElement !== finalRef.current) {
+      // Attempt to re-focus the input
       finalRef.current.focus();
+      // Restore cursor position if possible
+      if (typeof finalRef.current.setSelectionRange === 'function') {
+        finalRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
+      }
     }
-  }, [value, finalRef]);
+  }); // No dependency array to run on every re-render
 
   return (
-    <div 
-      onMouseDown={handleMouseDown}
-      style={{ pointerEvents: isFocusedRef.current ? 'auto' : 'auto' }}
-    >
-      <Input
-        ref={finalRef}
-        type={type}
-        value={value || ''}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        className={cn(
-          "min-h-[44px] touch-manipulation",
-          "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-          className
-        )}
-        {...props}
-      />
-    </div>
+    <Input
+      ref={finalRef}
+      type={type}
+      value={value || ''}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={cn(
+        "min-h-[44px] touch-manipulation",
+        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        className
+      )}
+      {...props}
+    />
   );
 });
 
