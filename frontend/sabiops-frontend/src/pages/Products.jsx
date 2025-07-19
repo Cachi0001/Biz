@@ -329,21 +329,20 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <StableInput
+          <SimpleFocusInput
             id="sku"
             name="sku"
             value={formData.sku}
             onChange={handleInputChange}
             placeholder="Product SKU (optional)"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-SKU"
           />
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-base">Description</Label>
-        <StableInput
+        <SimpleFocusInput
           id="description"
           name="description"
           value={formData.description}
@@ -352,7 +351,6 @@ const Products = () => {
           rows={3}
           className="text-base touch-manipulation min-h-[96px]"
           component="textarea"
-          componentName="ProductForm-Description"
         />
       </div>
 
@@ -380,7 +378,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <StableInput
+          <SimpleFocusInput
             id="price"
             name="price"
             type="number"
@@ -390,13 +388,12 @@ const Products = () => {
             placeholder="0.00"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Price"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <StableInput
+          <SimpleFocusInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -405,7 +402,6 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0.00"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-CostPrice"
           />
         </div>
       </div>
