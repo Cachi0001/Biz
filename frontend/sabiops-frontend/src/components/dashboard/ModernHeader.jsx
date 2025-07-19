@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { NotificationCenter } from '../notifications/NotificationCenter';
-import { NotificationBell } from '../notifications/NotificationBell';
+import NotificationBell from '../ui/NotificationBell';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '../ui/sheet';
 import FirebaseService from '../../services/FirebaseService';
 import {
@@ -296,22 +296,9 @@ const ModernHeader = () => {
               </Button>
             </div>
 
-            {/* Notifications - Moved to main header */}
+            {/* Notifications - Enhanced NotificationBell */}
             <div className="relative">
-              <NotificationBell
-                unreadCount={unreadCount}
-                onClick={handleNotificationClick}
-                className="text-white hover:bg-green-600"
-              />
-              
-              {/* Notification Center */}
-              <NotificationCenter
-                isOpen={showNotifications}
-                onClose={() => setShowNotifications(false)}
-                notifications={notifications}
-                onMarkAsRead={handleMarkAsRead}
-                onMarkAllAsRead={handleMarkAllAsRead}
-              />
+              <NotificationBell />
             </div>
 
             {/* Trial Indicator */}

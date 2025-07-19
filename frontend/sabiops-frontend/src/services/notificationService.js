@@ -82,6 +82,35 @@ class NotificationService {
       duration: 6000,
       icon: '💰'
     });
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'sale',
+      title: 'Sale Recorded',
+      message: `₦${amount.toLocaleString()} from ${customerName || 'Walk-in Customer'}`,
+      action_url: '/sales',
+      data: { amount, customerName }
+    });
+  }
+
+  showSaleSuccess(saleData) {
+    const message = `Sale of ₦${saleData.total_amount.toLocaleString()} recorded successfully!`;
+    
+    // Show toast notification
+    this.showToast(message, 'success', {
+      duration: 5000,
+      icon: '💰'
+    });
+    
+    // Add to notification bell
+    this.addNotification({
+      type: 'sale',
+      title: 'Sale Recorded',
+      message: `₦${saleData.total_amount.toLocaleString()} from ${saleData.customer_name || 'Walk-in Customer'}`,
+      timestamp: new Date().toISOString(),
+      action_url: '/sales',
+      data: saleData
+    });
   }
 
   showLowStockAlert(productName, quantity) {
@@ -93,6 +122,15 @@ class NotificationService {
         icon: '📦'
       }
     );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'low_stock',
+      title: 'Low Stock Alert',
+      message: `${productName} - ${quantity} items remaining`,
+      action_url: '/products',
+      data: { productName, quantity }
+    });
   }
 
   showPaymentReceived(invoiceNumber, amount) {
@@ -104,6 +142,15 @@ class NotificationService {
         icon: '💳'
       }
     );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'payment',
+      title: 'Payment Received',
+      message: `₦${amount.toLocaleString()} for ${invoiceNumber}`,
+      action_url: '/payments',
+      data: { invoiceNumber, amount }
+    });
   }
 
   showTrialReminder(daysLeft) {
@@ -305,6 +352,45 @@ class NotificationService {
       default:
         this.showToast(`${title}: ${message}`, type || 'info');
     }
+  }
+
+  // Add notification to the bell
+  addNotification(notification) {
+    const newNotification = {
+      id: Date.now() + Math.random(),
+      read: false,
+      timestamp: new Date().toISOString(),
+      ...notification
+    };
+
+    this.notifications.unshift(newNotification);
+    this.unreadCount++;
+
+    // Keep only last 50 notifications
+    if (this.notifications.length > 50) {
+      this.notifications = this.notifications.slice(0, 50);
+    }
+
+    this.notifyListeners();
+    return newNotification;
+  }
+
+  // Remove notification
+  removeNotification(notificationId) {
+    const notification = this.notifications.find(n => n.id === notificationId);
+    if (notification && !notification.read) {
+      this.unreadCount--;
+    }
+    
+    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+    this.notifyListeners();
+  }
+
+  // Clear all notifications
+  clearAllNotifications() {
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.notifyListeners();
   }
 
   // Listener management for components

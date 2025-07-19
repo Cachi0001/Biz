@@ -144,6 +144,116 @@ export class FocusManager {
   }
 
   /**
+   * Creates stable input props to prevent focus loss
+   * @param {Object} props - Original input props
+   * @returns {Object} - Enhanced props with focus stability
+   */
+  static createStableInput(props) {
+    return {
+      ...props,
+      onFocus: (e) => {
+        e.target.dataset.focused = 'true';
+        e.target.dataset.focusTime = Date.now().toString();
+        this.logFocusEvent(props.componentName || 'Input', 'focus', e.target);
+        props.onFocus?.(e);
+      },
+      onBlur: (e) => {
+        const focusTime = parseInt(e.target.dataset.focusTime || '0');
+        const now = Date.now();
+        
+        // Only blur if focus was held for more than 100ms (prevents accidental blur)
+        if (now - focusTime > 100) {
+          setTimeout(() => {
+            if (e.target.dataset.focused === 'true') {
+              e.target.dataset.focused = 'false';
+              this.logFocusEvent(props.componentName || 'Input', 'blur', e.target);
+              props.onBlur?.(e);
+            }
+          }, 50);
+        }
+      },
+      onChange: this.createStableOnChange(props.onChange),
+      onMouseDown: (e) => {
+        // Prevent focus loss on mouse interactions
+        if (e.target.focus && e.target.dataset.focused !== 'true') {
+          e.target.focus();
+        }
+        props.onMouseDown?.(e);
+      }
+    };
+  }
+
+  /**
+   * Prevents focus loss during callback execution
+   * @param {Function} callback - Function to execute
+   */
+  static preventFocusLoss(callback) {
+    const activeElement = document.activeElement;
+    const wasInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' || 
+      activeElement.tagName === 'TEXTAREA' || 
+      activeElement.contentEditable === 'true'
+    );
+    
+    if (wasInputFocused) {
+      this.preserveFocus(callback);
+    } else {
+      callback();
+    }
+  }
+
+  /**
+   * Handles form submission while preserving focus
+   * @param {HTMLElement} formElement - Form element
+   * @param {Function} callback - Submit callback
+   */
+  static handleFormSubmit(formElement, callback) {
+    const activeElement = document.activeElement;
+    
+    this.preventFocusLoss(() => {
+      callback();
+      
+      // After submission, restore focus to first input if no element is focused
+      setTimeout(() => {
+        if (!document.activeElement || document.activeElement === document.body) {
+          const firstInput = formElement?.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])');
+          if (firstInput && firstInput.focus) {
+            firstInput.focus();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  /**
+   * Creates mobile-friendly input props
+   * @param {Object} props - Original input props
+   * @returns {Object} - Enhanced props for mobile
+   */
+  static createMobileFriendlyInput(props) {
+    return {
+      ...this.createStableInput(props),
+      onTouchStart: (e) => {
+        // Prevent iOS zoom on input focus
+        if (e.target.tagName === 'INPUT' && e.target.type !== 'range') {
+          const originalFontSize = e.target.style.fontSize;
+          e.target.style.fontSize = '16px';
+          e.target.dataset.originalFontSize = originalFontSize;
+        }
+        props.onTouchStart?.(e);
+      },
+      onTouchEnd: (e) => {
+        // Restore original font size
+        if (e.target.dataset.originalFontSize !== undefined) {
+          e.target.style.fontSize = e.target.dataset.originalFontSize;
+          delete e.target.dataset.originalFontSize;
+        }
+        props.onTouchEnd?.(e);
+      }
+    };
+  }
+
+  /**
    * Logs focus events for debugging
    * @param {string} component - Component name
    * @param {string} event - Event type

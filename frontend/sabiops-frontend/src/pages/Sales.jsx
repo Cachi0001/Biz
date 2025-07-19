@@ -37,8 +37,11 @@ import { recordPayment } from "../services/api";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
 import StableInput from '../components/ui/StableInput';
 import FocusStableInput from '../components/ui/FocusStableInput';
+import EnhancedStableInput from '../components/ui/EnhancedStableInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
+import ErrorHandler from '../utils/errorHandler';
+import notificationService from '../services/notificationService';
 import { formatNaira, formatDateTime, formatDate, formatPaymentMethod } from '../utils/formatting';
 
 const Sales = () => {
@@ -279,111 +282,83 @@ const Sales = () => {
     // Use enhanced validation
     const errors = validateSaleData(formData);
     if (Object.keys(errors).length > 0) {
-      const errorMessage = Object.values(errors)[0];
-      setError(errorMessage);
+      ErrorHandler.handleFormValidation(errors, 'Sales Form');
+      setError(Object.values(errors)[0]);
       return;
     }
 
-    try {
-      setSubmitting(true);
-      setError('');
+    // Use FocusManager for form submission
+    FocusManager.handleFormSubmit(e.target, async () => {
+      try {
+        setSubmitting(true);
+        setError('');
 
-      // Prepare sale data according to backend API format (sale_items array)
-      const selectedProduct = products.find(p => p.id == formData.product_id);
-      const saleData = {
-        customer_id: formData.customer_id || null,
-        payment_method: formData.payment_method,
-        payment_status: 'completed',
-        discount_amount: 0,
-        tax_amount: 0,
-        notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
-        salesperson_id: formData.salesperson_id || null,
-        sale_items: [
-          {
-            product_id: formData.product_id,
-            product_name: selectedProduct?.name || 'Unknown Product',
-            product_sku: selectedProduct?.sku || '',
-            quantity: parseInt(formData.quantity),
-            unit_price: parseFloat(formData.unit_price),
-            discount_percentage: 0,
-            discount_amount: 0,
-            tax_percentage: 0,
-            tax_amount: 0,
-            total_amount: parseFloat(formData.total_amount)
+        // Prepare sale data with proper structure
+        const selectedProduct = products.find(p => p.id == formData.product_id);
+        const selectedCustomer = customers.find(c => c.id == formData.customer_id);
+        
+        const saleData = {
+          product_id: formData.product_id,
+          customer_id: formData.customer_id || null,
+          customer_name: formData.customer_name || selectedCustomer?.name || 'Walk-in Customer',
+          customer_email: selectedCustomer?.email || null,
+          quantity: parseInt(formData.quantity),
+          unit_price: parseFloat(formData.unit_price),
+          total_amount: parseFloat(formData.total_amount),
+          payment_method: formData.payment_method,
+          payment_status: formData.payment_method === 'pending' ? 'pending' : 'completed',
+          currency: 'NGN',
+          date: formData.date,
+          salesperson_id: formData.salesperson_id || null,
+          notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
+          discount_amount: 0,
+          tax_amount: 0
+        };
+
+        DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
+
+        // Create the sale using enhanced API
+        const saleResponse = await enhancedCreateSale(saleData);
+
+        // Show success notification
+        notificationService.showSaleSuccess({
+          total_amount: saleData.total_amount,
+          customer_name: saleData.customer_name,
+          product_name: selectedProduct?.name || 'Unknown Product'
+        });
+
+        // Reset form and close dialog
+        setShowAddDialog(false);
+        resetForm();
+
+        // Refresh all data immediately
+        await Promise.all([
+          fetchSales(),
+          fetchSalesStats()
+        ]);
+
+        // Dispatch events to update other parts of the application
+        window.dispatchEvent(new CustomEvent('salesUpdated', {
+          detail: {
+            sale: saleResponse,
+            timestamp: new Date().toISOString()
           }
-        ]
-      };
+        }));
 
-      DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
-
-      // Create the sale first
-      const saleResponse = await enhancedCreateSale(saleData);
-
-      // If payment method is provided and not 'pending', create a payment record
-      if (saleData.payment_method && saleData.payment_method !== 'pending') {
-        try {
-          const paymentData = {
-            customer_name: saleData.customer_name || 'Walk-in Customer',
-            customer_email: saleData.customer_id ? customers.find(c => c.id == saleData.customer_id)?.email : null,
-            amount: saleData.total_amount,
-            payment_method: saleData.payment_method,
-            payment_date: saleData.date,
-            reference_number: `SALE-${saleResponse?.data?.id || Date.now()}`,
-            notes: `Payment for sale ID: ${saleResponse?.data?.id || 'Unknown'} - ${saleData.customer_name || 'Walk-in Customer'}`,
-            description: `Sale payment for ${saleData.customer_name || 'Walk-in Customer'}`,
-            status: 'completed'
-          };
-
-          const paymentResponse = await recordPayment(paymentData);
-          DebugLogger.logFormSubmit('SalesPage', { paymentData, paymentResponse }, 'payment-recorded');
-          console.log('[SalesPage] Payment recorded successfully:', paymentResponse);
-        } catch (paymentError) {
-          // Don't fail the sale if payment recording fails, just log it
-          DebugLogger.logApiError('/payments', paymentError, 'SalesPage-PaymentRecord');
-          console.error('Sale created but payment recording failed:', paymentError);
-          
-          // Show a warning but don't block the success flow
-          showSuccessToast('Sale recorded successfully, but payment recording had issues. Please check payments section.');
-          return; // Exit early to avoid duplicate success message
+      } catch (error) {
+        const errorInfo = ErrorHandler.handleError(error, 'Sales Creation');
+        setError(errorInfo.userMessage);
+        
+        // Show specific error for common issues
+        if (error.response?.data?.error?.includes('product_id')) {
+          setError('Please select a product before creating the sale');
+        } else if (error.response?.data?.error?.includes('quantity')) {
+          setError('Please enter a valid quantity greater than 0');
         }
+      } finally {
+        setSubmitting(false);
       }
-
-      if (saleData.payment_method && saleData.payment_method !== 'pending') {
-        showSuccessToast('Sale and payment recorded successfully!');
-      } else {
-        showSuccessToast('Sale recorded successfully!');
-      }
-      setShowAddDialog(false);
-      resetForm();
-
-      // Refresh all data immediately
-      await Promise.all([
-        fetchSales(),
-        fetchSalesStats()
-      ]);
-
-      // Dispatch events to update other parts of the application
-      window.dispatchEvent(new CustomEvent('salesUpdated', {
-        detail: {
-          sale: saleResponse,
-          timestamp: new Date().toISOString()
-        }
-      }));
-
-      // Also dispatch a general data update event
-      window.dispatchEvent(new CustomEvent('dataUpdated', {
-        detail: {
-          type: 'sale',
-          data: saleResponse,
-          timestamp: new Date().toISOString()
-        }
-      }));
-    } catch (error) {
-      const errorMessage = handleApiError(error, 'Failed to create sale');
-      setError(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   const downloadReport = async () => {
@@ -601,7 +576,7 @@ const Sales = () => {
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                        <FocusStableInput
+                        <EnhancedStableInput
                           id="quantity"
                           type="number"
                           min="1"
@@ -609,12 +584,14 @@ const Sales = () => {
                           onChange={(e) => handleQuantityChange(e.target.value)}
                           placeholder="1"
                           className="h-12 text-base touch-manipulation"
+                          componentName="SalesPage-Quantity"
+                          mobileOptimized={true}
                         />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                        <FocusStableInput
+                        <EnhancedStableInput
                           id="unit_price"
                           type="number"
                           step="0.01"
@@ -623,6 +600,8 @@ const Sales = () => {
                           onChange={(e) => handleUnitPriceChange(e.target.value)}
                           placeholder="0.00"
                           className="h-12 text-base touch-manipulation"
+                          componentName="SalesPage-UnitPrice"
+                          mobileOptimized={true}
                         />
                       </div>
 
@@ -662,13 +641,14 @@ const Sales = () => {
 
                       <div className="space-y-2">
                         <Label htmlFor="date" className="text-base">Sale Date</Label>
-                        <StableInput
+                        <EnhancedStableInput
                           id="date"
                           type="date"
                           value={formData.date}
                           onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                           className="h-12 text-base touch-manipulation"
                           componentName="SalesPage-Date"
+                          mobileOptimized={true}
                         />
                       </div>
                     </div>

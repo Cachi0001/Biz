@@ -260,7 +260,41 @@ export const enhancedCreateSale = async (saleData) => {
   try {
     DebugLogger.logFormSubmit('SalesAPI', saleData, 'create');
     
-    const response = await createSale(saleData);
+    // Transform frontend data to match backend expectations
+    const transformedData = {
+      product_id: saleData.product_id,
+      customer_id: saleData.customer_id || null,
+      customer_name: saleData.customer_name || 'Walk-in Customer',
+      customer_email: saleData.customer_email || null,
+      quantity: parseInt(saleData.quantity) || 1,
+      unit_price: parseFloat(saleData.unit_price) || 0,
+      total_amount: parseFloat(saleData.total_amount) || 0,
+      payment_method: saleData.payment_method || 'cash',
+      payment_status: saleData.payment_method === 'pending' ? 'pending' : 'completed',
+      currency: 'NGN',
+      date: saleData.date || new Date().toISOString(),
+      salesperson_id: saleData.salesperson_id || null,
+      notes: saleData.notes || null,
+      discount_amount: parseFloat(saleData.discount_amount) || 0,
+      tax_amount: parseFloat(saleData.tax_amount) || 0
+    };
+    
+    // Validate required fields
+    if (!transformedData.product_id) {
+      throw new Error('Product selection is required');
+    }
+    
+    if (transformedData.quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+    
+    if (transformedData.unit_price < 0) {
+      throw new Error('Unit price cannot be negative');
+    }
+    
+    DebugLogger.logFormSubmit('SalesAPI', transformedData, 'transformed');
+    
+    const response = await createSale(transformedData);
     
     DebugLogger.logApiCall('/sales', response, 'SalesAPI', 'POST');
     
@@ -303,9 +337,37 @@ export const validateProductData = (data) => {
 export const validateSaleData = (data) => {
   const errors = {};
   
-  if (!data.product_id) errors.product_id = 'Product selection is required';
-  if (!data.quantity || parseInt(data.quantity) <= 0) errors.quantity = 'Valid quantity is required';
-  if (!data.unit_price || parseFloat(data.unit_price) <= 0) errors.unit_price = 'Valid unit price is required';
+  // Required field validation
+  if (!data.product_id) {
+    errors.product_id = 'Please select a product';
+  }
+  
+  if (!data.quantity || parseInt(data.quantity) <= 0) {
+    errors.quantity = 'Quantity must be greater than 0';
+  }
+  
+  if (data.unit_price === undefined || data.unit_price === null || parseFloat(data.unit_price) < 0) {
+    errors.unit_price = 'Unit price must be non-negative';
+  }
+  
+  if (data.total_amount === undefined || data.total_amount === null || parseFloat(data.total_amount) < 0) {
+    errors.total_amount = 'Total amount must be non-negative';
+  }
+  
+  // Business logic validation
+  const quantity = parseInt(data.quantity) || 0;
+  const unitPrice = parseFloat(data.unit_price) || 0;
+  const expectedTotal = quantity * unitPrice;
+  const actualTotal = parseFloat(data.total_amount) || 0;
+  
+  if (Math.abs(expectedTotal - actualTotal) > 0.01) {
+    errors.total_amount = 'Total amount does not match quantity × unit price';
+  }
+  
+  // Payment method validation
+  if (data.payment_method && !['cash', 'card', 'bank_transfer', 'mobile_money', 'pos', 'cheque', 'online_payment', 'pending'].includes(data.payment_method)) {
+    errors.payment_method = 'Invalid payment method';
+  }
   
   DebugLogger.logFormSubmit('SaleValidation', { data, errors }, 'validate');
   

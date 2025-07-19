@@ -15,9 +15,9 @@ import FocusManager from './focusManager';
  */
 export const handleFocusError = (error, component, field, element = null) => {
   DebugLogger.logApiError(`focus-error-${field}`, error, component);
-  
+
   console.error(`[${component}] Focus error on ${field}:`, error);
-  
+
   // Attempt to restore focus
   if (element && element.focus) {
     try {
@@ -32,7 +32,7 @@ export const handleFocusError = (error, component, field, element = null) => {
     // Try to find element by field name
     FocusManager.restoreFocusToElement(`[name="${field}"]`, 100);
   }
-  
+
   return {
     message: `Focus lost on ${field}`,
     details: error.message,
@@ -50,13 +50,13 @@ export const handleFocusError = (error, component, field, element = null) => {
  */
 export const handleApiDisplayError = (error, component, dataType, fallbackProvider = null) => {
   DebugLogger.logApiError(`display-error-${dataType}`, error, component);
-  
+
   console.error(`[${component}] Display error for ${dataType}:`, error);
-  
+
   const fallbackData = fallbackProvider ? fallbackProvider() : getDefaultFallbackData(dataType);
-  
+
   DebugLogger.logDisplayIssue(component, dataType, fallbackData, `Using fallback data due to error: ${error.message}`);
-  
+
   return {
     data: fallbackData,
     error: {
@@ -77,18 +77,18 @@ export const handleApiDisplayError = (error, component, dataType, fallbackProvid
  */
 export const handleFormSubmissionError = (error, component, formData, onRetry = null) => {
   DebugLogger.logFormSubmit(component, { error: error.message, formData }, 'submission-failed');
-  
+
   console.error(`[${component}] Form submission error:`, error);
-  
+
   // Extract field-specific errors from API response
   const fieldErrors = extractFieldErrors(error);
-  
+
   // Focus on first error field if available
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     const firstErrorField = Object.keys(fieldErrors)[0];
     FocusManager.restoreFocusToElement(`[name="${firstErrorField}"]`, 200);
   }
-  
+
   return {
     fieldErrors,
     generalError: error.message,
@@ -106,11 +106,11 @@ export const handleFormSubmissionError = (error, component, formData, onRetry = 
  */
 export const handleDropdownError = (error, component, dropdownType, currentOptions = []) => {
   DebugLogger.logDropdownIssue(component, currentOptions, null, `Dropdown error: ${error.message}`);
-  
+
   console.error(`[${component}] Dropdown error for ${dropdownType}:`, error);
-  
+
   const fallbackOptions = getFallbackOptions(dropdownType);
-  
+
   return {
     options: fallbackOptions,
     error: {
@@ -129,7 +129,7 @@ export const handleDropdownError = (error, component, dropdownType, currentOptio
  */
 const extractFieldErrors = (error) => {
   const fieldErrors = {};
-  
+
   if (error.response?.data?.errors) {
     // Handle structured field errors
     Object.entries(error.response.data.errors).forEach(([field, messages]) => {
@@ -138,7 +138,7 @@ const extractFieldErrors = (error) => {
   } else if (error.response?.data?.message) {
     // Handle single error message
     const message = error.response.data.message;
-    
+
     // Try to extract field name from common error patterns
     if (message.includes('required')) {
       const fieldMatch = message.match(/(\w+)\s+is\s+required/i);
@@ -152,7 +152,7 @@ const extractFieldErrors = (error) => {
       }
     }
   }
-  
+
   return fieldErrors;
 };
 
@@ -173,7 +173,7 @@ const getDefaultFallbackData = (dataType) => {
           this_month_expenses: 0
         }
       };
-      
+
     case 'products':
       return {
         products: [],
@@ -186,10 +186,10 @@ const getDefaultFallbackData = (dataType) => {
           'Other'
         ]
       };
-      
+
     case 'customers':
       return [];
-      
+
     case 'sales':
       return {
         sales: [],
@@ -200,7 +200,7 @@ const getDefaultFallbackData = (dataType) => {
           average_sale: 0
         }
       };
-      
+
     default:
       return [];
   }
@@ -218,12 +218,12 @@ const getFallbackOptions = (dropdownType) => {
         { id: 'fallback-1', name: 'Sample Product 1', price: 0 },
         { id: 'fallback-2', name: 'Sample Product 2', price: 0 }
       ];
-      
+
     case 'customers':
       return [
         { id: 'fallback-1', name: 'Walk-in Customer' }
       ];
-      
+
     case 'categories':
       return [
         'Electronics & Technology',
@@ -231,14 +231,14 @@ const getFallbackOptions = (dropdownType) => {
         'Food & Beverages',
         'Other'
       ];
-      
+
     case 'payment-methods':
       return [
         { value: 'cash', label: 'Cash' },
         { value: 'bank_transfer', label: 'Bank Transfer' },
         { value: 'pos', label: 'POS' }
       ];
-      
+
     default:
       return [];
   }
@@ -254,30 +254,30 @@ const getFallbackOptions = (dropdownType) => {
 export const createRetryMechanism = (operation, maxRetries = 3, delay = 1000) => {
   return async (...args) => {
     let lastError;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         DebugLogger.logApiCall('retry-mechanism', `Attempt ${attempt}/${maxRetries}`, 'RetryMechanism');
-        
+
         const result = await operation(...args);
-        
+
         if (attempt > 1) {
           DebugLogger.logApiCall('retry-mechanism', `Success on attempt ${attempt}`, 'RetryMechanism');
         }
-        
+
         return result;
       } catch (error) {
         lastError = error;
-        
+
         DebugLogger.logApiError('retry-mechanism', error, 'RetryMechanism');
-        
+
         if (attempt < maxRetries) {
           console.warn(`Retry attempt ${attempt} failed, retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
-    
+
     console.error(`All ${maxRetries} retry attempts failed`);
     throw lastError;
   };
@@ -291,19 +291,19 @@ export const createRetryMechanism = (operation, maxRetries = 3, delay = 1000) =>
  */
 export const validateFormDataEnhanced = (data, rules) => {
   const errors = {};
-  
+
   Object.entries(rules).forEach(([field, rule]) => {
     const value = data[field];
-    
+
     // Required field validation
     if (rule.required && (!value || (typeof value === 'string' && !value.trim()))) {
       errors[field] = `${rule.label || field} is required`;
       return;
     }
-    
+
     // Skip other validations if field is empty and not required
     if (!value && !rule.required) return;
-    
+
     // Type validation
     if (rule.type === 'number') {
       const numValue = parseFloat(value);
@@ -311,18 +311,18 @@ export const validateFormDataEnhanced = (data, rules) => {
         errors[field] = `${rule.label || field} must be a valid number`;
         return;
       }
-      
+
       if (rule.min !== undefined && numValue < rule.min) {
         errors[field] = `${rule.label || field} must be at least ${rule.min}`;
         return;
       }
-      
+
       if (rule.max !== undefined && numValue > rule.max) {
         errors[field] = `${rule.label || field} must be at most ${rule.max}`;
         return;
       }
     }
-    
+
     // Email validation
     if (rule.type === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -331,7 +331,7 @@ export const validateFormDataEnhanced = (data, rules) => {
         return;
       }
     }
-    
+
     // Custom validation function
     if (rule.validate && typeof rule.validate === 'function') {
       const customError = rule.validate(value, data);
@@ -340,19 +340,19 @@ export const validateFormDataEnhanced = (data, rules) => {
         return;
       }
     }
-    
+
     // Length validation
     if (rule.minLength && value.length < rule.minLength) {
       errors[field] = `${rule.label || field} must be at least ${rule.minLength} characters`;
       return;
     }
-    
+
     if (rule.maxLength && value.length > rule.maxLength) {
       errors[field] = `${rule.label || field} must be at most ${rule.maxLength} characters`;
       return;
     }
   });
-  
+
   return errors;
 };
 
@@ -368,15 +368,15 @@ export const safeArrayExtract = (data, key = null, fallback = []) => {
     if (key && data?.[key] && Array.isArray(data[key])) {
       return data[key];
     }
-    
+
     if (Array.isArray(data)) {
       return data;
     }
-    
+
     if (data && typeof data === 'object') {
       return [data];
     }
-    
+
     return fallback;
   } catch (error) {
     console.warn('Safe array extraction failed:', error);
@@ -429,19 +429,19 @@ export const showErrorToast = (message) => {
  */
 export const handleApiError = (error, defaultMessage = 'An error occurred', showToastNotification = true) => {
   let errorMessage = defaultMessage;
-  
+
   if (error.response?.data?.message) {
     errorMessage = error.response.data.message;
   } else if (error.message) {
     errorMessage = error.message;
   }
-  
+
   console.error('API Error:', error);
-  
+
   if (showToastNotification) {
     showErrorToast(errorMessage);
   }
-  
+
   return errorMessage;
 };
 
