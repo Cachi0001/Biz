@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import FocusStableInput from '../components/ui/FocusStableInput';
-import MemoizedInput from "../components/ui/MemoizedInput";
+import BulletproofInput from '../components/ui/BulletproofInput';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
@@ -853,21 +852,6 @@ const Invoices = () => {
           <Card 
             key={item.id} 
             className="p-4 sm:p-6 mb-4 border-2 border-gray-100"
-            onMouseDown={(e) => {
-              // Prevent card from stealing focus from inputs
-              const target = e.target as HTMLElement;
-              if (!target.closest('input, select, textarea, button')) {
-                e.preventDefault();
-              }
-            }}
-            onClick={(e) => {
-              // Prevent card click events from interfering with input focus
-              const target = e.target as HTMLElement;
-              if (!target.closest('input, select, textarea, button')) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
           >
             {/* Mobile-first layout with enhanced spacing */}
             <div className="space-y-4 sm:space-y-6">
@@ -907,7 +891,7 @@ const Invoices = () => {
                   <Label htmlFor={`description-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'description') ? 'text-red-700' : ''}`}>
                     Description *
                   </Label>
-                  <MemoizedInput
+                  <BulletproofInput
                     id={`description-${index}`}
                     name="description"
                     value={item.description}
@@ -921,6 +905,8 @@ const Invoices = () => {
                     aria-label={`Description for item ${index + 1}`}
                     aria-describedby={hasItemFieldError(index, 'description') ? `description-${index}-error` : `description-${index}-help`}
                     aria-required="true"
+                    componentName={`InvoiceItem-${index}-Description`}
+                    debounceMs={300}
                   />
                   {getItemFieldError(index, 'description') && (
                     <FieldError error={getItemFieldError(index, 'description')} />
@@ -934,7 +920,7 @@ const Invoices = () => {
                   <Label htmlFor={`quantity-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'quantity') ? 'text-red-700' : ''}`}>
                     Qty *
                   </Label>
-                  <MemoizedInput
+                  <BulletproofInput
                     id={`quantity-${index}`}
                     name="quantity"
                     type="number"
@@ -949,6 +935,8 @@ const Invoices = () => {
                     aria-label={`Quantity for item ${index + 1}`}
                     aria-describedby={hasItemFieldError(index, 'quantity') ? `quantity-${index}-error` : `quantity-${index}-help`}
                     aria-required="true"
+                    componentName={`InvoiceItem-${index}-Quantity`}
+                    debounceMs={300}
                   />
                   {getItemFieldError(index, 'quantity') && (
                     <FieldError error={getItemFieldError(index, 'quantity')} />
@@ -959,7 +947,7 @@ const Invoices = () => {
                   <Label htmlFor={`unit_price-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'unit_price') ? 'text-red-700' : ''}`}>
                     Unit Price (₦) *
                   </Label>
-                  <MemoizedInput
+                  <BulletproofInput
                     id={`unit_price-${index}`}
                     name="unit_price"
                     type="number"
@@ -975,6 +963,8 @@ const Invoices = () => {
                     aria-label={`Unit price for item ${index + 1} in Naira`}
                     aria-describedby={hasItemFieldError(index, 'unit_price') ? `unit_price-${index}-error` : `unit_price-${index}-help`}
                     aria-required="true"
+                    componentName={`InvoiceItem-${index}-UnitPrice`}
+                    debounceMs={300}
                   />
                   {getItemFieldError(index, 'unit_price') && (
                     <FieldError error={getItemFieldError(index, 'unit_price')} />
@@ -985,7 +975,7 @@ const Invoices = () => {
                   <Label htmlFor={`tax_rate-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'tax_rate') ? 'text-red-700' : ''}`}>
                     Tax (%)
                   </Label>
-                  <FocusStableInput
+                  <BulletproofInput
                     id={`tax_rate-${index}`}
                     name="tax_rate"
                     type="number"
@@ -1000,6 +990,8 @@ const Invoices = () => {
                       }`}
                     aria-label={`Tax rate for item ${index + 1} (0-100%)`}
                     aria-describedby={hasItemFieldError(index, 'tax_rate') ? `tax_rate-${index}-error` : `tax_rate-${index}-help`}
+                    componentName={`InvoiceItem-${index}-TaxRate`}
+                    debounceMs={300}
                   />
                   {getItemFieldError(index, 'tax_rate') && (
                     <FieldError error={getItemFieldError(index, 'tax_rate')} />
@@ -1010,7 +1002,7 @@ const Invoices = () => {
                   <Label htmlFor={`discount_rate-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'discount_rate') ? 'text-red-700' : ''}`}>
                     Discount (%)
                   </Label>
-                  <FocusStableInput
+                  <BulletproofInput
                     id={`discount_rate-${index}`}
                     name="discount_rate"
                     type="number"
@@ -1025,6 +1017,8 @@ const Invoices = () => {
                       }`}
                     aria-label={`Discount rate for item ${index + 1} (0-100%)`}
                     aria-describedby={hasItemFieldError(index, 'discount_rate') ? `discount_rate-${index}-error` : `discount_rate-${index}-help`}
+                    componentName={`InvoiceItem-${index}-DiscountRate`}
+                    debounceMs={300}
                   />
                   {getItemFieldError(index, 'discount_rate') && (
                     <FieldError error={getItemFieldError(index, 'discount_rate')} />

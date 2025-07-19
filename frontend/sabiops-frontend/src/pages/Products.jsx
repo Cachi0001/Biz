@@ -7,9 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
-import FocusStableInput from '../components/ui/FocusStableInput';
-import MemoizedInput from "../components/ui/MemoizedInput";
-import StableInput from '../components/ui/StableInput';
+import BulletproofInput from '../components/ui/BulletproofInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
 import {
@@ -319,7 +317,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="name"
             name="name"
             value={formData.name}
@@ -327,18 +325,22 @@ const Products = () => {
             placeholder="Enter product name"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Name"
+            debounceMs={300}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="sku"
             name="sku"
             value={formData.sku}
             onChange={handleInputChange}
             placeholder="Product SKU (optional)"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-SKU"
+            debounceMs={300}
           />
         </div>
       </div>
@@ -378,7 +380,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="price"
             name="price"
             type="number"
@@ -388,12 +390,14 @@ const Products = () => {
             placeholder="0.00"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Price"
+            debounceMs={300}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -402,6 +406,8 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0.00"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-CostPrice"
+            debounceMs={300}
           />
         </div>
       </div>
@@ -409,7 +415,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="quantity"
             name="quantity"
             type="number"
@@ -418,12 +424,14 @@ const Products = () => {
             placeholder="0"
             required
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-Quantity"
+            debounceMs={300}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <MemoizedInput
+          <BulletproofInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -433,6 +441,8 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="5"
             className="h-12 text-base touch-manipulation"
+            componentName="ProductForm-LowStockThreshold"
+            debounceMs={300}
           />
           <p className="text-xs text-gray-500">
             Alert when stock falls below this number (max: {formData.quantity || 'stock quantity'})
@@ -442,13 +452,15 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <MemoizedInput
+        <BulletproofInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
           className="h-12 text-base touch-manipulation"
+          componentName="ProductForm-ImageURL"
+          debounceMs={300}
         />
       </div>
 
@@ -552,11 +564,13 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <MemoizedInput
+                    <BulletproofInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-12 text-base touch-manipulation"
+                      componentName="ProductForm-Search"
+                      debounceMs={300}
                     />
                   </div>
                 </div>
@@ -607,21 +621,6 @@ const Products = () => {
                     <Card 
                       key={product.id} 
                       className="bg-white border border-gray-200 hover:shadow-md transition-shadow"
-                      onMouseDown={(e) => {
-                        // Prevent card from stealing focus from inputs
-                        const target = e.target;
-                        if (!target.closest('input, select, textarea, button')) {
-                          e.preventDefault();
-                        }
-                      }}
-                      onClick={(e) => {
-                        // Prevent card click events from interfering with input focus
-                        const target = e.target;
-                        if (!target.closest('input, select, textarea, button')) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
                     >
                       <CardContent className="p-3">
                         <div className="space-y-2">
