@@ -388,7 +388,7 @@ const Invoices = () => {
 
   const handleStatusUpdate = async (invoiceId, newStatus) => {
     try {
-      await updateInvoiceStatus(invoiceId, newStatus);
+      await updateInvoiceStatus(invoiceId, { status: newStatus });
       showSuccessToast('Invoice status updated successfully!');
       await fetchInvoices();
     } catch (error) {

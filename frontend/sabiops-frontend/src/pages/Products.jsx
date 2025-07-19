@@ -154,13 +154,13 @@ const Products = () => {
     }
   };
 
-  const handleInputChange = React.useCallback((e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-  }, []);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -324,8 +324,6 @@ const Products = () => {
             placeholder="Enter product name"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Name"
-            debounceMs={300}
           />
         </div>
 
@@ -338,8 +336,6 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="Product SKU (optional)"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-SKU"
-            debounceMs={300}
           />
         </div>
       </div>
@@ -389,8 +385,6 @@ const Products = () => {
             placeholder="0.00"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Price"
-            debounceMs={300}
           />
         </div>
 
@@ -405,8 +399,6 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="0.00"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-CostPrice"
-            debounceMs={300}
           />
         </div>
       </div>
@@ -423,8 +415,6 @@ const Products = () => {
             placeholder="0"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Quantity"
-            debounceMs={300}
           />
         </div>
 
@@ -440,8 +430,6 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="5"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-LowStockThreshold"
-            debounceMs={300}
           />
           <p className="text-xs text-gray-500">
             Alert when stock falls below this number (max: {formData.quantity || 'stock quantity'})
@@ -457,9 +445,7 @@ const Products = () => {
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
-          className="h-12 text-base touch-manipulation"
-          componentName="ProductForm-ImageURL"
-          debounceMs={300}
+                      className="h-12 text-base touch-manipulation"
         />
       </div>
 
@@ -568,8 +554,6 @@ const Products = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-12 text-base touch-manipulation"
-                      componentName="ProductForm-Search"
-                      debounceMs={300}
                     />
                   </div>
                 </div>
