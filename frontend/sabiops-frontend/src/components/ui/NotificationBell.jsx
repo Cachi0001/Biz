@@ -41,7 +41,7 @@ const NotificationBell = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    // Mark as read
+    // Mark as read when clicked
     if (!notification.read) {
       handleMarkAsRead(notification.id);
     }
@@ -49,7 +49,10 @@ const NotificationBell = () => {
     // Navigate if action URL provided
     if (notification.action_url) {
       setIsOpen(false);
-      window.location.href = notification.action_url;
+      // Use React Router navigation instead of window.location
+      if (window.location.pathname !== notification.action_url) {
+        window.location.href = notification.action_url;
+      }
     }
   };
 
@@ -122,21 +125,21 @@ const NotificationBell = () => {
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-80 p-0" align="end">
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-3">
+      <PopoverContent className="w-80 p-0 max-h-[500px]" align="end" sideOffset={5}>
+        <Card className="border-0 shadow-lg max-h-[500px] flex flex-col">
+          <CardHeader className="pb-3 flex-shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Notifications</CardTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 {unreadCount > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleMarkAllAsRead}
-                    className="text-xs"
+                    className="text-xs px-2 py-1 h-auto"
                   >
-                    <CheckCheck className="h-4 w-4 mr-1" />
-                    Mark all read
+                    <CheckCheck className="h-3 w-3 mr-1" />
+                    All read
                   </Button>
                 )}
                 {notifications.length > 0 && (
@@ -144,48 +147,48 @@ const NotificationBell = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleClearAll}
-                    className="text-xs text-red-600 hover:text-red-700"
+                    className="text-xs text-red-600 hover:text-red-700 px-2 py-1 h-auto"
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Clear all
+                    <X className="h-3 w-3 mr-1" />
+                    Clear
                   </Button>
                 )}
               </div>
             </div>
           </CardHeader>
           
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 overflow-hidden">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
                 <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No notifications yet</p>
+                <p className="text-sm">No notifications</p>
               </div>
             ) : (
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[350px] overflow-y-auto">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      !notification.read ? 'bg-blue-50' : ''
+                    className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                     }`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="text-lg flex-shrink-0">
+                      <div className="text-base flex-shrink-0 mt-0.5">
                         {getNotificationIcon(notification.type)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className={`font-medium text-sm ${getNotificationColor(notification.type)}`}>
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className={`font-medium text-sm leading-tight ${getNotificationColor(notification.type)}`}>
                             {notification.title}
                           </h4>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
                           )}
                         </div>
                         
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-600 mb-2 leading-tight break-words">
                           {notification.message}
                         </p>
                         
@@ -202,10 +205,9 @@ const NotificationBell = () => {
                                 e.stopPropagation();
                                 handleMarkAsRead(notification.id);
                               }}
-                              className="text-xs h-6 px-2"
+                              className="text-xs h-5 px-2 py-0"
                             >
-                              <Check className="h-3 w-3 mr-1" />
-                              Mark read
+                              <Check className="h-3 w-3" />
                             </Button>
                           )}
                         </div>

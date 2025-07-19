@@ -274,7 +274,7 @@ const Transactions = () => {
                   {formatCurrency(summary.totalMoneyIn)}
                 </p>
               </div>
-              <ArrowUpRight className="h-8 w-8 text-green-600" />
+              <ArrowDownLeft className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -288,7 +288,7 @@ const Transactions = () => {
                   {formatCurrency(summary.totalMoneyOut)}
                 </p>
               </div>
-              <ArrowDownLeft className="h-8 w-8 text-red-600" />
+              <ArrowUpRight className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>

@@ -732,7 +732,7 @@ const Invoices = () => {
           aria-required="true"
         >
           {customers.length === 0 ? (
-            <SelectItem value="" disabled>
+            <SelectItem value="no-customers" disabled>
               No customers available. Please add a customer first.
             </SelectItem>
           ) : (

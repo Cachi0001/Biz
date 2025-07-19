@@ -72,44 +72,14 @@ class NotificationService {
     }
   }
 
-  // Business-specific toast notifications
-  showSaleNotification(amount, customerName = '') {
-    const message = customerName
-      ? `New sale of ₦${amount.toLocaleString()} to ${customerName}!`
-      : `New sale of ₦${amount.toLocaleString()} recorded!`;
-
-    this.showToast(message, 'success', {
-      duration: 6000,
-      icon: '💰'
-    });
-
-    // Add to notification bell
-    this.addNotification({
-      type: 'sale',
-      title: 'Sale Recorded',
-      message: `₦${amount.toLocaleString()} from ${customerName || 'Walk-in Customer'}`,
-      action_url: '/sales',
-      data: { amount, customerName }
-    });
-  }
-
+  // Business-critical notifications only
   showSaleSuccess(saleData) {
+    // Only show toast, no bell notification for regular sales
     const message = `Sale of ₦${saleData.total_amount.toLocaleString()} recorded successfully!`;
     
-    // Show toast notification
     this.showToast(message, 'success', {
-      duration: 5000,
-      icon: '💰'
-    });
-    
-    // Add to notification bell
-    this.addNotification({
-      type: 'sale',
-      title: 'Sale Recorded',
-      message: `₦${saleData.total_amount.toLocaleString()} from ${saleData.customer_name || 'Walk-in Customer'}`,
-      timestamp: new Date().toISOString(),
-      action_url: '/sales',
-      data: saleData
+      duration: 4000,
+      icon: '✅'
     });
   }
 
@@ -162,6 +132,95 @@ class NotificationService {
         icon: '⏰'
       }
     );
+
+    // Add to notification bell for trial reminders
+    this.addNotification({
+      type: 'trial',
+      title: 'Trial Expiring Soon',
+      message: `Your trial expires in ${daysLeft} days. Upgrade to continue using all features.`,
+      action_url: '/subscription',
+      data: { daysLeft }
+    });
+  }
+
+  showOutOfStockAlert(productName) {
+    this.showToast(
+      `Out of stock: ${productName}`,
+      'error',
+      {
+        duration: 8000,
+        icon: '🚫'
+      }
+    );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'out_of_stock',
+      title: 'Out of Stock',
+      message: `${productName} is completely out of stock`,
+      action_url: '/products',
+      data: { productName }
+    });
+  }
+
+  showDuePaymentAlert(invoiceNumber, amount, daysOverdue) {
+    this.showToast(
+      `Payment overdue: ${invoiceNumber} (${daysOverdue} days)`,
+      'warning',
+      {
+        duration: 8000,
+        icon: '💸'
+      }
+    );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'due_payment',
+      title: 'Payment Overdue',
+      message: `${invoiceNumber} - ₦${amount.toLocaleString()} (${daysOverdue} days overdue)`,
+      action_url: '/invoices',
+      data: { invoiceNumber, amount, daysOverdue }
+    });
+  }
+
+  showUsageLimitAlert(limitType, currentUsage, limit) {
+    this.showToast(
+      `Usage limit warning: ${currentUsage}/${limit} ${limitType} used`,
+      'warning',
+      {
+        duration: 8000,
+        icon: '⚠️'
+      }
+    );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'usage_limit',
+      title: 'Usage Limit Warning',
+      message: `You've used ${currentUsage} of ${limit} ${limitType}. Consider upgrading.`,
+      action_url: '/subscription',
+      data: { limitType, currentUsage, limit }
+    });
+  }
+
+  showNetLossAlert(amount, period) {
+    this.showToast(
+      `Net loss alert: -₦${amount.toLocaleString()} this ${period}`,
+      'error',
+      {
+        duration: 10000,
+        icon: '📉'
+      }
+    );
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'net_loss',
+      title: 'Net Loss Alert',
+      message: `Your business has a net loss of ₦${amount.toLocaleString()} this ${period}`,
+      action_url: '/dashboard',
+      data: { amount, period }
+    });
   }
 
   showOfflineMode() {
@@ -417,40 +476,12 @@ class NotificationService {
       return response.data || response;
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      // Return mock data for development
-      return this.getMockNotifications();
+      // Return empty data instead of mock data
+      return {
+        notifications: [],
+        unread_count: 0
+      };
     }
-  }
-
-  getMockNotifications() {
-    // Generate realistic mock notifications for development
-    const mockNotifications = [
-      {
-        id: 1,
-        type: 'low_stock',
-        title: 'iPhone 13 Pro',
-        message: '2 items left',
-        created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
-        read: false,
-        action_url: '/products'
-      },
-      {
-        id: 2,
-        type: 'sale_completed',
-        title: 'John Doe',
-        message: '25000',
-        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-        read: false,
-        action_url: '/sales'
-      },
-    ];
-
-    const unreadCount = mockNotifications.filter(n => !n.read).length;
-
-    return {
-      notifications: mockNotifications,
-      unread_count: unreadCount
-    };
   }
 
   async markAsRead(notificationId) {

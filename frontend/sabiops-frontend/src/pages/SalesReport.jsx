@@ -43,60 +43,184 @@ const SalesReport = () => {
       let params = {};
       
       if (reportType === 'daily') {
-        params = { date: selectedDate };
+        params = { 
+          start_date: selectedDate,
+          end_date: selectedDate 
+        };
       } else {
-        params = dateRange;
+        params = {
+          start_date: dateRange.start_date,
+          end_date: dateRange.end_date
+        };
       }
       
       console.log('[SALES_REPORT] Fetching with params:', params);
-      const response = await getSalesReport(params);
-      console.log('[SALES_REPORT] Response:', response);
       
-      // Handle different response formats with defensive programming
-      if (response && typeof response === 'object') {
-        if (response.data) {
-          setSalesData(response.data);
-        } else if (response.summary || response.transactions) {
-          setSalesData(response);
-        } else {
-          setSalesData({
-            summary: { total_sales: 0, total_transactions: 0, total_quantity: 0, average_sale: 0 },
-            transactions: [],
-            payment_breakdown: {}
-          });
-        }
-      } else {
-        setSalesData(null);
+      // Fetch sales data directly from the sales API
+      const salesResponse = await getSalesReport(params);
+      console.log('[SALES_REPORT] Sales response:', salesResponse);
+      
+      // Process the response to create comprehensive report data
+      let processedData = {
+        summary: {
+          total_sales: 0,
+          total_transactions: 0,
+          total_quantity: 0,
+          average_sale: 0
+        },
+        transactions: [],
+        payment_breakdown: {}
+      };
+      
+      if (salesResponse && salesResponse.transactions && Array.isArray(salesResponse.transactions)) {
+        const transactions = salesResponse.transactions;
+        
+        // Calculate summary statistics
+        const totalSales = transactions.reduce((sum, t) => sum + (parseFloat(t.total_amount) || 0), 0);
+        const totalQuantity = transactions.reduce((sum, t) => sum + (parseInt(t.total_quantity) || 0), 0);
+        
+        processedData.summary = {
+          total_sales: totalSales,
+          total_transactions: transactions.length,
+          total_quantity: totalQuantity,
+          average_sale: transactions.length > 0 ? totalSales / transactions.length : 0
+        };
+        
+        // Process payment method breakdown
+        const paymentBreakdown = {};
+        transactions.forEach(transaction => {
+          const method = transaction.payment_method || 'cash';
+          if (!paymentBreakdown[method]) {
+            paymentBreakdown[method] = { amount: 0, count: 0 };
+          }
+          paymentBreakdown[method].amount += parseFloat(transaction.total_amount) || 0;
+          paymentBreakdown[method].count += 1;
+        });
+        
+        processedData.transactions = transactions;
+        processedData.payment_breakdown = paymentBreakdown;
+      } else if (salesResponse && salesResponse.summary) {
+        // Use existing summary if available
+        processedData = salesResponse;
       }
+      
+      setSalesData(processedData);
+      console.log('[SALES_REPORT] Processed data:', processedData);
+      
     } catch (error) {
       console.error('Failed to fetch sales report:', error);
       const errorMessage = getErrorMessage(error, 'Failed to load sales report');
       toast.error(errorMessage);
-      setSalesData(null);
+      
+      // Set empty data structure instead of null
+      setSalesData({
+        summary: { total_sales: 0, total_transactions: 0, total_quantity: 0, average_sale: 0 },
+        transactions: [],
+        payment_breakdown: {}
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownloadReport = async (format) => {
+    if (!salesData || !salesData.transactions) {
+      toast.error('No data available to download');
+      return;
+    }
+    
     setLoading(true);
     try {
-      let params = {};
+      let content = '';
+      let filename = '';
+      let mimeType = '';
       
-      if (reportType === 'daily') {
-        params = { date: selectedDate };
-      } else {
-        params = dateRange;
+      const dateStr = reportType === 'daily' ? selectedDate : `${dateRange.start_date}_to_${dateRange.end_date}`;
+      
+      if (format === 'csv') {
+        // Generate CSV content
+        const headers = ['Date', 'Time', 'Customer', 'Products', 'Quantity', 'Payment Method', 'Amount (₦)'];
+        const csvRows = [headers.join(',')];
+        
+        salesData.transactions.forEach(transaction => {
+          const dateTime = formatDate(transaction.created_at);
+          const products = transaction.items?.map(item => `${item.product_name}(${item.quantity})`).join('; ') || 'N/A';
+          const row = [
+            `"${dateTime.date}"`,
+            `"${dateTime.time}"`,
+            `"${transaction.customer_name || 'Walk-in Customer'}"`,
+            `"${products}"`,
+            transaction.total_quantity || 0,
+            `"${transaction.payment_method || 'N/A'}"`,
+            transaction.total_amount || 0
+          ];
+          csvRows.push(row.join(','));
+        });
+        
+        // Add summary at the end
+        csvRows.push('');
+        csvRows.push('SUMMARY');
+        csvRows.push(`Total Sales,,,,,,"${salesData.summary.total_sales}"`);
+        csvRows.push(`Total Transactions,,,,,,"${salesData.summary.total_transactions}"`);
+        csvRows.push(`Items Sold,,,,,,"${salesData.summary.total_quantity}"`);
+        csvRows.push(`Average Sale,,,,,,"${salesData.summary.average_sale.toFixed(2)}"`);
+        
+        content = csvRows.join('\n');
+        filename = `sales-report-${dateStr}.csv`;
+        mimeType = 'text/csv;charset=utf-8;';
+        
+      } else if (format === 'pdf') {
+        // For PDF, we'll create a simple text format that can be converted
+        const lines = [];
+        lines.push('SALES REPORT');
+        lines.push('='.repeat(50));
+        lines.push(`Report Period: ${reportType === 'daily' ? selectedDate : `${dateRange.start_date} to ${dateRange.end_date}`}`);
+        lines.push(`Generated: ${new Date().toLocaleString()}`);
+        lines.push('');
+        
+        // Summary
+        lines.push('SUMMARY');
+        lines.push('-'.repeat(30));
+        lines.push(`Total Sales: ₦${salesData.summary.total_sales.toLocaleString()}`);
+        lines.push(`Total Transactions: ${salesData.summary.total_transactions}`);
+        lines.push(`Items Sold: ${salesData.summary.total_quantity}`);
+        lines.push(`Average Sale: ₦${salesData.summary.average_sale.toFixed(2)}`);
+        lines.push('');
+        
+        // Payment Breakdown
+        if (Object.keys(salesData.payment_breakdown).length > 0) {
+          lines.push('PAYMENT METHOD BREAKDOWN');
+          lines.push('-'.repeat(30));
+          Object.entries(salesData.payment_breakdown).forEach(([method, data]) => {
+            lines.push(`${method.toUpperCase()}: ₦${data.amount.toLocaleString()} (${data.count} transactions)`);
+          });
+          lines.push('');
+        }
+        
+        // Transactions
+        lines.push('DETAILED TRANSACTIONS');
+        lines.push('-'.repeat(30));
+        salesData.transactions.forEach((transaction, index) => {
+          const dateTime = formatDate(transaction.created_at);
+          lines.push(`${index + 1}. ${dateTime.date} ${dateTime.time}`);
+          lines.push(`   Customer: ${transaction.customer_name || 'Walk-in Customer'}`);
+          lines.push(`   Products: ${transaction.items?.map(item => `${item.product_name}(${item.quantity})`).join(', ') || 'N/A'}`);
+          lines.push(`   Payment: ${transaction.payment_method || 'N/A'}`);
+          lines.push(`   Amount: ₦${(transaction.total_amount || 0).toLocaleString()}`);
+          lines.push('');
+        });
+        
+        content = lines.join('\n');
+        filename = `sales-report-${dateStr}.txt`;
+        mimeType = 'text/plain;charset=utf-8;';
       }
       
-      console.log('[SALES_REPORT] Downloading report with params:', params);
-      const blob = await downloadSalesReport(params, format);
-      
-      // Create download link
+      // Create and download the file
+      const blob = new Blob([content], { type: mimeType });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `sales-report-${selectedDate}.${format}`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -105,7 +229,7 @@ const SalesReport = () => {
       toast.success(`Sales report downloaded as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Failed to download report:', error);
-      toast.error(getErrorMessage(error, 'Failed to download report'));
+      toast.error('Failed to download report');
     } finally {
       setLoading(false);
     }
@@ -163,22 +287,29 @@ const SalesReport = () => {
         
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button 
-            variant="outline" 
-            onClick={() => handleDownloadReport('pdf')}
-            disabled={loading || !salesData}
-            className="w-full sm:w-auto"
+            onClick={() => window.location.href = '/sales'}
+            className="w-full sm:w-auto h-12 text-base touch-manipulation"
           >
-            <FileText className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Download </span>PDF
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Record Sale
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => handleDownloadReport('png')}
+            onClick={() => handleDownloadReport('csv')}
             disabled={loading || !salesData}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto h-12 text-base touch-manipulation"
           >
-            <ImageIcon className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Download </span>Image
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Download </span>CSV
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => handleDownloadReport('pdf')}
+            disabled={loading || !salesData}
+            className="w-full sm:w-auto h-12 text-base touch-manipulation"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Download </span>PDF
           </Button>
         </div>
       </div>
