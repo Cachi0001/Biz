@@ -27,16 +27,20 @@ export class ErrorRecoverySystem {
   static init() {
     if (!this.isEnabled) return;
 
-    // Set up global error handlers
-    this.setupGlobalErrorHandlers();
-    
-    // Start system health monitoring
-    this.startHealthMonitoring();
-    
-    // Initialize recovery strategies
-    this.initializeRecoveryStrategies();
-    
-    console.log('[ErrorRecoverySystem] Initialized');
+    try {
+      // Set up global error handlers
+      this.setupGlobalErrorHandlers();
+      
+      // Start system health monitoring
+      this.startHealthMonitoring();
+      
+      // Recovery strategies are initialized dynamically in getRecoveryStrategies()
+      
+      console.log('[ErrorRecoverySystem] Initialized');
+    } catch (error) {
+      console.warn('[ErrorRecoverySystem] Failed to initialize:', error.message);
+      // Don't let initialization errors break the app
+    }
   }
 
   /**
@@ -538,9 +542,13 @@ export class ErrorRecoverySystem {
   }
 }
 
-// Auto-initialize when module loads
+// Auto-initialize when module loads (but safely)
 if (typeof window !== 'undefined') {
-  ErrorRecoverySystem.init();
+  try {
+    ErrorRecoverySystem.init();
+  } catch (error) {
+    console.warn('[ErrorRecoverySystem] Failed to auto-initialize:', error.message);
+  }
 }
 
 export default ErrorRecoverySystem;

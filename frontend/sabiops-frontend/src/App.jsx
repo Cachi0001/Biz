@@ -8,7 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Card, CardContent } from './components/ui/card';
 import ScriptErrorIsolation from './utils/scriptErrorIsolation';
 // import PageReloadPrevention from './utils/pageReloadPrevention'; // Auto-initializes itself
-import ErrorRecoverySystem from './utils/errorRecoverySystem';
+// import ErrorRecoverySystem from './utils/errorRecoverySystem'; // Auto-initializes itself
 
 // Pages
 import Landing from './pages/Landing';
@@ -64,7 +64,7 @@ function App() {
   useEffect(() => {
     ScriptErrorIsolation.init();
     // PageReloadPrevention.init(); // Already auto-initialized when module loads
-    ErrorRecoverySystem.init();
+    // ErrorRecoverySystem.init(); // Already auto-initialized when module loads
     console.log('[App] Comprehensive error handling and stability systems initialized');
   }, []);
 
