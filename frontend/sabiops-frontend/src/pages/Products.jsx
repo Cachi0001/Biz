@@ -156,14 +156,13 @@ const Products = () => {
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = React.useCallback((e) => {
     const { name, value } = e.target;
-
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-  };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -361,9 +360,7 @@ const Products = () => {
         <Label htmlFor="category" className="text-base">Category</Label>
         <Select value={formData.category} onValueChange={(value) => {
           DebugLogger.logFocusEvent('ProductsPage', 'category-change', document.activeElement, { value });
-          FocusManager.preserveFocus(() => {
-            setFormData(prev => ({ ...prev, category: value }));
-          });
+          setFormData(prev => ({ ...prev, category: value }));
         }}>
           <SelectTrigger className="h-12 text-base touch-manipulation">
             <SelectValue placeholder="Select product category" />
@@ -412,7 +409,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <StableInput
+          <SimpleFocusInput
             id="quantity"
             name="quantity"
             type="number"
@@ -421,13 +418,12 @@ const Products = () => {
             placeholder="0"
             required
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-Quantity"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <StableInput
+          <SimpleFocusInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -437,7 +433,6 @@ const Products = () => {
             onChange={handleInputChange}
             placeholder="5"
             className="h-12 text-base touch-manipulation"
-            componentName="ProductForm-LowStockThreshold"
           />
           <p className="text-xs text-gray-500">
             Alert when stock falls below this number (max: {formData.quantity || 'stock quantity'})
@@ -447,14 +442,13 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <StableInput
+        <SimpleFocusInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
           className="h-12 text-base touch-manipulation"
-          componentName="ProductForm-ImageURL"
         />
       </div>
 
@@ -558,12 +552,11 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <StableInput
+                    <SimpleFocusInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
-                      onChange={(e) => FocusManager.preserveFocus(() => setSearchTerm(e.target.value))}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-12 text-base touch-manipulation"
-                      componentName="ProductsPage-Search"
                     />
                   </div>
                 </div>

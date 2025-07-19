@@ -297,6 +297,71 @@ def paystack_webhook():
     except Exception as e:
         return error_response(str(e), status_code=500)
 
+@payment_bp.route("/", methods=["POST"])
+@jwt_required()
+def record_payment():
+    """Record a payment - handles both manual payments and sale-related payments"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        data = request.get_json()
+        
+        required_fields = ["amount", "payment_method"]
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", status_code=400)
+        
+        invoice = None
+        if data.get("invoice_id"):
+            invoice_result = get_supabase().table("invoices").select("*").eq("id", data["invoice_id"]).eq("owner_id", owner_id).single().execute()
+            if not invoice_result.data:
+                return error_response("Invoice not found", status_code=404)
+            invoice = invoice_result.data
+        
+        payment_data = {
+            "id": str(uuid.uuid4()),
+            "owner_id": owner_id,
+            "invoice_id": data.get("invoice_id"),
+            "amount": float(data["amount"]),
+            "currency": data.get("currency", "NGN"),
+            "payment_method": data["payment_method"],
+            "customer_email": data.get("customer_email"),
+            "customer_name": data.get("customer_name"),
+            "customer_phone": data.get("customer_phone"),
+            "description": data.get("description", "Payment record"),
+            "notes": data.get("notes"),
+            "reference_number": data.get("reference_number"),
+            "payment_date": data.get("payment_date", datetime.now().isoformat()),
+            "status": data.get("status", "completed"),
+            "paid_at": datetime.now().isoformat(),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        payment_result = get_supabase().table("payments").insert(payment_data).execute()
+        payment = payment_result.data[0]
+        
+        if invoice:
+            new_amount_paid = invoice.get("amount_paid", 0) + payment["amount"]
+            invoice_update_data = {"amount_paid": new_amount_paid}
+            if new_amount_paid >= invoice["total_amount"]:
+                invoice_update_data["status"] = "paid"
+                invoice_update_data["amount_due"] = 0
+                invoice_update_data["paid_at"] = datetime.now().isoformat()
+            get_supabase().table("invoices").update(invoice_update_data).eq("id", invoice["id"]).execute()
+        
+        return success_response(
+            message="Payment recorded successfully",
+            data={
+                "payment": payment
+            },
+            status_code=201
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Payment recording error: {str(e)}")
+        return error_response(str(e), status_code=500)
+
 @payment_bp.route("/manual", methods=["POST"])
 @jwt_required()
 def record_manual_payment():

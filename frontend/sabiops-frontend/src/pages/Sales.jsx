@@ -36,6 +36,7 @@ import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validate
 import { recordPayment } from "../services/api";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
 import StableInput from '../components/ui/StableInput';
+import FocusStableInput from '../components/ui/FocusStableInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
 import { formatNaira, formatDateTime, formatDate, formatPaymentMethod } from '../utils/formatting';
@@ -212,56 +213,48 @@ const Sales = () => {
     }
   };
 
-  const handleProductSelect = (productId) => {
+  const handleProductSelect = React.useCallback((productId) => {
     DebugLogger.logDropdownEvent('SalesPage', 'product-selected', products, productId);
 
     const product = products.find(p => p.id === productId || p.id === parseInt(productId));
     if (product) {
-      FocusManager.preserveFocus(() => {
-        setFormData(prev => ({
-          ...prev,
-          product_id: productId,
-          unit_price: product.price || product.unit_price || 0,
-          total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
-        }));
-      });
+      setFormData(prev => ({
+        ...prev,
+        product_id: productId,
+        unit_price: product.price || product.unit_price || 0,
+        total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
+      }));
     } else {
       DebugLogger.logDropdownIssue('SalesPage', products, productId, 'Selected product not found in products array');
     }
-  };
+  }, [products]);
 
-  const handleQuantityChange = (quantity) => {
+  const handleQuantityChange = React.useCallback((quantity) => {
     const qty = parseInt(quantity) || 1;
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => ({
-        ...prev,
-        quantity: qty,
-        total_amount: qty * prev.unit_price
-      }));
-    });
-  };
+    setFormData(prev => ({
+      ...prev,
+      quantity: qty,
+      total_amount: qty * prev.unit_price
+    }));
+  }, []);
 
-  const handleUnitPriceChange = (price) => {
+  const handleUnitPriceChange = React.useCallback((price) => {
     const unitPrice = parseFloat(price) || 0;
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => ({
-        ...prev,
-        unit_price: unitPrice,
-        total_amount: prev.quantity * unitPrice
-      }));
-    });
-  };
+    setFormData(prev => ({
+      ...prev,
+      unit_price: unitPrice,
+      total_amount: prev.quantity * unitPrice
+    }));
+  }, []);
 
-  const handleCustomerSelect = (customerId) => {
+  const handleCustomerSelect = React.useCallback((customerId) => {
     const customer = customers.find(c => c.id === customerId || c.id === parseInt(customerId));
-    FocusManager.preserveFocus(() => {
-      setFormData(prev => ({
-        ...prev,
-        customer_id: customerId === 'walkin' ? '' : customerId,
-        customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
-      }));
-    });
-  };
+    setFormData(prev => ({
+      ...prev,
+      customer_id: customerId === 'walkin' ? '' : customerId,
+      customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
+    }));
+  }, [customers]);
 
   const resetForm = () => {
     setFormData({
@@ -318,20 +311,27 @@ const Sales = () => {
         try {
           const paymentData = {
             customer_name: saleData.customer_name || 'Walk-in Customer',
+            customer_email: saleData.customer_id ? customers.find(c => c.id == saleData.customer_id)?.email : null,
             amount: saleData.total_amount,
             payment_method: saleData.payment_method,
             payment_date: saleData.date,
-            reference_number: `SALE-${Date.now()}`,
-            notes: `Payment for sale - ${saleData.customer_name || 'Walk-in Customer'}`,
+            reference_number: `SALE-${saleResponse?.data?.id || Date.now()}`,
+            notes: `Payment for sale ID: ${saleResponse?.data?.id || 'Unknown'} - ${saleData.customer_name || 'Walk-in Customer'}`,
+            description: `Sale payment for ${saleData.customer_name || 'Walk-in Customer'}`,
             status: 'completed'
           };
 
-          await recordPayment(paymentData);
-          DebugLogger.logFormSubmit('SalesPage', paymentData, 'payment-recorded');
+          const paymentResponse = await recordPayment(paymentData);
+          DebugLogger.logFormSubmit('SalesPage', { paymentData, paymentResponse }, 'payment-recorded');
+          console.log('[SalesPage] Payment recorded successfully:', paymentResponse);
         } catch (paymentError) {
           // Don't fail the sale if payment recording fails, just log it
           DebugLogger.logApiError('/payments', paymentError, 'SalesPage-PaymentRecord');
-          console.warn('Sale created but payment recording failed:', paymentError);
+          console.error('Sale created but payment recording failed:', paymentError);
+          
+          // Show a warning but don't block the success flow
+          showSuccessToast('Sale recorded successfully, but payment recording had issues. Please check payments section.');
+          return; // Exit early to avoid duplicate success message
         }
       }
 
@@ -588,7 +588,7 @@ const Sales = () => {
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                        <StableInput
+                        <FocusStableInput
                           id="quantity"
                           type="number"
                           min="1"
@@ -596,13 +596,12 @@ const Sales = () => {
                           onChange={(e) => handleQuantityChange(e.target.value)}
                           placeholder="1"
                           className="h-12 text-base touch-manipulation"
-                          componentName="SalesPage-Quantity"
                         />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                        <StableInput
+                        <FocusStableInput
                           id="unit_price"
                           type="number"
                           step="0.01"
@@ -611,7 +610,6 @@ const Sales = () => {
                           onChange={(e) => handleUnitPriceChange(e.target.value)}
                           placeholder="0.00"
                           className="h-12 text-base touch-manipulation"
-                          componentName="SalesPage-UnitPrice"
                         />
                       </div>
 
@@ -632,9 +630,7 @@ const Sales = () => {
                         <Label htmlFor="payment_method" className="text-base">Payment Method</Label>
                         <Select value={formData.payment_method} onValueChange={(value) => {
                           DebugLogger.logFocusEvent('SalesPage', 'payment-method-change', document.activeElement, { value });
-                          FocusManager.preserveFocus(() => {
-                            setFormData(prev => ({ ...prev, payment_method: value }));
-                          });
+                          setFormData(prev => ({ ...prev, payment_method: value }));
                         }}>
                           <SelectTrigger className="h-12 text-base touch-manipulation">
                             <SelectValue />
@@ -657,7 +653,7 @@ const Sales = () => {
                           id="date"
                           type="date"
                           value={formData.date}
-                          onChange={(e) => FocusManager.preserveFocus(() => setFormData(prev => ({ ...prev, date: e.target.value })))}
+                          onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                           className="h-12 text-base touch-manipulation"
                           componentName="SalesPage-Date"
                         />
