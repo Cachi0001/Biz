@@ -1,142 +1,133 @@
-/**
- * StableInput - Input component that preserves focus during re-renders
- * Addresses the issue where input fields lose focus after typing single characters
- */
-
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { Input } from './input';
-import FocusManager from '../../utils/focusManager';
-import DebugLogger from '../../utils/debugLogger';
 import { cn } from '../../lib/utils';
 
+/**
+ * StableInput - An ultra-stable input component that prevents focus loss
+ * Uses advanced techniques to maintain focus and cursor position
+ */
 const StableInput = React.forwardRef(({
+  value,
   onChange,
   onFocus,
   onBlur,
+  onKeyDown,
   className,
-  componentName = 'StableInput',
-  preserveFocus = true,
-  logEvents = true,
-  debounceMs = 0,
-  component = 'input',
+  type = "text",
   ...props
 }, ref) => {
-  const internalRef = useRef(null);
-  const inputRef = ref || internalRef;
-  const debounceTimeoutRef = useRef(null);
+  const inputRef = useRef(null);
+  const finalRef = ref || inputRef;
+  const [isFocused, setIsFocused] = useState(false);
+  const cursorPositionRef = useRef(0);
+  const valueRef = useRef(value);
 
-  // Stable onChange handler that preserves focus
-  const handleChange = useCallback((e) => {
-    // Clear existing debounce timeout
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    const executeChange = () => {
-      try {
-        if (logEvents && DebugLogger?.logFocusEvent) {
-          DebugLogger.logFocusEvent(componentName, 'change', e.target, {
-            value: e.target.value,
-            selectionStart: e.target.selectionStart,
-            selectionEnd: e.target.selectionEnd
-          });
-        }
-
-        if (preserveFocus && FocusManager?.preserveFocus) {
-          FocusManager.preserveFocus(() => {
-            onChange?.(e);
-          });
-        } else {
-          onChange?.(e);
-        }
-      } catch (error) {
-        console.error(`[${componentName}] Change handler error:`, error);
-        // Fallback to direct onChange call
-        onChange?.(e);
-      }
-    };
-
-    if (debounceMs > 0) {
-      debounceTimeoutRef.current = setTimeout(executeChange, debounceMs);
-    } else {
-      executeChange();
-    }
-  }, [onChange, preserveFocus, logEvents, componentName, debounceMs]);
-
-  // Enhanced focus handler with logging
-  const handleFocus = useCallback((e) => {
-    if (logEvents && DebugLogger?.logFocusEvent) {
-      DebugLogger.logFocusEvent(componentName, 'focus', e.target);
-    }
-    onFocus?.(e);
-  }, [onFocus, logEvents, componentName]);
-
-  // Enhanced blur handler with logging
-  const handleBlur = useCallback((e) => {
-    if (logEvents && DebugLogger?.logFocusEvent) {
-      DebugLogger.logFocusEvent(componentName, 'blur', e.target);
-    }
-    onBlur?.(e);
-  }, [onBlur, logEvents, componentName]);
-
-  // Log component mount/unmount
+  // Update value ref when prop changes
   useEffect(() => {
-    if (logEvents && DebugLogger?.logLifecycle) {
-      DebugLogger.logLifecycle(componentName, 'mount');
+    valueRef.current = value;
+  }, [value]);
+
+  // Stable change handler with cursor preservation
+  const handleChange = useCallback((e) => {
+    const newValue = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    
+    // Store cursor position
+    cursorPositionRef.current = cursorPos;
+    
+    // Call parent onChange
+    if (onChange) {
+      onChange(e);
     }
     
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+    // Restore cursor position after state update
+    setTimeout(() => {
+      if (finalRef.current && isFocused && document.activeElement === finalRef.current) {
+        try {
+          finalRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
+        } catch (error) {
+          // Ignore cursor restoration errors
+        }
       }
-      if (logEvents && DebugLogger?.logLifecycle) {
-        DebugLogger.logLifecycle(componentName, 'unmount');
-      }
-    };
-  }, [componentName, logEvents]);
+    }, 0);
+  }, [onChange, finalRef, isFocused]);
 
-  // Handle different component types
-  if (component === 'textarea') {
-    return (
-      <textarea
-        ref={inputRef}
+  const handleFocus = useCallback((e) => {
+    setIsFocused(true);
+    if (onFocus) {
+      onFocus(e);
+    }
+  }, [onFocus]);
+
+  const handleBlur = useCallback((e) => {
+    setIsFocused(false);
+    if (onBlur) {
+      onBlur(e);
+    }
+  }, [onBlur]);
+
+  const handleKeyDown = useCallback((e) => {
+    // Store cursor position on key events
+    if (finalRef.current) {
+      cursorPositionRef.current = finalRef.current.selectionStart;
+    }
+    
+    // Prevent form submission on Enter
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  }, [onKeyDown, finalRef]);
+
+  // Prevent parent click events from stealing focus
+  const handleContainerMouseDown = useCallback((e) => {
+    if (isFocused) {
+      e.stopPropagation();
+    }
+  }, [isFocused]);
+
+  const handleContainerClick = useCallback((e) => {
+    if (isFocused) {
+      e.stopPropagation();
+    }
+  }, [isFocused]);
+
+  return (
+    <div 
+      onMouseDown={handleContainerMouseDown}
+      onClick={handleContainerClick}
+      style={{ 
+        pointerEvents: 'auto',
+        position: 'relative',
+        zIndex: isFocused ? 10 : 'auto'
+      }}
+    >
+      <Input
+        ref={finalRef}
+        type={type}
+        value={value || ''}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         className={cn(
-          // Ensure minimum touch target size for mobile
           "min-h-[44px] touch-manipulation",
-          // Enhanced focus styles
           "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-          // Textarea specific styles
-          "w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background",
-          "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
-          "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+          isFocused && "relative z-10",
           className
         )}
         {...props}
       />
-    );
-  }
-
-  return (
-    <Input
-      ref={inputRef}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      className={cn(
-        // Ensure minimum touch target size for mobile
-        "min-h-[44px] touch-manipulation",
-        // Enhanced focus styles
-        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-        className
-      )}
-      {...props}
-    />
+    </div>
   );
 });
 
 StableInput.displayName = 'StableInput';
 
 export default StableInput;
+

@@ -588,7 +588,24 @@ const Invoices = () => {
     const invoiceNumber = invoice.invoice_number || (typeof invoice.id === 'string' ? invoice.id.substring(0, 8).toUpperCase() : '') || '';
 
     return (
-      <Card className="bg-white border-2 border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation">
+      <Card 
+        className="bg-white border-2 border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation"
+        onMouseDown={(e) => {
+          // Prevent card from stealing focus from inputs
+          const target = e.target as HTMLElement;
+          if (!target.closest('input, select, textarea, button')) {
+            e.preventDefault();
+          }
+        }}
+        onClick={(e) => {
+          // Prevent card click events from interfering with input focus
+          const target = e.target as HTMLElement;
+          if (!target.closest('input, select, textarea, button')) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+      >
         <CardContent className="p-4 sm:p-6">
           <div className="space-y-4">
             {/* Header with invoice number and status - Enhanced spacing */}
@@ -832,7 +849,25 @@ const Invoices = () => {
           </Button>
         </div>
         {formData.items.map((item, index) => (
-          <Card key={item.id} className="p-4 sm:p-6 mb-4 border-2 border-gray-100">
+          <Card 
+            key={item.id} 
+            className="p-4 sm:p-6 mb-4 border-2 border-gray-100"
+            onMouseDown={(e) => {
+              // Prevent card from stealing focus from inputs
+              const target = e.target as HTMLElement;
+              if (!target.closest('input, select, textarea, button')) {
+                e.preventDefault();
+              }
+            }}
+            onClick={(e) => {
+              // Prevent card click events from interfering with input focus
+              const target = e.target as HTMLElement;
+              if (!target.closest('input, select, textarea, button')) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+          >
             {/* Mobile-first layout with enhanced spacing */}
             <div className="space-y-4 sm:space-y-6">
               {/* Product Selection - Full width on mobile, better spacing */}

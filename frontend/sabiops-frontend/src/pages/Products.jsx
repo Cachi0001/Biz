@@ -603,7 +603,25 @@ const Products = () => {
               <div className="block md:hidden">
                 <div className="grid grid-cols-2 gap-3">
                   {filteredProducts.map((product) => (
-                    <Card key={product.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                    <Card 
+                      key={product.id} 
+                      className="bg-white border border-gray-200 hover:shadow-md transition-shadow"
+                      onMouseDown={(e) => {
+                        // Prevent card from stealing focus from inputs
+                        const target = e.target;
+                        if (!target.closest('input, select, textarea, button')) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onClick={(e) => {
+                        // Prevent card click events from interfering with input focus
+                        const target = e.target;
+                        if (!target.closest('input, select, textarea, button')) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
                       <CardContent className="p-3">
                         <div className="space-y-2">
                           <div className="flex items-start justify-between">
