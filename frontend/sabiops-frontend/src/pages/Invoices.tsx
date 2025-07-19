@@ -1208,7 +1208,7 @@ const Invoices = () => {
               <div className="flex flex-col gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <FocusStableInput
+                  <BulletproofInput
                     placeholder="Search invoices by number, customer, or notes..."
                     value={searchTerm}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
@@ -1216,6 +1216,8 @@ const Invoices = () => {
                     aria-label="Search invoices by number, customer, or notes"
                     aria-describedby="search-help"
                     role="searchbox"
+                    componentName="InvoiceSearch"
+                    debounceMs={300}
                   />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">

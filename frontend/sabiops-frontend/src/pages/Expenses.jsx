@@ -14,8 +14,7 @@ import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formattin
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
-import StableInput from '../components/ui/StableInput';
-import FocusManager from '../utils/focusManager';
+import BulletproofInput from '../components/ui/BulletproofInput';
 import DebugLogger from '../utils/debugLogger';
 import BackButton from '../components/ui/BackButton';
 
@@ -360,11 +359,9 @@ const Expenses = () => {
   const handleCategoryChange = (categoryName) => {
     DebugLogger.logFocusEvent('ExpensesPage', 'category-change', document.activeElement, { categoryName });
     
-    FocusManager.preserveFocus(() => {
-      setFormData({ ...formData, category: categoryName, sub_category: '' });
-      const selectedCategory = categories.find(cat => cat.name === categoryName);
-      setSubcategories(selectedCategory?.subcategories || []);
-    });
+    setFormData({ ...formData, category: categoryName, sub_category: '' });
+    const selectedCategory = categories.find(cat => cat.name === categoryName);
+    setSubcategories(selectedCategory?.subcategories || []);
   };
 
   const clearFilters = () => {
@@ -465,9 +462,7 @@ const Expenses = () => {
                         value={formData.sub_category}
                         onValueChange={(value) => {
                           DebugLogger.logFocusEvent('ExpensesPage', 'subcategory-change', document.activeElement, { value });
-                          FocusManager.preserveFocus(() => {
-                            setFormData({ ...formData, sub_category: value });
-                          });
+                          setFormData({ ...formData, sub_category: value });
                         }}
                         disabled={!formData.category}
                       >
@@ -487,16 +482,17 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="amount">Amount (₦) *</Label>
-                    <StableInput
+                    <BulletproofInput
                       id="amount"
                       type="number"
                       step="0.01"
                       value={formData.amount}
-                      onChange={(e) => FocusManager.preserveFocus(() => setFormData({ ...formData, amount: e.target.value }))}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       placeholder="0.00"
                       required
                       className={formErrors.amount ? 'border-red-500' : ''}
                       componentName="ExpensesPage-Amount"
+                      debounceMs={300}
                     />
                     {formErrors.amount && (
                       <p className="text-sm text-red-500 mt-1">{formErrors.amount}</p>
@@ -505,14 +501,15 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="description">Description</Label>
-                    <StableInput
+                    <BulletproofInput
                       id="description"
                       value={formData.description}
-                      onChange={(e) => FocusManager.preserveFocus(() => setFormData({ ...formData, description: e.target.value }))}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Enter expense description"
                       rows={3}
                       component="textarea"
                       componentName="ExpensesPage-Description"
+                      debounceMs={300}
                     />
                   </div>
 
@@ -521,9 +518,7 @@ const Expenses = () => {
                       <Label htmlFor="payment_method">Payment Method</Label>
                       <Select value={formData.payment_method} onValueChange={(value) => {
                         DebugLogger.logFocusEvent('ExpensesPage', 'payment-method-change', document.activeElement, { value });
-                        FocusManager.preserveFocus(() => {
-                          setFormData({ ...formData, payment_method: value });
-                        });
+                        setFormData({ ...formData, payment_method: value });
                       }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment method" />
@@ -539,25 +534,27 @@ const Expenses = () => {
                     </div>
                     <div>
                       <Label htmlFor="date">Expense Date *</Label>
-                      <StableInput
+                      <BulletproofInput
                         id="date"
                         type="date"
                         value={formData.date}
-                        onChange={(e) => FocusManager.preserveFocus(() => setFormData({ ...formData, date: e.target.value }))}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
                         componentName="ExpensesPage-Date"
+                        debounceMs={300}
                       />
                     </div>
                   </div>
 
                   <div>
                     <Label htmlFor="receipt_url">Receipt URL</Label>
-                    <StableInput
+                    <BulletproofInput
                       id="receipt_url"
                       value={formData.receipt_url}
-                      onChange={(e) => FocusManager.preserveFocus(() => setFormData({ ...formData, receipt_url: e.target.value }))}
+                      onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
                       placeholder="Enter receipt URL (optional)"
                       componentName="ExpensesPage-ReceiptURL"
+                      debounceMs={300}
                     />
                   </div>
 
@@ -588,12 +585,13 @@ const Expenses = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <StableInput
+                      <BulletproofInput
                         placeholder="Search expenses by category, subcategory, or description..."
                         value={searchTerm}
-                        onChange={(e) => FocusManager.preserveFocus(() => setSearchTerm(e.target.value))}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
                         componentName="ExpensesPage-Search"
+                        debounceMs={300}
                       />
                     </div>
                   </div>
@@ -644,23 +642,25 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-start-date">Start Date</Label>
-                    <StableInput
+                    <BulletproofInput
                       id="filter-start-date"
                       type="date"
                       value={dateRange.start}
-                      onChange={(e) => FocusManager.preserveFocus(() => setDateRange({ ...dateRange, start: e.target.value }))}
+                      onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                       componentName="ExpensesPage-FilterStartDate"
+                      debounceMs={300}
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="filter-end-date">End Date</Label>
-                    <StableInput
+                    <BulletproofInput
                       id="filter-end-date"
                       type="date"
                       value={dateRange.end}
-                      onChange={(e) => FocusManager.preserveFocus(() => setDateRange({ ...dateRange, end: e.target.value }))}
+                      onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                       componentName="ExpensesPage-FilterEndDate"
+                      debounceMs={300}
                     />
                   </div>
                 </div>

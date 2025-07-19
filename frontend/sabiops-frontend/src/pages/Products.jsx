@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
 import BulletproofInput from '../components/ui/BulletproofInput';
-import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
 import {
   Dialog,

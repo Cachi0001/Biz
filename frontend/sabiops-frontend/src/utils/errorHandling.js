@@ -4,7 +4,7 @@
  */
 
 import DebugLogger from './debugLogger';
-import FocusManager from './focusManager';
+
 
 /**
  * Handles focus-related errors and attempts recovery
@@ -30,7 +30,10 @@ export const handleFocusError = (error, component, field, element = null) => {
     }
   } else if (field) {
     // Try to find element by field name
-    FocusManager.restoreFocusToElement(`[name="${field}"]`, 100);
+    const element = document.querySelector(`[name="${field}"]`);
+    if (element && element.focus) {
+      setTimeout(() => element.focus(), 100);
+    }
   }
 
   return {
@@ -86,7 +89,10 @@ export const handleFormSubmissionError = (error, component, formData, onRetry = 
   // Focus on first error field if available
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     const firstErrorField = Object.keys(fieldErrors)[0];
-    FocusManager.restoreFocusToElement(`[name="${firstErrorField}"]`, 200);
+    const element = document.querySelector(`[name="${firstErrorField}"]`);
+    if (element && element.focus) {
+      setTimeout(() => element.focus(), 200);
+    }
   }
 
   return {

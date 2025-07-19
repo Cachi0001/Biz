@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Plus, Search, Download, Eye, Trash2, ShoppingCart, TrendingUp, Calculator, Package, Edit, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -35,10 +34,7 @@ import { get, post } from "../services/api";
 import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validateSaleData } from "../services/enhancedApi";
 import { recordPayment } from "../services/api";
 import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
-import StableInput from '../components/ui/StableInput';
-import FocusStableInput from '../components/ui/FocusStableInput';
-import EnhancedStableInput from '../components/ui/EnhancedStableInput';
-import FocusManager from '../utils/focusManager';
+import BulletproofInput from '../components/ui/BulletproofInput';
 import DebugLogger from '../utils/debugLogger';
 import { handleApiErrorWithToast, showErrorToast } from '../utils/errorHandling';
 import notificationService from '../services/notificationService';
@@ -297,78 +293,75 @@ const Sales = () => {
       return;
     }
 
-    // Use FocusManager for form submission
-    FocusManager.handleFormSubmit(e.target, async () => {
-      try {
-        setSubmitting(true);
-        setError('');
+    try {
+      setSubmitting(true);
+      setError('');
 
-        // Prepare sale data with proper structure
-        const selectedProduct = products.find(p => p.id == formData.product_id);
-        const selectedCustomer = customers.find(c => c.id == formData.customer_id);
-        
-        const saleData = {
-          product_id: formData.product_id,
-          customer_id: formData.customer_id || null,
-          customer_name: formData.customer_name || selectedCustomer?.name || 'Walk-in Customer',
-          customer_email: selectedCustomer?.email || null,
-          quantity: parseInt(formData.quantity),
-          unit_price: parseFloat(formData.unit_price),
-          total_amount: parseFloat(formData.total_amount),
-          payment_method: formData.payment_method,
-          payment_status: formData.payment_method === 'pending' ? 'pending' : 'completed',
-          currency: 'NGN',
-          date: formData.date,
-          salesperson_id: formData.salesperson_id || null,
-          notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
-          discount_amount: 0,
-          tax_amount: 0
-        };
+      // Prepare sale data with proper structure
+      const selectedProduct = products.find(p => p.id == formData.product_id);
+      const selectedCustomer = customers.find(c => c.id == formData.customer_id);
+      
+      const saleData = {
+        product_id: formData.product_id,
+        customer_id: formData.customer_id || null,
+        customer_name: formData.customer_name || selectedCustomer?.name || 'Walk-in Customer',
+        customer_email: selectedCustomer?.email || null,
+        quantity: parseInt(formData.quantity),
+        unit_price: parseFloat(formData.unit_price),
+        total_amount: parseFloat(formData.total_amount),
+        payment_method: formData.payment_method,
+        payment_status: formData.payment_method === 'pending' ? 'pending' : 'completed',
+        currency: 'NGN',
+        date: formData.date,
+        salesperson_id: formData.salesperson_id || null,
+        notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
+        discount_amount: 0,
+        tax_amount: 0
+      };
 
-        DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
+      DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
 
-        // Create the sale using enhanced API
-        const saleResponse = await enhancedCreateSale(saleData);
+      // Create the sale using enhanced API
+      const saleResponse = await enhancedCreateSale(saleData);
 
-        // Show success notification (toast only, no bell notification)
-        notificationService.showSaleSuccess({
-          total_amount: saleData.total_amount,
-          customer_name: saleData.customer_name,
-          product_name: selectedProduct?.name || 'Unknown Product'
-        });
+      // Show success notification (toast only, no bell notification)
+      notificationService.showSaleSuccess({
+        total_amount: saleData.total_amount,
+        customer_name: saleData.customer_name,
+        product_name: selectedProduct?.name || 'Unknown Product'
+      });
 
-        // Reset form and close dialog
-        setShowAddDialog(false);
-        resetForm();
+      // Reset form and close dialog
+      setShowAddDialog(false);
+      resetForm();
 
-        // Refresh all data immediately
-        await Promise.all([
-          fetchSales(),
-          fetchSalesStats()
-        ]);
+      // Refresh all data immediately
+      await Promise.all([
+        fetchSales(),
+        fetchSalesStats()
+      ]);
 
-        // Dispatch events to update other parts of the application
-        window.dispatchEvent(new CustomEvent('salesUpdated', {
-          detail: {
-            sale: saleResponse,
-            timestamp: new Date().toISOString()
-          }
-        }));
-
-      } catch (error) {
-        const errorMessage = handleApiErrorWithToast(error, 'Failed to create sale');
-        setError(errorMessage);
-        
-        // Show specific error for common issues
-        if (error.response?.data?.error?.includes('product_id')) {
-          setError('Please select a product before creating the sale');
-        } else if (error.response?.data?.error?.includes('quantity')) {
-          setError('Please enter a valid quantity greater than 0');
+      // Dispatch events to update other parts of the application
+      window.dispatchEvent(new CustomEvent('salesUpdated', {
+        detail: {
+          sale: saleResponse,
+          timestamp: new Date().toISOString()
         }
-      } finally {
-        setSubmitting(false);
+      }));
+
+    } catch (error) {
+      const errorMessage = handleApiErrorWithToast(error, 'Failed to create sale');
+      setError(errorMessage);
+      
+      // Show specific error for common issues
+      if (error.response?.data?.error?.includes('product_id')) {
+        setError('Please select a product before creating the sale');
+      } else if (error.response?.data?.error?.includes('quantity')) {
+        setError('Please enter a valid quantity greater than 0');
       }
-    });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const downloadReport = async () => {
@@ -590,7 +583,7 @@ const Sales = () => {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                          <EnhancedStableInput
+                          <BulletproofInput
                             id="quantity"
                             type="number"
                             min="1"
@@ -599,13 +592,13 @@ const Sales = () => {
                             placeholder="1"
                             className="h-12 text-base touch-manipulation"
                             componentName="SalesPage-Quantity"
-                            mobileOptimized={true}
+                            debounceMs={300}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                          <EnhancedStableInput
+                          <BulletproofInput
                             id="unit_price"
                             type="number"
                             step="0.01"
@@ -615,17 +608,18 @@ const Sales = () => {
                             placeholder="0.00"
                             className="h-12 text-base touch-manipulation"
                             componentName="SalesPage-UnitPrice"
-                            mobileOptimized={true}
+                            debounceMs={300}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label className="text-base">Total Amount</Label>
-                          <StableInput
+                          <BulletproofInput
                             value={formatNaira(formData.total_amount)}
                             disabled
                             className="font-bold text-green-600 h-12 text-base"
                             componentName="SalesPage-TotalAmount"
+                            debounceMs={300}
                           />
                         </div>
                       </div>
@@ -655,14 +649,14 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="date" className="text-base">Sale Date</Label>
-                          <EnhancedStableInput
+                          <BulletproofInput
                             id="date"
                             type="date"
                             value={formData.date}
                             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                             className="h-12 text-base touch-manipulation"
                             componentName="SalesPage-Date"
-                            mobileOptimized={true}
+                            debounceMs={300}
                           />
                         </div>
                       </div>
@@ -768,22 +762,24 @@ const Sales = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <StableInput
+                      <BulletproofInput
                         placeholder="Search by sale number or customer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 h-12 text-base touch-manipulation"
                         componentName="SalesPage-Search"
+                        debounceMs={300}
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <StableInput
+                    <BulletproofInput
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       className="h-12 text-base touch-manipulation"
                       componentName="SalesPage-DateFilter"
+                      debounceMs={300}
                     />
                     <Button
                       variant="outline"
