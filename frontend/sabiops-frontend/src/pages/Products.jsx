@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
 import FocusStableInput from '../components/ui/FocusStableInput';
-import UltraStableInput from '../components/ui/UltraStableInput';
+import SuperStableInput from '../components/ui/SuperStableInput';
 import StableInput from '../components/ui/StableInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
@@ -319,7 +319,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="name"
             name="name"
             value={formData.name}
@@ -332,7 +332,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="sku"
             name="sku"
             value={formData.sku}
@@ -378,7 +378,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="price"
             name="price"
             type="number"
@@ -393,7 +393,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -409,7 +409,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="quantity"
             name="quantity"
             type="number"
@@ -423,7 +423,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <UltraStableInput
+          <SuperStableInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -442,7 +442,7 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <UltraStableInput
+        <SuperStableInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
@@ -552,7 +552,7 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <UltraStableInput
+                    <SuperStableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
