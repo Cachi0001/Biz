@@ -10,7 +10,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Plus, Trash2, Calculator } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import SimpleFocusInput from '../ui/SimpleFocusInput';
-import { enhancedGetCustomers, enhancedGetProducts } from '../../services/enhancedApi';
+import StableInput from '../ui/StableInput';
+import FocusManager from '../../utils/focusManager';
+import DebugLogger from '../../utils/debugLogger';
+
+// Import enhanced API functions safely
+let enhancedGetCustomers, enhancedGetProducts;
+try {
+  const enhancedApi = require('../../services/enhancedApi');
+  enhancedGetCustomers = enhancedApi.enhancedGetCustomers;
+  enhancedGetProducts = enhancedApi.enhancedGetProducts;
+} catch (error) {
+  console.warn('[InvoiceForm] Enhanced API not available, using fallbacks');
+  enhancedGetCustomers = async () => [];
+  enhancedGetProducts = async () => ({ products: [] });
+}
 
 const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
   const [formData, setFormData] = useState({
@@ -76,9 +90,8 @@ const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
   const handleItemChange = useCallback((index, field, value) => {
     setFormData(prev => {
       const updatedItems = [...prev.items];
-        updatedItems[index] = { ...updatedItems[index], [field]: value };
-        return { ...prev, items: updatedItems };
-      });
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+      return { ...prev, items: updatedItems };
     });
   }, []);
 

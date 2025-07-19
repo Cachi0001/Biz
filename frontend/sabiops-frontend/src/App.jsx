@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -6,6 +6,9 @@ import ToastProvider from './components/ToastProvider';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Card, CardContent } from './components/ui/card';
+import ScriptErrorIsolation from './utils/scriptErrorIsolation';
+import PageReloadPrevention from './utils/pageReloadPrevention';
+import ErrorRecoverySystem from './utils/errorRecoverySystem';
 
 // Pages
 import Landing from './pages/Landing';
@@ -57,6 +60,14 @@ function NotificationPrompt() {
 }
 
 function App() {
+  // Initialize error handling and stability systems on app startup
+  useEffect(() => {
+    ScriptErrorIsolation.init();
+    PageReloadPrevention.init();
+    ErrorRecoverySystem.init();
+    console.log('[App] Comprehensive error handling and stability systems initialized');
+  }, []);
+
   return (
     <ErrorBoundary>
       <ToastProvider>

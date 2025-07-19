@@ -5,6 +5,65 @@
 
 export class DebugLogger {
   static isEnabled = process.env.NODE_ENV === 'development';
+  static initialized = false;
+
+  /**
+   * Initialize the debug logger and ensure all methods are available
+   */
+  static init() {
+    if (this.initialized) return;
+    
+    this.initialized = true;
+    console.log('[DebugLogger] Initialized with enabled:', this.isEnabled);
+    
+    // Ensure all methods exist even if disabled
+    this.ensureMethodsExist();
+  }
+
+  /**
+   * Ensure all debug methods exist to prevent "function not defined" errors
+   */
+  static ensureMethodsExist() {
+    const methods = [
+      'logApiCall',
+      'logDropdownEvent', 
+      'logDropdownIssue',
+      'logApiError',
+      'logFocusEvent',
+      'logStateUpdate',
+      'logRender',
+      'logFormSubmit',
+      'logDisplayIssue',
+      'logLifecycle',
+      'startTimer',
+      'setEnabled',
+      'logStateSummary'
+    ];
+
+    methods.forEach(method => {
+      if (typeof this[method] !== 'function') {
+        console.warn(`[DebugLogger] Method ${method} not found, creating stub`);
+        this[method] = () => {}; // Create empty stub
+      }
+    });
+  }
+
+  /**
+   * Safe method call wrapper
+   */
+  static safeCall(methodName, ...args) {
+    try {
+      if (typeof this[methodName] === 'function') {
+        return this[methodName](...args);
+      } else {
+        console.warn(`[DebugLogger] Method ${methodName} not available`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`[DebugLogger] Error calling ${methodName}:`, error);
+      return null;
+    }
+  }
   
   /**
    * Logs API calls with detailed response information
@@ -282,6 +341,11 @@ export class DebugLogger {
     console.log('⏰ Timestamp:', new Date().toISOString());
     console.groupEnd();
   }
+}
+
+// Auto-initialize when module loads
+if (typeof window !== 'undefined') {
+  DebugLogger.init();
 }
 
 export default DebugLogger;

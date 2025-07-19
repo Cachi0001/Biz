@@ -8,6 +8,9 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
 import SimpleFocusInput from '../components/ui/SimpleFocusInput';
+import StableInput from '../components/ui/StableInput';
+import FocusManager from '../utils/focusManager';
+import DebugLogger from '../utils/debugLogger';
 import {
   Dialog,
   DialogContent,

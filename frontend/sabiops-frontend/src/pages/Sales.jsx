@@ -79,6 +79,10 @@ const Sales = () => {
     try {
       setLoading(true);
       setError('');
+      
+      DebugLogger.logApiCall('/sales', 'Starting fetch for sales list', 'SalesPage', 'GET');
+      console.log('[SalesPage] Fetching sales for date:', selectedDate);
+      
       const response = await get('/sales/', {
         params: {
           start_date: selectedDate,
@@ -86,15 +90,51 @@ const Sales = () => {
         }
       });
 
-      // Handle new API response format
-      const salesData = safeArray(response?.data?.sales || response?.data || response, []);
+      console.log('[SalesPage] Sales response:', response);
+      DebugLogger.logApiCall('/sales', response, 'SalesPage', 'GET');
+
+      // Handle multiple API response formats
+      let salesData = [];
+      
+      if (response?.data?.sales && Array.isArray(response.data.sales)) {
+        salesData = response.data.sales;
+      } else if (response?.data && Array.isArray(response.data)) {
+        salesData = response.data;
+      } else if (Array.isArray(response)) {
+        salesData = response;
+      } else if (response?.sales && Array.isArray(response.sales)) {
+        salesData = response.sales;
+      } else {
+        console.warn('[SalesPage] Unexpected sales response format:', response);
+        salesData = [];
+      }
+
+      console.log('[SalesPage] Processed sales data:', salesData);
       setSales(salesData);
 
       // Update stats from response
       if (response?.data?.summary) {
         setSalesStats(response.data.summary);
+      } else if (response?.summary) {
+        setSalesStats(response.summary);
       }
+
+      // If we have sales but no stats, calculate basic stats
+      if (salesData.length > 0 && !response?.data?.summary && !response?.summary) {
+        const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
+        const calculatedStats = {
+          total_sales: totalSales,
+          total_transactions: salesData.length,
+          today_sales: totalSales,
+          average_sale: salesData.length > 0 ? totalSales / salesData.length : 0
+        };
+        setSalesStats(calculatedStats);
+        console.log('[SalesPage] Calculated stats:', calculatedStats);
+      }
+
     } catch (error) {
+      console.error('[SalesPage] Error fetching sales:', error);
+      DebugLogger.logApiError('/sales', error, 'SalesPage');
       const errorMessage = handleApiError(error, 'Failed to fetch sales', false);
       setError(errorMessage);
       setSales([]);
@@ -515,20 +555,31 @@ const Sales = () => {
                       {products.length === 0 && (
                         <div className="space-y-2">
                           <p className="text-sm text-gray-500">
-                            No products found. Please add products first.
+                            No products found. Please add products first or refresh the list.
                           </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              console.log('Refreshing products...');
-                              fetchProductsData();
-                            }}
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Refresh Products
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log('Refreshing products...');
+                                fetchProductsData();
+                              }}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Refresh Products
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open('/products', '_blank')}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Products
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -750,6 +801,9 @@ const Sales = () => {
               <CardTitle>Sales for {formatDate(selectedDate)}</CardTitle>
               <CardDescription>
                 {filteredSales.length} sale{filteredSales.length !== 1 ? 's' : ''} found
+                {sales.length > 0 && filteredSales.length !== sales.length && 
+                  ` (${sales.length} total)`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
