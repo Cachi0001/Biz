@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
-import SimpleFocusInput from '../components/ui/SimpleFocusInput';
+import FocusStableInput from '../components/ui/FocusStableInput';
 import StableInput from '../components/ui/StableInput';
 import FocusManager from '../utils/focusManager';
 import DebugLogger from '../utils/debugLogger';
@@ -318,7 +318,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="name"
             name="name"
             value={formData.name}
@@ -331,7 +331,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="sku"
             name="sku"
             value={formData.sku}
@@ -344,15 +344,14 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-base">Description</Label>
-        <SimpleFocusInput
+        <textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleInputChange}
           placeholder="Product description"
           rows={3}
-          className="text-base touch-manipulation min-h-[96px]"
-          component="textarea"
+          className="w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-base touch-manipulation min-h-[96px]"
         />
       </div>
 
@@ -378,7 +377,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="price"
             name="price"
             type="number"
@@ -393,7 +392,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -409,7 +408,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="quantity"
             name="quantity"
             type="number"
@@ -423,7 +422,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <SimpleFocusInput
+          <FocusStableInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -442,7 +441,7 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <SimpleFocusInput
+        <FocusStableInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
@@ -552,7 +551,7 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <SimpleFocusInput
+                    <FocusStableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}

@@ -288,17 +288,30 @@ const Sales = () => {
       setSubmitting(true);
       setError('');
 
-      // Prepare sale data according to backend API format
+      // Prepare sale data according to backend API format (sale_items array)
+      const selectedProduct = products.find(p => p.id == formData.product_id);
       const saleData = {
-        product_id: formData.product_id,
         customer_id: formData.customer_id || null,
-        customer_name: formData.customer_name || 'Walk-in Customer',
-        quantity: formData.quantity,
-        unit_price: formData.unit_price,
-        total_amount: formData.total_amount,
         payment_method: formData.payment_method,
-        date: formData.date,
-        salesperson_id: formData.salesperson_id || null
+        payment_status: 'completed',
+        discount_amount: 0,
+        tax_amount: 0,
+        notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
+        salesperson_id: formData.salesperson_id || null,
+        sale_items: [
+          {
+            product_id: formData.product_id,
+            product_name: selectedProduct?.name || 'Unknown Product',
+            product_sku: selectedProduct?.sku || '',
+            quantity: parseInt(formData.quantity),
+            unit_price: parseFloat(formData.unit_price),
+            discount_percentage: 0,
+            discount_amount: 0,
+            tax_percentage: 0,
+            tax_amount: 0,
+            total_amount: parseFloat(formData.total_amount)
+          }
+        ]
       };
 
       DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');

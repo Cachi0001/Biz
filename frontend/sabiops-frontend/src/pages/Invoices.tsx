@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import FocusStableInput from '../components/ui/FocusStableInput';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
@@ -870,7 +871,7 @@ const Invoices = () => {
                   <Label htmlFor={`description-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'description') ? 'text-red-700' : ''}`}>
                     Description *
                   </Label>
-                  <Input
+                  <FocusStableInput
                     id={`description-${index}`}
                     name="description"
                     value={item.description}
@@ -897,7 +898,7 @@ const Invoices = () => {
                   <Label htmlFor={`quantity-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'quantity') ? 'text-red-700' : ''}`}>
                     Qty *
                   </Label>
-                  <Input
+                  <FocusStableInput
                     id={`quantity-${index}`}
                     name="quantity"
                     type="number"
@@ -922,7 +923,7 @@ const Invoices = () => {
                   <Label htmlFor={`unit_price-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'unit_price') ? 'text-red-700' : ''}`}>
                     Unit Price (₦) *
                   </Label>
-                  <Input
+                  <FocusStableInput
                     id={`unit_price-${index}`}
                     name="unit_price"
                     type="number"
@@ -948,7 +949,7 @@ const Invoices = () => {
                   <Label htmlFor={`tax_rate-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'tax_rate') ? 'text-red-700' : ''}`}>
                     Tax (%)
                   </Label>
-                  <Input
+                  <FocusStableInput
                     id={`tax_rate-${index}`}
                     name="tax_rate"
                     type="number"
@@ -973,7 +974,7 @@ const Invoices = () => {
                   <Label htmlFor={`discount_rate-${index}`} className={`text-sm font-medium ${hasItemFieldError(index, 'discount_rate') ? 'text-red-700' : ''}`}>
                     Discount (%)
                   </Label>
-                  <Input
+                  <FocusStableInput
                     id={`discount_rate-${index}`}
                     name="discount_rate"
                     type="number"
@@ -1177,7 +1178,7 @@ const Invoices = () => {
               <div className="flex flex-col gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
+                  <FocusStableInput
                     placeholder="Search invoices by number, customer, or notes..."
                     value={searchTerm}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
