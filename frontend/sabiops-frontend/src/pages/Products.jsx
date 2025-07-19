@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import BackButton from '../components/ui/BackButton';
-import SimpleStableInput from '../components/ui/SimpleStableInput';
+import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 import {
   Dialog,
@@ -316,7 +316,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-base">Product Name *</Label>
-          <SimpleStableInput
+          <StableInput
             id="name"
             name="name"
             value={formData.name}
@@ -329,7 +329,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="sku" className="text-base">SKU</Label>
-          <SimpleStableInput
+          <StableInput
             id="sku"
             name="sku"
             value={formData.sku}
@@ -375,7 +375,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-          <SimpleStableInput
+          <StableInput
             id="price"
             name="price"
             type="number"
@@ -390,7 +390,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-          <SimpleStableInput
+          <StableInput
             id="cost_price"
             name="cost_price"
             type="number"
@@ -406,7 +406,7 @@ const Products = () => {
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-          <SimpleStableInput
+          <StableInput
             id="quantity"
             name="quantity"
             type="number"
@@ -420,7 +420,7 @@ const Products = () => {
 
         <div className="space-y-2">
           <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-          <SimpleStableInput
+          <StableInput
             id="low_stock_threshold"
             name="low_stock_threshold"
             type="number"
@@ -439,13 +439,13 @@ const Products = () => {
 
       <div className="space-y-2">
         <Label htmlFor="image_url" className="text-base">Image URL</Label>
-        <SimpleStableInput
+        <StableInput
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleInputChange}
           placeholder="Enter image URL (optional)"
-                      className="h-12 text-base touch-manipulation"
+          className="h-12 text-base touch-manipulation"
         />
       </div>
 
@@ -549,7 +549,7 @@ const Products = () => {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <SimpleStableInput
+                    <StableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -582,207 +582,76 @@ const Products = () => {
               <CardContent className="text-center py-12">
                 <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium mb-2 text-gray-900">No products found</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchTerm || selectedCategory
-                    ? 'Try adjusting your search or filter criteria'
-                    : 'Get started by adding your first product'}
-                </p>
-                {!searchTerm && !selectedCategory && (
-                  <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Product
-                  </Button>
-                )}
+                <p className="text-gray-500 mb-4">Get started by adding your first product</p>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <>
-              {/* Mobile Card View (2 cards per row) */}
-              <div className="block md:hidden">
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredProducts.map((product) => (
-                    <Card 
-                      key={product.id} 
-                      className="bg-white border border-gray-200 hover:shadow-md transition-shadow"
-                    >
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight">
-                              {product.name}
-                            </h3>
-                            <div className="flex gap-1 ml-2 flex-shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(product)}
-                                className="h-8 w-8 p-0 hover:bg-green-100 touch-manipulation"
-                              >
-                                <Edit className="h-4 w-4 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(product.id)}
-                                className="h-8 w-8 p-0 hover:bg-red-100 touch-manipulation"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-500">Price</span>
-                              <span className="text-sm font-semibold text-green-600">
-                                {formatNaira(product.price)}
-                              </span>
-                            </div>
-
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-500">Stock</span>
-                              <div className="flex items-center gap-1">
-                                <span className={`text-sm font-medium ${getStockColor(product)}`}>
-                                  {product.quantity}
-                                </span>
-                                {isLowStock(product) && (
-                                  <AlertTriangle className={`h-3 w-3 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
-                                )}
-                              </div>
-                            </div>
-
-                            {product.category && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-500">Category</span>
-                                <span className="text-xs text-gray-700 truncate max-w-20" title={product.category}>
-                                  {product.category}
-                                </span>
-                              </div>
-                            )}
-
-                            {product.sku && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-500">SKU</span>
-                                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded text-gray-700">
-                                  {product.sku}
-                                </code>
-                              </div>
-                            )}
-
-                            <div className="pt-1">
-                              <Badge
-                                variant={getStockBadgeVariant(product)}
-                                className={`text-xs px-2 py-0.5 ${isOutOfStock(product)
-                                  ? 'bg-red-100 text-red-800 border-red-200'
-                                  : isLowStock(product)
-                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                    : 'bg-green-100 text-green-800 border-green-200'
-                                  }`}
-                              >
-                                {getStockStatus(product)}
-                              </Badge>
-                            </div>
-                          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProducts.map((product) => (
+                <Card key={product.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
+                          <p className="text-sm text-gray-600">{product.sku || 'No SKU'}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+                        <div className="flex gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(product)}
+                            className="h-8 w-8 p-0 hover:bg-blue-100"
+                          >
+                            <Edit className="h-4 w-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(product.id)}
+                            className="h-8 w-8 p-0 hover:bg-red-100"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </div>
 
-              {/* Desktop Table View */}
-              <Card className="hidden md:block">
-                <CardHeader>
-                  <CardTitle>Product Catalog</CardTitle>
-                  <CardDescription>
-                    {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead className="hidden sm:table-cell">SKU</TableHead>
-                          <TableHead className="hidden md:table-cell">Category</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Stock</TableHead>
-                          <TableHead className="hidden lg:table-cell">Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredProducts.map((product) => (
-                          <TableRow key={product.id}>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{product.name}</div>
-                                {product.description && (
-                                  <div className="text-sm text-muted-foreground truncate max-w-xs">
-                                    {product.description}
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                                {product.sku || 'N/A'}
-                              </code>
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell">{product.category || 'Uncategorized'}</TableCell>
-                            <TableCell className="font-medium text-green-600">
-                              {formatNaira(product.price)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-medium ${getStockColor(product)}`}>
-                                  {product.quantity}
-                                </span>
-                                {isLowStock(product) && (
-                                  <AlertTriangle className={`h-4 w-4 ${isOutOfStock(product) ? 'text-red-500' : 'text-yellow-500'}`} />
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell">
-                              <Badge
-                                variant={getStockBadgeVariant(product)}
-                                className={`${isOutOfStock(product)
-                                  ? 'bg-red-100 text-red-800 border-red-200'
-                                  : isLowStock(product)
-                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                    : 'bg-green-100 text-green-800 border-green-200'
-                                  }`}
-                              >
-                                {getStockStatus(product)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(product)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(product.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Category</span>
+                          <span>{product.category || 'Uncategorized'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Price</span>
+                          <span className="font-semibold text-green-600">
+                            {formatNaira(product.price || product.unit_price || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Stock</span>
+                          <span className={getStockColor(product)}>
+                            {product.quantity || 0} units
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <Badge variant={getStockBadgeVariant(product)}>
+                          {getStockStatus(product)}
+                        </Badge>
+                        <div className="text-xs text-gray-500">
+                          {product.category}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Edit Dialog */}
@@ -805,6 +674,6 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default React.memo(Products);
 
 

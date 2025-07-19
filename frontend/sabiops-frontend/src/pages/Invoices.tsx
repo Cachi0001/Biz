@@ -1,43 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Download, Send, Filter } from 'lucide-react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
+import { Plus, Search, Edit, Trash2, Download, Send, Eye, Filter, Calendar, DollarSign, User, FileText } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import SimpleStableInput from '../components/ui/SimpleStableInput';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
-import BackButton from '../components/ui/BackButton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../components/ui/table";
-import { getInvoices, getCustomers, getProducts, updateInvoice, createInvoice, getInvoice, deleteInvoice, downloadInvoicePdf, sendInvoice, updateInvoiceStatus } from "../services/api";
-import { handleApiError, showSuccessToast, showErrorToast, safeArray } from '../utils/errorHandling';
-import { handleFormSubmissionError, handleInvoiceError } from '../services/apiErrorHandler';
-import ErrorMessage, { FieldError, ErrorList } from '../components/ui/ErrorMessage';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Textarea } from '../components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice, updateInvoiceStatus, sendInvoice, downloadInvoicePdf, getInvoice } from "../services/api";
 import { formatNaira, formatDate } from '../utils/formatting';
+import { handleApiErrorWithToast, showSuccessToast, showErrorToast, safeArray } from '../utils/errorHandling';
+import { useUsageTracking } from '../hooks/useUsageTracking';
+import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
+import StableInput from '../components/ui/StableInput';
+import BackButton from '../components/ui/BackButton';
 
 interface Invoice {
   id: string;
@@ -105,7 +85,7 @@ const Invoices = () => {
       setInvoices(invoicesData);
     } catch (error) {
       console.error('Failed to fetch invoices:', error);
-      handleApiError(error, 'Failed to load invoices');
+      handleApiErrorWithToast(error, 'Failed to load invoices');
       setInvoices([]);
     } finally {
       setLoading(false);
@@ -121,7 +101,7 @@ const Invoices = () => {
       setCustomers(customersData);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      handleApiError(error, 'Failed to load customers');
+      handleApiErrorWithToast(error, 'Failed to load customers');
       setCustomers([]);
     }
   };
@@ -135,7 +115,7 @@ const Invoices = () => {
       setProducts(productsData);
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      handleApiError(error, 'Failed to load products');
+      handleApiErrorWithToast(error, 'Failed to load products');
       setProducts([]);
     }
   };
@@ -307,7 +287,7 @@ const Invoices = () => {
 
       return true;
     } catch (error) {
-      handleFormSubmissionError(error, 'InvoicesPage', formData);
+      handleApiErrorWithToast(error, 'InvoicesPage', formData);
       return false;
     } finally {
       setSubmitting(false);
@@ -351,7 +331,7 @@ const Invoices = () => {
       });
       setIsEditDialogOpen(true);
     } catch (error) {
-      handleInvoiceError(error, 'Failed to load invoice for editing');
+      handleApiErrorWithToast(error, 'Failed to load invoice for editing');
     }
   };
 
@@ -362,7 +342,7 @@ const Invoices = () => {
         showSuccessToast('Invoice deleted successfully!');
         await fetchInvoices();
       } catch (error) {
-        handleInvoiceError(error, 'Failed to delete invoice');
+        handleApiErrorWithToast(error, 'Failed to delete invoice');
       }
     }
   };
@@ -372,7 +352,7 @@ const Invoices = () => {
       await downloadInvoicePdf(invoiceId);
       showSuccessToast('PDF downloaded successfully!');
     } catch (error) {
-      handleInvoiceError(error, 'Failed to download PDF');
+      handleApiErrorWithToast(error, 'Failed to download PDF');
     }
   };
 
@@ -382,7 +362,7 @@ const Invoices = () => {
       showSuccessToast('Invoice sent successfully!');
       await fetchInvoices();
     } catch (error) {
-      handleInvoiceError(error, 'Failed to send invoice');
+      handleApiErrorWithToast(error, 'Failed to send invoice');
     }
   };
 
@@ -392,7 +372,7 @@ const Invoices = () => {
       showSuccessToast('Invoice status updated successfully!');
       await fetchInvoices();
     } catch (error) {
-      handleInvoiceError(error, 'Failed to update invoice status');
+      handleApiErrorWithToast(error, 'Failed to update invoice status');
     }
   };
 
@@ -526,7 +506,7 @@ const Invoices = () => {
 
         <div className="space-y-2">
           <Label htmlFor="issue_date" className="text-base">Issue Date *</Label>
-          <SimpleStableInput
+          <StableInput
             id="issue_date"
             name="issue_date"
             type="date"
@@ -539,7 +519,7 @@ const Invoices = () => {
 
         <div className="space-y-2">
           <Label htmlFor="due_date" className="text-base">Due Date</Label>
-          <SimpleStableInput
+          <StableInput
             id="due_date"
             name="due_date"
             type="date"
@@ -551,7 +531,7 @@ const Invoices = () => {
 
         <div className="space-y-2">
           <Label htmlFor="discount_amount" className="text-base">Discount Amount (₦)</Label>
-          <SimpleStableInput
+          <StableInput
             id="discount_amount"
             name="discount_amount"
             type="number"
@@ -608,7 +588,7 @@ const Invoices = () => {
 
               <div>
                 <Label className="text-sm">Description *</Label>
-                <SimpleStableInput
+                <StableInput
                   value={item.description}
                   onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                   placeholder="Item description"
@@ -618,7 +598,7 @@ const Invoices = () => {
 
               <div>
                 <Label className="text-sm">Qty *</Label>
-                <SimpleStableInput
+                <StableInput
                   type="number"
                   min="1"
                   value={item.quantity}
@@ -629,7 +609,7 @@ const Invoices = () => {
 
               <div>
                 <Label className="text-sm">Unit Price (₦) *</Label>
-                <SimpleStableInput
+                <StableInput
                   type="number"
                   step="0.01"
                   min="0"
@@ -747,7 +727,7 @@ const Invoices = () => {
               <div className="flex flex-col gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <SimpleStableInput
+                  <StableInput
                     placeholder="Search invoices by number, customer, or notes..."
                     value={searchTerm}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}

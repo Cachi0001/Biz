@@ -14,7 +14,7 @@ import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formattin
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
-import SimpleStableInput from '../components/ui/SimpleStableInput';
+import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 import BackButton from '../components/ui/BackButton';
 
@@ -485,7 +485,7 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="amount">Amount (₦) *</Label>
-                    <SimpleStableInput
+                    <StableInput
                       id="amount"
                       type="number"
                       step="0.01"
@@ -494,8 +494,6 @@ const Expenses = () => {
                       placeholder="0.00"
                       required
                       className={formErrors.amount ? 'border-red-500' : ''}
-                      componentName="ExpensesPage-Amount"
-                      debounceMs={300}
                     />
                     {formErrors.amount && (
                       <p className="text-sm text-red-500 mt-1">{formErrors.amount}</p>
@@ -504,15 +502,13 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="description">Description</Label>
-                    <SimpleStableInput
+                    <StableInput
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Enter expense description"
                       rows={3}
                       component="textarea"
-                      componentName="ExpensesPage-Description"
-                      debounceMs={300}
                     />
                   </div>
 
@@ -537,27 +533,23 @@ const Expenses = () => {
                     </div>
                     <div>
                       <Label htmlFor="date">Expense Date *</Label>
-                      <SimpleStableInput
+                      <StableInput
                         id="date"
                         type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
-                        componentName="ExpensesPage-Date"
-                        debounceMs={300}
                       />
                     </div>
                   </div>
 
                   <div>
                     <Label htmlFor="receipt_url">Receipt URL</Label>
-                    <SimpleStableInput
+                    <StableInput
                       id="receipt_url"
                       value={formData.receipt_url}
                       onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
                       placeholder="Enter receipt URL (optional)"
-                      componentName="ExpensesPage-ReceiptURL"
-                      debounceMs={300}
                     />
                   </div>
 
@@ -588,13 +580,11 @@ const Expenses = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <SimpleStableInput
+                      <StableInput
                         placeholder="Search expenses by category, subcategory, or description..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
-                        componentName="ExpensesPage-Search"
-                        debounceMs={300}
                       />
                     </div>
                   </div>
@@ -645,25 +635,21 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-start-date">Start Date</Label>
-                    <SimpleStableInput
+                    <StableInput
                       id="filter-start-date"
                       type="date"
                       value={dateRange.start}
                       onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                      componentName="ExpensesPage-FilterStartDate"
-                      debounceMs={300}
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="filter-end-date">End Date</Label>
-                    <SimpleStableInput
+                    <StableInput
                       id="filter-end-date"
                       type="date"
                       value={dateRange.end}
                       onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                      componentName="ExpensesPage-FilterEndDate"
-                      debounceMs={300}
                     />
                   </div>
                 </div>

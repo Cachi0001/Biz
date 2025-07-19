@@ -1,44 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Search, Download, Eye, Trash2, ShoppingCart, TrendingUp, Calculator, Package, Edit, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import BackButton from '@/components/ui/BackButton';
-import SimpleStableInput from '../components/ui/SimpleStableInput';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { get, post } from "../services/api";
-import { enhancedGetProducts, enhancedGetCustomers, enhancedCreateSale, validateSaleData } from "../services/enhancedApi";
-import { recordPayment } from "../services/api";
-import { handleApiError, showSuccessToast, safeArray } from '../utils/errorHandling';
+import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { getSales, getProducts, getCustomers, createSale } from "../services/api";
+import { enhancedCreateSale } from "../services/enhancedApi";
+import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formatting';
+import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
+import { validateSaleData } from "../services/enhancedApi";
+import { useUsageTracking } from '../hooks/useUsageTracking';
+import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
+import StableInput from '../components/ui/StableInput';
+import BackButton from '../components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
-import { handleApiErrorWithToast, showErrorToast } from '../utils/errorHandling';
-import notificationService from '../services/notificationService';
-import { formatNaira, formatDateTime, formatDate, formatPaymentMethod } from '../utils/formatting';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -83,7 +62,7 @@ const Sales = () => {
       DebugLogger.logApiCall('/sales', 'Starting fetch for sales list', 'SalesPage', 'GET');
       console.log('[SalesPage] Fetching sales for date:', selectedDate);
       
-      const response = await get('/sales/', {
+      const response = await getSales({
         params: {
           start_date: selectedDate,
           end_date: selectedDate
@@ -144,7 +123,7 @@ const Sales = () => {
     } catch (error) {
       console.error('[SalesPage] Error fetching sales:', error);
       DebugLogger.logApiError('/sales', error, 'SalesPage');
-      const errorMessage = handleApiError(error, 'Failed to fetch sales', false);
+      const errorMessage = handleApiErrorWithToast(error, 'Failed to fetch sales');
       setError(errorMessage);
       setSales([]);
     } finally {
@@ -157,12 +136,12 @@ const Sales = () => {
       DebugLogger.logApiCall('/products', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
       console.log('[SalesPage] Fetching products for dropdown...');
 
-      const normalizedData = await enhancedGetProducts();
+      const response = await getProducts();
 
-      console.log('[SalesPage] Products fetched:', normalizedData);
-      DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', normalizedData.products, null);
+      console.log('[SalesPage] Products fetched:', response);
+      DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', response, null);
 
-      const productsArray = normalizedData.products || [];
+      const productsArray = response || [];
       setProducts(productsArray);
 
       console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
@@ -182,7 +161,7 @@ const Sales = () => {
     } catch (error) {
       console.error('[SalesPage] Error fetching products:', error);
       DebugLogger.logApiError('/products', error, 'SalesPage');
-      handleApiError(error, 'Failed to fetch products', false);
+      handleApiErrorWithToast(error, 'Failed to fetch products');
       setProducts([]);
     }
   };
@@ -191,22 +170,22 @@ const Sales = () => {
     try {
       DebugLogger.logApiCall('/customers', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
 
-      const customersData = await enhancedGetCustomers();
+      const response = await getCustomers();
 
-      DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', customersData, null);
+      DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', response, null);
 
-      setCustomers(customersData || []);
+      setCustomers(response || []);
 
     } catch (error) {
       DebugLogger.logApiError('/customers', error, 'SalesPage');
-      handleApiError(error, 'Failed to fetch customers', false);
+      handleApiErrorWithToast(error, 'Failed to fetch customers');
       setCustomers([]);
     }
   };
 
   const fetchSalesStats = async () => {
     try {
-      const response = await get('/sales/stats', {
+      const response = await getSales({
         params: {
           start_date: selectedDate,
           end_date: selectedDate
@@ -217,11 +196,11 @@ const Sales = () => {
         setSalesStats(response.data);
       }
     } catch (error) {
-      handleApiError(error, 'Failed to fetch sales statistics', false);
+      handleApiErrorWithToast(error, 'Failed to fetch sales statistics');
     }
   };
 
-  const handleProductSelect = React.useCallback((productId) => {
+  const handleProductSelect = (productId) => {
     DebugLogger.logDropdownEvent('SalesPage', 'product-selected', products, productId);
 
     const product = products.find(p => p.id === productId || p.id === parseInt(productId));
@@ -235,34 +214,34 @@ const Sales = () => {
     } else {
       DebugLogger.logDropdownIssue('SalesPage', products, productId, 'Selected product not found in products array');
     }
-  }, [products]);
+  };
 
-  const handleQuantityChange = React.useCallback((quantity) => {
+  const handleQuantityChange = (quantity) => {
     const qty = parseInt(quantity) || 1;
     setFormData(prev => ({
       ...prev,
       quantity: qty,
       total_amount: qty * prev.unit_price
     }));
-  }, []);
+  };
 
-  const handleUnitPriceChange = React.useCallback((price) => {
+  const handleUnitPriceChange = (price) => {
     const unitPrice = parseFloat(price) || 0;
     setFormData(prev => ({
       ...prev,
       unit_price: unitPrice,
       total_amount: prev.quantity * unitPrice
     }));
-  }, []);
+  };
 
-  const handleCustomerSelect = React.useCallback((customerId) => {
+  const handleCustomerSelect = (customerId) => {
     const customer = customers.find(c => c.id === customerId || c.id === parseInt(customerId));
     setFormData(prev => ({
       ...prev,
       customer_id: customerId === 'walkin' ? '' : customerId,
       customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
     }));
-  }, [customers]);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -325,11 +304,7 @@ const Sales = () => {
       const saleResponse = await enhancedCreateSale(saleData);
 
       // Show success notification (toast only, no bell notification)
-      notificationService.showSaleSuccess({
-        total_amount: saleData.total_amount,
-        customer_name: saleData.customer_name,
-        product_name: selectedProduct?.name || 'Unknown Product'
-      });
+      showSuccessToast(`Sale for ${saleData.customer_name || 'Walk-in Customer'} recorded successfully!`);
 
       // Reset form and close dialog
       setShowAddDialog(false);
@@ -523,10 +498,7 @@ const Sales = () => {
 
                         <Select
                           value={formData.product_id}
-                          onValueChange={(value) => {
-                            DebugLogger.logDropdownEvent('SalesPage', 'product-select-change', products, value);
-                            handleProductSelect(value);
-                          }}
+                          onValueChange={handleProductSelect}
                         >
                           <SelectTrigger className="h-12 text-base touch-manipulation">
                             <SelectValue placeholder={products.length === 0 ? "Loading products..." : "Select product"} />
@@ -583,7 +555,7 @@ const Sales = () => {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                          <SimpleStableInput
+                          <StableInput
                             id="quantity"
                             type="number"
                             min="1"
@@ -598,7 +570,7 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                          <SimpleStableInput
+                          <StableInput
                             id="unit_price"
                             type="number"
                             step="0.01"
@@ -607,19 +579,15 @@ const Sales = () => {
                             onChange={(e) => handleUnitPriceChange(e.target.value)}
                             placeholder="0.00"
                             className="h-12 text-base touch-manipulation"
-                            componentName="SalesPage-UnitPrice"
-                            debounceMs={300}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label className="text-base">Total Amount</Label>
-                          <SimpleStableInput
+                          <StableInput
                             value={formatNaira(formData.total_amount)}
                             disabled
                             className="font-bold text-green-600 h-12 text-base"
-                            componentName="SalesPage-TotalAmount"
-                            debounceMs={300}
                           />
                         </div>
                       </div>
@@ -649,14 +617,12 @@ const Sales = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="date" className="text-base">Sale Date</Label>
-                          <SimpleStableInput
+                          <StableInput
                             id="date"
                             type="date"
                             value={formData.date}
                             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                             className="h-12 text-base touch-manipulation"
-                            componentName="SalesPage-Date"
-                            debounceMs={300}
                           />
                         </div>
                       </div>
@@ -762,24 +728,20 @@ const Sales = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <SimpleStableInput
+                      <StableInput
                         placeholder="Search by sale number or customer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 h-12 text-base touch-manipulation"
-                        componentName="SalesPage-Search"
-                        debounceMs={300}
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <SimpleStableInput
+                    <StableInput
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       className="h-12 text-base touch-manipulation"
-                      componentName="SalesPage-DateFilter"
-                      debounceMs={300}
                     />
                     <Button
                       variant="outline"

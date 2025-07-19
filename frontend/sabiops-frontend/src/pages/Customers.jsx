@@ -18,7 +18,7 @@ import {
 } from '../utils/errorHandling';
 import { formatNaira } from '../utils/formatting';
 import BackButton from '../components/ui/BackButton';
-import SimpleStableInput from '../components/ui/SimpleStableInput';
+import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 
 const Customers = () => {
@@ -375,13 +375,11 @@ const Customers = () => {
               <div className="space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <SimpleStableInput
+                  <StableInput
                     placeholder="Search customers by name, email, business, phone, or address..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-12 text-base touch-manipulation"
-                    componentName="CustomersPage-Search"
-                    debounceMs={300}
+                                          className="pl-10 h-12 text-base touch-manipulation"
                   />
                 </div>
                 {searchTerm && (
