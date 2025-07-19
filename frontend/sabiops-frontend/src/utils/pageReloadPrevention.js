@@ -34,6 +34,10 @@ export class PageReloadPrevention {
    * Prevent form submissions from causing page reloads
    */
   static preventFormReloads() {
+    // DISABLED: Global form event listeners causing focus loss issues
+    // Re-enable only if absolutely necessary for specific use cases
+    
+    /*
     // Override form submission behavior
     document.addEventListener('submit', (event) => {
       const form = event.target;
@@ -61,6 +65,9 @@ export class PageReloadPrevention {
         this.formSubmissionInProgress = false;
       }, 5000); // Reset after 5 seconds
     });
+    */
+    
+    console.log('[PageReloadPrevention] Form event listeners disabled to prevent focus loss');
   }
 
   /**
