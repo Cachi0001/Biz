@@ -10,6 +10,7 @@ import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 import useDebugRenders from '../hooks/useDebugRenders';
+import CustomProductForm from '../components/forms/CustomProductForm';
 import {
   Dialog,
   DialogContent,
@@ -51,76 +52,6 @@ const Products = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-
-  // Split form state (Expenses/Customers pattern)
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [sku, setSku] = useState('');
-  const [category, setCategory] = useState('');
-  const [price, setPrice] = useState('');
-  const [costPrice, setCostPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [lowStockThreshold, setLowStockThreshold] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-
-  // Simple handlers (Expenses/Customers pattern)
-  const handleNameChange = (e) => {
-    console.log('Product name changed:', e.target.value);
-    setName(e.target.value);
-  };
-
-  const handleDescriptionChange = (e) => {
-    console.log('Product description changed:', e.target.value);
-    setDescription(e.target.value);
-  };
-
-  const handleSkuChange = (e) => {
-    console.log('Product SKU changed:', e.target.value);
-    setSku(e.target.value);
-  };
-
-  const handleCategoryChange = (value) => {
-    console.log('Product category changed:', value);
-    setCategory(value);
-  };
-
-  const handlePriceChange = (e) => {
-    console.log('Product price changed:', e.target.value);
-    setPrice(e.target.value);
-  };
-
-  const handleCostPriceChange = (e) => {
-    console.log('Product cost price changed:', e.target.value);
-    setCostPrice(e.target.value);
-  };
-
-  const handleQuantityChange = (e) => {
-    console.log('Product quantity changed:', e.target.value);
-    setQuantity(e.target.value);
-  };
-
-  const handleLowStockThresholdChange = (e) => {
-    console.log('Product low stock threshold changed:', e.target.value);
-    setLowStockThreshold(e.target.value);
-  };
-
-  const handleImageUrlChange = (e) => {
-    console.log('Product image URL changed:', e.target.value);
-    setImageUrl(e.target.value);
-  };
-
-  // Reset form (Expenses/Customers pattern)
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setSku('');
-    setCategory('');
-    setPrice('');
-    setCostPrice('');
-    setQuantity('');
-    setLowStockThreshold('');
-    setImageUrl('');
-  };
 
   useEffect(() => {
     fetchProducts();
@@ -216,112 +147,42 @@ const Products = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setShowEditDialog(true);
+  };
 
-    // Enhanced validation
-    if (!name.trim()) {
-      handleApiErrorWithToast(new Error("Product name is required"));
-      return;
-    }
-    if (!price || parseFloat(price) <= 0) {
-      handleApiErrorWithToast(new Error("Valid selling price is required"));
-      return;
-    }
-    if (!quantity || parseInt(quantity) < 0) {
-      handleApiErrorWithToast(new Error("Valid stock quantity is required"));
-      return;
-    }
-
-    // Validate low stock threshold
-    const quantityNum = parseInt(quantity) || 0;
-    const lowStockThresholdNum = parseInt(lowStockThreshold) || 0;
-
-    if (lowStockThresholdNum > quantityNum) {
-      handleApiErrorWithToast(new Error(`Low stock alert (${lowStockThresholdNum}) cannot be greater than stock quantity (${quantityNum})`));
+  const handleDelete = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) {
       return;
     }
 
     try {
       setLoading(true);
-      let response;
-
-      if (editingProduct) {
-        response = await updateProduct(editingProduct.id, {
-          name,
-          description,
-          sku,
-          category,
-          price,
-          cost_price: costPrice,
-          quantity: quantityNum,
-          low_stock_threshold: lowStockThresholdNum,
-          image_url: imageUrl
-        });
-        console.log('[PRODUCTS] Update response:', response);
-        showSuccessToast("Product updated successfully!");
-        setShowEditDialog(false);
-        setEditingProduct(null);
-      } else {
-        response = await createProduct({
-          name,
-          description,
-          sku,
-          category,
-          price,
-          cost_price: costPrice,
-          quantity: quantityNum,
-          low_stock_threshold: lowStockThresholdNum,
-          image_url: imageUrl
-        });
-        console.log('[PRODUCTS] Create response:', response);
-        showSuccessToast("Product created successfully!");
-        setShowAddDialog(false);
-      }
-
-      // Reset form
-      resetForm();
-
-      // Refresh data
+      const response = await deleteProduct(productId);
+      console.log('[PRODUCTS] Delete response:', response);
+      showSuccessToast("Product deleted successfully!");
       await fetchProducts();
-      await fetchCategories();
     } catch (error) {
-      console.error('Failed to save product:', error);
-      handleApiErrorWithToast(error, 'Failed to save product');
+      console.error('Failed to delete product:', error);
+      handleApiErrorWithToast(error, 'Failed to delete product');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (product) => {
-    setEditingProduct(product);
-    setName(product.name || '');
-    setDescription(product.description || '');
-    setSku(product.sku || '');
-    setCategory(product.category || '');
-    setPrice(product.price || '');
-    setCostPrice(product.cost_price || '');
-    setQuantity(product.quantity || '');
-    setLowStockThreshold(product.low_stock_threshold || '');
-    setImageUrl(product.image_url || '');
-    setShowEditDialog(true);
+  const handleFormSuccess = (response) => {
+    console.log('[PRODUCTS] Form success:', response);
+    setShowAddDialog(false);
+    setShowEditDialog(false);
+    setEditingProduct(null);
+    fetchProducts();
   };
 
-  const handleDelete = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        setLoading(true);
-        const response = await deleteProduct(productId);
-        console.log('[PRODUCTS] Delete response:', response);
-        showSuccessToast("Product deleted successfully!");
-        await fetchProducts();
-      } catch (error) {
-        console.error('Failed to delete product:', error);
-        handleApiErrorWithToast(error, 'Failed to delete product');
-      } finally {
-        setLoading(false);
-      }
-    }
+  const handleFormCancel = () => {
+    setShowAddDialog(false);
+    setShowEditDialog(false);
+    setEditingProduct(null);
   };
 
   const filteredProducts = products.filter(product => {
@@ -373,192 +234,6 @@ const Products = () => {
   const lowStockProducts = filteredProducts.filter(product => isLowStock(product) && !isOutOfStock(product));
   const outOfStockProducts = filteredProducts.filter(product => isOutOfStock(product));
 
-  const ProductForm = () => {
-    console.log('📝 ProductForm rendered', {
-      timestamp: new Date().toISOString(),
-      name,
-      description,
-      sku,
-      category,
-      price,
-      costPrice,
-      quantity,
-      lowStockThreshold,
-      imageUrl
-    });
-
-    return (
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-base">Product Name *</Label>
-            <StableInput
-              id="name"
-              name="name"
-              value={name}
-              onChange={handleNameChange}
-              placeholder="Enter product name"
-              required
-              className="h-12 text-base touch-manipulation"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="sku" className="text-base">SKU</Label>
-            <StableInput
-              id="sku"
-              name="sku"
-              value={sku}
-              onChange={handleSkuChange}
-              placeholder="Product SKU (optional)"
-              className="h-12 text-base touch-manipulation"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description" className="text-base">Description</Label>
-          <textarea
-            id="description"
-            name="description"
-            value={description}
-            onChange={handleDescriptionChange}
-            placeholder="Product description"
-            rows={3}
-            className="w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-base touch-manipulation min-h-[96px]"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="category" className="text-base">Category</Label>
-          <Select value={category} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="h-12 text-base touch-manipulation">
-              <SelectValue placeholder="Select product category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="price" className="text-base">Selling Price (₦) *</Label>
-            <StableInput
-              id="price"
-              name="price"
-              type="number"
-              step="0.01"
-              value={price}
-              onChange={handlePriceChange}
-              placeholder="0.00"
-              required
-              className="h-12 text-base touch-manipulation"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cost_price" className="text-base">Cost Price (₦)</Label>
-            <StableInput
-              id="cost_price"
-              name="cost_price"
-              type="number"
-              step="0.01"
-              value={costPrice}
-              onChange={handleCostPriceChange}
-              placeholder="0.00"
-              className="h-12 text-base touch-manipulation"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="quantity" className="text-base">Stock Quantity *</Label>
-            <StableInput
-              id="quantity"
-              name="quantity"
-              type="number"
-              value={quantity}
-              onChange={handleQuantityChange}
-              placeholder="0"
-              required
-              className="h-12 text-base touch-manipulation"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="low_stock_threshold" className="text-base">Low Stock Alert</Label>
-            <StableInput
-              id="low_stock_threshold"
-              name="low_stock_threshold"
-              type="number"
-              min="0"
-              max={quantity || 999}
-              value={lowStockThreshold}
-              onChange={handleLowStockThresholdChange}
-              placeholder="5"
-              className="h-12 text-base touch-manipulation"
-            />
-            <p className="text-xs text-gray-500">
-              Alert when stock falls below this number (max: {quantity || 'stock quantity'})
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="image_url" className="text-base">Image URL</Label>
-          <StableInput
-            id="image_url"
-            name="image_url"
-            value={imageUrl}
-            onChange={handleImageUrlChange}
-            placeholder="Enter image URL (optional)"
-            className="h-12 text-base touch-manipulation"
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setShowAddDialog(false);
-              setShowEditDialog(false);
-              setEditingProduct(null);
-              resetForm();
-            }}
-            className="h-12 text-base touch-manipulation"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="h-12 text-base touch-manipulation"
-          >
-            {loading ? 'Saving...' : (editingProduct ? 'Update Product' : 'Create Product')}
-          </Button>
-        </div>
-      </form>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Package className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="relative">
@@ -585,7 +260,12 @@ const Products = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-1">
-                  <ProductForm />
+                  <CustomProductForm
+                    categories={categories}
+                    onSuccess={handleFormSuccess}
+                    onCancel={handleFormCancel}
+                    editingProduct={editingProduct}
+                  />
                 </div>
               </DialogContent>
             </Dialog>
@@ -740,7 +420,12 @@ const Products = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-1">
-                <ProductForm />
+                <CustomProductForm
+                  categories={categories}
+                  onSuccess={handleFormSuccess}
+                  onCancel={handleFormCancel}
+                  editingProduct={editingProduct}
+                />
               </div>
             </DialogContent>
           </Dialog>
