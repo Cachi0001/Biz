@@ -13,8 +13,8 @@ import { enhancedGetExpenses, enhancedCreateExpense, enhancedUpdateExpense, enha
 import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import { useUsageTracking } from '../hooks/useUsageTracking';
-import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
 import StableInput from '../components/ui/StableInput';
+import MobileDateInput from '../components/ui/MobileDateInput';
 import DebugLogger from '../utils/debugLogger';
 import BackButton from '../components/ui/BackButton';
 
@@ -535,10 +535,9 @@ const Expenses = () => {
                     </div>
                     <div>
                       <Label htmlFor="date">Expense Date *</Label>
-                      <StableInput
+                      <MobileDateInput
                         id="date"
                         name="date"
-                        type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
@@ -640,10 +639,9 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-start-date">Start Date</Label>
-                    <StableInput
+                    <MobileDateInput
                       id="filter-start-date"
                       name="filter_start_date"
-                      type="date"
                       value={dateRange.start}
                       onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                     />
@@ -651,10 +649,9 @@ const Expenses = () => {
 
                   <div>
                     <Label htmlFor="filter-end-date">End Date</Label>
-                    <StableInput
+                    <MobileDateInput
                       id="filter-end-date"
                       name="filter_end_date"
-                      type="date"
                       value={dateRange.end}
                       onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                     />

@@ -378,16 +378,25 @@ const CustomProductForm = ({
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Category *</label>
-            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)} onOpenChange={() => handleInputFocus('category')} onClose={() => handleInputBlur('category')}>
+            <Select 
+              value={formData.category} 
+              onValueChange={(value) => handleInputChange('category', value)}
+            >
               <SelectTrigger className="form-select">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+              <SelectContent className="max-h-60">
+                {categories && categories.length > 0 ? (
+                  categories.map((category) => (
+                    <SelectItem key={category.id || category.name} value={category.id || category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No categories available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -408,7 +417,7 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Price (₦) *</label>
+            <label className="form-label">Selling Price (₦) *</label>
             <input
               ref={priceInputRef}
               type="number"
@@ -441,7 +450,7 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Initial Stock Quantity</label>
+            <label className="form-label">Stock Quantity</label>
             <input
               ref={quantityInputRef}
               type="number"

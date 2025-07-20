@@ -17,6 +17,7 @@ import { validateSaleData } from "../services/enhancedApi";
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
 import StableInput from '@/components/ui/StableInput';
+import MobileDateInput from '@/components/ui/MobileDateInput';
 import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 
@@ -696,7 +697,7 @@ const Sales = () => {
 
                       <div className="space-y-2">
                         <Label htmlFor="date" className="text-base">Sale Date</Label>
-                          <StableInput
+                          <MobileDateInput
                           id="date"
                           name="date"
                           type="date"
@@ -818,7 +819,7 @@ const Sales = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <StableInput
+                  <MobileDateInput
                     name="filter_date"
                     type="date"
                     value={selectedDate}

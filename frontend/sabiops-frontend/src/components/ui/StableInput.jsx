@@ -16,7 +16,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   const debounceTimeoutRef = useRef(null);
   const lastValueRef = useRef(value);
   const renderCountRef = useRef(0);
-  const focusTimeRef = useRef(null);
 
   // Increment render count for debugging
   renderCountRef.current += 1;
@@ -51,10 +50,8 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   // Enhanced focus tracking
   const handleFocus = useCallback((e) => {
     isFocusedRef.current = true;
-    focusTimeRef.current = Date.now();
     console.log(`🎯 StableInput (${name}) FOCUSED`, {
       timestamp: new Date().toISOString(),
-      focusTime: focusTimeRef.current,
       eventType: e.type,
       target: e.target.tagName,
       targetId: e.target.id,
@@ -66,13 +63,9 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   }, [name]);
 
   const handleBlur = useCallback((e) => {
-    const blurTime = Date.now();
-    const focusDuration = focusTimeRef.current ? blurTime - focusTimeRef.current : 0;
     isFocusedRef.current = false;
     console.log(`👋 StableInput (${name}) BLURRED`, {
       timestamp: new Date().toISOString(),
-      blurTime,
-      focusDuration: `${focusDuration}ms`,
       eventType: e.type,
       target: e.target.tagName,
       targetId: e.target.id,
@@ -81,37 +74,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       relatedTarget: e.relatedTarget?.tagName,
       relatedTargetId: e.relatedTarget?.id,
       relatedTargetName: e.relatedTarget?.name
-    });
-  }, [name]);
-
-  // Enhanced click tracking
-  const handleClick = useCallback((e) => {
-    console.log(`🖱️ StableInput (${name}) CLICKED`, {
-      timestamp: new Date().toISOString(),
-      eventType: e.type,
-      target: e.target.tagName,
-      targetId: e.target.id,
-      targetName: e.target.name,
-      clientX: e.clientX,
-      clientY: e.clientY,
-      isFocused: isFocusedRef.current
-    });
-  }, [name]);
-
-  // Enhanced keydown tracking
-  const handleKeyDown = useCallback((e) => {
-    console.log(`⌨️ StableInput (${name}) KEYDOWN`, {
-      timestamp: new Date().toISOString(),
-      key: e.key,
-      keyCode: e.keyCode,
-      eventType: e.type,
-      target: e.target.tagName,
-      targetId: e.target.id,
-      targetName: e.target.name,
-      targetValue: e.target.value,
-      selectionStart: e.target.selectionStart,
-      selectionEnd: e.target.selectionEnd,
-      isFocused: isFocusedRef.current
     });
   }, [name]);
 
@@ -130,10 +92,12 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
     });
   }, [name]);
 
-  // Enhanced change tracking
-  const handleChange = useCallback((e) => {
-    console.log(`🔄 StableInput (${name}) CHANGE`, {
+  // Enhanced keydown tracking
+  const handleKeyDown = useCallback((e) => {
+    console.log(`⌨️ StableInput (${name}) KEYDOWN`, {
       timestamp: new Date().toISOString(),
+      key: e.key,
+      keyCode: e.keyCode,
       eventType: e.type,
       target: e.target.tagName,
       targetId: e.target.id,
@@ -162,102 +126,28 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
     [onChange, name, debounceMs]
   );
 
-  // Less aggressive focus restoration - only restore if we're still focused and lost focus unexpectedly
-  useEffect(() => {
-    const input = inputRef.current;
-    if (input && isFocusedRef.current && document.activeElement !== input) {
-      // Only restore focus if we lost it unexpectedly (not due to user action)
-      const timeSinceFocus = Date.now() - (focusTimeRef.current || 0);
-      if (timeSinceFocus < 100) { // Only restore if focus was lost very quickly
-        console.log(`🔄 StableInput (${name}) RESTORING FOCUS`, {
-          timestamp: new Date().toISOString(),
-          wasFocused: isFocusedRef.current,
-          currentActiveElement: document.activeElement?.tagName,
-          currentActiveElementId: document.activeElement?.id,
-          currentActiveElementName: document.activeElement?.name,
-          inputElement: input.tagName,
-          inputElementId: input.id,
-          inputElementName: input.name,
-          inputElementValue: input.value,
-          selectionStart: input.selectionStart,
-          selectionEnd: input.selectionEnd
-        });
-
-        const selectionStart = input.selectionStart;
-        const selectionEnd = input.selectionEnd;
-        
-        // Use requestAnimationFrame to ensure DOM is ready
-        requestAnimationFrame(() => {
-          input.focus();
-          if (selectionStart !== null && selectionEnd !== null) {
-            input.setSelectionRange(selectionStart, selectionEnd);
-          }
-          console.log(`✅ StableInput (${name}) FOCUS RESTORED`, {
-            timestamp: new Date().toISOString(),
-            newActiveElement: document.activeElement?.tagName,
-            newActiveElementId: document.activeElement?.id,
-            newActiveElementName: document.activeElement?.name,
-            selectionStart: input.selectionStart,
-            selectionEnd: input.selectionEnd
-          });
-        });
-      }
-    }
-  }, [value, name]);
-
-  // Monitor DOM changes that might affect focus
-  useEffect(() => {
-    const input = inputRef.current;
-    if (!input) return;
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' || mutation.type === 'attributes') {
-          console.log(`🔍 StableInput (${name}) DOM MUTATION DETECTED`, {
-            timestamp: new Date().toISOString(),
-            mutationType: mutation.type,
-            target: mutation.target.tagName,
-            targetId: mutation.target.id,
-            targetName: mutation.target.name,
-            isFocused: isFocusedRef.current,
-            activeElement: document.activeElement === input
-          });
-        }
-      });
-    });
-
-    observer.observe(input.parentElement || input, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'style', 'id']
-    });
-
-    return () => observer.disconnect();
-  }, [name]);
-
-  // Monitor parent component re-renders
-  useEffect(() => {
-    console.log(`👀 StableInput (${name}) monitoring parent re-renders`, {
+  // Handle immediate input changes for better responsiveness
+  const handleChange = useCallback((e) => {
+    console.log(`🔄 StableInput (${name}) CHANGE`, {
       timestamp: new Date().toISOString(),
-      isFocused: isFocusedRef.current,
-      activeElement: document.activeElement === inputRef.current
+      eventType: e.type,
+      target: e.target.tagName,
+      targetId: e.target.id,
+      targetName: e.target.name,
+      targetValue: e.target.value,
+      selectionStart: e.target.selectionStart,
+      selectionEnd: e.target.selectionEnd,
+      isFocused: isFocusedRef.current
     });
-  });
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      console.log(`🧹 StableInput (${name}) unmounting`, {
-        timestamp: new Date().toISOString(),
-        isFocused: isFocusedRef.current,
-        activeElement: document.activeElement === inputRef.current
-      });
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [name]);
+    
+    // Call onChange immediately for better responsiveness
+    if (onChange) {
+      onChange(e);
+    }
+    
+    // Also call debounced version for any additional processing
+    debouncedOnChange(e);
+  }, [onChange, name, debouncedOnChange]);
 
   return (
     <Input
@@ -265,12 +155,11 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       type={type}
       name={name}
       value={value}
-      onChange={debouncedOnChange}
+      onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
       onInput={handleInput}
+      onKeyDown={handleKeyDown}
       className={className}
       placeholder={placeholder}
       {...props}
@@ -278,22 +167,4 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   );
 };
 
-export default memo(StableInput, (prevProps, nextProps) => {
-  const changed = prevProps.value !== nextProps.value || 
-                  prevProps.className !== nextProps.className ||
-                  prevProps.placeholder !== nextProps.placeholder;
-  
-  if (changed) {
-    console.log(`🔄 StableInput (${nextProps.name}) props changed, re-rendering`, {
-      timestamp: new Date().toISOString(),
-      prevValue: prevProps.value,
-      nextValue: nextProps.value,
-      prevClassName: prevProps.className,
-      nextClassName: nextProps.className,
-      prevPlaceholder: prevProps.placeholder,
-      nextPlaceholder: nextProps.placeholder
-    });
-  }
-  
-  return !changed;
-}); 
+export default memo(StableInput); 
