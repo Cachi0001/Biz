@@ -61,13 +61,6 @@ const Sales = () => {
       setLoading(true);
       setError('');
       
-      DebugLogger.logApiCall('/sales', 'Starting fetch for sales list', 'SalesPage', 'GET');
-      console.log('[SalesPage] Fetching sales for date:', selectedDate);
-      console.log('[SalesPage] API endpoint being called: /sales with params:', {
-        start_date: selectedDate,
-        end_date: selectedDate
-      });
-      
       const response = await getSales({
         params: {
           start_date: selectedDate,
@@ -75,76 +68,22 @@ const Sales = () => {
         }
       });
 
-      console.log('[SalesPage] Raw sales response:', response);
-      console.log('[SalesPage] Response type:', typeof response);
-      console.log('[SalesPage] Response keys:', response ? Object.keys(response) : 'null/undefined');
-      DebugLogger.logApiCall('/sales', response, 'SalesPage', 'GET');
-
-      // Handle multiple API response formats
       let salesData = [];
       
       if (response?.data?.sales && Array.isArray(response.data.sales)) {
-        console.log('[SalesPage] Using response.data.sales format');
         salesData = response.data.sales;
       } else if (response?.data && Array.isArray(response.data)) {
-        console.log('[SalesPage] Using response.data format');
         salesData = response.data;
       } else if (Array.isArray(response)) {
-        console.log('[SalesPage] Using direct response array format');
         salesData = response;
       } else if (response?.sales && Array.isArray(response.sales)) {
-        console.log('[SalesPage] Using response.sales format');
         salesData = response.sales;
-      } else {
-        console.warn('[SalesPage] Unexpected sales response format:', response);
-        console.warn('[SalesPage] Response structure:', JSON.stringify(response, null, 2));
-        salesData = [];
       }
 
-      console.log('[SalesPage] Processed sales data:', salesData);
-      console.log('[SalesPage] Sales data length:', salesData.length);
       setSales(salesData);
-
-      // Update stats from response
-      if (response?.data?.summary) {
-        console.log('[SalesPage] Using response.data.summary for stats');
-        setSalesStats(response.data.summary);
-      } else if (response?.summary) {
-        console.log('[SalesPage] Using response.summary for stats');
-        setSalesStats(response.summary);
-      }
-
-      // Always calculate stats from sales data
-      const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
-      const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
-      const calculatedStats = {
-        total_sales: totalSales,
-        total_transactions: salesData.length,
-        today_sales: totalSales,
-        average_sale: salesData.length > 0 ? totalSales / salesData.length : 0,
-        total_quantity: totalQuantity
-      };
-      
-      // Use API stats if available, otherwise use calculated stats
-      if (response?.data?.summary) {
-        setSalesStats({...response.data.summary, total_quantity: totalQuantity});
-      } else if (response?.summary) {
-        setSalesStats({...response.summary, total_quantity: totalQuantity});
-      } else {
-        setSalesStats(calculatedStats);
-      }
-      
-      console.log('[SalesPage] Final stats:', calculatedStats);
-
     } catch (error) {
-      console.error('[SalesPage] Error fetching sales:', error);
-      console.error('[SalesPage] Error message:', error.message);
-      console.error('[SalesPage] Error stack:', error.stack);
-      console.error('[SalesPage] Error response:', error.response);
-      console.error('[SalesPage] Error status:', error.status);
-      DebugLogger.logApiError('/sales', error, 'SalesPage');
-      const errorMessage = handleApiErrorWithToast(error, 'Failed to fetch sales');
-      setError(errorMessage);
+      console.error('Error fetching sales:', error);
+      setError('Failed to load sales data. Please try again.');
       setSales([]);
     } finally {
       setLoading(false);
@@ -153,110 +92,22 @@ const Sales = () => {
 
   const fetchProductsData = async () => {
     try {
-      DebugLogger.logApiCall('/products', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
-      console.log('[SalesPage] Fetching products for dropdown...');
-      console.log('[SalesPage] Products API endpoint: /products');
-
       const response = await getProducts();
-
-      console.log('[SalesPage] Raw products response:', response);
-      console.log('[SalesPage] Products response type:', typeof response);
-      console.log('[SalesPage] Products response keys:', response ? Object.keys(response) : 'null/undefined');
-      DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', response, null);
-
-      // Handle the new API response structure
-      let productsArray = [];
-      if (response && response.success && response.data) {
-        console.log('[SalesPage] Using response.success && response.data format');
-        productsArray = response.data.products || [];
-      } else if (response && response.products && Array.isArray(response.products)) {
-        console.log('[SalesPage] Using response.products format');
-        productsArray = response.products;
-      } else if (response && Array.isArray(response)) {
-        console.log('[SalesPage] Using direct response array format');
-        productsArray = response;
-      } else {
-        console.warn('[SalesPage] Unexpected products response structure:', response);
-        console.warn('[SalesPage] Products response structure:', JSON.stringify(response, null, 2));
-        productsArray = [];
-      }
-
-      setProducts(productsArray);
-
-      console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
-
-      // Force a re-render by updating a dummy state
-      setError(''); // Clear any previous errors
-
-      // Log if no products found for dropdown
-      if (productsArray.length === 0) {
-        console.warn('[SalesPage] No products available for sales dropdown');
-        DebugLogger.logDropdownIssue('SalesPage', [], null, 'No products available for sales dropdown');
-      } else {
-        console.log('[SalesPage] Products available:', productsArray.map(p => ({ id: p.id, name: p.name, price: p.price || p.unit_price })));
-        console.log('[SalesPage] First product example:', productsArray[0]);
-      }
-
+      const productsData = response?.data || response || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
     } catch (error) {
-      console.error('[SalesPage] Error fetching products:', error);
-      console.error('[SalesPage] Products error message:', error.message);
-      console.error('[SalesPage] Products error stack:', error.stack);
-      console.error('[SalesPage] Products error response:', error.response);
-      DebugLogger.logApiError('/products', error, 'SalesPage');
-      handleApiErrorWithToast(error, 'Failed to fetch products');
+      console.error('Error fetching products:', error);
       setProducts([]);
     }
   };
 
   const fetchCustomersData = async () => {
     try {
-      DebugLogger.logApiCall('/customers', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
-      console.log('[SalesPage] Fetching customers for dropdown...');
-      console.log('[SalesPage] Customers API endpoint: /customers');
-
       const response = await getCustomers();
-
-      console.log('[SalesPage] Raw customers response:', response);
-      console.log('[SalesPage] Customers response type:', typeof response);
-      console.log('[SalesPage] Customers response keys:', response ? Object.keys(response) : 'null/undefined');
-      DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', response, null);
-
-      // Handle the new API response structure
-      let customersArray = [];
-      if (response && response.success && response.data) {
-        console.log('[SalesPage] Using response.success && response.data format');
-        customersArray = response.data.customers || [];
-      } else if (response && response.customers && Array.isArray(response.customers)) {
-        console.log('[SalesPage] Using response.customers format');
-        customersArray = response.customers;
-      } else if (response && Array.isArray(response)) {
-        console.log('[SalesPage] Using direct response array format');
-        customersArray = response;
-      } else {
-        console.warn('[SalesPage] Unexpected customers response structure:', response);
-        console.warn('[SalesPage] Customers response structure:', JSON.stringify(response, null, 2));
-        customersArray = [];
-      }
-
-      setCustomers(customersArray);
-      console.log('[SalesPage] Customers set in state:', customersArray.length, 'customers');
-
-      // Log if no customers found for dropdown
-      if (customersArray.length === 0) {
-        console.warn('[SalesPage] No customers available for sales dropdown');
-        DebugLogger.logDropdownIssue('SalesPage', [], null, 'No customers available for sales dropdown');
-      } else {
-        console.log('[SalesPage] Customers available:', customersArray.map(c => ({ id: c.id, name: c.name, email: c.email })));
-        console.log('[SalesPage] First customer example:', customersArray[0]);
-      }
-
+      const customersData = response?.data || response || [];
+      setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
-      console.error('[SalesPage] Error fetching customers:', error);
-      console.error('[SalesPage] Customers error message:', error.message);
-      console.error('[SalesPage] Customers error stack:', error.stack);
-      console.error('[SalesPage] Customers error response:', error.response);
-      DebugLogger.logApiError('/customers', error, 'SalesPage');
-      handleApiErrorWithToast(error, 'Failed to fetch customers');
+      console.error('Error fetching customers:', error);
       setCustomers([]);
     }
   };
@@ -270,480 +121,172 @@ const Sales = () => {
         }
       });
 
-      if (response?.data) {
-        setSalesStats(response.data);
+      let salesData = [];
+      if (response?.data?.sales && Array.isArray(response.data.sales)) {
+        salesData = response.data.sales;
+      } else if (response?.data && Array.isArray(response.data)) {
+        salesData = response.data;
+      } else if (Array.isArray(response)) {
+        salesData = response;
       }
+
+      const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
+      const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
+      const totalTransactions = salesData.length;
+      const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+
+      setSalesStats({
+        total_sales: totalSales,
+        total_transactions: totalTransactions,
+        total_quantity: totalQuantity,
+        average_sale: averageSale
+      });
     } catch (error) {
-      handleApiErrorWithToast(error, 'Failed to fetch sales statistics');
+      console.error('Error fetching sales stats:', error);
     }
-  };
-
-  const handleProductSelect = (productId) => {
-    DebugLogger.logDropdownEvent('SalesPage', 'product-selected', products, productId);
-
-    const product = products.find(p => p.id === productId || p.id === parseInt(productId));
-    if (product) {
-      setFormData(prev => ({
-        ...prev,
-        product_id: productId,
-        unit_price: product.price || product.unit_price || 0,
-        total_amount: (prev.quantity || 1) * (product.price || product.unit_price || 0)
-      }));
-    } else {
-      DebugLogger.logDropdownIssue('SalesPage', products, productId, 'Selected product not found in products array');
-    }
-  };
-
-  const handleQuantityChange = (quantity) => {
-    const qty = parseInt(quantity) || 1;
-    setFormData(prev => ({
-      ...prev,
-      quantity: qty,
-      total_amount: qty * prev.unit_price
-    }));
-  };
-
-  const handleUnitPriceChange = (price) => {
-    const unitPrice = parseFloat(price) || 0;
-    setFormData(prev => ({
-      ...prev,
-      unit_price: unitPrice,
-      total_amount: prev.quantity * unitPrice
-    }));
-  };
-
-  const handleCustomerSelect = (customerId) => {
-    const customer = customers.find(c => c.id === customerId || c.id === parseInt(customerId));
-    setFormData(prev => ({
-      ...prev,
-      customer_id: customerId === 'walkin' ? '' : customerId,
-      customer_name: customerId === 'walkin' ? 'Walk-in Customer' : (customer?.name || '')
-    }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      product_id: '',
-      customer_id: '',
-      customer_name: '',
-      quantity: 1,
-      unit_price: 0,
-      total_amount: 0,
-      payment_method: 'cash',
-      date: new Date().toISOString().split('T')[0],
-      salesperson_id: ''
-    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
+    setSubmitting(true);
+    setError('');
 
-    DebugLogger.logFormSubmit('SalesPage', formData, 'submit');
+    try {
+      const saleData = {
+        ...formData,
+        quantity: parseInt(formData.quantity) || 1,
+        unit_price: parseFloat(formData.unit_price) || 0,
+        total_amount: parseFloat(formData.total_amount) || 0
+      };
 
-    // Use enhanced validation
-    const errors = validateSaleData(formData);
-    if (Object.keys(errors).length > 0) {
-      const errorMessage = Object.values(errors)[0];
-      showErrorToast(errorMessage);
-      setError(errorMessage);
-      return;
+      await createSale(saleData);
+      showSuccessToast('Sale recorded successfully!');
+      setShowAddDialog(false);
+      setFormData({
+        product_id: '',
+        customer_id: '',
+        customer_name: '',
+        quantity: 1,
+        unit_price: 0,
+        total_amount: 0,
+        payment_method: 'cash',
+        date: new Date().toISOString().split('T')[0],
+        salesperson_id: ''
+      });
+      fetchSales();
+      fetchSalesStats();
+    } catch (error) {
+      console.error('Error creating sale:', error);
+      setError('Failed to record sale. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-
-      try {
-        setSubmitting(true);
-        setError('');
-
-        // Prepare sale data with proper structure
-        const selectedProduct = products.find(p => p.id == formData.product_id);
-        const selectedCustomer = customers.find(c => c.id == formData.customer_id);
-        
-        const saleData = {
-          product_id: formData.product_id,
-          customer_id: formData.customer_id || null,
-          customer_name: formData.customer_name || selectedCustomer?.name || 'Walk-in Customer',
-          customer_email: selectedCustomer?.email || null,
-          quantity: parseInt(formData.quantity),
-          unit_price: parseFloat(formData.unit_price),
-          total_amount: parseFloat(formData.total_amount),
-          payment_method: formData.payment_method,
-          payment_status: formData.payment_method === 'pending' ? 'pending' : 'completed',
-          currency: 'NGN',
-          date: formData.date,
-          salesperson_id: formData.salesperson_id || null,
-          notes: `Sale for ${formData.customer_name || 'Walk-in Customer'}`,
-          discount_amount: 0,
-          tax_amount: 0
-        };
-
-        DebugLogger.logFormSubmit('SalesPage', saleData, 'processed-data');
-
-        // Create the sale using enhanced API
-        const saleResponse = await enhancedCreateSale(saleData);
-
-        // Show success notification (toast only, no bell notification)
-      showSuccessToast(`Sale for ${saleData.customer_name || 'Walk-in Customer'} recorded successfully!`);
-
-        // Reset form and close dialog
-        setShowAddDialog(false);
-        resetForm();
-
-        // Refresh all data immediately
-        await Promise.all([
-          fetchSales(),
-          fetchSalesStats()
-        ]);
-
-        // Dispatch events to update other parts of the application
-        window.dispatchEvent(new CustomEvent('salesUpdated', {
-          detail: {
-            sale: saleResponse,
-            timestamp: new Date().toISOString()
-          }
-        }));
-
-      } catch (error) {
-        const errorMessage = handleApiErrorWithToast(error, 'Failed to create sale');
-        setError(errorMessage);
-        
-        // Show specific error for common issues
-        if (error.response?.data?.error?.includes('product_id')) {
-          setError('Please select a product before creating the sale');
-        } else if (error.response?.data?.error?.includes('quantity')) {
-          setError('Please enter a valid quantity greater than 0');
-        }
-      } finally {
-        setSubmitting(false);
-      }
   };
 
   const downloadReport = async () => {
     try {
-      // Simple CSV download for now
-      const csvContent = generateCSVReport(sales);
+      const headers = [
+        'Date',
+        'Customer',
+        'Product',
+        'Quantity',
+        'Unit Price',
+        'Total Amount',
+        'Payment Method'
+      ];
+
+      const csvRows = [headers.join(',')];
+      
+      filteredSales.forEach(sale => {
+        const row = [
+          formatDate(sale.created_at || sale.date),
+          `"${sale.customer_name || 'Walk-in Customer'}"`,
+          `"${sale.product_name || 'Unknown Product'}"`,
+          sale.quantity || 0,
+          sale.unit_price || 0,
+          sale.total_amount || 0,
+          `"${formatPaymentMethod(sale.payment_method)}"`
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csvContent = csvRows.join('\\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `sales-report-${selectedDate}.csv`);
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `sales-${selectedDate}.csv`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      
+      showSuccessToast('Sales report downloaded successfully!');
     } catch (error) {
-      setError('Failed to download report');
+      console.error('Error downloading report:', error);
+      showErrorToast('Failed to download report');
     }
   };
 
-  const generateCSVReport = (salesData) => {
-    const headers = ['Date', 'Customer', 'Product', 'Quantity', 'Unit Price', 'Total Amount', 'Payment Method'];
-    const rows = salesData.map(sale => [
-      formatDate(sale.date),
-      sale.customer_name || 'Walk-in Customer',
-      sale.product_name || 'Unknown Product',
-      sale.quantity || 0,
-      sale.unit_price || 0,
-      sale.total_amount || 0,
-      formatPaymentMethod(sale.payment_method)
-    ]);
-
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
-  };
-
   const getPaymentMethodBadge = (method) => {
-    const variants = {
-      cash: 'default',
-      card: 'secondary',
-      bank_transfer: 'outline',
-      paystack: 'destructive'
-    };
-    return variants[method] || 'default';
+    switch (method) {
+      case 'cash': return 'default';
+      case 'card': return 'secondary';
+      case 'transfer': return 'outline';
+      case 'pending': return 'destructive';
+      default: return 'default';
+    }
   };
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      completed: 'default',
-      pending: 'secondary',
-      failed: 'destructive',
-      refunded: 'outline'
-    };
-    return variants[status] || 'default';
-  };
-
-  const filteredSales = Array.isArray(sales) ? sales.filter(sale => {
-    if (!sale) return false;
-
-    const customerName = (sale.customer_name || '').toLowerCase();
-    const productName = (sale.product_name || '').toLowerCase();
+  const filteredSales = sales.filter(sale => {
+    if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
-
-    return customerName.includes(searchLower) || productName.includes(searchLower);
-  }) : [];
-
     return (
-      <DashboardLayout>
-      {loading ? (
-        <div className="p-3 sm:p-4 flex items-center justify-center h-64">
-          <div className="text-center">
-            <ShoppingCart className="h-8 w-8 animate-spin mx-auto mb-2" />
-            <p>Loading sales...</p>
+      (sale.customer_name || '').toLowerCase().includes(searchLower) ||
+      (sale.product_name || '').toLowerCase().includes(searchLower) ||
+      (sale.payment_method || '').toLowerCase().includes(searchLower)
+    );
+  });
+
+  return (
+    <DashboardLayout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header Section */}
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales</h1>
+                <p className="text-gray-600 mt-1">Record sales and track performance</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={() => window.location.href = '/sales-report'}
+                  variant="outline"
+                  className="h-11 px-6 text-sm font-medium"
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  View Sales Report
+                </Button>
+                <Button
+                  onClick={() => setShowAddDialog(true)}
+                  className="h-11 px-6 text-sm font-medium bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Record Sale
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-      ) : (
-      <div className="relative">
-        <BackButton to="/dashboard" variant="floating" />
-        <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales</h1>
-              <p className="text-gray-600 text-sm sm:text-base">Record sales and track performance</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.href = '/sales/report'}
-                className="h-12 text-base touch-manipulation w-full sm:w-auto"
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Sales Report
-              </Button>
-              <Dialog open={showAddDialog} onOpenChange={(open) => {
-                setShowAddDialog(open);
-                if (open) {
-                  // Refresh products when dialog opens
-                  console.log('[SalesPage] Dialog opened, refreshing products...');
-                  fetchProductsData();
-                  fetchCustomersData();
-                }
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="h-12 text-base touch-manipulation w-full sm:w-auto">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Record Sale
-                  </Button>
-                </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader className="flex-shrink-0">
-                  <DialogTitle>Record New Sale</DialogTitle>
-                  <DialogDescription>
-                    Add a new sale transaction
-                  </DialogDescription>
-                </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto px-1">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {error && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    {/* Customer Selection */}
-                    <div className="space-y-2">
-                      <Label htmlFor="customer_id" className="text-base">Customer (Optional)</Label>
-                      <Select value={formData.customer_id || 'walkin'} onValueChange={handleCustomerSelect}>
-                        <SelectTrigger className="h-12 text-base touch-manipulation">
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="walkin">Walk-in Customer</SelectItem>
-                            {Array.isArray(customers) && customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id.toString()}>
-                              {customer.name} {customer.email && `- ${customer.email}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Product Selection */}
-                    <div className="space-y-2">
-                      <Label htmlFor="product_id" className="text-base">Product *</Label>
-                      {error && error.includes('select a product') && (
-                        <p className="text-red-500 text-sm">Please select a product</p>
-                      )}
-
-                      {/* Debug info for products */}
-                      <div className="text-xs text-gray-500 mb-2">
-                          Products loaded: {Array.isArray(products) ? products.length : 0} | Status: {Array.isArray(products) && products.length > 0 ? 'Available' : 'Loading...'}
-                          {Array.isArray(products) && products.length > 0 && (
-                          <div className="mt-1">
-                            Products: {products.map(p => p.name).join(', ')}
-                          </div>
-                        )}
-                      </div>
-
-                      <Select
-                        value={formData.product_id}
-                          onValueChange={handleProductSelect}
-                      >
-                        <SelectTrigger className="h-12 text-base touch-manipulation">
-                            <SelectValue placeholder={!Array.isArray(products) || products.length === 0 ? "Loading products..." : "Select product"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {!Array.isArray(products) || products.length === 0 ? (
-                            <SelectItem value="no-products" disabled>
-                              No products available
-                            </SelectItem>
-                          ) : (
-                            products.map((product) => (
-                              <SelectItem key={product.id} value={product.id.toString()}>
-                                {product.name} - {formatNaira(product.price || product.unit_price || 0)}
-                                {product.quantity !== undefined && ` (Stock: ${product.quantity})`}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-
-                        {(!Array.isArray(products) || products.length === 0) && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-500">
-                            No products found. Please add products first or refresh the list.
-                          </p>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                console.log('Refreshing products...');
-                                fetchProductsData();
-                              }}
-                            >
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Refresh Products
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open('/products', '_blank')}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Products
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Sale Details */}
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="quantity" className="text-base">Quantity *</Label>
-                          <StableInput
-                          id="quantity"
-                          name="quantity"
-                          type="number"
-                          min="1"
-                          value={formData.quantity}
-                          onChange={(e) => handleQuantityChange(e.target.value)}
-                          placeholder="1"
-                          className="h-12 text-base touch-manipulation"
-                          debounceMs={300}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
-                          <StableInput
-                          id="unit_price"
-                          name="unit_price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.unit_price}
-                          onChange={(e) => handleUnitPriceChange(e.target.value)}
-                          placeholder="0.00"
-                          className="h-12 text-base touch-manipulation"
-                          readOnly={!!formData.product_id}
-                          style={{ 
-                            backgroundColor: formData.product_id ? '#f3f4f6' : 'white',
-                            cursor: formData.product_id ? 'not-allowed' : 'text'
-                          }}
-                        />
-                        {formData.product_id && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Price from selected product. Edit product to change price.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-base">Total Amount</Label>
-                        <StableInput
-                          name="total_amount"
-                          value={formatNaira(formData.total_amount)}
-                          disabled
-                          className="font-bold text-green-600 h-12 text-base"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Payment Method and Date */}
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="payment_method" className="text-base">Payment Method</Label>
-                        <Select value={formData.payment_method} onValueChange={(value) => {
-                          DebugLogger.logFocusEvent('SalesPage', 'payment-method-change', document.activeElement, { value });
-                          setFormData(prev => ({ ...prev, payment_method: value }));
-                        }}>
-                          <SelectTrigger className="h-12 text-base touch-manipulation">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="pos">POS</SelectItem>
-                            <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                            <SelectItem value="cheque">Cheque</SelectItem>
-                            <SelectItem value="online_payment">Online Payment</SelectItem>
-                            <SelectItem value="pending">Pending Payment</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="date" className="text-base">Sale Date</Label>
-                          <MobileDateInput
-                          id="date"
-                          name="date"
-                          type="date"
-                          value={formData.date}
-                          onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                          className="h-12 text-base touch-manipulation"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowAddDialog(false)}
-                        className="h-12 text-base touch-manipulation"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={submitting}
-                        className="h-12 text-base touch-manipulation"
-                      >
-                        {submitting ? 'Recording...' : 'Record Sale'}
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Usage Limit Prompt */}
+          <UsageLimitPrompt />
 
           {/* Error Display */}
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mb-6">
               <AlertDescription className="flex items-center justify-between">
                 {error}
                 <Button
@@ -761,176 +304,224 @@ const Sales = () => {
             </Alert>
           )}
 
-          {/* Sales Statistics Summary */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-6">
+          {/* Sales Statistics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
-                    <p className="text-2xl font-bold">{salesStats.total_transactions || 0}</p>
+                    <p className="text-sm font-medium text-gray-600">Total Sales</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{salesStats.total_transactions || 0}</p>
                   </div>
-                  <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                  <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <ShoppingCart className="h-6 w-6 text-blue-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">{formatNaira(salesStats.total_sales || 0)}</p>
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{formatNaira(salesStats.total_sales || 0)}</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-green-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
-                    <p className="text-2xl font-bold">{salesStats.total_quantity || 0}</p>
+                    <p className="text-sm font-medium text-gray-600">Items Sold</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{salesStats.total_quantity || 0}</p>
                   </div>
-                  <Package className="h-8 w-8 text-muted-foreground" />
+                  <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Package className="h-6 w-6 text-purple-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Avg. Sale</p>
-                    <p className="text-2xl font-bold">{formatNaira(salesStats.average_sale || 0)}</p>
+                    <p className="text-sm font-medium text-gray-600">Average Sale</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{formatNaira(salesStats.average_sale || 0)}</p>
                   </div>
-                  <Calculator className="h-8 w-8 text-muted-foreground" />
+                  <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Calculator className="h-6 w-6 text-orange-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Filters and Date Selection */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex-1">
+          {/* Filters Section */}
+          <Card className="mb-6 bg-white shadow-sm border border-gray-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900">Filter & Search</CardTitle>
+              <CardDescription>Filter sales by date and search for specific transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <Label htmlFor="search" className="text-sm font-medium text-gray-700 mb-2 block">Search Sales</Label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <StableInput
+                      id="search"
                       name="search"
-                      placeholder="Search by sale number or customer..."
+                      placeholder="Search by customer name, product, or sale details..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-12 text-base touch-manipulation"
+                      className="pl-10 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter_date" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Date</Label>
                   <MobileDateInput
+                    id="filter_date"
                     name="filter_date"
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="h-12 text-base touch-manipulation"
+                    className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500"
                   />
-                  <Button
-                    variant="outline"
-                    onClick={downloadReport}
-                    className="h-12 text-base touch-manipulation"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download CSV
-                  </Button>
                 </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={downloadReport}
+                  className="h-10 px-4 text-sm font-medium border-gray-300 hover:bg-gray-50"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    fetchSales();
+                    fetchSalesStats();
+                  }}
+                  className="h-10 px-4 text-sm font-medium border-gray-300 hover:bg-gray-50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Sales Display - Mobile Cards and Desktop Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales for {formatDate(selectedDate)}</CardTitle>
-              <CardDescription>
-                {filteredSales.length} sale{filteredSales.length !== 1 ? 's' : ''} found
-                {sales.length > 0 && filteredSales.length !== sales.length && 
-                  ` (${sales.length} total)`
-                }
-              </CardDescription>
+          {/* Sales Data Section */}
+          <Card className="bg-white shadow-sm border border-gray-200">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    Sales for {formatDate(selectedDate)}
+                  </CardTitle>
+                  <CardDescription>
+                    {filteredSales.length} sale{filteredSales.length !== 1 ? 's' : ''} found
+                    {sales.length > 0 && filteredSales.length !== sales.length && 
+                      ` (${sales.length} total)`
+                    }
+                  </CardDescription>
+                </div>
+                {filteredSales.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    Total: <span className="font-semibold text-green-600">
+                      {formatNaira(filteredSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0))}
+                    </span>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {filteredSales.length === 0 ? (
-                <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No sales found</h3>
-                  <p className="text-muted-foreground mb-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  <span className="ml-3 text-gray-600">Loading sales data...</span>
+                </div>
+              ) : filteredSales.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ShoppingCart className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sales found</h3>
+                  <p className="text-gray-600 mb-6 max-w-sm mx-auto">
                     {searchTerm
-                      ? 'Try adjusting your search criteria'
-                      : 'No sales recorded for this date'}
+                      ? 'Try adjusting your search criteria or selecting a different date'
+                      : 'No sales recorded for this date. Start by recording your first sale.'}
                   </p>
-                  <Button onClick={() => setShowAddDialog(true)}>
+                  <Button 
+                    onClick={() => setShowAddDialog(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Record Your First Sale
                   </Button>
                 </div>
               ) : (
                 <>
-                  {/* Mobile Card View - Enhanced Layout */}
-                  <div className="grid grid-cols-1 gap-4 md:hidden">
+                  {/* Mobile Card View */}
+                  <div className="grid grid-cols-1 gap-4 lg:hidden">
                     {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                      <Card key={sale.id} className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-green-300">
-                        <CardContent className="p-4">
+                      <Card key={sale.id} className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
+                        <CardContent className="p-5">
                           <div className="space-y-4">
-                            {/* Header with customer and actions */}
+                            {/* Header */}
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-gray-900 truncate text-lg">
+                                <h3 className="font-semibold text-gray-900 truncate text-base">
                                   {sale.customer_name || 'Walk-in Customer'}
                                 </h3>
                                 <p className="text-sm text-gray-600 truncate mt-1">
                                   {sale.product_name || 'Unknown Product'}
                                 </p>
                               </div>
-                              <div className="flex gap-2 ml-3">
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600">
-                                  <Eye className="h-4 w-4 text-blue-600" />
-                                </Button>
-                              </div>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
+                                <Eye className="h-4 w-4 text-blue-600" />
+                              </Button>
                             </div>
 
-                            {/* Sale Details Grid */}
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div className="space-y-1">
-                                <span className="text-gray-500 font-medium">Quantity</span>
-                                <div className="flex items-center">
-                                  <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                                    {sale.quantity || 0}
-                                  </span>
-                                </div>
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500 font-medium block mb-1">Quantity</span>
+                                <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                                  {sale.quantity || 0}
+                                </span>
                               </div>
-                              <div className="space-y-1">
-                                <span className="text-gray-500 font-medium">Unit Price</span>
-                                <div className="font-semibold text-gray-900">
+                              <div>
+                                <span className="text-gray-500 font-medium block mb-1">Unit Price</span>
+                                <span className="font-semibold text-gray-900">
                                   {formatNaira(sale.unit_price || 0)}
-                                </div>
+                                </span>
                               </div>
-                              <div className="space-y-1">
-                                <span className="text-gray-500 font-medium">Payment Method</span>
+                              <div>
+                                <span className="text-gray-500 font-medium block mb-1">Payment</span>
                                 <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs">
                                   {formatPaymentMethod(sale.payment_method)}
                                 </Badge>
                               </div>
-                              <div className="space-y-1">
-                                <span className="text-gray-500 font-medium">Date</span>
-                                <div className="text-xs text-gray-600">
+                              <div>
+                                <span className="text-gray-500 font-medium block mb-1">Date</span>
+                                <span className="text-xs text-gray-600">
                                   {formatDateTime(sale.created_at || sale.date)}
-                                </div>
+                                </span>
                               </div>
                             </div>
 
-                            {/* Total Amount - Prominent */}
+                            {/* Total */}
                             <div className="pt-3 border-t border-gray-100">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-medium text-gray-600">Total Amount</span>
@@ -945,63 +536,63 @@ const Sales = () => {
                     ))}
                   </div>
 
-                  {/* Desktop Table View - Improved for Large Screens */}
-                  <div className="hidden md:block">
-                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
-                      <Table className="w-full">
+                  {/* Desktop Table View */}
+                  <div className="hidden lg:block">
+                    <div className="overflow-hidden border border-gray-200 rounded-lg">
+                      <Table>
                         <TableHeader>
-                          <TableRow className="bg-gray-50/50">
-                            <TableHead className="w-[15%] min-w-[140px] px-4 py-3 text-left font-semibold">Customer</TableHead>
-                            <TableHead className="w-[18%] min-w-[160px] px-4 py-3 text-left font-semibold">Product</TableHead>
-                            <TableHead className="w-[8%] min-w-[80px] px-4 py-3 text-center font-semibold">Qty</TableHead>
-                            <TableHead className="w-[12%] min-w-[110px] px-4 py-3 text-right font-semibold">Unit Price</TableHead>
-                            <TableHead className="w-[14%] min-w-[130px] px-4 py-3 text-right font-semibold">Total Amount</TableHead>
-                            <TableHead className="w-[12%] min-w-[120px] px-4 py-3 text-center font-semibold">Payment</TableHead>
-                            <TableHead className="w-[15%] min-w-[140px] px-4 py-3 text-center font-semibold">Date & Time</TableHead>
-                            <TableHead className="w-[6%] min-w-[70px] px-4 py-3 text-center font-semibold">Actions</TableHead>
+                          <TableRow className="bg-gray-50">
+                            <TableHead className="px-6 py-4 text-left font-semibold text-gray-900">Customer</TableHead>
+                            <TableHead className="px-6 py-4 text-left font-semibold text-gray-900">Product</TableHead>
+                            <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Quantity</TableHead>
+                            <TableHead className="px-6 py-4 text-right font-semibold text-gray-900">Unit Price</TableHead>
+                            <TableHead className="px-6 py-4 text-right font-semibold text-gray-900">Total Amount</TableHead>
+                            <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Payment Method</TableHead>
+                            <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Date</TableHead>
+                            <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {Array.isArray(filteredSales) && filteredSales.map((sale, index) => (
-                            <TableRow key={sale.id} className={`hover:bg-gray-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
-                              <TableCell className="px-4 py-4">
-                                <div className="font-medium text-gray-900 truncate max-w-[120px]" title={sale.customer_name || 'Walk-in Customer'}>
+                            <TableRow key={sale.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                              <TableCell className="px-6 py-4">
+                                <div className="font-medium text-gray-900">
                                   {sale.customer_name || 'Walk-in Customer'}
                                 </div>
                               </TableCell>
-                              <TableCell className="px-4 py-4">
-                                <div className="font-medium text-gray-900 truncate max-w-[140px]" title={sale.product_name || 'Unknown Product'}>
+                              <TableCell className="px-6 py-4">
+                                <div className="font-medium text-gray-900">
                                   {sale.product_name || 'Unknown Product'}
                                 </div>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-center">
+                              <TableCell className="px-6 py-4 text-center">
                                 <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                                   {sale.quantity || 0}
                                 </span>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-right">
+                              <TableCell className="px-6 py-4 text-right">
                                 <span className="font-medium text-gray-700">
                                   {formatNaira(sale.unit_price || 0)}
                                 </span>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-right">
-                                <div className="font-bold text-green-600 text-lg">
+                              <TableCell className="px-6 py-4 text-right">
+                                <span className="font-bold text-green-600 text-lg">
                                   {formatNaira(sale.total_amount || 0)}
-                                </div>
+                                </span>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-center">
+                              <TableCell className="px-6 py-4 text-center">
                                 <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="font-medium">
                                   {formatPaymentMethod(sale.payment_method)}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-center">
-                                <div className="text-sm text-gray-600 whitespace-nowrap">
+                              <TableCell className="px-6 py-4 text-center">
+                                <div className="text-sm text-gray-600">
                                   {formatDateTime(sale.created_at || sale.date)}
                                 </div>
                               </TableCell>
-                              <TableCell className="px-4 py-4 text-center">
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600">
-                                  <Eye className="h-4 w-4" />
+                              <TableCell className="px-6 py-4 text-center">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
+                                  <Eye className="h-4 w-4 text-blue-600" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -1015,9 +606,181 @@ const Sales = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Add Sale Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">Record New Sale</DialogTitle>
+              <DialogDescription>
+                Add a new sale transaction to your records
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
+                    <Select
+                      value={formData.customer_id}
+                      onValueChange={(value) => {
+                        const customer = customers.find(c => c.id === value);
+                        setFormData(prev => ({
+                          ...prev,
+                          customer_id: value,
+                          customer_name: customer ? customer.name : ''
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue placeholder="Select customer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Walk-in Customer</SelectItem>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="product" className="text-base font-medium">Product *</Label>
+                    <Select
+                      value={formData.product_id}
+                      onValueChange={(value) => {
+                        const product = products.find(p => p.id === value);
+                        setFormData(prev => ({
+                          ...prev,
+                          product_id: value,
+                          unit_price: product ? parseFloat(product.price || product.unit_price || 0) : 0,
+                          total_amount: (product ? parseFloat(product.price || product.unit_price || 0) : 0) * prev.quantity
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} - {formatNaira(product.price || product.unit_price || 0)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity" className="text-base font-medium">Quantity *</Label>
+                    <StableInput
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      min="1"
+                      value={formData.quantity}
+                      onChange={(e) => {
+                        const quantity = parseInt(e.target.value) || 1;
+                        setFormData(prev => ({
+                          ...prev,
+                          quantity,
+                          total_amount: prev.unit_price * quantity
+                        }));
+                      }}
+                      className="h-12 text-base"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="unit_price" className="text-base font-medium">Unit Price (₦) *</Label>
+                    <StableInput
+                      id="unit_price"
+                      name="unit_price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.unit_price}
+                      onChange={(e) => {
+                        const unitPrice = parseFloat(e.target.value) || 0;
+                        setFormData(prev => ({
+                          ...prev,
+                          unit_price: unitPrice,
+                          total_amount: unitPrice * prev.quantity
+                        }));
+                      }}
+                      className="h-12 text-base"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="payment_method" className="text-base font-medium">Payment Method</Label>
+                    <Select
+                      value={formData.payment_method}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
+                    >
+                      <SelectTrigger className="h-12 text-base">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="card">Card</SelectItem>
+                        <SelectItem value="transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                        <SelectItem value="online_payment">Online Payment</SelectItem>
+                        <SelectItem value="pending">Pending Payment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-base font-medium">Sale Date</Label>
+                    <MobileDateInput
+                      id="date"
+                      name="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      className="h-12 text-base"
+                    />
+                  </div>
+                </div>
+
+                {/* Total Amount Display */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium text-green-800">Total Amount:</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      {formatNaira(formData.total_amount)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddDialog(false)}
+                    className="h-12 px-6 text-base"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="h-12 px-6 text-base bg-green-600 hover:bg-green-700"
+                  >
+                    {submitting ? 'Recording...' : 'Record Sale'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
-      </div>
-      )}
     </DashboardLayout>
   );
 };
