@@ -5,6 +5,13 @@ import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHand
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { formatNaira } from '../../utils/formatting';
 import { Plus, Trash2, RefreshCw, Eye } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
 
 const CustomInvoiceForm = ({ 
   customers = [], 
@@ -434,20 +441,24 @@ const CustomInvoiceForm = ({
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Customer *</label>
-            <select
-              className={`form-select ${hasFieldError('customer_id') ? 'error' : ''}`}
-              value={formData.customer_id}
-              onChange={handleInputChange}
-              name="customer_id"
-              required
+            <Select 
+              value={formData.customer_id} 
+              onValueChange={(value) => {
+                const event = { target: { name: 'customer_id', value } };
+                handleInputChange(event);
+              }}
             >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''}`}>
+                <SelectValue placeholder="Select a customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {getFieldError('customer_id') && (
               <div className="error-message">{getFieldError('customer_id')}</div>
             )}
@@ -534,18 +545,21 @@ const CustomInvoiceForm = ({
               <div className="item-grid">
                 <div className="form-group">
                   <label className="form-label">Product</label>
-                  <select
-                    className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}
-                    value={item.product_id}
-                    onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
+                  <Select 
+                    value={item.product_id} 
+                    onValueChange={(value) => handleItemChange(index, 'product_id', value)}
                   >
-                    <option value="">Select product (optional)</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}>
+                      <SelectValue placeholder="Select product (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="form-group">
@@ -664,17 +678,23 @@ const CustomInvoiceForm = ({
 
           <div className="form-group">
             <label className="form-label">Currency</label>
-            <select
-              className={`form-select ${hasFieldError('currency') ? 'error' : ''}`}
-              value={formData.currency}
-              onChange={handleInputChange}
-              name="currency"
+            <Select 
+              value={formData.currency} 
+              onValueChange={(value) => {
+                const event = { target: { name: 'currency', value } };
+                handleInputChange(event);
+              }}
             >
-              <option value="NGN">Nigerian Naira (₦)</option>
-              <option value="USD">US Dollar ($)</option>
-              <option value="EUR">Euro (€)</option>
-              <option value="GBP">British Pound (£)</option>
-            </select>
+              <SelectTrigger className={`form-select ${hasFieldError('currency') ? 'error' : ''}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
+                <SelectItem value="USD">US Dollar ($)</SelectItem>
+                <SelectItem value="EUR">Euro (€)</SelectItem>
+                <SelectItem value="GBP">British Pound (£)</SelectItem>
+              </SelectContent>
+            </Select>
             {getFieldError('currency') && (
               <div className="error-message">{getFieldError('currency')}</div>
             )}
