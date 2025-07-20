@@ -110,7 +110,7 @@ const CustomProductForm = ({
       sku: formData.sku || skuInputRef.current?.value?.trim() || '',
       description: formData.description || descriptionInputRef.current?.value?.trim() || '',
       category: formData.category || '',
-      subcategory: formData.subcategory || '',
+      sub_category: formData.subcategory || '', // Map subcategory to sub_category for backend
       price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
       cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
       quantity: parseInt(formData.quantity || quantityInputRef.current?.value) || 0,

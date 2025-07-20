@@ -290,7 +290,9 @@ def create_product():
             "quantity": quantity,
             "low_stock_threshold": low_stock_threshold,
             "category": data.get("category", "Other").strip(),
+            "sub_category": data.get("sub_category", "").strip(),
             "sku": sku,
+            "barcode": data.get("barcode", "").strip() if data.get("barcode") else None,
             "image_url": data.get("image_url", "").strip(),
             "active": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -388,8 +390,12 @@ def update_product(product_id):
             update_data["low_stock_threshold"] = int(data["low_stock_threshold"]) if data["low_stock_threshold"] else 5
         if data.get("category"):
             update_data["category"] = data["category"].strip()
+        if data.get("sub_category") is not None:
+            update_data["sub_category"] = data["sub_category"].strip()
         if data.get("sku"):
             update_data["sku"] = data["sku"].strip()
+        if data.get("barcode") is not None:
+            update_data["barcode"] = data["barcode"].strip() if data["barcode"] else None
         if data.get("image_url") is not None:
             update_data["image_url"] = data["image_url"].strip()
         if data.get("active") is not None:
