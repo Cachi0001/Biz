@@ -64,13 +64,13 @@ const ResetPassword = () => {
           <div>
             <Label htmlFor="password">New Password</Label>
             <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-              <Input
-                id="password"
-                name="password"
+            <Input
+              id="password"
+              name="password"
                 type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
                 placeholder="New password"
                 autoComplete="new-password"
                 inputMode="text"
@@ -90,14 +90,14 @@ const ResetPassword = () => {
           <div>
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
                 autoComplete="new-password"
                 inputMode="text"
                 spellCheck={false}

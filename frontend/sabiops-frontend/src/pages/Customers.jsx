@@ -379,7 +379,7 @@ const Customers = () => {
                     placeholder="Search customers by name, email, business, phone, or address..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                                          className="pl-10 h-12 text-base touch-manipulation"
+                    className="pl-10 h-12 text-base touch-manipulation"
                   />
                 </div>
                 {searchTerm && (

@@ -748,7 +748,7 @@ const Sales = () => {
           )}
 
           {/* Sales Statistics Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -799,7 +799,7 @@ const Sales = () => {
           </div>
 
           {/* Filters and Date Selection */}
-          <Card>
+          <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="flex flex-col gap-4">
                 <div className="flex-1">
@@ -920,67 +920,63 @@ const Sales = () => {
                   </div>
 
                   {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Unit Price</TableHead>
-                          <TableHead>Total Amount</TableHead>
-                          <TableHead>Payment Method</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                          <TableRow key={sale.id}>
-                            <TableCell>
-                              <div className="font-medium">
-                                {sale.customer_name || 'Walk-in Customer'}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="font-medium">
-                                {sale.product_name || 'Unknown Product'}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-center">
-                                {sale.quantity || 0}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {formatNaira(sale.unit_price || 0)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="font-semibold text-green-600">
-                                {formatNaira(sale.total_amount || 0)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
-                                {formatPaymentMethod(sale.payment_method)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                {formatDateTime(sale.created_at || sale.date)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                  <div className="hidden md:block">
+                    <div className="overflow-x-auto border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[120px]">Customer</TableHead>
+                            <TableHead className="min-w-[120px]">Product</TableHead>
+                            <TableHead className="min-w-[80px] text-center">Quantity</TableHead>
+                            <TableHead className="min-w-[100px]">Unit Price</TableHead>
+                            <TableHead className="min-w-[120px]">Total Amount</TableHead>
+                            <TableHead className="min-w-[120px]">Payment Method</TableHead>
+                            <TableHead className="min-w-[120px]">Date</TableHead>
+                            <TableHead className="min-w-[80px] text-center">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {Array.isArray(filteredSales) && filteredSales.map((sale) => (
+                            <TableRow key={sale.id}>
+                              <TableCell className="font-medium">
+                                {sale.customer_name || 'Walk-in Customer'}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {sale.product_name || 'Unknown Product'}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {sale.quantity || 0}
+                              </TableCell>
+                              <TableCell>
+                                {formatNaira(sale.unit_price || 0)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-semibold text-green-600">
+                                  {formatNaira(sale.total_amount || 0)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
+                                  {formatPaymentMethod(sale.payment_method)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm whitespace-nowrap">
+                                  {formatDateTime(sale.created_at || sale.date)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button variant="ghost" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 </>
               )}

@@ -34,7 +34,7 @@ const ForgotPassword = () => {
     try {
       const response = await requestPasswordReset({ email });
       if (response.success) {
-        setStep(2);
+      setStep(2);
         if (isResend) {
           setResendCount(count => count + 1);
           setResendTimer(60);
@@ -66,35 +66,35 @@ const ForgotPassword = () => {
           )}
         </div>
         <div className="w-full">
-          {step === 1 && (
+                {step === 1 && (
             <form onSubmit={handleRequestReset} className="space-y-4" autoComplete="off" noValidate>
               <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
                   autoComplete="email"
-                />
-              </div>
+                  />
+                </div>
               <Button type="submit" className="w-full mt-2" disabled={isRequesting}>
-                {isRequesting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Link...</>
-                ) : (
-                  'Send Reset Link'
-                )}
-              </Button>
-            </form>
-          )}
-          {step === 2 && (
-            <div className="text-center text-muted-foreground">
-              <p>
-                We sent a password reset link to <span className="font-semibold text-primary">{email}</span>.<br />
-                Please check your inbox and follow the instructions.
+                  {isRequesting ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Link...</>
+                  ) : (
+                    'Send Reset Link'
+                  )}
+                </Button>
+              </form>
+            )}
+            {step === 2 && (
+              <div className="text-center text-muted-foreground">
+                <p>
+                  We sent a password reset link to <span className="font-semibold text-primary">{email}</span>.<br />
+                  Please check your inbox and follow the instructions.
               </p>
               <div className="mt-4">
                 <Button
@@ -115,8 +115,8 @@ const ForgotPassword = () => {
                     : `You can resend the reset link ${MAX_RESENDS_PER_DAY - resendCount} more time(s) today.`}
                 </p>
               </div>
-            </div>
-          )}
+              </div>
+            )}
         </div>
         <div className="w-full flex flex-col items-center mt-4">
           <Link to="/login" className="font-medium text-primary hover:text-primary/80">
