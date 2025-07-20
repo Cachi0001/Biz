@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -417,7 +417,7 @@ const Sales = () => {
     return variants[status] || 'default';
   };
 
-  const filteredSales = sales.filter(sale => {
+  const filteredSales = Array.isArray(sales) ? sales.filter(sale => {
     if (!sale) return false;
 
     const customerName = (sale.customer_name || '').toLowerCase();
@@ -425,7 +425,7 @@ const Sales = () => {
     const searchLower = searchTerm.toLowerCase();
 
     return customerName.includes(searchLower) || productName.includes(searchLower);
-  });
+  }) : [];
 
   return (
     <DashboardLayout>
@@ -495,7 +495,7 @@ const Sales = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="walkin">Walk-in Customer</SelectItem>
-                            {customers.map((customer) => (
+                            {Array.isArray(customers) && customers.map((customer) => (
                               <SelectItem key={customer.id} value={customer.id.toString()}>
                                 {customer.name} {customer.email && `- ${customer.email}`}
                               </SelectItem>
@@ -513,8 +513,8 @@ const Sales = () => {
 
                         {/* Debug info for products */}
                         <div className="text-xs text-gray-500 mb-2">
-                          Products loaded: {products.length} | Status: {products.length > 0 ? 'Available' : 'Loading...'}
-                          {products.length > 0 && (
+                          Products loaded: {Array.isArray(products) ? products.length : 0} | Status: {Array.isArray(products) && products.length > 0 ? 'Available' : 'Loading...'}
+                          {Array.isArray(products) && products.length > 0 && (
                             <div className="mt-1">
                               Products: {products.map(p => p.name).join(', ')}
                             </div>
@@ -526,10 +526,10 @@ const Sales = () => {
                           onValueChange={handleProductSelect}
                         >
                           <SelectTrigger className="h-12 text-base touch-manipulation">
-                            <SelectValue placeholder={products.length === 0 ? "Loading products..." : "Select product"} />
+                            <SelectValue placeholder={!Array.isArray(products) || products.length === 0 ? "Loading products..." : "Select product"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.length === 0 ? (
+                            {!Array.isArray(products) || products.length === 0 ? (
                               <SelectItem value="no-products" disabled>
                                 No products available
                               </SelectItem>
@@ -544,7 +544,7 @@ const Sales = () => {
                           </SelectContent>
                         </Select>
 
-                        {products.length === 0 && (
+                        {(!Array.isArray(products) || products.length === 0) && (
                           <div className="space-y-2">
                             <p className="text-sm text-gray-500">
                               No products found. Please add products first or refresh the list.
@@ -811,7 +811,7 @@ const Sales = () => {
                   <>
                     {/* Mobile Card View */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-                      {filteredSales.map((sale) => (
+                      {Array.isArray(filteredSales) && filteredSales.map((sale) => (
                         <Card key={sale.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
                           <CardContent className="p-4">
                             <div className="space-y-3">
@@ -883,7 +883,7 @@ const Sales = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredSales.map((sale) => (
+                          {Array.isArray(filteredSales) && filteredSales.map((sale) => (
                             <TableRow key={sale.id}>
                               <TableCell>
                                 <div className="font-medium">
