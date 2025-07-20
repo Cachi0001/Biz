@@ -634,14 +634,14 @@ const Sales = () => {
                         <Label htmlFor="quantity" className="text-base">Quantity *</Label>
                           <StableInput
                           id="quantity"
+                          name="quantity"
                           type="number"
                           min="1"
                           value={formData.quantity}
                           onChange={(e) => handleQuantityChange(e.target.value)}
                           placeholder="1"
                           className="h-12 text-base touch-manipulation"
-                          componentName="SalesPage-Quantity"
-                            debounceMs={300}
+                          debounceMs={300}
                         />
                       </div>
 
@@ -649,6 +649,7 @@ const Sales = () => {
                         <Label htmlFor="unit_price" className="text-base">Unit Price (₦) *</Label>
                           <StableInput
                           id="unit_price"
+                          name="unit_price"
                           type="number"
                           step="0.01"
                           min="0"
@@ -662,6 +663,7 @@ const Sales = () => {
                       <div className="space-y-2">
                         <Label className="text-base">Total Amount</Label>
                         <StableInput
+                          name="total_amount"
                           value={formatNaira(formData.total_amount)}
                           disabled
                           className="font-bold text-green-600 h-12 text-base"
@@ -696,6 +698,7 @@ const Sales = () => {
                         <Label htmlFor="date" className="text-base">Sale Date</Label>
                           <StableInput
                           id="date"
+                          name="date"
                           type="date"
                           value={formData.date}
                           onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -748,7 +751,7 @@ const Sales = () => {
           )}
 
           {/* Sales Statistics Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -806,6 +809,7 @@ const Sales = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <StableInput
+                      name="search"
                       placeholder="Search by sale number or customer..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -815,6 +819,7 @@ const Sales = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <StableInput
+                    name="filter_date"
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
@@ -922,9 +927,9 @@ const Sales = () => {
                   {/* Desktop Table View */}
                   <div className="hidden md:block">
                     <div className="overflow-x-auto border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
                             <TableHead className="min-w-[120px]">Customer</TableHead>
                             <TableHead className="min-w-[120px]">Product</TableHead>
                             <TableHead className="min-w-[80px] text-center">Quantity</TableHead>
@@ -933,49 +938,49 @@ const Sales = () => {
                             <TableHead className="min-w-[120px]">Payment Method</TableHead>
                             <TableHead className="min-w-[120px]">Date</TableHead>
                             <TableHead className="min-w-[80px] text-center">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                             {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                            <TableRow key={sale.id}>
+                          <TableRow key={sale.id}>
                               <TableCell className="font-medium">
                                 {sale.customer_name || 'Walk-in Customer'}
-                              </TableCell>
+                            </TableCell>
                               <TableCell className="font-medium">
                                 {sale.product_name || 'Unknown Product'}
-                              </TableCell>
+                            </TableCell>
                               <TableCell className="text-center">
                                 {sale.quantity || 0}
-                              </TableCell>
-                              <TableCell>
-                                {formatNaira(sale.unit_price || 0)}
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-semibold text-green-600">
-                                  {formatNaira(sale.total_amount || 0)}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
-                                  {formatPaymentMethod(sale.payment_method)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
+                            </TableCell>
+                            <TableCell>
+                              {formatNaira(sale.unit_price || 0)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-semibold text-green-600">
+                                {formatNaira(sale.total_amount || 0)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
+                                {formatPaymentMethod(sale.payment_method)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
                                 <div className="text-sm whitespace-nowrap">
-                                  {formatDateTime(sale.created_at || sale.date)}
-                                </div>
-                              </TableCell>
-                              <TableCell>
+                                {formatDateTime(sale.created_at || sale.date)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
                                 <div className="flex items-center justify-center gap-2">
-                                  <Button variant="ghost" size="sm">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                     </div>
                   </div>
                 </>

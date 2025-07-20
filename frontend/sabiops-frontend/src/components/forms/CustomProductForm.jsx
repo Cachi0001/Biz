@@ -17,6 +17,7 @@ const CustomProductForm = ({
   const priceInputRef = useRef(null);
   const costPriceInputRef = useRef(null);
   const quantityInputRef = useRef(null);
+  const lowStockThresholdInputRef = useRef(null);
   const barcodeInputRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ const CustomProductForm = ({
       if (priceInputRef.current) priceInputRef.current.value = editingProduct.price || editingProduct.unit_price || '';
       if (costPriceInputRef.current) costPriceInputRef.current.value = editingProduct.cost_price || '';
       if (quantityInputRef.current) quantityInputRef.current.value = editingProduct.quantity || '';
+      if (lowStockThresholdInputRef.current) lowStockThresholdInputRef.current.value = editingProduct.low_stock_threshold || '5';
       if (barcodeInputRef.current) barcodeInputRef.current.value = editingProduct.barcode || '';
     }
   }, [editingProduct]);
@@ -58,6 +60,7 @@ const CustomProductForm = ({
       price: parseFloat(priceInputRef.current?.value) || 0,
       cost_price: parseFloat(costPriceInputRef.current?.value) || 0,
       quantity: parseInt(quantityInputRef.current?.value) || 0,
+      low_stock_threshold: parseInt(lowStockThresholdInputRef.current?.value) || 5,
       barcode: barcodeInputRef.current?.value?.trim() || null
     };
 
@@ -79,6 +82,18 @@ const CustomProductForm = ({
     if (!formData.price || formData.price <= 0) {
       handleApiErrorWithToast(new Error("Valid price is required"));
       priceInputRef.current?.focus();
+      return;
+    }
+
+    if (formData.quantity < 0) {
+      handleApiErrorWithToast(new Error("Quantity cannot be negative"));
+      quantityInputRef.current?.focus();
+      return;
+    }
+
+    if (formData.low_stock_threshold < 0) {
+      handleApiErrorWithToast(new Error("Low stock threshold cannot be negative"));
+      lowStockThresholdInputRef.current?.focus();
       return;
     }
 
@@ -334,15 +349,15 @@ const CustomProductForm = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">SKU</label>
+            <label className="form-label">Barcode</label>
             <input
-              ref={skuInputRef}
+              ref={barcodeInputRef}
               type="text"
               className="form-input"
-              placeholder="Product SKU (optional)"
-              onFocus={() => handleInputFocus('sku')}
-              onBlur={() => handleInputBlur('sku')}
-              onChange={(e) => handleInputChange('sku', e.target.value)}
+              placeholder="Product barcode (optional)"
+              onFocus={() => handleInputFocus('barcode')}
+              onBlur={() => handleInputBlur('barcode')}
+              onChange={(e) => handleInputChange('barcode', e.target.value)}
             />
           </div>
         </div>
@@ -380,19 +395,36 @@ const CustomProductForm = ({
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Initial Stock Quantity</label>
-          <input
-            ref={quantityInputRef}
-            type="number"
-            min="0"
-            className="form-input"
-            placeholder="0"
-            defaultValue="0"
-            onFocus={() => handleInputFocus('quantity')}
-            onBlur={() => handleInputBlur('quantity')}
-            onChange={(e) => handleInputChange('quantity', e.target.value)}
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Initial Stock Quantity</label>
+            <input
+              ref={quantityInputRef}
+              type="number"
+              min="0"
+              className="form-input"
+              placeholder="0"
+              defaultValue="0"
+              onFocus={() => handleInputFocus('quantity')}
+              onBlur={() => handleInputBlur('quantity')}
+              onChange={(e) => handleInputChange('quantity', e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Low Stock Threshold</label>
+            <input
+              ref={lowStockThresholdInputRef}
+              type="number"
+              min="0"
+              className="form-input"
+              placeholder="5"
+              defaultValue="5"
+              onFocus={() => handleInputFocus('low_stock_threshold')}
+              onBlur={() => handleInputBlur('low_stock_threshold')}
+              onChange={(e) => handleInputChange('low_stock_threshold', e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="form-buttons">

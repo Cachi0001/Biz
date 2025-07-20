@@ -487,6 +487,7 @@ const Expenses = () => {
                     <Label htmlFor="amount">Amount (₦) *</Label>
                     <StableInput
                       id="amount"
+                      name="amount"
                       type="number"
                       step="0.01"
                       value={formData.amount}
@@ -504,6 +505,7 @@ const Expenses = () => {
                     <Label htmlFor="description">Description</Label>
                     <StableInput
                       id="description"
+                      name="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Enter expense description"
@@ -535,6 +537,7 @@ const Expenses = () => {
                       <Label htmlFor="date">Expense Date *</Label>
                       <StableInput
                         id="date"
+                        name="date"
                         type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -547,6 +550,7 @@ const Expenses = () => {
                     <Label htmlFor="receipt_url">Receipt URL</Label>
                     <StableInput
                       id="receipt_url"
+                      name="receipt_url"
                       value={formData.receipt_url}
                       onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
                       placeholder="Enter receipt URL (optional)"
@@ -581,6 +585,7 @@ const Expenses = () => {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <StableInput
+                        name="search"
                         placeholder="Search expenses by category, subcategory, or description..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -637,6 +642,7 @@ const Expenses = () => {
                     <Label htmlFor="filter-start-date">Start Date</Label>
                     <StableInput
                       id="filter-start-date"
+                      name="filter_start_date"
                       type="date"
                       value={dateRange.start}
                       onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
@@ -647,6 +653,7 @@ const Expenses = () => {
                     <Label htmlFor="filter-end-date">End Date</Label>
                     <StableInput
                       id="filter-end-date"
+                      name="filter_end_date"
                       type="date"
                       value={dateRange.end}
                       onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
@@ -658,7 +665,7 @@ const Expenses = () => {
           </Card>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">Total Expenses</CardTitle>

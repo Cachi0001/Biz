@@ -149,7 +149,7 @@ def register():
             print(f"[DEBUG] Inserting user with ID: {user_id}")
             print(f"[DEBUG] User data to insert: {user_data}")
             try:
-                user_result = supabase.table("users").insert(user_data).execute()
+            user_result = supabase.table("users").insert(user_data).execute()
                 print(f"[DEBUG] User insert result: {user_result}")
                 print(f"[DEBUG] User insert data: {user_result.data}")
                 # Check if there's an error in the response
@@ -174,7 +174,7 @@ def register():
             # Verify user exists before creating token
             print(f"[DEBUG] Verifying user exists after creation - ID: {actual_user_id}")
             try:
-                verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
+            verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
                 print(f"[DEBUG] User verification result: {verify_result}")
                 print(f"[DEBUG] User verification data: {verify_result.data}")
                 # Check if there's an error in the response
@@ -235,12 +235,12 @@ def register():
 </html>
 """
             from src.services.email_service import email_service
-            email_service.send_email(
-                to_email=email,
-                subject=subject,
-                text_content=body,
-                html_content=html_body
-            )
+                email_service.send_email(
+                    to_email=email,
+                    subject=subject,
+                    text_content=body,
+                    html_content=html_body
+                )
 
             return success_response(message="Registration successful. Please check your email to confirm your account.")
 
@@ -746,19 +746,19 @@ def login():
         if supabase:
             print(f"[DEBUG] Using Supabase for user lookup")
             try:
-                if "@" in login_field:
+            if "@" in login_field:
                     print(f"[DEBUG] Looking up user by email: {login_field}")
-                    user_result = supabase.table("users").select("*").eq("email", login_field).execute()
+                user_result = supabase.table("users").select("*").eq("email", login_field).execute()
                     print(f"[DEBUG] Email lookup result: {user_result}")
                     print(f"[DEBUG] Email lookup data: {user_result.data}")
                     # Check if there's an error in the response
                     if hasattr(user_result, 'error') and user_result.error:
                         print(f"[DEBUG] Email lookup error: {user_result.error}")
-                    else:
+            else:
                         print(f"[DEBUG] Email lookup successful - no errors")
                 else:
                     print(f"[DEBUG] Looking up user by phone: {login_field}")
-                    user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
+                user_result = supabase.table("users").select("*").eq("phone", login_field).execute()
                     print(f"[DEBUG] Phone lookup result: {user_result}")
                     print(f"[DEBUG] Phone lookup data: {user_result.data}")
                     # Check if there's an error in the response
@@ -767,10 +767,10 @@ def login():
                     else:
                         print(f"[DEBUG] Phone lookup successful - no errors")
 
-                if user_result.data and len(user_result.data) > 0:
-                    user = user_result.data[0]
+            if user_result.data and len(user_result.data) > 0:
+                user = user_result.data[0]
                     print(f"[DEBUG] Found user in Supabase: {user.get('id')} - {user.get('email')}")
-                else:
+        else:
                     print(f"[DEBUG] No user found in Supabase")
             except Exception as e:
                 print(f"[ERROR] Supabase lookup failed: {e}")
