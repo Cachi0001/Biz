@@ -92,22 +92,99 @@ const Sales = () => {
 
   const fetchProductsData = async () => {
     try {
+      console.log('[SalesPage] Fetching products for dropdown...');
+      console.log('[SalesPage] Products API endpoint: /products');
+
       const response = await getProducts();
-      const productsData = response?.data || response || [];
-      setProducts(Array.isArray(productsData) ? productsData : []);
+
+      console.log('[SalesPage] Raw products response:', response);
+      console.log('[SalesPage] Products response type:', typeof response);
+      console.log('[SalesPage] Products response keys:', response ? Object.keys(response) : 'null/undefined');
+
+      // Handle the new API response structure
+      let productsArray = [];
+      if (response && response.success && response.data) {
+        console.log('[SalesPage] Using response.success && response.data format');
+        productsArray = response.data.products || [];
+      } else if (response && response.products && Array.isArray(response.products)) {
+        console.log('[SalesPage] Using response.products format');
+        productsArray = response.products;
+      } else if (response && Array.isArray(response)) {
+        console.log('[SalesPage] Using direct response array format');
+        productsArray = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        console.log('[SalesPage] Using response.data array format');
+        productsArray = response.data;
+      } else {
+        console.warn('[SalesPage] Unexpected products response structure:', response);
+        console.warn('[SalesPage] Products response structure:', JSON.stringify(response, null, 2));
+        productsArray = [];
+      }
+
+      setProducts(productsArray);
+
+      console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
+
+      // Log if no products found for dropdown
+      if (productsArray.length === 0) {
+        console.warn('[SalesPage] No products available for sales dropdown');
+      } else {
+        console.log('[SalesPage] Products available:', productsArray.map(p => ({ id: p.id, name: p.name, price: p.price || p.unit_price })));
+        console.log('[SalesPage] First product example:', productsArray[0]);
+      }
+
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('[SalesPage] Error fetching products:', error);
+      console.error('[SalesPage] Products error message:', error.message);
       setProducts([]);
     }
   };
 
   const fetchCustomersData = async () => {
     try {
+      console.log('[SalesPage] Fetching customers for dropdown...');
+      console.log('[SalesPage] Customers API endpoint: /customers');
+
       const response = await getCustomers();
-      const customersData = response?.data || response || [];
-      setCustomers(Array.isArray(customersData) ? customersData : []);
+
+      console.log('[SalesPage] Raw customers response:', response);
+      console.log('[SalesPage] Customers response type:', typeof response);
+      console.log('[SalesPage] Customers response keys:', response ? Object.keys(response) : 'null/undefined');
+
+      // Handle the new API response structure
+      let customersArray = [];
+      if (response && response.success && response.data) {
+        console.log('[SalesPage] Using response.success && response.data format');
+        customersArray = response.data.customers || [];
+      } else if (response && response.customers && Array.isArray(response.customers)) {
+        console.log('[SalesPage] Using response.customers format');
+        customersArray = response.customers;
+      } else if (response && Array.isArray(response)) {
+        console.log('[SalesPage] Using direct response array format');
+        customersArray = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        console.log('[SalesPage] Using response.data array format');
+        customersArray = response.data;
+      } else {
+        console.warn('[SalesPage] Unexpected customers response structure:', response);
+        console.warn('[SalesPage] Customers response structure:', JSON.stringify(response, null, 2));
+        customersArray = [];
+      }
+
+      setCustomers(customersArray);
+      console.log('[SalesPage] Customers set in state:', customersArray.length, 'customers');
+
+      // Log if no customers found for dropdown
+      if (customersArray.length === 0) {
+        console.warn('[SalesPage] No customers available for sales dropdown');
+      } else {
+        console.log('[SalesPage] Customers available:', customersArray.map(c => ({ id: c.id, name: c.name, email: c.email })));
+        console.log('[SalesPage] First customer example:', customersArray[0]);
+      }
+
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('[SalesPage] Error fetching customers:', error);
+      console.error('[SalesPage] Customers error message:', error.message);
       setCustomers([]);
     }
   };
