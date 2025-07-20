@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { getSales, getProducts, getCustomers, createSale } from "../services/api";
 import { enhancedCreateSale } from "../services/enhancedApi";
-import { formatNaira, formatDate, formatPaymentMethod } from '../utils/formatting';
+import { formatNaira, formatDate, formatDateTime, formatPaymentMethod } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import { validateSaleData } from "../services/enhancedApi";
 import { useUsageTracking } from '../hooks/useUsageTracking';
