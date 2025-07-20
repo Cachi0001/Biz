@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { createProduct } from '../../services/api';
+import { createProduct, updateProduct } from '../../services/api';
 import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
 
 const CustomProductForm = ({ 
   categories = [], 
   onSuccess, 
-  onCancel 
+  onCancel,
+  editingProduct = null
 }) => {
   const formRef = useRef(null);
   const nameInputRef = useRef(null);
@@ -24,6 +25,23 @@ const CustomProductForm = ({
       nameInputRef.current.focus();
     }
   }, []);
+
+  // Populate form with editing data
+  useEffect(() => {
+    if (editingProduct) {
+      console.log('🎯 CustomProductForm: Populating form with editing data:', editingProduct);
+      
+      // Set form values
+      if (nameInputRef.current) nameInputRef.current.value = editingProduct.name || '';
+      if (skuInputRef.current) skuInputRef.current.value = editingProduct.sku || '';
+      if (descriptionInputRef.current) descriptionInputRef.current.value = editingProduct.description || '';
+      if (categorySelectRef.current) categorySelectRef.current.value = editingProduct.category || '';
+      if (priceInputRef.current) priceInputRef.current.value = editingProduct.price || editingProduct.unit_price || '';
+      if (costPriceInputRef.current) costPriceInputRef.current.value = editingProduct.cost_price || '';
+      if (quantityInputRef.current) quantityInputRef.current.value = editingProduct.quantity || '';
+      if (barcodeInputRef.current) barcodeInputRef.current.value = editingProduct.barcode || '';
+    }
+  }, [editingProduct]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,8 +85,16 @@ const CustomProductForm = ({
     try {
       console.log('🎯 CustomProductForm: Submitting to API...');
       
-      const response = await createProduct(formData);
-      showSuccessToast("Product created successfully!");
+      let response;
+      if (editingProduct) {
+        console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
+        response = await updateProduct(editingProduct.id, formData);
+        showSuccessToast("Product updated successfully!");
+      } else {
+        console.log('🎯 CustomProductForm: Creating new product');
+        response = await createProduct(formData);
+        showSuccessToast("Product created successfully!");
+      }
 
       console.log('🎯 CustomProductForm: API response:', response);
 
@@ -84,7 +110,8 @@ const CustomProductForm = ({
 
     } catch (error) {
       console.error('🎯 CustomProductForm: Error:', error);
-      handleApiErrorWithToast(error, 'Failed to create product');
+      const action = editingProduct ? 'update' : 'create';
+      handleApiErrorWithToast(error, `Failed to ${action} product`);
     }
   };
 
@@ -380,7 +407,7 @@ const CustomProductForm = ({
             type="submit"
             className="btn btn-primary"
           >
-            Create Product
+            {editingProduct ? 'Update Product' : 'Create Product'}
           </button>
         </div>
       </form>

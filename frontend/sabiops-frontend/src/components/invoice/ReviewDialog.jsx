@@ -63,7 +63,7 @@ const ReviewDialog = ({
 
   // Get customer information
   const getCustomerInfo = () => {
-    if (!invoiceData.customer_id) return null;
+    if (!invoiceData || !invoiceData.customer_id) return null;
     return customers.find(c => c.id === invoiceData.customer_id) || null;
   };
 
@@ -89,6 +89,7 @@ const ReviewDialog = ({
 
   // Calculate invoice total
   const calculateInvoiceTotal = () => {
+    if (!invoiceData || !invoiceData.items) return 0;
     const itemsTotal = invoiceData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
     const discount = Math.max(0, parseFloat(invoiceData.discount_amount) || 0);
     const total = itemsTotal - discount;
@@ -210,7 +211,7 @@ const ReviewDialog = ({
                     Issue Date
                   </div>
                   <div className="text-sm font-semibold">
-                    {formatDate(invoiceData.issue_date)}
+                    {invoiceData?.issue_date ? formatDate(invoiceData.issue_date) : 'Not specified'}
                   </div>
                 </div>
 
@@ -220,7 +221,7 @@ const ReviewDialog = ({
                     Due Date
                   </div>
                   <div className="text-sm font-semibold">
-                    {invoiceData.due_date ? formatDate(invoiceData.due_date) : 'Not specified'}
+                    {invoiceData?.due_date ? formatDate(invoiceData.due_date) : 'Not specified'}
                   </div>
                 </div>
 
@@ -230,14 +231,14 @@ const ReviewDialog = ({
                     Payment Terms
                   </div>
                   <div className="text-sm font-semibold">
-                    {invoiceData.payment_terms || 'Net 30'}
+                    {invoiceData?.payment_terms || 'Net 30'}
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-gray-600">Currency</div>
                   <Badge variant="outline" className="text-xs">
-                    {invoiceData.currency || 'NGN'}
+                    {invoiceData?.currency || 'NGN'}
                   </Badge>
                 </div>
               </div>
@@ -249,11 +250,11 @@ const ReviewDialog = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Invoice Items ({invoiceData.items?.length || 0})
+                Invoice Items ({invoiceData?.items?.length || 0})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {invoiceData.items && invoiceData.items.length > 0 ? (
+              {invoiceData?.items && invoiceData.items.length > 0 ? (
                 <div className="space-y-4">
                   {/* Desktop Table View */}
                   <div className="hidden md:block">
@@ -292,7 +293,7 @@ const ReviewDialog = ({
                                   {item.quantity || 0}
                                 </td>
                                 <td className="py-3 text-right text-sm">
-                                  {formatCurrency(item.unit_price || 0, true, invoiceData.currency || 'NGN')}
+                                  {formatCurrency(item.unit_price || 0, true, invoiceData?.currency || 'NGN')}
                                 </td>
                                 <td className="py-3 text-center text-sm">
                                   {item.tax_rate || 0}%
@@ -301,7 +302,7 @@ const ReviewDialog = ({
                                   {item.discount_rate || 0}%
                                 </td>
                                 <td className="py-3 text-right font-semibold">
-                                  {formatCurrency(itemTotal, true, invoiceData.currency || 'NGN')}
+                                  {formatCurrency(itemTotal, true, invoiceData?.currency || 'NGN')}
                                 </td>
                               </tr>
                             );
@@ -331,14 +332,14 @@ const ReviewDialog = ({
                               )}
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 <div>Quantity: <span className="font-medium">{item.quantity || 0}</span></div>
-                                <div>Unit Price: <span className="font-medium">{formatCurrency(item.unit_price || 0, true, invoiceData.currency || 'NGN')}</span></div>
+                                <div>Unit Price: <span className="font-medium">{formatCurrency(item.unit_price || 0, true, invoiceData?.currency || 'NGN')}</span></div>
                                 <div>Tax: <span className="font-medium">{item.tax_rate || 0}%</span></div>
                                 <div>Discount: <span className="font-medium">{item.discount_rate || 0}%</span></div>
                               </div>
                               <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-gray-600">Item Total:</span>
-                                  <span className="font-bold text-green-600">{formatCurrency(itemTotal, true, invoiceData.currency || 'NGN')}</span>
+                                  <span className="font-bold text-green-600">{formatCurrency(itemTotal, true, invoiceData?.currency || 'NGN')}</span>
                                 </div>
                               </div>
                             </div>
@@ -366,15 +367,15 @@ const ReviewDialog = ({
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="font-medium">
-                    {formatCurrency(invoiceData.items?.reduce((sum, item) => sum + calculateItemTotal(item), 0) || 0, true, invoiceData.currency || 'NGN')}
+                    {formatCurrency(invoiceData?.items?.reduce((sum, item) => sum + calculateItemTotal(item), 0) || 0, true, invoiceData?.currency || 'NGN')}
                   </span>
                 </div>
                 
-                {invoiceData.discount_amount > 0 && (
+                {invoiceData?.discount_amount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Overall Discount:</span>
                     <span className="font-medium text-red-600">
-                      -{formatCurrency(invoiceData.discount_amount, true, invoiceData.currency || 'NGN')}
+                      -{formatCurrency(invoiceData.discount_amount, true, invoiceData?.currency || 'NGN')}
                     </span>
                   </div>
                 )}
@@ -383,32 +384,32 @@ const ReviewDialog = ({
                 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Amount:</span>
-                  <span className="text-green-600">{formatCurrency(invoiceTotal, true, invoiceData.currency || 'NGN')}</span>
+                  <span className="text-green-600">{formatCurrency(invoiceTotal, true, invoiceData?.currency || 'NGN')}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Notes and Terms */}
-          {(invoiceData.notes || invoiceData.terms_and_conditions) && (
+          {(invoiceData?.notes || invoiceData?.terms_and_conditions) && (
             <Card>
               <CardHeader>
                 <CardTitle>Additional Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {invoiceData.notes && (
+                {invoiceData?.notes && (
                   <div>
-                    <div className="text-sm font-medium text-gray-600 mb-2">Notes:</div>
-                    <div className="text-sm bg-gray-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-gray-600 mb-2">Notes</div>
+                    <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
                       {invoiceData.notes}
                     </div>
                   </div>
                 )}
                 
-                {invoiceData.terms_and_conditions && (
+                {invoiceData?.terms_and_conditions && (
                   <div>
-                    <div className="text-sm font-medium text-gray-600 mb-2">Terms and Conditions:</div>
-                    <div className="text-sm bg-gray-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-gray-600 mb-2">Terms and Conditions</div>
+                    <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
                       {invoiceData.terms_and_conditions}
                     </div>
                   </div>

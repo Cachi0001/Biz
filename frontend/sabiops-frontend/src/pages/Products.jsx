@@ -106,21 +106,21 @@ const Products = () => {
         console.warn('[PRODUCTS] Using fallback categories');
         // Use Nigerian business categories from formatting utils
         setCategories([
-          'Electronics & Technology',
-          'Fashion & Clothing',
-          'Food & Beverages',
-          'Health & Beauty',
-          'Home & Garden',
-          'Automotive',
-          'Sports & Outdoors',
-          'Books & Media',
-          'Office Supplies',
-          'Agriculture',
-          'Construction Materials',
-          'Jewelry & Accessories',
-          'Toys & Games',
-          'Art & Crafts',
-          'Other'
+          { id: 'Electronics & Technology', name: 'Electronics & Technology' },
+          { id: 'Fashion & Clothing', name: 'Fashion & Clothing' },
+          { id: 'Food & Beverages', name: 'Food & Beverages' },
+          { id: 'Health & Beauty', name: 'Health & Beauty' },
+          { id: 'Home & Garden', name: 'Home & Garden' },
+          { id: 'Automotive', name: 'Automotive' },
+          { id: 'Sports & Outdoors', name: 'Sports & Outdoors' },
+          { id: 'Books & Media', name: 'Books & Media' },
+          { id: 'Office Supplies', name: 'Office Supplies' },
+          { id: 'Agriculture', name: 'Agriculture' },
+          { id: 'Construction Materials', name: 'Construction Materials' },
+          { id: 'Jewelry & Accessories', name: 'Jewelry & Accessories' },
+          { id: 'Toys & Games', name: 'Toys & Games' },
+          { id: 'Art & Crafts', name: 'Art & Crafts' },
+          { id: 'Other', name: 'Other' }
         ]);
       }
     } catch (error) {
@@ -128,21 +128,21 @@ const Products = () => {
       toast.error(getErrorMessage(error, 'Failed to load categories'));
       // Use Nigerian business categories as fallback
       setCategories([
-        'Electronics & Technology',
-        'Fashion & Clothing',
-        'Food & Beverages',
-        'Health & Beauty',
-        'Home & Garden',
-        'Automotive',
-        'Sports & Outdoors',
-        'Books & Media',
-        'Office Supplies',
-        'Agriculture',
-        'Construction Materials',
-        'Jewelry & Accessories',
-        'Toys & Games',
-        'Art & Crafts',
-        'Other'
+        { id: 'Electronics & Technology', name: 'Electronics & Technology' },
+        { id: 'Fashion & Clothing', name: 'Fashion & Clothing' },
+        { id: 'Food & Beverages', name: 'Food & Beverages' },
+        { id: 'Health & Beauty', name: 'Health & Beauty' },
+        { id: 'Home & Garden', name: 'Home & Garden' },
+        { id: 'Automotive', name: 'Automotive' },
+        { id: 'Sports & Outdoors', name: 'Sports & Outdoors' },
+        { id: 'Books & Media', name: 'Books & Media' },
+        { id: 'Office Supplies', name: 'Office Supplies' },
+        { id: 'Agriculture', name: 'Agriculture' },
+        { id: 'Construction Materials', name: 'Construction Materials' },
+        { id: 'Jewelry & Accessories', name: 'Jewelry & Accessories' },
+        { id: 'Toys & Games', name: 'Toys & Games' },
+        { id: 'Art & Crafts', name: 'Art & Crafts' },
+        { id: 'Other', name: 'Other' }
       ]);
     }
   };
@@ -321,8 +321,8 @@ const Products = () => {
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
