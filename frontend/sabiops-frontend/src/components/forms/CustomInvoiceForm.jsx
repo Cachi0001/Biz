@@ -150,8 +150,8 @@ const CustomInvoiceForm = ({
         
         .form-input:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-textarea {
@@ -168,8 +168,8 @@ const CustomInvoiceForm = ({
         
         .form-textarea:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-select {
@@ -185,8 +185,8 @@ const CustomInvoiceForm = ({
         
         .form-select:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-buttons {
@@ -210,12 +210,12 @@ const CustomInvoiceForm = ({
         }
         
         .btn-primary {
-          background-color: #3b82f6;
+          background-color: #10b981;
           color: white;
         }
         
         .btn-primary:hover {
-          background-color: #2563eb;
+          background-color: #059669;
         }
         
         .btn-secondary {

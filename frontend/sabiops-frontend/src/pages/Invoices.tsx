@@ -475,6 +475,26 @@ const Invoices = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Add Dialog */}
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Create New Invoice</DialogTitle>
+                <DialogDescription>
+                  Create a new invoice for your customer
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1">
+                <CustomInvoiceForm
+                  customers={customers}
+                  products={products}
+                  onSuccess={handleFormSuccess}
+                  onCancel={handleFormCancel}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </DashboardLayout>

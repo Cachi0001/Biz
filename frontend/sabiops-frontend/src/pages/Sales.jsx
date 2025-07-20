@@ -141,7 +141,19 @@ const Sales = () => {
       console.log('[SalesPage] Products fetched:', response);
       DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', response, null);
 
-      const productsArray = response || [];
+      // Handle the new API response structure
+      let productsArray = [];
+      if (response && response.success && response.data) {
+        productsArray = response.data.products || [];
+      } else if (response && response.products && Array.isArray(response.products)) {
+        productsArray = response.products;
+      } else if (response && Array.isArray(response)) {
+        productsArray = response;
+      } else {
+        console.warn('[SalesPage] Unexpected products response structure:', response);
+        productsArray = [];
+      }
+
       setProducts(productsArray);
 
       console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
@@ -174,7 +186,20 @@ const Sales = () => {
 
       DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', response, null);
 
-      setCustomers(response || []);
+      // Handle the new API response structure
+      let customersArray = [];
+      if (response && response.success && response.data) {
+        customersArray = response.data.customers || [];
+      } else if (response && response.customers && Array.isArray(response.customers)) {
+        customersArray = response.customers;
+      } else if (response && Array.isArray(response)) {
+        customersArray = response;
+      } else {
+        console.warn('[SalesPage] Unexpected customers response structure:', response);
+        customersArray = [];
+      }
+
+      setCustomers(customersArray);
 
     } catch (error) {
       DebugLogger.logApiError('/customers', error, 'SalesPage');

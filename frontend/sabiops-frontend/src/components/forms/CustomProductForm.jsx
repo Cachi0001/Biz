@@ -138,6 +138,39 @@ const CustomProductForm = ({
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
+        .form-header {
+          text-align: center;
+          margin-bottom: 2rem;
+          padding-bottom: 1rem;
+          border-bottom: 2px solid #10b981;
+        }
+        
+        .form-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #10b981;
+          margin-bottom: 0.5rem;
+        }
+        
+        .form-subtitle {
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+        
+        .brand-logo {
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1rem;
+          color: white;
+          font-weight: bold;
+          font-size: 1.25rem;
+        }
+        
         .custom-product-form form {
           display: flex;
           flex-direction: column;
@@ -176,8 +209,8 @@ const CustomProductForm = ({
         
         .form-input:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-textarea {
@@ -194,8 +227,8 @@ const CustomProductForm = ({
         
         .form-textarea:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-select {
@@ -211,8 +244,8 @@ const CustomProductForm = ({
         
         .form-select:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
         
         .form-buttons {
@@ -236,12 +269,12 @@ const CustomProductForm = ({
         }
         
         .btn-primary {
-          background-color: #3b82f6;
+          background-color: #10b981;
           color: white;
         }
         
         .btn-primary:hover {
-          background-color: #2563eb;
+          background-color: #059669;
         }
         
         .btn-secondary {
@@ -265,6 +298,11 @@ const CustomProductForm = ({
           margin-top: 0.25rem;
         }
         
+        .required-field::after {
+          content: " *";
+          color: #ef4444;
+        }
+        
         @media (min-width: 640px) {
           .form-row {
             grid-template-columns: 1fr 1fr;
@@ -272,10 +310,16 @@ const CustomProductForm = ({
         }
       `}</style>
 
+      <div className="form-header">
+        <div className="brand-logo">S</div>
+        <div className="form-title">SabiOps Product</div>
+        <div className="form-subtitle">Manage your product catalog with ease</div>
+      </div>
+
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="name" className="form-label">Product Name *</label>
+            <label htmlFor="name" className="form-label">Product Name <span className="required-field">*</span></label>
             <input
               ref={nameInputRef}
               type="text"
@@ -322,7 +366,7 @@ const CustomProductForm = ({
         </div>
 
         <div className="form-group">
-          <label htmlFor="category" className="form-label">Category</label>
+          <label htmlFor="category" className="form-label">Category <span className="required-field">*</span></label>
           <select
             ref={categorySelectRef}
             id="category"
@@ -343,7 +387,7 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="price" className="form-label">Selling Price (₦) *</label>
+            <label htmlFor="price" className="form-label">Selling Price (₦) <span className="required-field">*</span></label>
             <input
               ref={priceInputRef}
               type="number"
@@ -380,7 +424,7 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="quantity" className="form-label">Stock Quantity *</label>
+            <label htmlFor="quantity" className="form-label">Stock Quantity <span className="required-field">*</span></label>
             <input
               ref={quantityInputRef}
               type="number"
