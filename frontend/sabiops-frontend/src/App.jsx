@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastProvider from './components/ToastProvider';
+import ToastManager from './components/notifications/ToastManager';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Card, CardContent } from './components/ui/card';
 import ScriptErrorIsolation from './utils/scriptErrorIsolation';
+import businessEventMonitor from './services/businessEventMonitor';
 // import PageReloadPrevention from './utils/pageReloadPrevention'; // Auto-initializes itself
 // import ErrorRecoverySystem from './utils/errorRecoverySystem'; // Auto-initializes itself
 
@@ -66,6 +68,16 @@ function App() {
     // PageReloadPrevention.init(); // Already auto-initialized when module loads
     // ErrorRecoverySystem.init(); // Already auto-initialized when module loads
     console.log('[App] Comprehensive error handling and stability systems initialized');
+
+    // Initialize business event monitoring
+    const token = localStorage.getItem('token');
+    if (token) {
+      businessEventMonitor.startMonitoring();
+    }
+
+    return () => {
+      businessEventMonitor.destroy();
+    };
   }, []);
 
   return (
@@ -75,6 +87,7 @@ function App() {
           <NotificationProvider>
             <Router>
               <NotificationPrompt />
+              <ToastManager />
               <div className="min-h-screen bg-background">
                 <Routes>
                 {/* Public routes */}

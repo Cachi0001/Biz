@@ -5,6 +5,7 @@
 
 import { toast } from 'react-hot-toast';
 import { post, get, put } from './api';
+import navigationHandler from '../utils/navigationHandler';
 
 class NotificationService {
   constructor() {
@@ -14,6 +15,16 @@ class NotificationService {
     this.unreadCount = 0;
     this.listeners = [];
     this.pollingInterval = null;
+    
+    // Firebase conflict prevention
+    this.lastNotificationCheck = 0;
+    this.duplicateDetectionWindow = 5000; // 5 seconds
+    this.recentNotifications = new Map();
+    this.consecutiveErrors = 0;
+    this.maxConsecutiveErrors = 5;
+    this.isFirebaseDisabled = false;
+    this.debounceTimeout = null;
+    
     this.initializePushNotifications();
     // Don't start polling automatically - let components start it when user is authenticated
   }
@@ -83,15 +94,67 @@ class NotificationService {
     });
   }
 
-  showLowStockAlert(productName, quantity) {
-    this.showToast(
-      `Low stock alert: ${productName} (${quantity} items left)`,
-      'warning',
-      {
-        duration: 8000,
-        icon: '📦'
-      }
-    );
+  // Enhanced business alert method
+  showBusinessAlert(type, data) {
+    const { title, message, urgent = false, action_url, action_params } = data;
+    
+    // Determine toast type and duration based on urgency and type
+    let toastType = 'info';
+    let duration = 6000;
+    
+    switch (type) {
+      case 'low_stock':
+        toastType = 'warning';
+        duration = 8000;
+        break;
+      case 'out_of_stock':
+        toastType = 'error';
+        duration = 10000;
+        break;
+      case 'nearing_limit':
+        toastType = 'warning';
+        duration = 8000;
+        break;
+      case 'overdue_invoice':
+        toastType = urgent ? 'error' : 'warning';
+        duration = urgent ? 12000 : 8000;
+        break;
+      default:
+        toastType = 'info';
+        duration = 6000;
+    }
+
+    // Show toast with click-to-navigate functionality
+    if (window.addToast) {
+      window.addToast({
+        type: toastType,
+        title,
+        message,
+        duration,
+        clickAction: action_url ? {
+          url: action_url,
+          params: action_params
+        } : null,
+        action: action_url ? 'Click to view' : null
+      });
+    } else {
+      // Fallback to regular toast
+      this.showToast(`${title}: ${message}`, toastType, { duration });
+    }
+  }
+
+  showLowStockAlert(productName, quantity, threshold = 5, productId = null) {
+    // Show enhanced toast notification
+    this.showBusinessAlert('low_stock', {
+      title: 'Low Stock Alert',
+      message: `${productName} - Only ${quantity} items remaining`,
+      productName,
+      quantity,
+      threshold,
+      productId,
+      action_url: '/products',
+      action_params: { highlight: productId, filter: 'low_stock' }
+    });
 
     // Add to notification bell
     this.addNotification({
@@ -99,7 +162,8 @@ class NotificationService {
       title: 'Low Stock Alert',
       message: `${productName} - ${quantity} items remaining`,
       action_url: '/products',
-      data: { productName, quantity }
+      priority: quantity <= 2 ? 'urgent' : 'high',
+      data: { productName, quantity, threshold, productId }
     });
   }
 
@@ -143,15 +207,17 @@ class NotificationService {
     });
   }
 
-  showOutOfStockAlert(productName) {
-    this.showToast(
-      `Out of stock: ${productName}`,
-      'error',
-      {
-        duration: 8000,
-        icon: '🚫'
-      }
-    );
+  showOutOfStockAlert(productName, productId = null) {
+    // Show urgent toast notification
+    this.showBusinessAlert('out_of_stock', {
+      title: 'Out of Stock Alert',
+      message: `${productName} is completely out of stock`,
+      productName,
+      productId,
+      action_url: '/products',
+      action_params: { highlight: productId, filter: 'out_of_stock' },
+      urgent: true
+    });
 
     // Add to notification bell
     this.addNotification({
@@ -159,7 +225,8 @@ class NotificationService {
       title: 'Out of Stock',
       message: `${productName} is completely out of stock`,
       action_url: '/products',
-      data: { productName }
+      priority: 'urgent',
+      data: { productName, productId }
     });
   }
 
@@ -200,6 +267,57 @@ class NotificationService {
       message: `You've used ${currentUsage} of ${limit} ${limitType}. Consider upgrading.`,
       action_url: '/subscription',
       data: { limitType, currentUsage, limit }
+    });
+  }
+
+  showNearingLimitAlert(limitType, currentUsage, limit, threshold = 0.8) {
+    const percentage = Math.round((currentUsage / limit) * 100);
+    
+    // Show warning toast notification
+    this.showBusinessAlert('nearing_limit', {
+      title: 'Nearing Limit Warning',
+      message: `You've used ${currentUsage} of ${limit} ${limitType} (${percentage}%)`,
+      limitType,
+      currentUsage,
+      limit,
+      percentage,
+      action_url: '/subscription',
+      action_params: { highlight: limitType }
+    });
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'nearing_limit',
+      title: 'Nearing Limit',
+      message: `${percentage}% of ${limitType} limit used (${currentUsage}/${limit})`,
+      action_url: '/subscription',
+      priority: percentage >= 90 ? 'high' : 'medium',
+      data: { limitType, currentUsage, limit, percentage, threshold }
+    });
+  }
+
+  showOverdueInvoiceAlert(invoiceNumber, amount, daysOverdue, invoiceId = null) {
+    // Show urgent toast notification for overdue invoices
+    this.showBusinessAlert('overdue_invoice', {
+      title: 'Invoice Overdue',
+      message: `${invoiceNumber} - ₦${amount.toLocaleString()} (${daysOverdue} days overdue)`,
+      invoiceNumber,
+      amount,
+      daysOverdue,
+      invoiceId,
+      action_url: '/invoices',
+      action_params: { highlight: invoiceId, filter: 'overdue' },
+      urgent: daysOverdue > 30
+    });
+
+    // Add to notification bell
+    this.addNotification({
+      type: 'overdue_invoice',
+      title: 'Invoice Overdue',
+      message: `${invoiceNumber} - ₦${amount.toLocaleString()} (${daysOverdue} days overdue)`,
+      action_url: '/invoices',
+      priority: daysOverdue > 30 ? 'urgent' : 'high',
+      data: { invoiceNumber, amount, daysOverdue, invoiceId }
     });
   }
 
@@ -359,37 +477,87 @@ class NotificationService {
   async checkForNewNotifications() {
     // Don't fetch notifications if user is not authenticated
     const token = localStorage.getItem('token');
-    if (!token) {
+    if (!token || this.isFirebaseDisabled) {
       return;
     }
 
-    try {
-      const data = await this.fetchNotifications();
-      const newNotifications = data.notifications || [];
-      const newUnreadCount = data.unread_count || 0;
-
-      // Check for new notifications
-      const previousIds = this.notifications.map(n => n.id);
-      const actuallyNewNotifications = newNotifications.filter(n => !previousIds.includes(n.id));
-
-      // Show toast for new notifications
-      actuallyNewNotifications.forEach(notification => {
-        this.showNotificationToast(notification);
-      });
-
-      // Update state
-      this.notifications = newNotifications;
-      this.unreadCount = newUnreadCount;
-
-      // Notify listeners
-      this.notifyListeners();
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      // If it's an auth error, stop polling to prevent infinite requests
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        this.stopPolling();
-      }
+    // Debounce rapid calls
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
     }
+
+    this.debounceTimeout = setTimeout(async () => {
+      try {
+        // Prevent too frequent checks
+        const now = Date.now();
+        if (now - this.lastNotificationCheck < 1000) {
+          return;
+        }
+        this.lastNotificationCheck = now;
+
+        const data = await this.fetchNotifications();
+        const newNotifications = data.notifications || [];
+        const newUnreadCount = data.unread_count || 0;
+
+        // Check for new notifications with duplicate detection
+        const previousIds = this.notifications.map(n => n.id);
+        const actuallyNewNotifications = newNotifications.filter(n => {
+          if (previousIds.includes(n.id)) return false;
+          
+          // Check for duplicates in recent notifications
+          const notificationKey = `${n.type}-${n.title}-${n.message}`;
+          const recentTime = this.recentNotifications.get(notificationKey);
+          if (recentTime && (now - recentTime) < this.duplicateDetectionWindow) {
+            return false;
+          }
+          
+          // Mark as recent
+          this.recentNotifications.set(notificationKey, now);
+          return true;
+        });
+
+        // Show toast for new notifications
+        actuallyNewNotifications.forEach(notification => {
+          this.showNotificationToast(notification);
+        });
+
+        // Update state
+        this.notifications = newNotifications;
+        this.unreadCount = newUnreadCount;
+
+        // Reset error counter on success
+        this.consecutiveErrors = 0;
+
+        // Notify listeners
+        this.notifyListeners();
+
+        // Clean up old recent notifications
+        this.cleanupRecentNotifications();
+
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        this.consecutiveErrors++;
+
+        // If too many consecutive errors, disable Firebase polling
+        if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
+          console.warn('Too many consecutive notification errors, disabling Firebase polling');
+          this.isFirebaseDisabled = true;
+          this.stopPolling();
+          
+          // Try to re-enable after 5 minutes
+          setTimeout(() => {
+            this.isFirebaseDisabled = false;
+            this.consecutiveErrors = 0;
+            this.startPollingIfAuthenticated();
+          }, 300000);
+        }
+
+        // If it's an auth error, stop polling to prevent infinite requests
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          this.stopPolling();
+        }
+      }
+    }, 500); // 500ms debounce
   }
 
   showNotificationToast(notification) {
@@ -532,21 +700,43 @@ class NotificationService {
     }
   }
 
-  // Navigation helper
+  // Navigation helper with enhanced visual feedback
   navigateToNotification(notification) {
     if (notification.action_url) {
       // Mark as read when navigating
       this.markAsRead(notification.id);
 
-      // Navigate to the relevant page
-      window.location.href = notification.action_url;
+      // Use enhanced navigation handler
+      const options = {
+        highlight: notification.data?.productId || notification.data?.invoiceId,
+        filter: this.getFilterForNotificationType(notification.type),
+        params: notification.data
+      };
+
+      navigationHandler.navigateWithFeedback(notification.action_url, options);
+    }
+  }
+
+  // Get appropriate filter for notification type
+  getFilterForNotificationType(type) {
+    switch (type) {
+      case 'low_stock':
+        return 'low_stock';
+      case 'out_of_stock':
+        return 'out_of_stock';
+      case 'overdue_invoice':
+        return 'overdue';
+      case 'nearing_limit':
+        return 'limits';
+      default:
+        return null;
     }
   }
 
   // Authentication-aware polling control
   startPollingIfAuthenticated() {
     const token = localStorage.getItem('token');
-    if (token && !this.pollingInterval) {
+    if (token && !this.pollingInterval && !this.isFirebaseDisabled) {
       this.startPolling();
     }
   }
@@ -559,10 +749,24 @@ class NotificationService {
     this.notifyListeners();
   }
 
+  // Clean up old recent notifications to prevent memory leaks
+  cleanupRecentNotifications() {
+    const now = Date.now();
+    for (const [key, timestamp] of this.recentNotifications.entries()) {
+      if (now - timestamp > this.duplicateDetectionWindow * 2) {
+        this.recentNotifications.delete(key);
+      }
+    }
+  }
+
   // Cleanup
   destroy() {
     this.stopPolling();
     this.listeners = [];
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+    }
+    this.recentNotifications.clear();
   }
 
   async sendTestNotification(title, message, type = 'info') {
