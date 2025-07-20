@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { getSales, getProducts, getCustomers, createSale } from "../services/api";
 import { enhancedCreateSale } from "../services/enhancedApi";
 import { formatNaira, formatDate, formatDateTime, formatPaymentMethod } from '../utils/formatting';
