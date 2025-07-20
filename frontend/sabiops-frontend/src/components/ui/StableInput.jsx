@@ -148,7 +148,7 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       selectionEnd: e.target.selectionEnd,
       isFocused: isFocusedRef.current
     });
-    e.stopPropagation();
+      e.stopPropagation();
   }, [name]);
 
   // Enhanced debounced onChange using simple debounce
@@ -259,21 +259,21 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   }, [name]);
 
   return (
-    <Input
+      <Input
       ref={inputRef}
-      type={type}
+        type={type}
       name={name}
       value={value}
       onChange={debouncedOnChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
+        onKeyDown={handleKeyDown}
       onInput={handleInput}
       className={className}
       placeholder={placeholder}
-      {...props}
-    />
+        {...props}
+      />
   );
 };
 

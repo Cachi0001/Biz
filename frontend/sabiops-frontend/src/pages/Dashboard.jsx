@@ -193,7 +193,7 @@ const Dashboard = () => {
                   loading={loading}
                 />
               </section>
-            </div>
+      </div>
 
             {/* Right Column */}
             <div className="space-y-4 sm:space-y-6">
@@ -220,8 +220,8 @@ const Dashboard = () => {
                       <div className="p-3 bg-blue-500 rounded-full">
                         <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
+              </svg>
+            </div>
                     </div>
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">View Detailed Analytics</h3>
                     <p className="text-sm text-blue-700 mb-4">
@@ -251,15 +251,15 @@ const Dashboard = () => {
                     <p className="text-green-100 mb-4 font-medium text-sm sm:text-base">
                       You've used {currentUsage?.invoices || 3} of 5 invoices this month
                     </p>
-                    <button 
+              <button
                       className="bg-white text-green-600 hover:bg-green-50 active:bg-green-100 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 border-2 border-green-600 text-sm sm:text-base touch-manipulation"
                       onClick={handleUpgrade}
-                    >
+              >
                       Upgrade Now 🎯
-                    </button>
-                  </div>
-                </div>
-              </div>
+              </button>
+            </div>
+          </div>
+        </div>
             </section>
           )}
 
@@ -274,11 +274,11 @@ const Dashboard = () => {
                 <div className="flex items-center space-x-1">
                   <span className="hidden sm:inline">•</span>
                   <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
-                </div>
+      </div>
               )}
             </div>
           </footer>
-        </div>
+      </div>
       </div>
 
       {/* Upgrade Modal */}

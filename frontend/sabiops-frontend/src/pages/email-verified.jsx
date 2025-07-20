@@ -70,8 +70,8 @@ const EmailVerified = () => {
             });
             
             if (response && response.data && response.data.access_token) {
-              localStorage.setItem('token', response.data.access_token);
-              setStatus('success');
+            localStorage.setItem('token', response.data.access_token);
+            setStatus('success');
               toast.success('Email verified! Welcome to SabiOps!');
               
               // Update auth context and ensure authentication state is set
@@ -124,7 +124,7 @@ const EmailVerified = () => {
       }, 2000);
       return;
     }
-
+    
     // Handle token-based verification (legacy flow)
     if (hasTokenParams) {
       setStatus('verifying');
@@ -162,10 +162,10 @@ const EmailVerified = () => {
       confirmRegistration();
       return;
     }
-
+    
     // No valid parameters - only show error if no valid verification parameters found
     if (!hasValidSuccessParams && !hasLegacyVerifiedParams && !hasTokenParams) {
-      setStatus('error');
+    setStatus('error');
       setError('Invalid or missing verification link. Please check your email and click the verification link.');
     } else {
       // If we have some parameters but reached here, something unexpected happened
@@ -192,8 +192,8 @@ const EmailVerified = () => {
         <div className="text-center max-w-md">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground mb-6">
-            Finalizing your registration. Please wait...
-          </p>
+          Finalizing your registration. Please wait...
+        </p>
         </div>
       )}
       {status === 'success' && (

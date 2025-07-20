@@ -157,18 +157,18 @@ const Products = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await deleteProduct(productId);
-      console.log('[PRODUCTS] Delete response:', response);
-      showSuccessToast("Product deleted successfully!");
-      await fetchProducts();
-    } catch (error) {
-      console.error('Failed to delete product:', error);
-      handleApiErrorWithToast(error, 'Failed to delete product');
-    } finally {
-      setLoading(false);
-    }
+      try {
+        setLoading(true);
+        const response = await deleteProduct(productId);
+        console.log('[PRODUCTS] Delete response:', response);
+        showSuccessToast("Product deleted successfully!");
+        await fetchProducts();
+      } catch (error) {
+        console.error('Failed to delete product:', error);
+        handleApiErrorWithToast(error, 'Failed to delete product');
+      } finally {
+        setLoading(false);
+      }
   };
 
   const handleFormSuccess = (response) => {
@@ -340,41 +340,41 @@ const Products = () => {
                 <h3 className="text-lg font-medium mb-2 text-gray-900">No products found</h3>
                 <p className="text-gray-500 mb-4">Get started by adding your first product</p>
                 <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" />
                   Add Product
-                </Button>
+                  </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
+                  {filteredProducts.map((product) => (
                 <Card key={product.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
                           <p className="text-sm text-gray-600">{product.sku || 'No SKU'}</p>
                         </div>
                         <div className="flex gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(product)}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(product)}
                             className="h-8 w-8 p-0 hover:bg-blue-100"
-                          >
+                              >
                             <Edit className="h-4 w-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(product.id)}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(product.id)}
                             className="h-8 w-8 p-0 hover:bg-red-100"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </div>
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </div>
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
@@ -385,29 +385,29 @@ const Products = () => {
                           <span className="text-gray-500">Price</span>
                           <span className="font-semibold text-green-600">
                             {formatNaira(product.price || product.unit_price || 0)}
-                          </span>
-                        </div>
+                              </span>
+                            </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Stock</span>
                           <span className={getStockColor(product)}>
                             {product.quantity || 0} units
-                          </span>
-                        </div>
-                      </div>
+                                </span>
+                              </div>
+                            </div>
 
                       <div className="flex items-center justify-between">
                         <Badge variant={getStockBadgeVariant(product)}>
-                          {getStockStatus(product)}
-                        </Badge>
+                                {getStockStatus(product)}
+                              </Badge>
                         <div className="text-xs text-gray-500">
                           {product.category}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
           )}
 
           {/* Edit Dialog */}

@@ -362,9 +362,9 @@ const Expenses = () => {
   const handleCategoryChange = (categoryName) => {
     DebugLogger.logFocusEvent('ExpensesPage', 'category-change', document.activeElement, { categoryName });
     
-    setFormData({ ...formData, category: categoryName, sub_category: '' });
-    const selectedCategory = categories.find(cat => cat.name === categoryName);
-    setSubcategories(selectedCategory?.subcategories || []);
+      setFormData({ ...formData, category: categoryName, sub_category: '' });
+      const selectedCategory = categories.find(cat => cat.name === categoryName);
+      setSubcategories(selectedCategory?.subcategories || []);
   };
 
   const clearFilters = () => {
@@ -465,7 +465,7 @@ const Expenses = () => {
                         value={formData.sub_category}
                         onValueChange={(value) => {
                           DebugLogger.logFocusEvent('ExpensesPage', 'subcategory-change', document.activeElement, { value });
-                          setFormData({ ...formData, sub_category: value });
+                            setFormData({ ...formData, sub_category: value });
                         }}
                         disabled={!formData.category}
                       >
@@ -517,7 +517,7 @@ const Expenses = () => {
                       <Label htmlFor="payment_method">Payment Method</Label>
                       <Select value={formData.payment_method} onValueChange={(value) => {
                         DebugLogger.logFocusEvent('ExpensesPage', 'payment-method-change', document.activeElement, { value });
-                        setFormData({ ...formData, payment_method: value });
+                          setFormData({ ...formData, payment_method: value });
                       }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment method" />

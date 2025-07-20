@@ -176,49 +176,49 @@ const Register = () => {
           <h2 className="text-2xl font-bold text-foreground mb-1 text-center">Create your account</h2>
           <p className="text-sm text-muted-foreground text-center mb-2">Start managing your business today</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="w-full space-y-4" autoComplete="off" noValidate>
           <div>
             <Label htmlFor="full_name">Full Name</Label>
-            <Input
-              id="full_name"
-              name="full_name"
-              type="text"
-              required
-              value={formData.full_name}
-              onChange={handleChange}
-              placeholder="Enter your full name"
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
               autoComplete="name"
-            />
-          </div>
-          
+                  />
+                </div>
+
           <div>
             <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
               autoComplete="email"
-            />
-          </div>
-          
+                    />
+                  </div>
+
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={handleChange}
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
               placeholder="+234..."
               autoComplete="tel"
-            />
-          </div>
+                    />
+                  </div>
           
           <div>
             <Label htmlFor="business_name">Business Name (Optional)</Label>
@@ -231,62 +231,62 @@ const Register = () => {
               placeholder="Your business name"
               autoComplete="organization"
             />
-          </div>
-          
+                </div>
+
           <div>
             <Label htmlFor="password">Password</Label>
             <div className="flex items-center gap-2 bg-input border rounded-md px-3 h-12 mt-1">
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={formData.password}
-                onChange={handleChange}
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
                 placeholder="Create a password"
                 autoComplete="new-password"
                 className="flex-1 border-none bg-transparent shadow-none h-12 focus:ring-0 focus:border-none"
-              />
+                      />
               <button
-                type="button"
+                        type="button"
                 tabIndex={-1}
                 className="h-12 flex items-center px-2 text-gray-500 hover:text-primary focus:outline-none"
-                onClick={() => setShowPassword(!showPassword)}
-              >
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
-            </div>
-          </div>
-          
+                    </div>
+                  </div>
+
           <div>
             <Label htmlFor="referral_code">Referral Code (Optional)</Label>
-            <Input
-              id="referral_code"
-              name="referral_code"
-              type="text"
-              value={formData.referral_code}
-              onChange={handleChange}
+                  <Input
+                    id="referral_code"
+                    name="referral_code"
+                    type="text"
+                    value={formData.referral_code}
+                    onChange={handleChange}
               placeholder="Enter referral code"
-            />
-          </div>
-          
+                  />
+              </div>
+
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? (
-              <>
+                {isLoading ? (
+                  <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating Account...
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </Button>
-        </form>
-        
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+            </form>
+
         <div className="w-full flex flex-col items-center mt-4">
           <span className="text-sm text-muted-foreground">Already have an account?{' '}
             <Link to="/login" className="font-medium text-primary hover:text-primary/80">Sign in</Link>
           </span>
-        </div>
+            </div>
       </div>
     </div>
   );

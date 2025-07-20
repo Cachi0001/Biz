@@ -687,16 +687,18 @@ const Invoices = () => {
           </Dialog>
 
           {/* Review Dialog */}
-          <ReviewDialog
-            isOpen={showReviewDialog}
-            onClose={() => setShowReviewDialog(false)}
-            invoiceData={reviewInvoiceData}
-            customers={customers}
-            products={products}
-            onConfirm={handleReviewConfirm}
-            onCancel={handleReviewCancel}
-            isEdit={!!editingInvoice}
-          />
+          {reviewInvoiceData && (
+            <ReviewDialog
+              isOpen={showReviewDialog}
+              onClose={() => setShowReviewDialog(false)}
+              invoiceData={reviewInvoiceData}
+              customers={customers}
+              products={products}
+              onConfirm={handleReviewConfirm}
+              onCancel={handleReviewCancel}
+              isEdit={!!editingInvoice}
+            />
+          )}
         </div>
       </div>
     </DashboardLayout>

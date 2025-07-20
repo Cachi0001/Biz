@@ -315,9 +315,9 @@ export async function createCustomer(customerData) {
     console.log("[DEBUG] createCustomer: Customer data:", customerData);
     console.log("[DEBUG] createCustomer: Current token:", getAuthToken() ? 'Present' : 'Missing');
     
-    const response = await api.post('/customers/', customerData);
+  const response = await api.post('/customers/', customerData);
     console.log("[DEBUG] createCustomer: Success response:", response.data);
-    return response.data;
+  return response.data;
   } catch (error) {
     console.error("[ERROR] createCustomer failed:");
     console.error("- Error object:", error);
@@ -515,9 +515,9 @@ export async function getPayments() {
 
 export async function recordPayment(paymentData) {
   try {
-    const response = await api.post('/payments/', paymentData);
+  const response = await api.post('/payments/', paymentData);
     console.log("[DEBUG] recordPayment response:", response.data);
-    return response.data;
+  return response.data;
   } catch (error) {
     console.error("[ERROR] recordPayment failed:", error.response ? error.response.data : error.message);
     throw error;

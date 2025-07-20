@@ -211,13 +211,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated,
-      loading,
-      login,
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      loading, 
+      login, 
       register,
-      logout,
+      logout, 
       checkAuth,
       // Derived values aligned with database schema
       role: user?.role || null,

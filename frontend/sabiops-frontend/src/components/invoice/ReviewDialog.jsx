@@ -19,8 +19,19 @@ const ReviewDialog = ({
   onCancel,
   isEdit = false 
 }) => {
-  const [sellerInfo, setSellerInfo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sellerInfo, setSellerInfo] = useState(null);
+
+  // Early return if no invoice data
+  if (!invoiceData) {
+    return null;
+  }
+
+  // Additional safety check for required data
+  if (!invoiceData.customer_id || !invoiceData.items || !Array.isArray(invoiceData.items)) {
+    console.warn('[ReviewDialog] Missing required invoice data:', invoiceData);
+    return null;
+  }
 
   // Fetch seller information when dialog opens
   useEffect(() => {
@@ -109,8 +120,6 @@ const ReviewDialog = ({
     onCancel();
     onClose();
   };
-
-  if (!invoiceData) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
