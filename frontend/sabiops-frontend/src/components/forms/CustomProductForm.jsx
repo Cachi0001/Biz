@@ -2,6 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { createProduct, updateProduct } from '../../services/api';
 import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
 
 const CustomProductForm = ({ 
   categories = [], 
@@ -20,6 +27,19 @@ const CustomProductForm = ({
   const lowStockThresholdInputRef = useRef(null);
   const barcodeInputRef = useRef(null);
 
+  // Add state for form data
+  const [formData, setFormData] = React.useState({
+    name: '',
+    sku: '',
+    description: '',
+    category: '',
+    price: '',
+    cost_price: '',
+    quantity: '0',
+    low_stock_threshold: '5',
+    barcode: ''
+  });
+
   useEffect(() => {
     // Focus on first input
     if (nameInputRef.current) {
@@ -36,12 +56,24 @@ const CustomProductForm = ({
       if (nameInputRef.current) nameInputRef.current.value = editingProduct.name || '';
       if (skuInputRef.current) skuInputRef.current.value = editingProduct.sku || '';
       if (descriptionInputRef.current) descriptionInputRef.current.value = editingProduct.description || '';
-      if (categorySelectRef.current) categorySelectRef.current.value = editingProduct.category || '';
       if (priceInputRef.current) priceInputRef.current.value = editingProduct.price || editingProduct.unit_price || '';
       if (costPriceInputRef.current) costPriceInputRef.current.value = editingProduct.cost_price || '';
       if (quantityInputRef.current) quantityInputRef.current.value = editingProduct.quantity || '';
       if (lowStockThresholdInputRef.current) lowStockThresholdInputRef.current.value = editingProduct.low_stock_threshold || '5';
       if (barcodeInputRef.current) barcodeInputRef.current.value = editingProduct.barcode || '';
+
+      // Set form data state
+      setFormData({
+        name: editingProduct.name || '',
+        sku: editingProduct.sku || '',
+        description: editingProduct.description || '',
+        category: editingProduct.category || '',
+        price: editingProduct.price || editingProduct.unit_price || '',
+        cost_price: editingProduct.cost_price || '',
+        quantity: editingProduct.quantity || '0',
+        low_stock_threshold: editingProduct.low_stock_threshold || '5',
+        barcode: editingProduct.barcode || ''
+      });
     }
   }, [editingProduct]);
 
@@ -51,47 +83,46 @@ const CustomProductForm = ({
 
     console.log('🎯 CustomProductForm: Form submitted');
 
-    // Get values directly from DOM
-    const formData = {
-      name: nameInputRef.current?.value?.trim() || '',
-      sku: skuInputRef.current?.value?.trim() || '',
-      description: descriptionInputRef.current?.value?.trim() || '',
-      category: categorySelectRef.current?.value || '',
-      price: parseFloat(priceInputRef.current?.value) || 0,
-      cost_price: parseFloat(costPriceInputRef.current?.value) || 0,
-      quantity: parseInt(quantityInputRef.current?.value) || 0,
-      low_stock_threshold: parseInt(lowStockThresholdInputRef.current?.value) || 5,
-      barcode: barcodeInputRef.current?.value?.trim() || null
+    // Get values from formData state and DOM elements
+    const submitData = {
+      name: formData.name || nameInputRef.current?.value?.trim() || '',
+      sku: formData.sku || skuInputRef.current?.value?.trim() || '',
+      description: formData.description || descriptionInputRef.current?.value?.trim() || '',
+      category: formData.category || '',
+      price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
+      cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
+      quantity: parseInt(formData.quantity || quantityInputRef.current?.value) || 0,
+      low_stock_threshold: parseInt(formData.low_stock_threshold || lowStockThresholdInputRef.current?.value) || 5,
+      barcode: formData.barcode || barcodeInputRef.current?.value?.trim() || null
     };
 
-    console.log('🎯 CustomProductForm: Form data:', formData);
+    console.log('🎯 CustomProductForm: Form data:', submitData);
 
     // Validation
-    if (!formData.name) {
+    if (!submitData.name) {
       handleApiErrorWithToast(new Error("Product name is required"));
       nameInputRef.current?.focus();
       return;
     }
 
-    if (!formData.category) {
+    if (!submitData.category) {
       handleApiErrorWithToast(new Error("Category is required"));
-      categorySelectRef.current?.focus();
       return;
     }
 
-    if (!formData.price || formData.price <= 0) {
+    if (!submitData.price || submitData.price <= 0) {
       handleApiErrorWithToast(new Error("Valid price is required"));
       priceInputRef.current?.focus();
       return;
     }
 
-    if (formData.quantity < 0) {
+    if (submitData.quantity < 0) {
       handleApiErrorWithToast(new Error("Quantity cannot be negative"));
       quantityInputRef.current?.focus();
       return;
     }
 
-    if (formData.low_stock_threshold < 0) {
+    if (submitData.low_stock_threshold < 0) {
       handleApiErrorWithToast(new Error("Low stock threshold cannot be negative"));
       lowStockThresholdInputRef.current?.focus();
       return;
@@ -103,11 +134,11 @@ const CustomProductForm = ({
       let response;
       if (editingProduct) {
         console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
-        response = await updateProduct(editingProduct.id, formData);
+        response = await updateProduct(editingProduct.id, submitData);
         showSuccessToast("Product updated successfully!");
       } else {
         console.log('🎯 CustomProductForm: Creating new product');
-        response = await createProduct(formData);
+        response = await createProduct(submitData);
         showSuccessToast("Product created successfully!");
       }
 
@@ -117,6 +148,17 @@ const CustomProductForm = ({
       if (formRef.current) {
         formRef.current.reset();
       }
+      setFormData({
+        name: '',
+        sku: '',
+        description: '',
+        category: '',
+        price: '',
+        cost_price: '',
+        quantity: '0',
+        low_stock_threshold: '5',
+        barcode: ''
+      });
 
       // Call success callback
       if (onSuccess) {
@@ -140,6 +182,11 @@ const CustomProductForm = ({
 
   const handleInputChange = (inputName, value) => {
     console.log(`🎯 CustomProductForm: ${inputName} changed to:`, value);
+    
+    // Update formData state for Select components
+    if (inputName === 'category') {
+      setFormData(prev => ({ ...prev, category: value }));
+    }
   };
 
   return (
@@ -331,21 +378,18 @@ const CustomProductForm = ({
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Category *</label>
-            <select
-              ref={categorySelectRef}
-              className="form-select"
-              required
-              onFocus={() => handleInputFocus('category')}
-              onBlur={() => handleInputBlur('category')}
-              onChange={(e) => handleInputChange('category', e.target.value)}
-            >
-              <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)} onOpenChange={() => handleInputFocus('category')} onClose={() => handleInputBlur('category')}>
+              <SelectTrigger className="form-select">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="form-group">
