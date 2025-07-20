@@ -33,12 +33,32 @@ const CustomProductForm = ({
     sku: '',
     description: '',
     category: '',
+    subcategory: '',
     price: '',
     cost_price: '',
     quantity: '0',
     low_stock_threshold: '5',
     barcode: ''
   });
+
+  // Define categories and subcategories
+  const categoryData = {
+    'Electronics': ['Smartphones', 'Laptops', 'Tablets', 'Accessories', 'Audio Equipment'],
+    'Clothing': ['Men\'s Wear', 'Women\'s Wear', 'Children\'s Wear', 'Shoes', 'Accessories'],
+    'Food & Beverages': ['Snacks', 'Beverages', 'Dairy Products', 'Frozen Foods', 'Fresh Produce'],
+    'Home & Garden': ['Furniture', 'Appliances', 'Decor', 'Garden Tools', 'Cleaning Supplies'],
+    'Health & Beauty': ['Skincare', 'Makeup', 'Hair Care', 'Personal Care', 'Supplements'],
+    'Sports & Outdoors': ['Exercise Equipment', 'Outdoor Gear', 'Sports Apparel', 'Team Sports', 'Water Sports'],
+    'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Magazines', 'Digital Media'],
+    'Automotive': ['Car Parts', 'Accessories', 'Tools', 'Maintenance', 'Electronics'],
+    'Office Supplies': ['Stationery', 'Technology', 'Furniture', 'Organization', 'Printing'],
+    'Toys & Games': ['Educational Toys', 'Action Figures', 'Board Games', 'Video Games', 'Outdoor Toys']
+  };
+
+  // Get available subcategories based on selected category
+  const getSubcategories = (category) => {
+    return categoryData[category] || [];
+  };
 
   useEffect(() => {
     // Focus on first input
@@ -68,6 +88,7 @@ const CustomProductForm = ({
         sku: editingProduct.sku || '',
         description: editingProduct.description || '',
         category: editingProduct.category || '',
+        subcategory: editingProduct.subcategory || '',
         price: editingProduct.price || editingProduct.unit_price || '',
         cost_price: editingProduct.cost_price || '',
         quantity: editingProduct.quantity || '0',
@@ -89,6 +110,7 @@ const CustomProductForm = ({
       sku: formData.sku || skuInputRef.current?.value?.trim() || '',
       description: formData.description || descriptionInputRef.current?.value?.trim() || '',
       category: formData.category || '',
+      subcategory: formData.subcategory || '',
       price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
       cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
       quantity: parseInt(formData.quantity || quantityInputRef.current?.value) || 0,
@@ -153,6 +175,7 @@ const CustomProductForm = ({
         sku: '',
         description: '',
         category: '',
+        subcategory: '',
         price: '',
         cost_price: '',
         quantity: '0',
@@ -185,7 +208,24 @@ const CustomProductForm = ({
     
     // Update formData state for Select components
     if (inputName === 'category') {
-      setFormData(prev => ({ ...prev, category: value }));
+      setFormData(prev => ({ 
+        ...prev, 
+        category: value,
+        subcategory: '' // Reset subcategory when category changes
+      }));
+      
+      // Auto-select first subcategory if available
+      const subcategories = getSubcategories(value);
+      if (subcategories.length > 0) {
+        setTimeout(() => {
+          setFormData(prev => ({ 
+            ...prev, 
+            subcategory: subcategories[0] 
+          }));
+        }, 100);
+      }
+    } else if (inputName === 'subcategory') {
+      setFormData(prev => ({ ...prev, subcategory: value }));
     }
   };
 
@@ -410,21 +450,37 @@ const CustomProductForm = ({
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {categories && categories.length > 0 ? (
-                  categories.map((category) => (
-                    <SelectItem key={category.id || category.name} value={category.id || category.name}>
-                      {category.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    No categories available
+                {Object.keys(categoryData).map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
                   </SelectItem>
-                )}
+                ))}
               </SelectContent>
             </Select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Subcategory</label>
+            <Select 
+              value={formData.subcategory} 
+              onValueChange={(value) => handleInputChange('subcategory', value)}
+              disabled={!formData.category}
+            >
+              <SelectTrigger className="form-select">
+                <SelectValue placeholder={formData.category ? "Select a subcategory" : "Select category first"} />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {getSubcategories(formData.category).map((subcategory) => (
+                  <SelectItem key={subcategory} value={subcategory}>
+                    {subcategory}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="form-row">
           <div className="form-group">
             <label className="form-label">Barcode</label>
             <input

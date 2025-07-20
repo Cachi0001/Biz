@@ -124,8 +124,8 @@ const SalesReport = () => {
   };
 
   const handleDownloadReport = async (format) => {
-    if (!salesData || !salesData.transactions) {
-      toast.error('No data available to download');
+    if (!salesData || !salesData.transactions || salesData.transactions.length === 0) {
+      toast.error('No sales data available to download');
       return;
     }
     
@@ -138,75 +138,101 @@ const SalesReport = () => {
       const dateStr = reportType === 'daily' ? selectedDate : `${dateRange.start_date}_to_${dateRange.end_date}`;
       
       if (format === 'csv') {
-        // Generate CSV content
-        const headers = ['Date', 'Time', 'Customer', 'Products', 'Quantity', 'Payment Method', 'Amount (₦)'];
+        // Generate comprehensive CSV content
+        const headers = [
+          'Transaction ID',
+          'Date',
+          'Time', 
+          'Customer Name',
+          'Product Name',
+          'Quantity',
+          'Unit Price (₦)',
+          'Total Amount (₦)',
+          'Payment Method'
+        ];
         const csvRows = [headers.join(',')];
         
         salesData.transactions.forEach(transaction => {
           const dateTime = formatDate(transaction.created_at);
-          const products = transaction.items?.map(item => `${item.product_name}(${item.quantity})`).join('; ') || 'N/A';
+          const unitPrice = transaction.total_amount && transaction.total_quantity ? 
+            (transaction.total_amount / transaction.total_quantity).toFixed(2) : '0.00';
+          
           const row = [
+            `"${transaction.id || 'N/A'}"`,
             `"${dateTime.date}"`,
             `"${dateTime.time}"`,
             `"${transaction.customer_name || 'Walk-in Customer'}"`,
-            `"${products}"`,
+            `"${transaction.product_name || 'Unknown Product'}"`,
             transaction.total_quantity || 0,
-            `"${transaction.payment_method || 'N/A'}"`,
-            transaction.total_amount || 0
+            unitPrice,
+            (transaction.total_amount || 0).toFixed(2),
+            `"${(transaction.payment_method || 'cash').replace('_', ' ').toUpperCase()}"`
           ];
           csvRows.push(row.join(','));
         });
         
-        // Add summary at the end
+        // Add summary section
         csvRows.push('');
-        csvRows.push('SUMMARY');
-        csvRows.push(`Total Sales,,,,,,"${salesData.summary.total_sales}"`);
-        csvRows.push(`Total Transactions,,,,,,"${salesData.summary.total_transactions}"`);
-        csvRows.push(`Items Sold,,,,,,"${salesData.summary.total_quantity}"`);
-        csvRows.push(`Average Sale,,,,,,"${salesData.summary.average_sale.toFixed(2)}"`);
+        csvRows.push('SALES SUMMARY');
+        csvRows.push(`"Total Sales Amount (₦)",,,,,,,${salesData.summary.total_sales.toFixed(2)},`);
+        csvRows.push(`"Total Transactions",,,,,,,${salesData.summary.total_transactions},`);
+        csvRows.push(`"Total Items Sold",,,,,,,${salesData.summary.total_quantity},`);
+        csvRows.push(`"Average Sale Amount (₦)",,,,,,,${salesData.summary.average_sale.toFixed(2)},`);
+        
+        // Add payment method breakdown
+        if (Object.keys(salesData.payment_breakdown).length > 0) {
+          csvRows.push('');
+          csvRows.push('PAYMENT METHOD BREAKDOWN');
+          Object.entries(salesData.payment_breakdown).forEach(([method, data]) => {
+            csvRows.push(`"${method.replace('_', ' ').toUpperCase()}",,,,,,,${data.amount.toFixed(2)},"${data.count} transactions"`);
+          });
+        }
         
         content = csvRows.join('\n');
         filename = `sales-report-${dateStr}.csv`;
         mimeType = 'text/csv;charset=utf-8;';
         
       } else if (format === 'pdf') {
-        // For PDF, we'll create a simple text format that can be converted
+        // Generate text format for PDF (can be enhanced with actual PDF generation)
         const lines = [];
         lines.push('SALES REPORT');
-        lines.push('='.repeat(50));
+        lines.push('='.repeat(60));
         lines.push(`Report Period: ${reportType === 'daily' ? selectedDate : `${dateRange.start_date} to ${dateRange.end_date}`}`);
         lines.push(`Generated: ${new Date().toLocaleString()}`);
+        lines.push(`Business: ${user?.business_name || 'SabiOps Business'}`);
         lines.push('');
         
         // Summary
-        lines.push('SUMMARY');
-        lines.push('-'.repeat(30));
-        lines.push(`Total Sales: ₦${salesData.summary.total_sales.toLocaleString()}`);
+        lines.push('SALES SUMMARY');
+        lines.push('-'.repeat(40));
+        lines.push(`Total Sales Amount: ₦${salesData.summary.total_sales.toLocaleString()}`);
         lines.push(`Total Transactions: ${salesData.summary.total_transactions}`);
-        lines.push(`Items Sold: ${salesData.summary.total_quantity}`);
-        lines.push(`Average Sale: ₦${salesData.summary.average_sale.toFixed(2)}`);
+        lines.push(`Total Items Sold: ${salesData.summary.total_quantity}`);
+        lines.push(`Average Sale Amount: ₦${salesData.summary.average_sale.toFixed(2)}`);
         lines.push('');
         
         // Payment Breakdown
         if (Object.keys(salesData.payment_breakdown).length > 0) {
           lines.push('PAYMENT METHOD BREAKDOWN');
-          lines.push('-'.repeat(30));
+          lines.push('-'.repeat(40));
           Object.entries(salesData.payment_breakdown).forEach(([method, data]) => {
-            lines.push(`${method.toUpperCase()}: ₦${data.amount.toLocaleString()} (${data.count} transactions)`);
+            lines.push(`${method.replace('_', ' ').toUpperCase()}: ₦${data.amount.toLocaleString()} (${data.count} transactions)`);
           });
           lines.push('');
         }
         
-        // Transactions
+        // Detailed Transactions
         lines.push('DETAILED TRANSACTIONS');
-        lines.push('-'.repeat(30));
+        lines.push('-'.repeat(40));
         salesData.transactions.forEach((transaction, index) => {
           const dateTime = formatDate(transaction.created_at);
-          lines.push(`${index + 1}. ${dateTime.date} ${dateTime.time}`);
+          lines.push(`${index + 1}. Transaction #${transaction.id || 'N/A'}`);
+          lines.push(`   Date: ${dateTime.date} ${dateTime.time}`);
           lines.push(`   Customer: ${transaction.customer_name || 'Walk-in Customer'}`);
-          lines.push(`   Products: ${transaction.items?.map(item => `${item.product_name}(${item.quantity})`).join(', ') || 'N/A'}`);
-          lines.push(`   Payment: ${transaction.payment_method || 'N/A'}`);
-          lines.push(`   Amount: ₦${(transaction.total_amount || 0).toLocaleString()}`);
+          lines.push(`   Product: ${transaction.product_name || 'Unknown Product'}`);
+          lines.push(`   Quantity: ${transaction.total_quantity || 0}`);
+          lines.push(`   Payment Method: ${(transaction.payment_method || 'cash').replace('_', ' ').toUpperCase()}`);
+          lines.push(`   Total Amount: ₦${(transaction.total_amount || 0).toLocaleString()}`);
           lines.push('');
         });
         
@@ -229,7 +255,7 @@ const SalesReport = () => {
       toast.success(`Sales report downloaded as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Failed to download report:', error);
-      toast.error('Failed to download report');
+      toast.error('Failed to download report. Please try again.');
     } finally {
       setLoading(false);
     }

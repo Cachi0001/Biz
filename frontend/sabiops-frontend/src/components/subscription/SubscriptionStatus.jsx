@@ -147,9 +147,6 @@ const SubscriptionStatus = ({
         <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
             <div className="flex-1">
-              <p className="text-xs text-green-700 font-medium">
-                {currentPlanLimits.invoices} invoices/{currentPlanLimits.period} • {currentPlanLimits.expenses} expenses/{currentPlanLimits.period}
-              </p>
               <p className="text-xs text-green-700">
                 Plan: {planPrices[plan]}
               </p>

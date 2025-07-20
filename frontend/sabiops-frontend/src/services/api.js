@@ -734,7 +734,7 @@ export async function getSalesReport(params) {
     console.log("[DEBUG] getSalesReport called with params:", params);
     
     // Use the existing sales endpoint with date filtering
-    let endpoint = '/sales/';
+    let endpoint = '/sales';
     let apiParams = {};
     
     if (params.date) {
@@ -762,44 +762,55 @@ export async function getSalesReport(params) {
     const response = await api.get(endpoint, { params: apiParams });
     console.log("[DEBUG] getSalesReport response:", response.data);
     
-    // Transform the response to match expected format
-    const salesData = Array.isArray(response.data?.sales) ? response.data.sales : 
-                     Array.isArray(response.data?.data) ? response.data.data : 
-                     Array.isArray(response.data) ? response.data : [];
+    // Transform the response to match expected format - handle different response structures
+    let salesData = [];
+    
+    if (response.data?.success && response.data?.data?.sales) {
+      salesData = response.data.data.sales;
+    } else if (response.data?.sales && Array.isArray(response.data.sales)) {
+      salesData = response.data.sales;
+    } else if (Array.isArray(response.data)) {
+      salesData = response.data;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      salesData = response.data.data;
+    }
+    
+    console.log("[DEBUG] getSalesReport extracted sales data:", salesData);
     
     // Calculate summary from sales data
     const summary = {
-      total_sales: salesData.reduce((sum, sale) => sum + (parseFloat(sale.net_amount) || 0), 0),
+      total_sales: salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || parseFloat(sale.net_amount) || 0), 0),
       total_transactions: salesData.length,
-      total_quantity: salesData.reduce((sum, sale) => {
-        const items = sale.sale_items || [];
-        return sum + items.reduce((itemSum, item) => itemSum + (parseInt(item.quantity) || 0), 0);
-      }, 0),
+      total_quantity: salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0),
       average_sale: salesData.length > 0 ? 
-        salesData.reduce((sum, sale) => sum + (parseFloat(sale.net_amount) || 0), 0) / salesData.length : 0
+        salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || parseFloat(sale.net_amount) || 0), 0) / salesData.length : 0
     };
     
     // Calculate payment method breakdown
     const payment_breakdown = {};
     salesData.forEach(sale => {
-      const method = sale.payment_method || 'unknown';
+      const method = sale.payment_method || 'cash';
       if (!payment_breakdown[method]) {
         payment_breakdown[method] = { amount: 0, count: 0 };
       }
-      payment_breakdown[method].amount += parseFloat(sale.net_amount) || 0;
+      payment_breakdown[method].amount += parseFloat(sale.total_amount) || parseFloat(sale.net_amount) || 0;
       payment_breakdown[method].count += 1;
     });
     
     // Transform transactions for display
     const transactions = salesData.map(sale => ({
       id: sale.id,
-      created_at: sale.created_at || sale.sale_date,
-      customer_name: sale.customer?.name || 'Walk-in Customer',
-      customer_email: sale.customer?.email || null,
-      items: sale.sale_items || [],
-      total_quantity: (sale.sale_items || []).reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0),
-      payment_method: sale.payment_method,
-      total_amount: parseFloat(sale.net_amount) || 0
+      created_at: sale.created_at || sale.date || sale.sale_date,
+      customer_name: sale.customer_name || (sale.customer?.name) || 'Walk-in Customer',
+      customer_email: sale.customer_email || (sale.customer?.email) || null,
+      product_name: sale.product_name || (sale.product?.name) || 'Unknown Product',
+      items: sale.sale_items || [{ 
+        product_name: sale.product_name || 'Unknown Product', 
+        quantity: sale.quantity || 1 
+      }],
+      total_quantity: parseInt(sale.quantity) || 0,
+      payment_method: sale.payment_method || 'cash',
+      total_amount: parseFloat(sale.total_amount) || parseFloat(sale.net_amount) || 0
     }));
     
     const transformed = {

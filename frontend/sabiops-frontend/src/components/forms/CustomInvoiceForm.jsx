@@ -402,6 +402,35 @@ const CustomInvoiceForm = ({
           gap: 1rem;
         }
         
+        .compact-input {
+          max-width: 120px;
+          height: 2.5rem;
+          padding: 0.5rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          background-color: white;
+          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+          touch-action: manipulation;
+        }
+        
+        .compact-input:focus {
+          outline: none;
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.1);
+        }
+        
+        .compact-input.error {
+          border-color: #ef4444;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+        }
+        
+        .compact-input:read-only {
+          background-color: #f3f4f6;
+          cursor: not-allowed;
+          color: #6b7280;
+        }
+        
         .item-total {
           font-weight: 600;
           color: hsl(142 76% 36%);
@@ -452,6 +481,13 @@ const CustomInvoiceForm = ({
             padding: 0.75rem;
             height: auto;
             min-height: 3rem;
+          }
+          
+          .compact-input {
+            max-width: 100%;
+            font-size: 16px; /* Prevents zoom on iOS */
+            height: 3rem;
+            padding: 0.75rem;
           }
           
           .item-card {
@@ -619,7 +655,7 @@ const CustomInvoiceForm = ({
                   <input
                     type="number"
                     min="1"
-                    className={`form-input ${hasItemFieldError(index, 'quantity') ? 'error' : ''}`}
+                    className={`compact-input ${hasItemFieldError(index, 'quantity') ? 'error' : ''}`}
                     value={item.quantity}
                     onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                     required
@@ -635,15 +671,11 @@ const CustomInvoiceForm = ({
                     type="number"
                     step="0.01"
                     min="0"
-                    className={`form-input ${hasItemFieldError(index, 'unit_price') ? 'error' : ''}`}
+                    className={`compact-input ${hasItemFieldError(index, 'unit_price') ? 'error' : ''}`}
                     value={item.unit_price}
                     onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
                     required
                     readOnly={!!item.product_id}
-                    style={{ 
-                      backgroundColor: item.product_id ? '#f3f4f6' : 'white',
-                      cursor: item.product_id ? 'not-allowed' : 'text'
-                    }}
                   />
                   {item.product_id && (
                     <div className="text-xs text-gray-500 mt-1">

@@ -877,54 +877,64 @@ const Sales = () => {
                 </div>
               ) : (
                 <>
-                  {/* Mobile Card View */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-                      {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                      <Card key={sale.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                  {/* Mobile Card View - Enhanced Layout */}
+                  <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {Array.isArray(filteredSales) && filteredSales.map((sale) => (
+                      <Card key={sale.id} className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-green-300">
                         <CardContent className="p-4">
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {/* Header with customer and actions */}
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-gray-900 truncate">
+                                <h3 className="font-semibold text-gray-900 truncate text-lg">
                                   {sale.customer_name || 'Walk-in Customer'}
                                 </h3>
-                                <p className="text-sm text-gray-600 truncate">
+                                <p className="text-sm text-gray-600 truncate mt-1">
                                   {sale.product_name || 'Unknown Product'}
                                 </p>
                               </div>
-                              <div className="flex gap-1 ml-2">
-                                <Button variant="ghost" size="sm">
+                              <div className="flex gap-2 ml-3">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600">
                                   <Eye className="h-4 w-4 text-blue-600" />
                                 </Button>
                               </div>
                             </div>
 
-                            {/* Sale Details */}
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Quantity:</span>
-                                <span className="font-medium">{sale.quantity || 0}</span>
+                            {/* Sale Details Grid */}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="space-y-1">
+                                <span className="text-gray-500 font-medium">Quantity</span>
+                                <div className="flex items-center">
+                                  <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                                    {sale.quantity || 0}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Unit Price:</span>
-                                <span className="font-medium">{formatNaira(sale.unit_price || 0)}</span>
+                              <div className="space-y-1">
+                                <span className="text-gray-500 font-medium">Unit Price</span>
+                                <div className="font-semibold text-gray-900">
+                                  {formatNaira(sale.unit_price || 0)}
+                                </div>
                               </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Payment:</span>
-                                <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
+                              <div className="space-y-1">
+                                <span className="text-gray-500 font-medium">Payment Method</span>
+                                <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs">
                                   {formatPaymentMethod(sale.payment_method)}
                                 </Badge>
                               </div>
+                              <div className="space-y-1">
+                                <span className="text-gray-500 font-medium">Date</span>
+                                <div className="text-xs text-gray-600">
+                                  {formatDateTime(sale.created_at || sale.date)}
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Total and Date */}
-                            <div className="pt-2 border-t border-gray-100">
+                            {/* Total Amount - Prominent */}
+                            <div className="pt-3 border-t border-gray-100">
                               <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">
-                                  {formatDateTime(sale.created_at || sale.date)}
-                                </span>
-                                <span className="text-lg font-semibold text-green-600">
+                                <span className="text-sm font-medium text-gray-600">Total Amount</span>
+                                <span className="text-xl font-bold text-green-600">
                                   {formatNaira(sale.total_amount || 0)}
                                 </span>
                               </div>
@@ -935,63 +945,69 @@ const Sales = () => {
                     ))}
                   </div>
 
-                  {/* Desktop Table View */}
+                  {/* Desktop Table View - Improved for Large Screens */}
                   <div className="hidden md:block">
-                    <div className="overflow-x-auto border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                            <TableHead className="min-w-[120px]">Customer</TableHead>
-                            <TableHead className="min-w-[120px]">Product</TableHead>
-                            <TableHead className="min-w-[80px] text-center">Quantity</TableHead>
-                            <TableHead className="min-w-[100px]">Unit Price</TableHead>
-                            <TableHead className="min-w-[120px]">Total Amount</TableHead>
-                            <TableHead className="min-w-[120px]">Payment Method</TableHead>
-                            <TableHead className="min-w-[120px]">Date</TableHead>
-                            <TableHead className="min-w-[80px] text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                            {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                          <TableRow key={sale.id}>
-                              <TableCell className="font-medium">
-                                {sale.customer_name || 'Walk-in Customer'}
-                            </TableCell>
-                              <TableCell className="font-medium">
-                                {sale.product_name || 'Unknown Product'}
-                            </TableCell>
-                              <TableCell className="text-center">
-                                {sale.quantity || 0}
-                            </TableCell>
-                            <TableCell>
-                              {formatNaira(sale.unit_price || 0)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="font-semibold text-green-600">
-                                {formatNaira(sale.total_amount || 0)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getPaymentMethodBadge(sale.payment_method)}>
-                                {formatPaymentMethod(sale.payment_method)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                                <div className="text-sm whitespace-nowrap">
-                                {formatDateTime(sale.created_at || sale.date)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center justify-center gap-2">
-                                <Button variant="ghost" size="sm">
+                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow className="bg-gray-50/50">
+                            <TableHead className="w-[15%] min-w-[140px] px-4 py-3 text-left font-semibold">Customer</TableHead>
+                            <TableHead className="w-[18%] min-w-[160px] px-4 py-3 text-left font-semibold">Product</TableHead>
+                            <TableHead className="w-[8%] min-w-[80px] px-4 py-3 text-center font-semibold">Qty</TableHead>
+                            <TableHead className="w-[12%] min-w-[110px] px-4 py-3 text-right font-semibold">Unit Price</TableHead>
+                            <TableHead className="w-[14%] min-w-[130px] px-4 py-3 text-right font-semibold">Total Amount</TableHead>
+                            <TableHead className="w-[12%] min-w-[120px] px-4 py-3 text-center font-semibold">Payment</TableHead>
+                            <TableHead className="w-[15%] min-w-[140px] px-4 py-3 text-center font-semibold">Date & Time</TableHead>
+                            <TableHead className="w-[6%] min-w-[70px] px-4 py-3 text-center font-semibold">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {Array.isArray(filteredSales) && filteredSales.map((sale, index) => (
+                            <TableRow key={sale.id} className={`hover:bg-gray-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                              <TableCell className="px-4 py-4">
+                                <div className="font-medium text-gray-900 truncate max-w-[120px]" title={sale.customer_name || 'Walk-in Customer'}>
+                                  {sale.customer_name || 'Walk-in Customer'}
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-4">
+                                <div className="font-medium text-gray-900 truncate max-w-[140px]" title={sale.product_name || 'Unknown Product'}>
+                                  {sale.product_name || 'Unknown Product'}
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-center">
+                                <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                                  {sale.quantity || 0}
+                                </span>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-right">
+                                <span className="font-medium text-gray-700">
+                                  {formatNaira(sale.unit_price || 0)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-right">
+                                <div className="font-bold text-green-600 text-lg">
+                                  {formatNaira(sale.total_amount || 0)}
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-center">
+                                <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="font-medium">
+                                  {formatPaymentMethod(sale.payment_method)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-center">
+                                <div className="text-sm text-gray-600 whitespace-nowrap">
+                                  {formatDateTime(sale.created_at || sale.date)}
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-4 text-center">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600">
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                 </>
