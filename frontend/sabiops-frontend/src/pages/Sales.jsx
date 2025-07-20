@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar, RefreshCw, Calculator, Eye } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getSales, getProducts, getCustomers, createSale } from "../services/api";
 import { enhancedCreateSale } from "../services/enhancedApi";
 import { formatNaira, formatDate, formatDateTime, formatPaymentMethod } from '../utils/formatting';
@@ -16,8 +16,8 @@ import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../ut
 import { validateSaleData } from "../services/enhancedApi";
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
-import StableInput from '../components/ui/StableInput';
-import BackButton from '../components/ui/BackButton';
+import StableInput from '@/components/ui/StableInput';
+import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 
 const Sales = () => {
