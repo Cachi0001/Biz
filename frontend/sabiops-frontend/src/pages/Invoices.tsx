@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice } from "../services/api";
+import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice, updateInvoiceStatus } from "../services/api";
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '../services/api';
 import { formatNaira } from '../utils/formatting';
@@ -251,7 +251,8 @@ const Invoices = () => {
   const handleStatusUpdate = async (invoiceId, newStatus) => {
     try {
       setLoading(true);
-      // TODO: Implement status update functionality
+      const response = await updateInvoiceStatus(invoiceId, { status: newStatus });
+      console.log('[INVOICES] Status update response:', response);
       showSuccessToast(`Invoice status updated to ${newStatus}!`);
       await fetchInvoices();
     } catch (error) {

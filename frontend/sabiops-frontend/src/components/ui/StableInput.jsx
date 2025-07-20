@@ -10,7 +10,7 @@ const simpleDebounce = (func, delay) => {
   };
 };
 
-const StableInput = ({ value, onChange, type = 'text', name, className, placeholder, ...props }) => {
+const StableInput = ({ value, onChange, type = 'text', name, className, placeholder, debounceMs = 300, ...props }) => {
   const inputRef = useRef(null);
   const isFocusedRef = useRef(false);
   const debounceTimeoutRef = useRef(null);
@@ -52,7 +52,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
   const handleFocus = useCallback((e) => {
     isFocusedRef.current = true;
     focusTimeRef.current = Date.now();
-    e.stopPropagation();
     console.log(`🎯 StableInput (${name}) FOCUSED`, {
       timestamp: new Date().toISOString(),
       focusTime: focusTimeRef.current,
@@ -70,7 +69,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
     const blurTime = Date.now();
     const focusDuration = focusTimeRef.current ? blurTime - focusTimeRef.current : 0;
     isFocusedRef.current = false;
-    e.stopPropagation();
     console.log(`👋 StableInput (${name}) BLURRED`, {
       timestamp: new Date().toISOString(),
       blurTime,
@@ -98,7 +96,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       clientY: e.clientY,
       isFocused: isFocusedRef.current
     });
-    e.stopPropagation();
   }, [name]);
 
   // Enhanced keydown tracking
@@ -116,7 +113,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       selectionEnd: e.target.selectionEnd,
       isFocused: isFocusedRef.current
     });
-    e.stopPropagation();
   }, [name]);
 
   // Enhanced input tracking
@@ -132,7 +128,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       selectionEnd: e.target.selectionEnd,
       isFocused: isFocusedRef.current
     });
-    e.stopPropagation();
   }, [name]);
 
   // Enhanced change tracking
@@ -148,7 +143,6 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
       selectionEnd: e.target.selectionEnd,
       isFocused: isFocusedRef.current
     });
-      e.stopPropagation();
   }, [name]);
 
   // Enhanced debounced onChange using simple debounce
@@ -160,47 +154,54 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
         isFocused: isFocusedRef.current,
         activeElement: document.activeElement === inputRef.current
       });
-      onChange(e);
-    }, 300),
-    [onChange, name]
+      // Call the original onChange with the event
+      if (onChange) {
+        onChange(e);
+      }
+    }, debounceMs),
+    [onChange, name, debounceMs]
   );
 
-  // Enhanced focus restoration with more detailed logging
+  // Less aggressive focus restoration - only restore if we're still focused and lost focus unexpectedly
   useEffect(() => {
     const input = inputRef.current;
     if (input && isFocusedRef.current && document.activeElement !== input) {
-      console.log(`🔄 StableInput (${name}) RESTORING FOCUS`, {
-        timestamp: new Date().toISOString(),
-        wasFocused: isFocusedRef.current,
-        currentActiveElement: document.activeElement?.tagName,
-        currentActiveElementId: document.activeElement?.id,
-        currentActiveElementName: document.activeElement?.name,
-        inputElement: input.tagName,
-        inputElementId: input.id,
-        inputElementName: input.name,
-        inputElementValue: input.value,
-        selectionStart: input.selectionStart,
-        selectionEnd: input.selectionEnd
-      });
-
-      const selectionStart = input.selectionStart;
-      const selectionEnd = input.selectionEnd;
-      
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        input.focus();
-        if (selectionStart !== null && selectionEnd !== null) {
-          input.setSelectionRange(selectionStart, selectionEnd);
-        }
-        console.log(`✅ StableInput (${name}) FOCUS RESTORED`, {
+      // Only restore focus if we lost it unexpectedly (not due to user action)
+      const timeSinceFocus = Date.now() - (focusTimeRef.current || 0);
+      if (timeSinceFocus < 100) { // Only restore if focus was lost very quickly
+        console.log(`🔄 StableInput (${name}) RESTORING FOCUS`, {
           timestamp: new Date().toISOString(),
-          newActiveElement: document.activeElement?.tagName,
-          newActiveElementId: document.activeElement?.id,
-          newActiveElementName: document.activeElement?.name,
+          wasFocused: isFocusedRef.current,
+          currentActiveElement: document.activeElement?.tagName,
+          currentActiveElementId: document.activeElement?.id,
+          currentActiveElementName: document.activeElement?.name,
+          inputElement: input.tagName,
+          inputElementId: input.id,
+          inputElementName: input.name,
+          inputElementValue: input.value,
           selectionStart: input.selectionStart,
           selectionEnd: input.selectionEnd
         });
-      });
+
+        const selectionStart = input.selectionStart;
+        const selectionEnd = input.selectionEnd;
+        
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          input.focus();
+          if (selectionStart !== null && selectionEnd !== null) {
+            input.setSelectionRange(selectionStart, selectionEnd);
+          }
+          console.log(`✅ StableInput (${name}) FOCUS RESTORED`, {
+            timestamp: new Date().toISOString(),
+            newActiveElement: document.activeElement?.tagName,
+            newActiveElementId: document.activeElement?.id,
+            newActiveElementName: document.activeElement?.name,
+            selectionStart: input.selectionStart,
+            selectionEnd: input.selectionEnd
+          });
+        });
+      }
     }
   }, [value, name]);
 
@@ -253,27 +254,27 @@ const StableInput = ({ value, onChange, type = 'text', name, className, placehol
         activeElement: document.activeElement === inputRef.current
       });
       if (debounceTimeoutRef.current) {
-        debounceTimeoutRef.current.cancel();
+        clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, [name]);
 
   return (
-      <Input
+    <Input
       ref={inputRef}
-        type={type}
+      type={type}
       name={name}
       value={value}
       onChange={debouncedOnChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       onClick={handleClick}
-        onKeyDown={handleKeyDown}
+      onKeyDown={handleKeyDown}
       onInput={handleInput}
       className={className}
       placeholder={placeholder}
-        {...props}
-      />
+      {...props}
+    />
   );
 };
 

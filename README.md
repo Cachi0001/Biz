@@ -1,4 +1,4 @@
-<!-- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -1350,4 +1350,1271 @@ const Invoices = () => {
   );
 };
 
-export default Invoices; -->
+export default Invoices;
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { formatCurrency, formatNaira, formatDate } from '../../utils/formatting';
+import { getProfile } from '../../services/api';
+import { showErrorToast } from '../../utils/errorHandling';
+import { Building2, User, Calendar, CreditCard, FileText, Package } from 'lucide-react';
+
+const ReviewDialog = ({ 
+  isOpen, 
+  onClose, 
+  invoiceData, 
+  customers, 
+  products, 
+  onConfirm, 
+  onCancel,
+  isEdit = false 
+}) => {
+  const [sellerInfo, setSellerInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch seller information when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchSellerInfo();
+    }
+  }, [isOpen]);
+
+  const fetchSellerInfo = async () => {
+    try {
+      setLoading(true);
+      const profile = await getProfile();
+      console.log('[REVIEW_DIALOG] Profile data:', profile);
+      
+      // Extract seller information from profile
+      const seller = {
+        name: profile.business_name || profile.full_name || profile.name || 'Your Business',
+        address: profile.business_address || profile.address || 'Business Address',
+        contact: profile.business_contact || profile.phone || profile.email || 'Contact Information',
+        email: profile.email || '',
+        phone: profile.phone || profile.business_phone || ''
+      };
+      
+      setSellerInfo(seller);
+    } catch (error) {
+      console.error('Failed to fetch seller info:', error);
+      // Use fallback seller information
+      setSellerInfo({
+        name: 'Your Business',
+        address: 'Business Address',
+        contact: 'Contact Information',
+        email: '',
+        phone: ''
+      });
+      showErrorToast('Could not load seller information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get customer information
+  const getCustomerInfo = () => {
+    if (!invoiceData.customer_id) return null;
+    return customers.find(c => c.id === invoiceData.customer_id) || null;
+  };
+
+  // Get product information for an item
+  const getProductInfo = (productId) => {
+    if (!productId) return null;
+    return products.find(p => p.id === productId) || null;
+  };
+
+  // Calculate item total
+  const calculateItemTotal = (item) => {
+    const quantity = Math.max(0, parseFloat(item.quantity) || 0);
+    const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
+    const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
+    const discountRate = Math.max(0, Math.min(100, parseFloat(item.discount_rate) || 0));
+
+    let total = quantity * unitPrice;
+    total -= total * (discountRate / 100);
+    total += total * (taxRate / 100);
+    
+    return Math.round(total * 100) / 100;
+  };
+
+  // Calculate invoice total
+  const calculateInvoiceTotal = () => {
+    const itemsTotal = invoiceData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+    const discount = Math.max(0, parseFloat(invoiceData.discount_amount) || 0);
+    const total = itemsTotal - discount;
+    
+    return Math.round(Math.max(0, total) * 100) / 100;
+  };
+
+  const customer = getCustomerInfo();
+  const invoiceTotal = calculateInvoiceTotal();
+
+  const handleConfirm = () => {
+    onConfirm();
+    onClose();
+  };
+
+  const handleCancel = () => {
+    onCancel();
+    onClose();
+  };
+
+  if (!invoiceData) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto"
+        aria-labelledby="review-dialog-title"
+        aria-describedby="review-dialog-description"
+        role="dialog"
+        aria-modal="true"
+      >
+        <DialogHeader>
+          <DialogTitle 
+            id="review-dialog-title"
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-5 w-5" aria-hidden="true" />
+            {isEdit ? 'Review Invoice Changes' : 'Review New Invoice'}
+          </DialogTitle>
+          <DialogDescription id="review-dialog-description">
+            Please review all invoice details before {isEdit ? 'updating' : 'creating'} the invoice.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Invoice Header */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Invoice Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Seller and Customer Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Seller Information */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <Building2 className="h-4 w-4" />
+                    From (Seller)
+                  </div>
+                  {loading ? (
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  ) : sellerInfo ? (
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-1">
+                      <div className="font-semibold text-gray-900">{sellerInfo.name}</div>
+                      <div className="text-sm text-gray-600">{sellerInfo.address}</div>
+                      <div className="text-sm text-gray-600">{sellerInfo.contact}</div>
+                      {sellerInfo.email && (
+                        <div className="text-sm text-gray-600">{sellerInfo.email}</div>
+                      )}
+                      {sellerInfo.phone && sellerInfo.phone !== sellerInfo.contact && (
+                        <div className="text-sm text-gray-600">{sellerInfo.phone}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <div className="text-sm text-red-600">Seller information not available</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Customer Information */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <User className="h-4 w-4" />
+                    To (Customer)
+                  </div>
+                  {customer ? (
+                    <div className="bg-blue-50 p-4 rounded-lg space-y-1">
+                      <div className="font-semibold text-gray-900">{customer.name}</div>
+                      {customer.email && (
+                        <div className="text-sm text-gray-600">{customer.email}</div>
+                      )}
+                      {customer.phone && (
+                        <div className="text-sm text-gray-600">{customer.phone}</div>
+                      )}
+                      {customer.address && (
+                        <div className="text-sm text-gray-600">{customer.address}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <div className="text-sm text-red-600">Customer not selected</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Invoice Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    Issue Date
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {formatDate(invoiceData.issue_date)}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    Due Date
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {invoiceData.due_date ? formatDate(invoiceData.due_date) : 'Not specified'}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                    <CreditCard className="h-4 w-4" />
+                    Payment Terms
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {invoiceData.payment_terms || 'Net 30'}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-gray-600">Currency</div>
+                  <Badge variant="outline" className="text-xs">
+                    {invoiceData.currency || 'NGN'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Invoice Items */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Invoice Items ({invoiceData.items?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoiceData.items && invoiceData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 text-sm font-medium text-gray-600">Description</th>
+                            <th className="text-center py-2 text-sm font-medium text-gray-600">Qty</th>
+                            <th className="text-right py-2 text-sm font-medium text-gray-600">Unit Price</th>
+                            <th className="text-center py-2 text-sm font-medium text-gray-600">Tax %</th>
+                            <th className="text-center py-2 text-sm font-medium text-gray-600">Discount %</th>
+                            <th className="text-right py-2 text-sm font-medium text-gray-600">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invoiceData.items.map((item, index) => {
+                            const product = getProductInfo(item.product_id);
+                            const itemTotal = calculateItemTotal(item);
+                            
+                            return (
+                              <tr key={item.id || index} className="border-b">
+                                <td className="py-3">
+                                  <div>
+                                    <div className="font-medium text-gray-900">
+                                      {item.description || 'No description'}
+                                    </div>
+                                    {product && (
+                                      <div className="text-xs text-gray-500">
+                                        Product: {product.name}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 text-center text-sm">
+                                  {item.quantity || 0}
+                                </td>
+                                <td className="py-3 text-right text-sm">
+                                  {formatCurrency(item.unit_price || 0, true, invoiceData.currency || 'NGN')}
+                                </td>
+                                <td className="py-3 text-center text-sm">
+                                  {item.tax_rate || 0}%
+                                </td>
+                                <td className="py-3 text-center text-sm">
+                                  {item.discount_rate || 0}%
+                                </td>
+                                <td className="py-3 text-right font-semibold">
+                                  {formatCurrency(itemTotal, true, invoiceData.currency || 'NGN')}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-3">
+                    {invoiceData.items.map((item, index) => {
+                      const product = getProductInfo(item.product_id);
+                      const itemTotal = calculateItemTotal(item);
+                      
+                      return (
+                        <Card key={item.id || index} className="border-l-4 border-l-blue-500">
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <div className="font-medium text-gray-900">
+                                {item.description || 'No description'}
+                              </div>
+                              {product && (
+                                <div className="text-xs text-gray-500">
+                                  Product: {product.name}
+                                </div>
+                              )}
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>Quantity: <span className="font-medium">{item.quantity || 0}</span></div>
+                                <div>Unit Price: <span className="font-medium">{formatCurrency(item.unit_price || 0, true, invoiceData.currency || 'NGN')}</span></div>
+                                <div>Tax: <span className="font-medium">{item.tax_rate || 0}%</span></div>
+                                <div>Discount: <span className="font-medium">{item.discount_rate || 0}%</span></div>
+                              </div>
+                              <div className="pt-2 border-t">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">Item Total:</span>
+                                  <span className="font-bold text-green-600">{formatCurrency(itemTotal, true, invoiceData.currency || 'NGN')}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No items added to this invoice
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Invoice Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span className="font-medium">
+                    {formatCurrency(invoiceData.items?.reduce((sum, item) => sum + calculateItemTotal(item), 0) || 0, true, invoiceData.currency || 'NGN')}
+                  </span>
+                </div>
+                
+                {invoiceData.discount_amount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Overall Discount:</span>
+                    <span className="font-medium text-red-600">
+                      -{formatCurrency(invoiceData.discount_amount, true, invoiceData.currency || 'NGN')}
+                    </span>
+                  </div>
+                )}
+                
+                <Separator />
+                
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Amount:</span>
+                  <span className="text-green-600">{formatCurrency(invoiceTotal, true, invoiceData.currency || 'NGN')}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notes and Terms */}
+          {(invoiceData.notes || invoiceData.terms_and_conditions) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {invoiceData.notes && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-600 mb-2">Notes:</div>
+                    <div className="text-sm bg-gray-50 p-3 rounded-lg">
+                      {invoiceData.notes}
+                    </div>
+                  </div>
+                )}
+                
+                {invoiceData.terms_and_conditions && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-600 mb-2">Terms and Conditions:</div>
+                    <div className="text-sm bg-gray-50 p-3 rounded-lg">
+                      {invoiceData.terms_and_conditions}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t" role="group" aria-label="Invoice review actions">
+            <Button 
+              variant="outline" 
+              onClick={handleCancel}
+              className="w-full sm:w-auto min-h-[48px] order-2 sm:order-1"
+              aria-label="Cancel and return to edit invoice form"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  handleCancel();
+                }
+              }}
+            >
+              Back to Edit
+            </Button>
+            <Button 
+              onClick={handleConfirm}
+              className="w-full sm:w-auto min-h-[48px] bg-green-600 hover:bg-green-700 order-1 sm:order-2"
+              aria-label={isEdit ? 'Confirm and update invoice' : 'Confirm and create invoice'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleConfirm();
+                }
+              }}
+            >
+              {isEdit ? 'Update Invoice' : 'Create Invoice'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ReviewDialog;
+/**
+ * InvoiceForm - Enhanced invoice creation form with focus stability
+ * Addresses focus loss issues in invoice creation forms
+ */
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Plus, Trash2, Calculator } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import SimpleFocusInput from '../ui/SimpleFocusInput';
+import { enhancedGetCustomers, enhancedGetProducts } from '../../services/enhancedApi';
+
+const InvoiceForm = ({ onSubmit, onCancel, initialData = null }) => {
+  const [formData, setFormData] = useState({
+    customer_id: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: '',
+    payment_terms: 'Net 30',
+    notes: '',
+    terms_and_conditions: 'Payment is due within 30 days of invoice date.',
+    currency: 'NGN',
+    discount_amount: 0,
+    items: [
+      { 
+        id: Date.now(), 
+        product_id: '', 
+        description: '', 
+        quantity: 1, 
+        unit_price: 0, 
+        tax_rate: 0, 
+        discount_rate: 0 
+      }
+    ],
+    ...initialData
+  });
+
+  const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // Load customers and products on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [customersData, productsData] = await Promise.all([
+          enhancedGetCustomers(),
+          enhancedGetProducts()
+        ]);
+        
+        setCustomers(customersData);
+        setProducts(productsData.products || []);
+      } catch (error) {
+        DebugLogger.logApiError('invoice-form-data-load', error, 'InvoiceForm');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear field-specific errors
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  }, [errors]);
+
+  const handleItemChange = useCallback((index, field, value) => {
+    setFormData(prev => {
+      const updatedItems = [...prev.items];
+        updatedItems[index] = { ...updatedItems[index], [field]: value };
+        return { ...prev, items: updatedItems };
+      });
+    });
+  }, []);
+
+  const addItem = useCallback(() => {
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        items: [...prev.items, { 
+          id: Date.now() + Math.random(), 
+          product_id: '', 
+          description: '', 
+          quantity: 1, 
+          unit_price: 0, 
+          tax_rate: 0, 
+          discount_rate: 0 
+        }]
+      }));
+    });
+  }, []);
+
+  const removeItem = useCallback((index) => {
+    FocusManager.preserveFocus(() => {
+      setFormData(prev => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index)
+      }));
+    });
+  }, []);
+
+  const handleProductSelect = useCallback((index, productId) => {
+    const product = products.find(p => p.id.toString() === productId);
+    if (product) {
+      FocusManager.preserveFocus(() => {
+        setFormData(prev => {
+          const updatedItems = [...prev.items];
+          updatedItems[index] = {
+            ...updatedItems[index],
+            product_id: productId,
+            description: product.name,
+            unit_price: product.price || 0
+          };
+          return { ...prev, items: updatedItems };
+        });
+      });
+    }
+  }, [products]);
+
+  const calculateItemTotal = (item) => {
+    const quantity = Math.max(0, parseFloat(item.quantity) || 0);
+    const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
+    const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
+    const discountRate = Math.max(0, Math.min(100, parseFloat(item.discount_rate) || 0));
+
+    let total = quantity * unitPrice;
+    total -= total * (discountRate / 100);
+    total += total * (taxRate / 100);
+    
+    return Math.round(total * 100) / 100;
+  };
+
+  const calculateInvoiceTotal = () => {
+    const itemsTotal = formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+    const discount = Math.max(0, parseFloat(formData.discount_amount) || 0);
+    const total = itemsTotal - discount;
+    
+    return Math.round(Math.max(0, total) * 100) / 100;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.customer_id) {
+      newErrors.customer_id = 'Customer is required';
+    }
+    
+    if (!formData.issue_date) {
+      newErrors.issue_date = 'Issue date is required';
+    }
+    
+    formData.items.forEach((item, index) => {
+      if (!item.description?.trim()) {
+        newErrors[`item_${index}_description`] = 'Item description is required';
+      }
+      if (!item.quantity || parseFloat(item.quantity) <= 0) {
+        newErrors[`item_${index}_quantity`] = 'Valid quantity is required';
+      }
+      if (!item.unit_price || parseFloat(item.unit_price) <= 0) {
+        newErrors[`item_${index}_unit_price`] = 'Valid unit price is required';
+      }
+    });
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    DebugLogger.logFormSubmit('InvoiceForm', formData, 'submit');
+    
+    if (!validateForm()) {
+      DebugLogger.logFormSubmit('InvoiceForm', errors, 'validation-failed');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await onSubmit(formData);
+    } catch (error) {
+      DebugLogger.logApiError('invoice-form-submit', error, 'InvoiceForm');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatNaira = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calculator className="h-5 w-5" />
+          {initialData ? 'Edit Invoice' : 'Create New Invoice'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customer_id" className="text-sm font-medium">
+                Customer *
+              </Label>
+              <Select
+                value={formData.customer_id}
+                onValueChange={(value) => {
+                  FocusManager.preserveFocus(() => {
+                    setFormData(prev => ({ ...prev, customer_id: value }));
+                    if (errors.customer_id) {
+                      setErrors(prev => ({ ...prev, customer_id: null }));
+                    }
+                  });
+                }}
+                required
+              >
+                <SelectTrigger className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation">
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.customer_id && (
+                <p className="text-sm text-red-500">{errors.customer_id}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="issue_date" className="text-sm font-medium">
+                Issue Date *
+              </Label>
+              <SimpleFocusInput
+                id="issue_date"
+                name="issue_date"
+                type="date"
+                value={formData.issue_date}
+                onChange={handleInputChange}
+                className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                required
+              />
+              {errors.issue_date && (
+                <p className="text-sm text-red-500">{errors.issue_date}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="due_date" className="text-sm font-medium">
+                Due Date
+              </Label>
+              <StableInput
+                id="due_date"
+                name="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={handleInputChange}
+                className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                componentName="InvoiceForm-DueDate"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="payment_terms" className="text-sm font-medium">
+                Payment Terms
+              </Label>
+              <StableInput
+                id="payment_terms"
+                name="payment_terms"
+                value={formData.payment_terms}
+                onChange={handleInputChange}
+                placeholder="e.g., Net 30"
+                className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                componentName="InvoiceForm-PaymentTerms"
+              />
+            </div>
+          </div>
+
+          {/* Invoice Items */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <Label className="text-base font-medium">Invoice Items *</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={addItem}
+                className="w-full sm:w-auto min-h-[44px] touch-manipulation"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </div>
+            
+            {formData.items.map((item, index) => (
+              <Card key={item.id} className="p-4 border-2 border-gray-100">
+                <div className="space-y-4">
+                  
+                  {/* Product Selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`product_id-${index}`} className="text-sm font-medium">
+                        Product
+                      </Label>
+                      <Select
+                        value={item.product_id}
+                        onValueChange={(value) => handleProductSelect(index, value)}
+                      >
+                        <SelectTrigger 
+                          id={`product_id-${index}`}
+                          className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        >
+                          <SelectValue placeholder="Select product (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {product.name} - {formatNaira(product.price || 0)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`description-${index}`} className="text-sm font-medium">
+                        Description *
+                      </Label>
+                      <SimpleFocusInput
+                        id={`description-${index}`}
+                        name="description"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        placeholder="Item description"
+                        className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        required
+                      />
+                      {errors[`item_${index}_description`] && (
+                        <p className="text-sm text-red-500">{errors[`item_${index}_description`]}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quantity and Pricing */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`quantity-${index}`} className="text-sm font-medium">
+                        Quantity *
+                      </Label>
+                      <StableInput
+                        id={`quantity-${index}`}
+                        name="quantity"
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                        className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        componentName={`InvoiceForm-ItemQuantity-${index}`}
+                        required
+                      />
+                      {errors[`item_${index}_quantity`] && (
+                        <p className="text-sm text-red-500">{errors[`item_${index}_quantity`]}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`unit_price-${index}`} className="text-sm font-medium">
+                        Unit Price (₦) *
+                      </Label>
+                      <StableInput
+                        id={`unit_price-${index}`}
+                        name="unit_price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.unit_price}
+                        onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                        className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        componentName={`InvoiceForm-ItemUnitPrice-${index}`}
+                        required
+                      />
+                      {errors[`item_${index}_unit_price`] && (
+                        <p className="text-sm text-red-500">{errors[`item_${index}_unit_price`]}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`tax_rate-${index}`} className="text-sm font-medium">
+                        Tax (%)
+                      </Label>
+                      <StableInput
+                        id={`tax_rate-${index}`}
+                        name="tax_rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.tax_rate}
+                        onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
+                        className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        componentName={`InvoiceForm-ItemTaxRate-${index}`}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`discount_rate-${index}`} className="text-sm font-medium">
+                        Discount (%)
+                      </Label>
+                      <StableInput
+                        id={`discount_rate-${index}`}
+                        name="discount_rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={item.discount_rate}
+                        onChange={(e) => handleItemChange(index, 'discount_rate', e.target.value)}
+                        className="h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                        componentName={`InvoiceForm-ItemDiscountRate-${index}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Total and Remove Button */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-gray-200 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-600">Total:</span>
+                      <span className="text-xl font-bold text-green-600">
+                        {formatNaira(calculateItemTotal(item))}
+                      </span>
+                    </div>
+                    {formData.items.length > 1 && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => removeItem(index)}
+                        className="w-full sm:w-auto min-h-[44px] text-red-600 hover:text-red-700 hover:bg-red-50 touch-manipulation"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Item
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+
+            {/* Total Section */}
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <Label htmlFor="discount_amount" className="text-sm font-medium whitespace-nowrap">
+                    Overall Discount (₦)
+                  </Label>
+                  <StableInput
+                    id="discount_amount"
+                    name="discount_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.discount_amount}
+                    onChange={handleInputChange}
+                    className="w-full sm:w-32 h-12 min-h-[48px] text-base sm:text-sm touch-manipulation"
+                    componentName="InvoiceForm-DiscountAmount"
+                  />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-green-600">
+                    Grand Total: {formatNaira(calculateInvoiceTotal())}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes and Terms */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+              <StableInput
+                id="notes"
+                name="notes"
+                placeholder="Additional notes for the invoice"
+                value={formData.notes}
+                onChange={handleInputChange}
+                className="min-h-[96px] text-base sm:text-sm touch-manipulation resize-y"
+                component="textarea"
+                componentName="InvoiceForm-Notes"
+                rows={4}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terms_and_conditions" className="text-sm font-medium">
+                Terms and Conditions
+              </Label>
+              <StableInput
+                id="terms_and_conditions"
+                name="terms_and_conditions"
+                placeholder="Terms and conditions for the invoice"
+                value={formData.terms_and_conditions}
+                onChange={handleInputChange}
+                className="min-h-[96px] text-base sm:text-sm touch-manipulation resize-y"
+                component="textarea"
+                componentName="InvoiceForm-TermsAndConditions"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={onCancel}
+              className="w-full sm:w-auto min-h-[48px] touch-manipulation"
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto min-h-[48px] bg-green-600 hover:bg-green-700 touch-manipulation"
+              disabled={loading}
+            >
+              {loading ? 'Creating...' : (initialData ? 'Update Invoice' : 'Create Invoice')}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default InvoiceForm;
+import React from 'react';
+import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Edit, Trash2, Eye, FileText, Calendar, User } from 'lucide-react';
+import { formatNaira, formatDate, formatInvoiceStatus, getStatusColor } from '../../utils/formatting';
+
+const InvoiceCard = ({ invoice, onEdit, onDelete, onView, onSend, onMarkPaid }) => {
+  const statusColor = getStatusColor(invoice.status, 'invoice');
+
+  return (
+    <Card className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-gray-900 truncate">
+                  {invoice.invoice_number || `INV-${invoice.id?.slice(0, 8)}`}
+                </h3>
+                {invoice.customer_name && (
+                  <p className="text-sm text-gray-500 truncate flex items-center">
+                    <User className="h-3 w-3 mr-1" />
+                    {invoice.customer_name}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onView(invoice)}
+                className="h-8 w-8 p-0 hover:bg-blue-100"
+              >
+                <Eye className="h-4 w-4 text-blue-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(invoice)}
+                className="h-8 w-8 p-0 hover:bg-green-100"
+              >
+                <Edit className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(invoice.id)}
+                className="h-8 w-8 p-0 hover:bg-red-100"
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Status and Date */}
+          <div className="flex items-center justify-between">
+            <Badge className={`text-xs ${statusColor}`}>
+              {formatInvoiceStatus(invoice.status)}
+            </Badge>
+            {invoice.created_at && (
+              <div className="flex items-center text-xs text-gray-500">
+                <Calendar className="h-3 w-3 mr-1" />
+                {formatDate(invoice.created_at)}
+              </div>
+            )}
+          </div>
+
+          {/* Amount and Due Date */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-gray-500">Total Amount</p>
+              <p className="text-sm font-semibold text-green-600">
+                {formatNaira(invoice.total_amount)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Due Date</p>
+              <p className="text-sm text-gray-700">
+                {invoice.due_date ? formatDate(invoice.due_date) : 'Not set'}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons for Status */}
+          {invoice.status !== 'paid' && (
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              {invoice.status === 'draft' && onSend && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSend(invoice)}
+                  className="flex-1 text-xs"
+                >
+                  Send Invoice
+                </Button>
+              )}
+              {(invoice.status === 'sent' || invoice.status === 'overdue') && onMarkPaid && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onMarkPaid(invoice)}
+                  className="flex-1 text-xs bg-green-50 text-green-700 hover:bg-green-100"
+                >
+                  Mark as Paid
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Additional Info */}
+          {(invoice.description || invoice.payment_terms) && (
+            <div className="pt-2 border-t border-gray-100">
+              {invoice.description && (
+                <p className="text-xs text-gray-600 truncate">
+                  {invoice.description}
+                </p>
+              )}
+              {invoice.payment_terms && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Terms: {invoice.payment_terms}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export { InvoiceCard };
+export default InvoiceCard;
+import React from 'react';
+import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Edit, Trash2, Eye, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { formatNaira, getStockStatus, formatStockStatus, getStatusColor } from '../../utils/formatting';
+
+const ProductCard = ({ product, onEdit, onDelete, onView }) => {
+  const stockStatus = getStockStatus(product.quantity, product.low_stock_threshold);
+  const stockColor = getStatusColor(stockStatus, 'stock');
+
+  return (
+    <Card className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
+                {product.sku && (
+                  <p className="text-sm text-gray-500 truncate">SKU: {product.sku}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onView(product)}
+                className="h-8 w-8 p-0 hover:bg-blue-100"
+              >
+                <Eye className="h-4 w-4 text-blue-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(product)}
+                className="h-8 w-8 p-0 hover:bg-green-100"
+              >
+                <Edit className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(product.id)}
+                className="h-8 w-8 p-0 hover:bg-red-100"
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Category and Stock Status */}
+          <div className="flex items-center justify-between">
+            {product.category && (
+              <Badge variant="outline" className="text-xs">
+                {product.category}
+              </Badge>
+            )}
+            <Badge className={`text-xs ${stockColor}`}>
+              {stockStatus === 'out_of_stock' && <AlertTriangle className="h-3 w-3 mr-1" />}
+              {stockStatus === 'in_stock' && <CheckCircle className="h-3 w-3 mr-1" />}
+              {stockStatus === 'low_stock' && <AlertTriangle className="h-3 w-3 mr-1" />}
+              {formatStockStatus(stockStatus)}
+            </Badge>
+          </div>
+
+          {/* Price and Stock Info */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-gray-500">Selling Price</p>
+              <p className="text-sm font-semibold text-green-600">
+                {formatNaira(product.price)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Stock Qty</p>
+              <p className={`text-sm font-semibold ${
+                stockStatus === 'out_of_stock' ? 'text-red-600' : 
+                stockStatus === 'low_stock' ? 'text-yellow-600' : 'text-gray-900'
+              }`}>
+                {product.quantity || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          {(product.cost_price || product.low_stock_threshold) && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+              {product.cost_price && (
+                <div>
+                  <p className="text-xs text-gray-500">Cost Price</p>
+                  <p className="text-xs text-gray-700">
+                    {formatNaira(product.cost_price)}
+                  </p>
+                </div>
+              )}
+              {product.low_stock_threshold && (
+                <div>
+                  <p className="text-xs text-gray-500">Low Stock Alert</p>
+                  <p className="text-xs text-gray-700">
+                    {product.low_stock_threshold}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export { ProductCard };
+export default ProductCard;

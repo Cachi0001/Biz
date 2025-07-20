@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { NotificationCenter } from '../notifications/NotificationCenter';
-import NotificationBell from '../ui/NotificationBell';
+import NotificationBell from '../notifications/NotificationBell';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '../ui/sheet';
 import FirebaseService from '../../services/FirebaseService';
 import {

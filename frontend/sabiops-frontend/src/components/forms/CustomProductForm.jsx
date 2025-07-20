@@ -334,15 +334,15 @@ const CustomProductForm = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Barcode</label>
+            <label className="form-label">SKU</label>
             <input
-              ref={barcodeInputRef}
+              ref={skuInputRef}
               type="text"
               className="form-input"
-              placeholder="Product barcode (optional)"
-              onFocus={() => handleInputFocus('barcode')}
-              onBlur={() => handleInputBlur('barcode')}
-              onChange={(e) => handleInputChange('barcode', e.target.value)}
+              placeholder="Product SKU (optional)"
+              onFocus={() => handleInputFocus('sku')}
+              onBlur={() => handleInputBlur('sku')}
+              onChange={(e) => handleInputChange('sku', e.target.value)}
             />
           </div>
         </div>
