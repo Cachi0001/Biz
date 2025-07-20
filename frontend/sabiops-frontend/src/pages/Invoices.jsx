@@ -44,17 +44,17 @@ const Invoices = () => {
   useDebugRenders('Invoices');
 
   // Main state with proper types
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState<any>(null);
-  const [reviewInvoiceData, setReviewInvoiceData] = useState<any>(null);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [reviewInvoiceData, setReviewInvoiceData] = useState(null);
 
   useEffect(() => {
     fetchInvoices();
