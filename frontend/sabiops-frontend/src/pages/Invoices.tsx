@@ -235,16 +235,16 @@ const Invoices = () => {
       return;
     }
 
-    try {
-      setLoading(true);
+      try {
+        setLoading(true);
       // TODO: Implement send invoice functionality
-      showSuccessToast('Invoice sent successfully!');
-      await fetchInvoices();
-    } catch (error) {
-      console.error('Failed to send invoice:', error);
+        showSuccessToast('Invoice sent successfully!');
+        await fetchInvoices();
+      } catch (error) {
+        console.error('Failed to send invoice:', error);
       handleApiErrorWithToast(error, 'Failed to send invoice');
-    } finally {
-      setLoading(false);
+      } finally {
+        setLoading(false);
     }
   };
 
@@ -421,7 +421,7 @@ const Invoices = () => {
 
           {/* Search and Filters */}
           <Card>
-            <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -481,108 +481,108 @@ const Invoices = () => {
                     {filteredInvoices.map((invoice) => (
                       <Card key={invoice.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
-                          <div className="space-y-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-lg font-semibold text-gray-900 truncate">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 truncate">
                                   {invoice.invoice_number || `INV-${invoice.id?.substring(0, 8).toUpperCase()}`}
-                                </h3>
-                                <p className="text-base text-gray-600 truncate mt-1">
+                </h3>
+                <p className="text-base text-gray-600 truncate mt-1">
                                   {invoice.customer_name || 'Unknown Customer'}
-                                </p>
-                              </div>
-                              <div className="flex-shrink-0">
+                </p>
+              </div>
+              <div className="flex-shrink-0">
                                 <Badge variant={getStatusBadgeVariant(invoice.status)}>
                                   {invoice.status || 'Draft'}
                                 </Badge>
-                              </div>
-                            </div>
+              </div>
+            </div>
 
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-base">
-                                <span className="text-gray-500 font-medium">Issue Date:</span>
+            <div className="space-y-2">
+              <div className="flex justify-between text-base">
+                <span className="text-gray-500 font-medium">Issue Date:</span>
                                 <span className="text-gray-900 font-medium">
                                   {new Date(invoice.issue_date).toLocaleDateString()}
                                 </span>
-                              </div>
-                              <div className="flex justify-between text-base">
-                                <span className="text-gray-500 font-medium">Due Date:</span>
-                                <span className="text-gray-900 font-medium">
+              </div>
+              <div className="flex justify-between text-base">
+                <span className="text-gray-500 font-medium">Due Date:</span>
+                <span className="text-gray-900 font-medium">
                                   {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
-                                </span>
-                              </div>
-                            </div>
+                </span>
+              </div>
+            </div>
 
-                            <div className="pt-3 border-t-2 border-gray-100">
-                              <div className="flex justify-between items-center">
-                                <span className="text-base text-gray-500 font-medium">Total Amount:</span>
-                                <span className="text-xl font-bold text-green-600">
+            <div className="pt-3 border-t-2 border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-base text-gray-500 font-medium">Total Amount:</span>
+                <span className="text-xl font-bold text-green-600">
                                   {formatNaira(calculateTotal(invoice))}
-                                </span>
-                              </div>
-                            </div>
+                </span>
+              </div>
+            </div>
 
-                            <div className="pt-3 border-t-2 border-gray-100 space-y-3">
-                              <div className="grid grid-cols-3 gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
+            <div className="pt-3 border-t-2 border-gray-100 space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
                                   onClick={() => handleEdit(invoice)}
-                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-blue-50"
-                                >
-                                  <Edit className="h-5 w-5 text-blue-600 mb-1" />
-                                  <span className="text-xs text-blue-600 font-medium">Edit</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDownloadPdf(invoice.id)}
-                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-green-50"
-                                >
-                                  <Download className="h-5 w-5 text-green-600 mb-1" />
-                                  <span className="text-xs text-green-600 font-medium">PDF</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleSendInvoice(invoice.id)}
-                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-purple-50"
-                                >
+                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-blue-50"
+                >
+                  <Edit className="h-5 w-5 text-blue-600 mb-1" />
+                  <span className="text-xs text-blue-600 font-medium">Edit</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDownloadPdf(invoice.id)}
+                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-green-50"
+                >
+                  <Download className="h-5 w-5 text-green-600 mb-1" />
+                  <span className="text-xs text-green-600 font-medium">PDF</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSendInvoice(invoice.id)}
+                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-purple-50"
+                >
                                   <FileText className="h-5 w-5 text-purple-600 mb-1" />
-                                  <span className="text-xs text-purple-600 font-medium">Send</span>
-                                </Button>
-                              </div>
+                  <span className="text-xs text-purple-600 font-medium">Send</span>
+                </Button>
+              </div>
 
-                              <div className="grid grid-cols-2 gap-2">
-                                <Select
-                                  value={invoice.status}
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  value={invoice.status}
                                   onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
-                                >
-                                  <SelectTrigger className="h-12 min-h-[48px] text-base touch-manipulation">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="draft">Draft</SelectItem>
-                                    <SelectItem value="sent">Sent</SelectItem>
-                                    <SelectItem value="paid">Paid</SelectItem>
-                                    <SelectItem value="overdue">Overdue</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(invoice.id)}
-                                  className="min-h-[48px] text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 touch-manipulation"
-                                >
-                                  <Trash2 className="h-5 w-5 mr-2" />
-                                  <span className="font-medium">Delete</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                >
+                  <SelectTrigger className="h-12 min-h-[48px] text-base touch-manipulation">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDelete(invoice.id)}
+                  className="min-h-[48px] text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 touch-manipulation"
+                >
+                  <Trash2 className="h-5 w-5 mr-2" />
+                  <span className="font-medium">Delete</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+          </Card>
                     ))}
                   </div>
 
@@ -602,60 +602,60 @@ const Invoices = () => {
                       </TableHeader>
                       <TableBody>
                         {filteredInvoices.map((invoice) => (
-                          <TableRow key={invoice.id}>
+                            <TableRow key={invoice.id}>
                             <TableCell className="font-medium">
                               {invoice.invoice_number || `INV-${invoice.id?.substring(0, 8).toUpperCase()}`}
                             </TableCell>
                             <TableCell>{invoice.customer_name || 'Unknown Customer'}</TableCell>
                             <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
-                            <TableCell>
+                              <TableCell>
                               {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
-                            </TableCell>
-                            <TableCell className="font-semibold">
+                              </TableCell>
+                              <TableCell className="font-semibold">
                               {formatNaira(calculateTotal(invoice))}
-                            </TableCell>
+                              </TableCell>
                             <TableCell>
                               <Badge variant={getStatusBadgeVariant(invoice.status)}>
                                 {invoice.status || 'Draft'}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-1">
+                              <TableCell>
+                                <div className="flex items-center space-x-1">
                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(invoice)}>
-                                  <Edit className="h-4 w-4 text-blue-600" />
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleDownloadPdf(invoice.id)}>
-                                  <Download className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleSendInvoice(invoice.id)}>
+                                    <Edit className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDownloadPdf(invoice.id)}>
+                                    <Download className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleSendInvoice(invoice.id)}>
                                   <FileText className="h-4 w-4 text-purple-600" />
-                                </Button>
-                                <Select
-                                  value={invoice.status}
+                                  </Button>
+                                  <Select
+                                    value={invoice.status}
                                   onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
-                                >
-                                  <SelectTrigger className="w-20 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="draft">Draft</SelectItem>
-                                    <SelectItem value="sent">Sent</SelectItem>
-                                    <SelectItem value="paid">Paid</SelectItem>
-                                    <SelectItem value="overdue">Overdue</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(invoice.id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
+                                  >
+                                    <SelectTrigger className="w-20 h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="draft">Draft</SelectItem>
+                                      <SelectItem value="sent">Sent</SelectItem>
+                                      <SelectItem value="paid">Paid</SelectItem>
+                                      <SelectItem value="overdue">Overdue</SelectItem>
+                                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(invoice.id)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
                         ))}
                       </TableBody>
                     </Table>
@@ -689,16 +689,16 @@ const Invoices = () => {
 
           {/* Review Dialog */}
           {reviewInvoiceData && (
-            <ReviewDialog
+          <ReviewDialog
               isOpen={showReviewDialog}
               onClose={() => setShowReviewDialog(false)}
               invoiceData={reviewInvoiceData}
-              customers={customers}
-              products={products}
-              onConfirm={handleReviewConfirm}
-              onCancel={handleReviewCancel}
+            customers={customers}
+            products={products}
+            onConfirm={handleReviewConfirm}
+            onCancel={handleReviewCancel}
               isEdit={!!editingInvoice}
-            />
+          />
           )}
         </div>
       </div>
