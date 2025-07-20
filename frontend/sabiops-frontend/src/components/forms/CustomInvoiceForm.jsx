@@ -260,8 +260,8 @@ const CustomInvoiceForm = ({
         
         .form-input:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-input.error {
@@ -283,8 +283,8 @@ const CustomInvoiceForm = ({
         
         .form-textarea:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-textarea.error {
@@ -305,8 +305,8 @@ const CustomInvoiceForm = ({
         
         .form-select:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-select.error {
@@ -338,12 +338,12 @@ const CustomInvoiceForm = ({
         }
         
         .btn-primary {
-          background-color: #10b981;
+          background-color: hsl(142 76% 36%);
           color: white;
         }
         
         .btn-primary:hover {
-          background-color: #059669;
+          background-color: hsl(142 76% 28%);
         }
         
         .btn-secondary {
@@ -397,19 +397,19 @@ const CustomInvoiceForm = ({
         
         .item-total {
           font-weight: 600;
-          color: #10b981;
+          color: hsl(142 76% 36%);
           font-size: 1.125rem;
         }
         
         .invoice-total {
           background-color: #f0fdf4;
-          border: 2px solid #10b981;
+          border: 2px solid hsl(142 76% 36%);
           border-radius: 0.5rem;
           padding: 1rem;
           text-align: center;
           font-size: 1.25rem;
           font-weight: 700;
-          color: #10b981;
+          color: hsl(142 76% 36%);
         }
         
         @media (min-width: 640px) {

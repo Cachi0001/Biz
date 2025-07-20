@@ -1,47 +1,29 @@
 import React, { useEffect, useRef } from 'react';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
 import { toast } from 'react-hot-toast';
-import { createProduct, updateProduct } from '../../services/api';
+import { createProduct } from '../../services/api';
 import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
 
 const CustomProductForm = ({ 
-  isEdit = false, 
-  editingProduct = null, 
+  categories = [], 
   onSuccess, 
-  onCancel,
-  categories = [] 
+  onCancel 
 }) => {
   const formRef = useRef(null);
   const nameInputRef = useRef(null);
-  const descriptionInputRef = useRef(null);
   const skuInputRef = useRef(null);
+  const descriptionInputRef = useRef(null);
   const categorySelectRef = useRef(null);
   const priceInputRef = useRef(null);
   const costPriceInputRef = useRef(null);
   const quantityInputRef = useRef(null);
-  const lowStockInputRef = useRef(null);
-  const imageUrlInputRef = useRef(null);
+  const barcodeInputRef = useRef(null);
 
   useEffect(() => {
-    // Populate form if editing
-    if (isEdit && editingProduct) {
-      if (nameInputRef.current) nameInputRef.current.value = editingProduct.name || '';
-      if (descriptionInputRef.current) descriptionInputRef.current.value = editingProduct.description || '';
-      if (skuInputRef.current) skuInputRef.current.value = editingProduct.sku || '';
-      if (categorySelectRef.current) categorySelectRef.current.value = editingProduct.category || '';
-      if (priceInputRef.current) priceInputRef.current.value = editingProduct.price || '';
-      if (costPriceInputRef.current) costPriceInputRef.current.value = editingProduct.cost_price || '';
-      if (quantityInputRef.current) quantityInputRef.current.value = editingProduct.quantity || '';
-      if (lowStockInputRef.current) lowStockInputRef.current.value = editingProduct.low_stock_threshold || '';
-      if (imageUrlInputRef.current) imageUrlInputRef.current.value = editingProduct.image_url || '';
-    }
-
     // Focus on first input
     if (nameInputRef.current) {
       nameInputRef.current.focus();
     }
-  }, [isEdit, editingProduct]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,14 +34,13 @@ const CustomProductForm = ({
     // Get values directly from DOM
     const formData = {
       name: nameInputRef.current?.value?.trim() || '',
-      description: descriptionInputRef.current?.value?.trim() || '',
       sku: skuInputRef.current?.value?.trim() || '',
+      description: descriptionInputRef.current?.value?.trim() || '',
       category: categorySelectRef.current?.value || '',
       price: parseFloat(priceInputRef.current?.value) || 0,
       cost_price: parseFloat(costPriceInputRef.current?.value) || 0,
       quantity: parseInt(quantityInputRef.current?.value) || 0,
-      low_stock_threshold: parseInt(lowStockInputRef.current?.value) || 0,
-      image_url: imageUrlInputRef.current?.value?.trim() || ''
+      barcode: barcodeInputRef.current?.value?.trim() || null
     };
 
     console.log('🎯 CustomProductForm: Form data:', formData);
@@ -71,35 +52,23 @@ const CustomProductForm = ({
       return;
     }
 
+    if (!formData.category) {
+      handleApiErrorWithToast(new Error("Category is required"));
+      categorySelectRef.current?.focus();
+      return;
+    }
+
     if (!formData.price || formData.price <= 0) {
-      handleApiErrorWithToast(new Error("Valid selling price is required"));
+      handleApiErrorWithToast(new Error("Valid price is required"));
       priceInputRef.current?.focus();
-      return;
-    }
-
-    if (!formData.quantity || formData.quantity < 0) {
-      handleApiErrorWithToast(new Error("Valid stock quantity is required"));
-      quantityInputRef.current?.focus();
-      return;
-    }
-
-    if (formData.low_stock_threshold > formData.quantity) {
-      handleApiErrorWithToast(new Error(`Low stock alert (${formData.low_stock_threshold}) cannot be greater than stock quantity (${formData.quantity})`));
-      lowStockInputRef.current?.focus();
       return;
     }
 
     try {
       console.log('🎯 CustomProductForm: Submitting to API...');
       
-      let response;
-      if (isEdit && editingProduct) {
-        response = await updateProduct(editingProduct.id, formData);
-        showSuccessToast("Product updated successfully!");
-      } else {
-        response = await createProduct(formData);
-        showSuccessToast("Product created successfully!");
-      }
+      const response = await createProduct(formData);
+      showSuccessToast("Product created successfully!");
 
       console.log('🎯 CustomProductForm: API response:', response);
 
@@ -115,7 +84,7 @@ const CustomProductForm = ({
 
     } catch (error) {
       console.error('🎯 CustomProductForm: Error:', error);
-      handleApiErrorWithToast(error, isEdit ? 'Failed to update product' : 'Failed to create product');
+      handleApiErrorWithToast(error, 'Failed to create product');
     }
   };
 
@@ -136,39 +105,6 @@ const CustomProductForm = ({
       <style jsx>{`
         .custom-product-form {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .form-header {
-          text-align: center;
-          margin-bottom: 2rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #10b981;
-        }
-        
-        .form-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #10b981;
-          margin-bottom: 0.5rem;
-        }
-        
-        .form-subtitle {
-          font-size: 0.875rem;
-          color: #6b7280;
-        }
-        
-        .brand-logo {
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #10b981, #059669);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1rem;
-          color: white;
-          font-weight: bold;
-          font-size: 1.25rem;
         }
         
         .custom-product-form form {
@@ -209,8 +145,8 @@ const CustomProductForm = ({
         
         .form-input:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-textarea {
@@ -227,8 +163,8 @@ const CustomProductForm = ({
         
         .form-textarea:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-select {
@@ -244,8 +180,8 @@ const CustomProductForm = ({
         
         .form-select:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: hsl(142 76% 36%);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
         
         .form-buttons {
@@ -257,50 +193,47 @@ const CustomProductForm = ({
         }
         
         .btn {
-          height: 3rem;
-          padding: 0 1.5rem;
-          border: none;
+          padding: 0.75rem 1.5rem;
           border-radius: 0.375rem;
-          font-size: 1rem;
+          font-size: 0.875rem;
           font-weight: 500;
-          cursor: pointer;
           transition: all 0.15s ease-in-out;
+          cursor: pointer;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          min-height: 3rem;
           touch-action: manipulation;
         }
         
         .btn-primary {
-          background-color: #10b981;
+          background-color: hsl(142 76% 36%);
           color: white;
         }
         
         .btn-primary:hover {
-          background-color: #059669;
+          background-color: hsl(142 76% 28%);
         }
         
         .btn-secondary {
-          background-color: white;
-          color: #374151;
-          border: 1px solid #d1d5db;
+          background-color: #6b7280;
+          color: white;
         }
         
         .btn-secondary:hover {
-          background-color: #f9fafb;
+          background-color: #4b5563;
         }
         
-        .btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .help-text {
-          font-size: 0.75rem;
+        .btn-outline {
+          background-color: transparent;
           color: #6b7280;
-          margin-top: 0.25rem;
+          border: 1px solid #d1d5db;
         }
         
-        .required-field::after {
-          content: " *";
-          color: #ef4444;
+        .btn-outline:hover {
+          background-color: #f9fafb;
+          border-color: #9ca3af;
         }
         
         @media (min-width: 640px) {
@@ -310,21 +243,13 @@ const CustomProductForm = ({
         }
       `}</style>
 
-      <div className="form-header">
-        <div className="brand-logo">S</div>
-        <div className="form-title">SabiOps Product</div>
-        <div className="form-subtitle">Manage your product catalog with ease</div>
-      </div>
-
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit}>
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="name" className="form-label">Product Name <span className="required-field">*</span></label>
+            <label className="form-label">Product Name *</label>
             <input
               ref={nameInputRef}
               type="text"
-              id="name"
-              name="name"
               className="form-input"
               placeholder="Enter product name"
               required
@@ -335,12 +260,10 @@ const CustomProductForm = ({
           </div>
 
           <div className="form-group">
-            <label htmlFor="sku" className="form-label">SKU</label>
+            <label className="form-label">SKU</label>
             <input
               ref={skuInputRef}
               type="text"
-              id="sku"
-              name="sku"
               className="form-input"
               placeholder="Product SKU (optional)"
               onFocus={() => handleInputFocus('sku')}
@@ -351,48 +274,58 @@ const CustomProductForm = ({
         </div>
 
         <div className="form-group">
-          <label htmlFor="description" className="form-label">Description</label>
+          <label className="form-label">Description</label>
           <textarea
             ref={descriptionInputRef}
-            id="description"
-            name="description"
             className="form-textarea"
             placeholder="Product description"
-            rows={3}
+            rows="3"
             onFocus={() => handleInputFocus('description')}
             onBlur={() => handleInputBlur('description')}
             onChange={(e) => handleInputChange('description', e.target.value)}
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="category" className="form-label">Category <span className="required-field">*</span></label>
-          <select
-            ref={categorySelectRef}
-            id="category"
-            name="category"
-            className="form-select"
-            onFocus={() => handleInputFocus('category')}
-            onBlur={() => handleInputBlur('category')}
-            onChange={(e) => handleInputChange('category', e.target.value)}
-          >
-            <option value="">Select product category</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Category *</label>
+            <select
+              ref={categorySelectRef}
+              className="form-select"
+              required
+              onFocus={() => handleInputFocus('category')}
+              onBlur={() => handleInputBlur('category')}
+              onChange={(e) => handleInputChange('category', e.target.value)}
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Barcode</label>
+            <input
+              ref={barcodeInputRef}
+              type="text"
+              className="form-input"
+              placeholder="Product barcode (optional)"
+              onFocus={() => handleInputFocus('barcode')}
+              onBlur={() => handleInputBlur('barcode')}
+              onChange={(e) => handleInputChange('barcode', e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="price" className="form-label">Selling Price (₦) <span className="required-field">*</span></label>
+            <label className="form-label">Price (₦) *</label>
             <input
               ref={priceInputRef}
               type="number"
-              id="price"
-              name="price"
               step="0.01"
               min="0"
               className="form-input"
@@ -405,12 +338,10 @@ const CustomProductForm = ({
           </div>
 
           <div className="form-group">
-            <label htmlFor="cost_price" className="form-label">Cost Price (₦)</label>
+            <label className="form-label">Cost Price (₦)</label>
             <input
               ref={costPriceInputRef}
               type="number"
-              id="cost_price"
-              name="cost_price"
               step="0.01"
               min="0"
               className="form-input"
@@ -422,63 +353,25 @@ const CustomProductForm = ({
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="quantity" className="form-label">Stock Quantity <span className="required-field">*</span></label>
-            <input
-              ref={quantityInputRef}
-              type="number"
-              id="quantity"
-              name="quantity"
-              min="0"
-              className="form-input"
-              placeholder="0"
-              required
-              onFocus={() => handleInputFocus('quantity')}
-              onBlur={() => handleInputBlur('quantity')}
-              onChange={(e) => handleInputChange('quantity', e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="low_stock_threshold" className="form-label">Low Stock Alert</label>
-            <input
-              ref={lowStockInputRef}
-              type="number"
-              id="low_stock_threshold"
-              name="low_stock_threshold"
-              min="0"
-              className="form-input"
-              placeholder="5"
-              onFocus={() => handleInputFocus('low_stock_threshold')}
-              onBlur={() => handleInputBlur('low_stock_threshold')}
-              onChange={(e) => handleInputChange('low_stock_threshold', e.target.value)}
-            />
-            <div className="help-text">
-              Alert when stock falls below this number
-            </div>
-          </div>
-        </div>
-
         <div className="form-group">
-          <label htmlFor="image_url" className="form-label">Image URL</label>
+          <label className="form-label">Initial Stock Quantity</label>
           <input
-            ref={imageUrlInputRef}
-            type="url"
-            id="image_url"
-            name="image_url"
+            ref={quantityInputRef}
+            type="number"
+            min="0"
             className="form-input"
-            placeholder="Enter image URL (optional)"
-            onFocus={() => handleInputFocus('image_url')}
-            onBlur={() => handleInputBlur('image_url')}
-            onChange={(e) => handleInputChange('image_url', e.target.value)}
+            placeholder="0"
+            defaultValue="0"
+            onFocus={() => handleInputFocus('quantity')}
+            onBlur={() => handleInputBlur('quantity')}
+            onChange={(e) => handleInputChange('quantity', e.target.value)}
           />
         </div>
 
         <div className="form-buttons">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-outline"
             onClick={onCancel}
           >
             Cancel
@@ -487,7 +380,7 @@ const CustomProductForm = ({
             type="submit"
             className="btn btn-primary"
           >
-            {isEdit ? 'Update Product' : 'Create Product'}
+            Create Product
           </button>
         </div>
       </form>

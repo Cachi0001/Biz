@@ -61,6 +61,10 @@ const Sales = () => {
       
       DebugLogger.logApiCall('/sales', 'Starting fetch for sales list', 'SalesPage', 'GET');
       console.log('[SalesPage] Fetching sales for date:', selectedDate);
+      console.log('[SalesPage] API endpoint being called: /sales with params:', {
+        start_date: selectedDate,
+        end_date: selectedDate
+      });
       
       const response = await getSales({
         params: {
@@ -69,32 +73,42 @@ const Sales = () => {
         }
       });
 
-      console.log('[SalesPage] Sales response:', response);
+      console.log('[SalesPage] Raw sales response:', response);
+      console.log('[SalesPage] Response type:', typeof response);
+      console.log('[SalesPage] Response keys:', response ? Object.keys(response) : 'null/undefined');
       DebugLogger.logApiCall('/sales', response, 'SalesPage', 'GET');
 
       // Handle multiple API response formats
       let salesData = [];
       
       if (response?.data?.sales && Array.isArray(response.data.sales)) {
+        console.log('[SalesPage] Using response.data.sales format');
         salesData = response.data.sales;
       } else if (response?.data && Array.isArray(response.data)) {
+        console.log('[SalesPage] Using response.data format');
         salesData = response.data;
       } else if (Array.isArray(response)) {
+        console.log('[SalesPage] Using direct response array format');
         salesData = response;
       } else if (response?.sales && Array.isArray(response.sales)) {
+        console.log('[SalesPage] Using response.sales format');
         salesData = response.sales;
       } else {
         console.warn('[SalesPage] Unexpected sales response format:', response);
+        console.warn('[SalesPage] Response structure:', JSON.stringify(response, null, 2));
         salesData = [];
       }
 
       console.log('[SalesPage] Processed sales data:', salesData);
+      console.log('[SalesPage] Sales data length:', salesData.length);
       setSales(salesData);
 
       // Update stats from response
       if (response?.data?.summary) {
+        console.log('[SalesPage] Using response.data.summary for stats');
         setSalesStats(response.data.summary);
       } else if (response?.summary) {
+        console.log('[SalesPage] Using response.summary for stats');
         setSalesStats(response.summary);
       }
 
@@ -122,6 +136,10 @@ const Sales = () => {
 
     } catch (error) {
       console.error('[SalesPage] Error fetching sales:', error);
+      console.error('[SalesPage] Error message:', error.message);
+      console.error('[SalesPage] Error stack:', error.stack);
+      console.error('[SalesPage] Error response:', error.response);
+      console.error('[SalesPage] Error status:', error.status);
       DebugLogger.logApiError('/sales', error, 'SalesPage');
       const errorMessage = handleApiErrorWithToast(error, 'Failed to fetch sales');
       setError(errorMessage);
@@ -135,22 +153,29 @@ const Sales = () => {
     try {
       DebugLogger.logApiCall('/products', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
       console.log('[SalesPage] Fetching products for dropdown...');
+      console.log('[SalesPage] Products API endpoint: /products');
 
       const response = await getProducts();
 
-      console.log('[SalesPage] Products fetched:', response);
+      console.log('[SalesPage] Raw products response:', response);
+      console.log('[SalesPage] Products response type:', typeof response);
+      console.log('[SalesPage] Products response keys:', response ? Object.keys(response) : 'null/undefined');
       DebugLogger.logDropdownEvent('SalesPage', 'products-loaded', response, null);
 
       // Handle the new API response structure
       let productsArray = [];
       if (response && response.success && response.data) {
+        console.log('[SalesPage] Using response.success && response.data format');
         productsArray = response.data.products || [];
       } else if (response && response.products && Array.isArray(response.products)) {
+        console.log('[SalesPage] Using response.products format');
         productsArray = response.products;
       } else if (response && Array.isArray(response)) {
+        console.log('[SalesPage] Using direct response array format');
         productsArray = response;
       } else {
         console.warn('[SalesPage] Unexpected products response structure:', response);
+        console.warn('[SalesPage] Products response structure:', JSON.stringify(response, null, 2));
         productsArray = [];
       }
 
@@ -172,6 +197,9 @@ const Sales = () => {
 
     } catch (error) {
       console.error('[SalesPage] Error fetching products:', error);
+      console.error('[SalesPage] Products error message:', error.message);
+      console.error('[SalesPage] Products error stack:', error.stack);
+      console.error('[SalesPage] Products error response:', error.response);
       DebugLogger.logApiError('/products', error, 'SalesPage');
       handleApiErrorWithToast(error, 'Failed to fetch products');
       setProducts([]);
@@ -181,27 +209,50 @@ const Sales = () => {
   const fetchCustomersData = async () => {
     try {
       DebugLogger.logApiCall('/customers', 'Starting fetch for sales dropdown', 'SalesPage', 'GET');
+      console.log('[SalesPage] Fetching customers for dropdown...');
+      console.log('[SalesPage] Customers API endpoint: /customers');
 
       const response = await getCustomers();
 
+      console.log('[SalesPage] Raw customers response:', response);
+      console.log('[SalesPage] Customers response type:', typeof response);
+      console.log('[SalesPage] Customers response keys:', response ? Object.keys(response) : 'null/undefined');
       DebugLogger.logDropdownEvent('SalesPage', 'customers-loaded', response, null);
 
       // Handle the new API response structure
       let customersArray = [];
       if (response && response.success && response.data) {
+        console.log('[SalesPage] Using response.success && response.data format');
         customersArray = response.data.customers || [];
       } else if (response && response.customers && Array.isArray(response.customers)) {
+        console.log('[SalesPage] Using response.customers format');
         customersArray = response.customers;
       } else if (response && Array.isArray(response)) {
+        console.log('[SalesPage] Using direct response array format');
         customersArray = response;
       } else {
         console.warn('[SalesPage] Unexpected customers response structure:', response);
+        console.warn('[SalesPage] Customers response structure:', JSON.stringify(response, null, 2));
         customersArray = [];
       }
 
       setCustomers(customersArray);
+      console.log('[SalesPage] Customers set in state:', customersArray.length, 'customers');
+
+      // Log if no customers found for dropdown
+      if (customersArray.length === 0) {
+        console.warn('[SalesPage] No customers available for sales dropdown');
+        DebugLogger.logDropdownIssue('SalesPage', [], null, 'No customers available for sales dropdown');
+      } else {
+        console.log('[SalesPage] Customers available:', customersArray.map(c => ({ id: c.id, name: c.name, email: c.email })));
+        console.log('[SalesPage] First customer example:', customersArray[0]);
+      }
 
     } catch (error) {
+      console.error('[SalesPage] Error fetching customers:', error);
+      console.error('[SalesPage] Customers error message:', error.message);
+      console.error('[SalesPage] Customers error stack:', error.stack);
+      console.error('[SalesPage] Customers error response:', error.response);
       DebugLogger.logApiError('/customers', error, 'SalesPage');
       handleApiErrorWithToast(error, 'Failed to fetch customers');
       setCustomers([]);
