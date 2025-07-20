@@ -330,6 +330,30 @@ const CustomProductForm = ({
             grid-template-columns: 1fr 1fr;
           }
         }
+        
+        @media (max-width: 639px) {
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+          
+          .form-input,
+          .form-select,
+          .form-textarea {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem;
+            height: auto;
+            min-height: 3rem;
+          }
+          
+          .form-buttons {
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+          
+          .btn {
+            width: 100%;
+          }
+        }
       `}</style>
 
       <form ref={formRef} onSubmit={handleSubmit}>

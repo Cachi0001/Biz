@@ -658,7 +658,17 @@ const Sales = () => {
                           onChange={(e) => handleUnitPriceChange(e.target.value)}
                           placeholder="0.00"
                           className="h-12 text-base touch-manipulation"
+                          readOnly={!!formData.product_id}
+                          style={{ 
+                            backgroundColor: formData.product_id ? '#f3f4f6' : 'white',
+                            cursor: formData.product_id ? 'not-allowed' : 'text'
+                          }}
                         />
+                        {formData.product_id && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Price from selected product. Edit product to change price.
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-2">

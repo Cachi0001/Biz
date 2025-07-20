@@ -434,6 +434,43 @@ const CustomInvoiceForm = ({
             grid-template-columns: 1fr 1fr 1fr 1fr;
           }
         }
+        
+        @media (max-width: 639px) {
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+          
+          .item-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+          
+          .form-input,
+          .form-select,
+          .form-textarea {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem;
+            height: auto;
+            min-height: 3rem;
+          }
+          
+          .item-card {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+          }
+          
+          .form-buttons {
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+          
+          .btn {
+            width: 100%;
+          }
+        }
       `}</style>
 
       <form ref={formRef} onSubmit={handleSubmit}>
@@ -602,7 +639,17 @@ const CustomInvoiceForm = ({
                     value={item.unit_price}
                     onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
                     required
+                    readOnly={!!item.product_id}
+                    style={{ 
+                      backgroundColor: item.product_id ? '#f3f4f6' : 'white',
+                      cursor: item.product_id ? 'not-allowed' : 'text'
+                    }}
                   />
+                  {item.product_id && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Price from selected product. Edit product to change price.
+                    </div>
+                  )}
                   {getItemFieldError(index, 'unit_price') && (
                     <div className="error-message">{getItemFieldError(index, 'unit_price')}</div>
                   )}
