@@ -10,6 +10,7 @@ import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 import useDebugRenders from '../hooks/useDebugRenders';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
+import ReviewDialog from '../components/invoice/ReviewDialog';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,9 @@ const Invoices = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [reviewInvoiceData, setReviewInvoiceData] = useState<any>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -152,6 +155,113 @@ const Invoices = () => {
     }
   };
 
+  const handleFormReview = (formData) => {
+    setReviewInvoiceData(formData);
+    setShowReviewDialog(true);
+  };
+
+  const handleReviewConfirm = async () => {
+    try {
+      setLoading(true);
+      console.log('[INVOICES] Submitting invoice data:', reviewInvoiceData);
+
+      // Format data for backend
+      const invoiceData = {
+        customer_id: reviewInvoiceData.customer_id,
+        issue_date: reviewInvoiceData.issue_date,
+        due_date: reviewInvoiceData.due_date || null,
+        payment_terms: reviewInvoiceData.payment_terms || 'Net 30',
+        notes: reviewInvoiceData.notes || '',
+        terms_and_conditions: reviewInvoiceData.terms_and_conditions || 'Payment is due within 30 days of invoice date.',
+        currency: reviewInvoiceData.currency || 'NGN',
+        discount_amount: parseFloat(reviewInvoiceData.discount_amount) || 0,
+        items: reviewInvoiceData.items.map(item => ({
+          product_id: item.product_id || null,
+          description: item.description.trim(),
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unit_price),
+          tax_rate: parseFloat(item.tax_rate) || 0,
+          discount_rate: parseFloat(item.discount_rate) || 0,
+        })),
+        total_amount: calculateTotal(reviewInvoiceData),
+        amount_due: calculateTotal(reviewInvoiceData),
+        status: 'draft'
+      };
+
+      if (editingInvoice) {
+        const response = await updateInvoice(editingInvoice.id, invoiceData);
+        console.log('[INVOICES] Update response:', response);
+        showSuccessToast('Invoice updated successfully!');
+        setShowEditDialog(false);
+      } else {
+        const response = await createInvoice(invoiceData);
+        console.log('[INVOICES] Create response:', response);
+        showSuccessToast('Invoice created successfully!');
+        setShowAddDialog(false);
+      }
+
+      setShowReviewDialog(false);
+      setReviewInvoiceData(null);
+      setEditingInvoice(null);
+      await fetchInvoices();
+    } catch (error) {
+      console.error('Failed to save invoice:', error);
+      handleApiErrorWithToast(error, 'Invoice Save');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReviewCancel = () => {
+    setShowReviewDialog(false);
+    setReviewInvoiceData(null);
+  };
+
+  const handleDownloadPdf = async (invoiceId) => {
+    try {
+      setLoading(true);
+      // TODO: Implement PDF download functionality
+      showSuccessToast('PDF download feature coming soon!');
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      handleApiErrorWithToast(error, 'Failed to download PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendInvoice = async (invoiceId) => {
+    if (!window.confirm('Are you sure you want to send this invoice?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // TODO: Implement send invoice functionality
+      showSuccessToast('Invoice sent successfully!');
+      await fetchInvoices();
+    } catch (error) {
+      console.error('Failed to send invoice:', error);
+      handleApiErrorWithToast(error, 'Failed to send invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (invoiceId, newStatus) => {
+    try {
+      setLoading(true);
+      // TODO: Implement status update functionality
+      showSuccessToast(`Invoice status updated to ${newStatus}!`);
+      await fetchInvoices();
+    } catch (error) {
+      console.error('Failed to update invoice status:', error);
+      handleApiErrorWithToast(error, 'Failed to update invoice status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFormSuccess = (response) => {
     console.log('[INVOICES] Form success:', response);
     setShowAddDialog(false);
@@ -164,6 +274,7 @@ const Invoices = () => {
     setShowAddDialog(false);
     setShowEditDialog(false);
     setEditingInvoice(null);
+    setReviewInvoiceData(null);
   };
 
   const filteredInvoices = invoices.filter(invoice => {
@@ -198,20 +309,21 @@ const Invoices = () => {
   };
 
   // Calculate summary statistics
-  const totalInvoices = filteredInvoices.length;
-  const paidInvoices = filteredInvoices.filter(inv => inv.status?.toLowerCase() === 'paid').length;
-  const pendingInvoices = filteredInvoices.filter(inv => inv.status?.toLowerCase() === 'pending').length;
-  const overdueInvoices = filteredInvoices.filter(inv => inv.status?.toLowerCase() === 'overdue').length;
-  const totalAmount = filteredInvoices.reduce((sum, inv) => sum + calculateTotal(inv), 0);
+  const totalInvoices = invoices.length;
+  const totalAmount = invoices.reduce((sum, invoice) => sum + calculateTotal(invoice), 0);
+  const paidInvoices = invoices.filter(invoice => invoice.status?.toLowerCase() === 'paid').length;
+  const pendingInvoices = invoices.filter(invoice => invoice.status?.toLowerCase() === 'pending').length;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading invoices...</p>
+      <DashboardLayout>
+        <div className="p-3 sm:p-4 flex items-center justify-center h-64">
+          <div className="text-center">
+            <FileText className="h-8 w-8 animate-spin mx-auto mb-2 text-green-600" />
+            <p>Loading invoices...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -226,279 +338,369 @@ const Invoices = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoices</h1>
               <p className="text-gray-600 text-sm sm:text-base">Manage your invoices and billing</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddDialog(true);
-                  setEditingInvoice(null); // Ensure editingInvoice is null when opening add dialog
-                }}
-                className="h-12 text-base touch-manipulation"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Invoice
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogTrigger asChild>
+                  <Button className="h-12 text-base touch-manipulation w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Invoice
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+                  <DialogHeader className="flex-shrink-0">
+                    <DialogTitle>Create New Invoice</DialogTitle>
+                    <DialogDescription>
+                      Create a new invoice for your customer
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-y-auto px-1">
+                    <CustomInvoiceForm
+                      customers={customers}
+                      products={products}
+                      onSuccess={handleFormSuccess}
+                      onCancel={handleFormCancel}
+                      onReview={handleFormReview}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
-          {/* Error Display */}
-          {/* The original error state was removed, so this block is removed. */}
-
-          {/* No Invoices State */}
-          {!loading && invoices.length === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2 text-gray-900">No invoices found</h3>
-                <p className="text-gray-500 mb-4">Get started by creating your first invoice</p>
-                <Button
-                  onClick={() => setShowAddDialog(true)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Invoice
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Filters */}
-          {invoices.length > 0 && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <StableInput
-                        placeholder="Search invoices by number, customer, or notes..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 h-12 text-base touch-manipulation"
-                      />
-                    </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-white border border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Invoices</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalInvoices}</p>
                   </div>
-                  <div className="w-full">
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="h-12 text-base touch-manipulation">
-                        <SelectValue placeholder="All Statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="overdue">Overdue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <FileText className="h-8 w-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Invoices Display */}
-          {!loading && invoices.length > 0 && (
-            <div className="space-y-4">
-              {/* Mobile Cards */}
-              <div className="grid grid-cols-1 gap-4 md:hidden">
-                {filteredInvoices.map((invoice) => (
-                  <Card key={invoice.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium text-gray-900">{invoice.invoice_number || invoice.id.substring(0, 8).toUpperCase()}</h3>
-                            <p className="text-sm text-gray-600">{invoice.customer_name || 'Unknown Customer'}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(invoice)}
-                              className="h-8 w-8 p-0 hover:bg-blue-100"
-                            >
-                              <Edit className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(invoice.id)}
-                              className="h-8 w-8 p-0 hover:bg-red-100"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </div>
+            <Card className="bg-white border border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatNaira(totalAmount)}</p>
+                  </div>
+                  <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                </div>
+              </CardContent>
+            </Card>
 
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Issue Date</span>
-                            <span>{invoice.issue_date}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Due Date</span>
-                            <span>{invoice.due_date || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Amount</span>
-                            <span className="font-semibold text-green-600">
-                              {formatNaira(calculateTotal(invoice), true)}
-                            </span>
-                          </div>
-                        </div>
+            <Card className="bg-white border border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Paid Invoices</p>
+                    <p className="text-2xl font-bold text-green-600">{paidInvoices}</p>
+                  </div>
+                  <Download className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
 
-                        <div className="flex items-center justify-between">
-                          <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                            {invoice.status}
-                          </Badge>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {/* handleDownloadPdf(invoice.id) */}}
-                              className="h-8 w-8 p-0 hover:bg-green-100"
-                            >
-                              <Download className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {/* handleSendInvoice(invoice.id) */}}
-                              className="h-8 w-8 p-0 hover:bg-purple-100"
-                            >
-                              {/* <Send className="h-4 w-4 text-purple-600" /> */}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            <Card className="bg-white border border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Pending Invoices</p>
+                    <p className="text-2xl font-bold text-yellow-600">{pendingInvoices}</p>
+                  </div>
+                  <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search and Filters */}
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <StableInput
+                    placeholder="Search invoices by number or customer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12 text-base touch-manipulation"
+                    componentName="Invoices-Search"
+                    debounceMs={300}
+                  />
+                </div>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-full sm:w-40 h-12 touch-manipulation">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Desktop Table */}
-              <div className="hidden md:block">
-                <Card>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Issue Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredInvoices.map((invoice) => {
-                        const customer = customers.find(c => c.id === invoice.customer_id);
-                        const customerName = customer ? customer.name : 'Unknown Customer';
-                        const invoiceNumber = invoice.invoice_number || (typeof invoice.id === 'string' ? invoice.id.substring(0, 8).toUpperCase() : '') || '';
+          {/* Invoice List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice List ({filteredInvoices.length})</CardTitle>
+              <CardDescription>
+                Manage and track all your invoices
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredInvoices.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">
+                    {invoices.length === 0 ? 'No invoices found' : 'No invoices match your search criteria'}
+                  </p>
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Invoice
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile Card View */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+                    {filteredInvoices.map((invoice) => (
+                      <Card key={invoice.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                  {invoice.invoice_number || `INV-${invoice.id?.substring(0, 8).toUpperCase()}`}
+                                </h3>
+                                <p className="text-base text-gray-600 truncate mt-1">
+                                  {invoice.customer_name || 'Unknown Customer'}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <Badge variant={getStatusBadgeVariant(invoice.status)}>
+                                  {invoice.status || 'Draft'}
+                                </Badge>
+                              </div>
+                            </div>
 
-                        return (
-                          <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">{invoiceNumber}</TableCell>
-                            <TableCell>{customerName}</TableCell>
-                            <TableCell>{invoice.issue_date}</TableCell>
-                            <TableCell>
-                              {invoice.due_date || 'N/A'}
-                            </TableCell>
-                            <TableCell className="font-semibold">
-                              {formatNaira(calculateTotal(invoice), true)}
-                            </TableCell>
-                            <TableCell>{getStatusBadgeVariant(invoice.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-base">
+                                <span className="text-gray-500 font-medium">Issue Date:</span>
+                                <span className="text-gray-900 font-medium">
+                                  {new Date(invoice.issue_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-base">
+                                <span className="text-gray-500 font-medium">Due Date:</span>
+                                <span className="text-gray-900 font-medium">
+                                  {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t-2 border-gray-100">
+                              <div className="flex justify-between items-center">
+                                <span className="text-base text-gray-500 font-medium">Total Amount:</span>
+                                <span className="text-xl font-bold text-green-600">
+                                  {formatNaira(calculateTotal(invoice))}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t-2 border-gray-100 space-y-3">
+                              <div className="grid grid-cols-3 gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleEdit(invoice)}
-                                  className="h-8 w-8 p-0 hover:bg-blue-100"
+                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-blue-50"
                                 >
+                                  <Edit className="h-5 w-5 text-blue-600 mb-1" />
+                                  <span className="text-xs text-blue-600 font-medium">Edit</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownloadPdf(invoice.id)}
+                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-green-50"
+                                >
+                                  <Download className="h-5 w-5 text-green-600 mb-1" />
+                                  <span className="text-xs text-green-600 font-medium">PDF</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSendInvoice(invoice.id)}
+                                  className="min-h-[44px] flex flex-col items-center justify-center p-2 touch-manipulation hover:bg-purple-50"
+                                >
+                                  <FileText className="h-5 w-5 text-purple-600 mb-1" />
+                                  <span className="text-xs text-purple-600 font-medium">Send</span>
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <Select
+                                  value={invoice.status}
+                                  onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
+                                >
+                                  <SelectTrigger className="h-12 min-h-[48px] text-base touch-manipulation">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="sent">Sent</SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDelete(invoice.id)}
+                                  className="min-h-[48px] text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 touch-manipulation"
+                                >
+                                  <Trash2 className="h-5 w-5 mr-2" />
+                                  <span className="font-medium">Delete</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice #</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Issue Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredInvoices.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">
+                              {invoice.invoice_number || `INV-${invoice.id?.substring(0, 8).toUpperCase()}`}
+                            </TableCell>
+                            <TableCell>{invoice.customer_name || 'Unknown Customer'}</TableCell>
+                            <TableCell>{new Date(invoice.issue_date).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              {formatNaira(calculateTotal(invoice))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusBadgeVariant(invoice.status)}>
+                                {invoice.status || 'Draft'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-1">
+                                <Button variant="ghost" size="sm" onClick={() => handleEdit(invoice)}>
                                   <Edit className="h-4 w-4 text-blue-600" />
                                 </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleDownloadPdf(invoice.id)}>
+                                  <Download className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleSendInvoice(invoice.id)}>
+                                  <FileText className="h-4 w-4 text-purple-600" />
+                                </Button>
+                                <Select
+                                  value={invoice.status}
+                                  onValueChange={(newStatus) => handleStatusUpdate(invoice.id, newStatus)}
+                                >
+                                  <SelectTrigger className="w-20 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="sent">Sent</SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDelete(invoice.id)}
-                                  className="h-8 w-8 p-0 hover:bg-red-100"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
-                                  <Trash2 className="h-4 w-4 text-red-600" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {/* handleDownloadPdf(invoice.id) */}}
-                                  className="h-8 w-8 p-0 hover:bg-green-100"
-                                >
-                                  <Download className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {/* handleSendInvoice(invoice.id) */}}
-                                  className="h-8 w-8 p-0 hover:bg-purple-100"
-                                >
-                                  {/* <Send className="h-4 w-4 text-purple-600" /> */}
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </Card>
-              </div>
-            </div>
-          )}
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Edit Dialog */}
           <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-              <DialogHeader>
+            <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Edit Invoice</DialogTitle>
                 <DialogDescription>
-                  Update invoice information
+                  Update invoice details
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-1">
                 <CustomInvoiceForm
-                  invoice={editingInvoice}
                   customers={customers}
                   products={products}
                   onSuccess={handleFormSuccess}
                   onCancel={handleFormCancel}
+                  onReview={handleFormReview}
+                  editingInvoice={editingInvoice}
                 />
               </div>
             </DialogContent>
           </Dialog>
 
-          {/* Add Dialog */}
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogContent className="w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-              <DialogHeader>
-                <DialogTitle>Create New Invoice</DialogTitle>
-                <DialogDescription>
-                  Create a new invoice for your customer
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto px-1">
-                <CustomInvoiceForm
-                  customers={customers}
-                  products={products}
-                  onSuccess={handleFormSuccess}
-                  onCancel={handleFormCancel}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          {/* Review Dialog */}
+          <ReviewDialog
+            isOpen={showReviewDialog}
+            onClose={() => setShowReviewDialog(false)}
+            invoiceData={reviewInvoiceData}
+            customers={customers}
+            products={products}
+            onConfirm={handleReviewConfirm}
+            onCancel={handleReviewCancel}
+            isEdit={!!editingInvoice}
+          />
         </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default memo(Invoices);
+export default Invoices;

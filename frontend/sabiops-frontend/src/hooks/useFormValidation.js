@@ -1,264 +1,204 @@
-import { useState, useCallback, useRef } from 'react';
-import { 
-  validateInvoiceForm, 
-  validateField, 
-  validateInvoiceItem,
-  debounceValidation,
-  shouldShowFieldError 
-} from '../services/validationService';
+import { useState, useCallback } from 'react';
 
-/**
- * Enhanced form validation hook with real-time validation and error state management
- */
-export const useFormValidation = (initialData = {}) => {
+export const useFormValidation = (initialData) => {
   const [errors, setErrors] = useState({});
   const [itemErrors, setItemErrors] = useState([]);
   const [touchedFields, setTouchedFields] = useState(new Set());
   const [isValidating, setIsValidating] = useState(false);
-  const [isValid, setIsValid] = useState(true);
-  
-  // Debounced validation to prevent excessive calls
-  const debouncedValidateField = useRef(
-    debounceValidation((fieldName, value, formData) => {
-      const error = validateField(fieldName, value);
-      setErrors(prev => ({
-        ...prev,
-        [fieldName]: error
-      }));
-      return error;
-    }, 300)
-  ).current;
 
-  const debouncedValidateItem = useRef(
-    debounceValidation((itemIndex, item) => {
-      const itemValidationErrors = validateInvoiceItem(item, itemIndex);
-      setItemErrors(prev => {
-        const newItemErrors = [...prev];
-        newItemErrors[itemIndex] = itemValidationErrors;
-        return newItemErrors;
-      });
-      return itemValidationErrors;
-    }, 300)
-  ).current;
-
-  /**
-   * Mark a field as touched
-   */
   const touchField = useCallback((fieldName) => {
     setTouchedFields(prev => new Set([...prev, fieldName]));
   }, []);
 
-  /**
-   * Mark an item field as touched
-   */
-  const touchItemField = useCallback((itemIndex, fieldName) => {
-    const itemFieldName = `items.${itemIndex}.${fieldName}`;
-    setTouchedFields(prev => new Set([...prev, itemFieldName]));
-  }, []);
-
-  /**
-   * Validate a single field
-   */
-  const validateSingleField = useCallback(async (fieldName, value, formData = {}) => {
-    setIsValidating(true);
-    try {
-      const error = await debouncedValidateField(fieldName, value, formData);
-      return error;
-    } finally {
-      setIsValidating(false);
-    }
-  }, [debouncedValidateField]);
-
-  /**
-   * Validate a single item field
-   */
-  const validateItemField = useCallback(async (itemIndex, fieldName, item) => {
-    setIsValidating(true);
-    try {
-      const itemErrors = await debouncedValidateItem(itemIndex, item);
-      return itemErrors[fieldName] || null;
-    } finally {
-      setIsValidating(false);
-    }
-  }, [debouncedValidateItem]);
-
-  /**
-   * Validate entire form
-   */
-  const validateForm = useCallback((formData) => {
-    setIsValidating(true);
-    
-    const validationResult = validateInvoiceForm(formData);
-    
-    setErrors(validationResult.formErrors);
-    setItemErrors(validationResult.itemErrors);
-    setIsValid(!validationResult.hasErrors);
-    setIsValidating(false);
-    
-    return validationResult;
-  }, []);
-
-  /**
-   * Clear all errors
-   */
-  const clearErrors = useCallback(() => {
-    setErrors({});
-    setItemErrors([]);
-    setTouchedFields(new Set());
-    setIsValid(true);
-  }, []);
-
-  /**
-   * Clear errors for a specific field
-   */
-  const clearFieldError = useCallback((fieldName) => {
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldName];
+  const touchItemField = useCallback((index, fieldName) => {
+    setItemErrors(prev => {
+      const newErrors = [...prev];
+      if (!newErrors[index]) newErrors[index] = {};
+      newErrors[index] = { ...newErrors[index], touched: true };
       return newErrors;
     });
   }, []);
 
-  /**
-   * Clear errors for a specific item field
-   */
-  const clearItemFieldError = useCallback((itemIndex, fieldName) => {
-    setItemErrors(prev => {
-      const newItemErrors = [...prev];
-      if (newItemErrors[itemIndex]) {
-        const updatedItemErrors = { ...newItemErrors[itemIndex] };
-        delete updatedItemErrors[fieldName];
-        newItemErrors[itemIndex] = updatedItemErrors;
-      }
-      return newItemErrors;
-    });
+  const validateSingleField = useCallback(async (fieldName, value, formData) => {
+    const fieldErrors = {};
+    
+    switch (fieldName) {
+      case 'customer_id':
+        if (!value) fieldErrors[fieldName] = 'Customer is required';
+        break;
+      case 'issue_date':
+        if (!value) fieldErrors[fieldName] = 'Issue date is required';
+        break;
+      case 'due_date':
+        if (value && new Date(value) < new Date(formData.issue_date)) {
+          fieldErrors[fieldName] = 'Due date cannot be before issue date';
+        }
+        break;
+      case 'discount_amount':
+        if (value < 0) fieldErrors[fieldName] = 'Discount cannot be negative';
+        break;
+    }
+
+    setErrors(prev => ({ ...prev, ...fieldErrors }));
+    return Object.keys(fieldErrors).length === 0;
   }, []);
 
-  /**
-   * Get error for a specific field (only if touched)
-   */
-  const getFieldError = useCallback((fieldName) => {
-    return shouldShowFieldError(fieldName, touchedFields, errors) ? errors[fieldName] : null;
-  }, [errors, touchedFields]);
-
-  /**
-   * Get error for a specific item field (only if touched)
-   */
-  const getItemFieldError = useCallback((itemIndex, fieldName) => {
-    const itemFieldName = `items.${itemIndex}.${fieldName}`;
-    const itemError = itemErrors[itemIndex];
-    return shouldShowFieldError(itemFieldName, touchedFields, itemError || {}) 
-      ? itemError?.[fieldName] 
-      : null;
-  }, [itemErrors, touchedFields]);
-
-  /**
-   * Check if a field has an error (regardless of touched state)
-   */
-  const hasFieldError = useCallback((fieldName) => {
-    return Boolean(errors[fieldName]);
-  }, [errors]);
-
-  /**
-   * Check if an item field has an error (regardless of touched state)
-   */
-  const hasItemFieldError = useCallback((itemIndex, fieldName) => {
-    return Boolean(itemErrors[itemIndex]?.[fieldName]);
-  }, [itemErrors]);
-
-  /**
-   * Get all visible errors (only touched fields)
-   */
-  const getVisibleErrors = useCallback(() => {
-    const visibleErrors = {};
+  const validateItemField = useCallback(async (index, fieldName, item) => {
+    const fieldErrors = {};
     
-    // Form field errors
-    Object.keys(errors).forEach(fieldName => {
-      if (shouldShowFieldError(fieldName, touchedFields, errors)) {
-        visibleErrors[fieldName] = errors[fieldName];
-      }
-    });
-    
-    // Item field errors
-    const visibleItemErrors = [];
-    itemErrors.forEach((itemError, index) => {
-      if (itemError) {
-        const visibleItemError = {};
-        Object.keys(itemError).forEach(fieldName => {
-          const itemFieldName = `items.${index}.${fieldName}`;
-          if (shouldShowFieldError(itemFieldName, touchedFields, itemError)) {
-            visibleItemError[fieldName] = itemError[fieldName];
-          }
-        });
-        if (Object.keys(visibleItemError).length > 0) {
-          visibleItemErrors[index] = visibleItemError;
+    switch (fieldName) {
+      case 'description':
+        if (!item.description || !item.description.trim()) {
+          fieldErrors[fieldName] = 'Description is required';
         }
-      }
+        break;
+      case 'quantity':
+        if (!item.quantity || parseFloat(item.quantity) <= 0) {
+          fieldErrors[fieldName] = 'Quantity must be greater than 0';
+        }
+        break;
+      case 'unit_price':
+        if (!item.unit_price || parseFloat(item.unit_price) < 0) {
+          fieldErrors[fieldName] = 'Unit price must be 0 or greater';
+        }
+        break;
+      case 'tax_rate':
+        if (item.tax_rate < 0 || item.tax_rate > 100) {
+          fieldErrors[fieldName] = 'Tax rate must be between 0 and 100';
+        }
+        break;
+      case 'discount_rate':
+        if (item.discount_rate < 0 || item.discount_rate > 100) {
+          fieldErrors[fieldName] = 'Discount rate must be between 0 and 100';
+        }
+        break;
+    }
+
+    setItemErrors(prev => {
+      const newErrors = [...prev];
+      if (!newErrors[index]) newErrors[index] = {};
+      newErrors[index] = { ...newErrors[index], ...fieldErrors };
+      return newErrors;
     });
     
-    return {
-      formErrors: visibleErrors,
-      itemErrors: visibleItemErrors,
-      hasVisibleErrors: Object.keys(visibleErrors).length > 0 || visibleItemErrors.length > 0
-    };
-  }, [errors, itemErrors, touchedFields]);
+    return Object.keys(fieldErrors).length === 0;
+  }, []);
 
-  /**
-   * Get all errors (including untouched fields) - useful for form submission
-   */
-  const getAllErrors = useCallback(() => {
-    return {
-      formErrors: errors,
-      itemErrors: itemErrors,
-      hasErrors: Object.keys(errors).length > 0 || itemErrors.some(item => item && Object.keys(item).length > 0)
-    };
-  }, [errors, itemErrors]);
+  const validateForm = useCallback((formData) => {
+    const formErrors = {};
+    const itemErrorsArray = [];
 
-  /**
-   * Set external errors (e.g., from API responses)
-   */
-  const setExternalErrors = useCallback((externalErrors) => {
-    if (externalErrors.formErrors) {
-      setErrors(prev => ({ ...prev, ...externalErrors.formErrors }));
+    // Validate main form fields
+    if (!formData.customer_id) {
+      formErrors.customer_id = 'Customer is required';
     }
-    if (externalErrors.itemErrors) {
-      setItemErrors(prev => {
-        const newItemErrors = [...prev];
-        externalErrors.itemErrors.forEach((itemError, index) => {
-          if (itemError) {
-            newItemErrors[index] = { ...newItemErrors[index], ...itemError };
-          }
-        });
-        return newItemErrors;
+    if (!formData.issue_date) {
+      formErrors.issue_date = 'Issue date is required';
+    }
+    if (formData.due_date && new Date(formData.due_date) < new Date(formData.issue_date)) {
+      formErrors.due_date = 'Due date cannot be before issue date';
+    }
+    if (formData.discount_amount < 0) {
+      formErrors.discount_amount = 'Discount cannot be negative';
+    }
+
+    // Validate items
+    if (!formData.items || formData.items.length === 0) {
+      formErrors.items = 'At least one item is required';
+    } else {
+      formData.items.forEach((item, index) => {
+        const itemError = {};
+        if (!item.description || !item.description.trim()) {
+          itemError.description = 'Description is required';
+        }
+        if (!item.quantity || parseFloat(item.quantity) <= 0) {
+          itemError.quantity = 'Quantity must be greater than 0';
+        }
+        if (!item.unit_price || parseFloat(item.unit_price) < 0) {
+          itemError.unit_price = 'Unit price must be 0 or greater';
+        }
+        if (item.tax_rate < 0 || item.tax_rate > 100) {
+          itemError.tax_rate = 'Tax rate must be between 0 and 100';
+        }
+        if (item.discount_rate < 0 || item.discount_rate > 100) {
+          itemError.discount_rate = 'Discount rate must be between 0 and 100';
+        }
+        itemErrorsArray[index] = itemError;
       });
     }
+
+    setErrors(formErrors);
+    setItemErrors(itemErrorsArray);
+
+    const hasFormErrors = Object.keys(formErrors).length > 0;
+    const hasItemErrors = itemErrorsArray.some(item => Object.keys(item).length > 0);
+
+    return {
+      hasErrors: hasFormErrors || hasItemErrors,
+      formErrors,
+      itemErrors: itemErrorsArray
+    };
   }, []);
 
+  const clearErrors = useCallback(() => {
+    setErrors({});
+    setItemErrors([]);
+    setTouchedFields(new Set());
+  }, []);
+
+  const getFieldError = useCallback((fieldName) => {
+    return errors[fieldName];
+  }, [errors]);
+
+  const getItemFieldError = useCallback((index, fieldName) => {
+    return itemErrors[index]?.[fieldName];
+  }, [itemErrors]);
+
+  const hasFieldError = useCallback((fieldName) => {
+    return !!errors[fieldName];
+  }, [errors]);
+
+  const hasItemFieldError = useCallback((index, fieldName) => {
+    return !!itemErrors[index]?.[fieldName];
+  }, [itemErrors]);
+
+  const getAllErrors = useCallback(() => {
+    const allErrors = [];
+    Object.values(errors).forEach(error => allErrors.push(error));
+    itemErrors.forEach((itemError, index) => {
+      if (itemError) {
+        Object.values(itemError).forEach(error => {
+          allErrors.push(`Item ${index + 1}: ${error}`);
+        });
+      }
+    });
+    return allErrors;
+  }, [errors, itemErrors]);
+
+  const setExternalErrors = useCallback((newErrors) => {
+    setErrors(newErrors);
+  }, []);
+
+  const isValid = Object.keys(errors).length === 0 && 
+    itemErrors.every(item => !item || Object.keys(item).length === 0);
+
   return {
-    // State
     errors,
     itemErrors,
     touchedFields,
     isValidating,
     isValid,
-    
-    // Actions
     touchField,
     touchItemField,
     validateSingleField,
     validateItemField,
     validateForm,
     clearErrors,
-    clearFieldError,
-    clearItemFieldError,
-    setExternalErrors,
-    
-    // Getters
     getFieldError,
     getItemFieldError,
     hasFieldError,
     hasItemFieldError,
-    getVisibleErrors,
-    getAllErrors
+    getAllErrors,
+    setExternalErrors
   };
 };
