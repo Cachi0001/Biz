@@ -121,28 +121,39 @@ const Sales = () => {
         }
       });
 
-      let salesData = [];
-      if (response?.data?.sales && Array.isArray(response.data.sales)) {
-        salesData = response.data.sales;
-      } else if (response?.data && Array.isArray(response.data)) {
-        salesData = response.data;
-      } else if (Array.isArray(response)) {
-        salesData = response;
+      // Use the original working logic
+      if (response?.data) {
+        setSalesStats(response.data);
+      } else {
+        // Fallback calculation if response.data doesn't exist
+        let salesData = [];
+        if (response?.sales && Array.isArray(response.sales)) {
+          salesData = response.sales;
+        } else if (Array.isArray(response)) {
+          salesData = response;
+        }
+
+        const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
+        const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
+        const totalTransactions = salesData.length;
+        const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+
+        setSalesStats({
+          total_sales: totalSales,
+          total_transactions: totalTransactions,
+          total_quantity: totalQuantity,
+          average_sale: averageSale
+        });
       }
-
-      const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
-      const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
-      const totalTransactions = salesData.length;
-      const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0;
-
-      setSalesStats({
-        total_sales: totalSales,
-        total_transactions: totalTransactions,
-        total_quantity: totalQuantity,
-        average_sale: averageSale
-      });
     } catch (error) {
       console.error('Error fetching sales stats:', error);
+      // Set default stats on error
+      setSalesStats({
+        total_sales: 0,
+        total_transactions: 0,
+        total_quantity: 0,
+        average_sale: 0
+      });
     }
   };
 
@@ -261,7 +272,7 @@ const Sales = () => {
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  onClick={() => window.location.href = '/sales-report'}
+                  onClick={() => window.location.href = '/sales/report'}
                   variant="outline"
                   className="h-11 px-6 text-sm font-medium"
                 >
@@ -622,13 +633,13 @@ const Sales = () => {
                   <div className="space-y-2">
                     <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
                     <Select
-                      value={formData.customer_id}
+                      value={formData.customer_id || 'walkin'}
                       onValueChange={(value) => {
                         const customer = customers.find(c => c.id === value);
                         setFormData(prev => ({
                           ...prev,
-                          customer_id: value,
-                          customer_name: customer ? customer.name : ''
+                          customer_id: value === 'walkin' ? '' : value,
+                          customer_name: customer ? customer.name : (value === 'walkin' ? 'Walk-in Customer' : '')
                         }));
                       }}
                     >
@@ -636,7 +647,7 @@ const Sales = () => {
                         <SelectValue placeholder="Select customer" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Walk-in Customer</SelectItem>
+                        <SelectItem value="walkin">Walk-in Customer</SelectItem>
                         {customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.name}
