@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { verifyToken, login as apiLogin, register as apiRegister } from '../services/api';
-import { toast } from 'react-hot-toast';
+import toastService from '../services/ToastService';
 import notificationService from '../services/notificationService';
 import usageTrackingService from '../services/usageTrackingService';
 
@@ -112,16 +112,16 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('token', response.data.access_token);
           setIsAuthenticated(true);
           await checkAuth(); // Re-check auth to get updated user data
-          toast.success('Login successful! Welcome back.');
+          toastService.success('Login successful');
           return { success: true };
         } else {
           console.warn('[AUTH] Login successful but access_token is missing');
-          toast.error('Login failed: Invalid response from server');
+          toastService.error('Login failed: Invalid response from server');
           return { success: false, message: 'Invalid response from server' };
         }
       } else {
         const errorMessage = response.message || 'Login failed';
-        toast.error(errorMessage);
+        toastService.error(errorMessage);
         return { success: false, message: errorMessage };
       }
     } catch (error) {
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
         errorMessage = error.message;
       }
 
-      toast.error(errorMessage, {
+      toastService.error(errorMessage, {
         duration: 5000,
         position: 'top-center'
       });
@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }) => {
         return { success: true, message: 'Registration successful' };
       } else {
         const errorMessage = response.message || 'Registration failed';
-        toast.error(errorMessage);
+        toastService.error(errorMessage);
         return { success: false, message: errorMessage };
       }
     } catch (error) {
@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }) => {
         errorMessage = error.message;
       }
 
-      toast.error(errorMessage, {
+      toastService.error(errorMessage, {
         duration: 5000,
         position: 'top-center'
       });
@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     notificationService.stopPollingOnLogout();
     // Stop usage tracking when user logs out
     usageTrackingService.stopTracking();
-    toast.success('Logged out successfully!');
+    toastService.success('Logged out successfully!');
   };
 
   return (

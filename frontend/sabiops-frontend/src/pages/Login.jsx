@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import toastService from '../services/ToastService';
 import { useAuth } from '../contexts/AuthContext';
 import BackButton from '@/components/ui/BackButton';
 
@@ -21,11 +21,11 @@ const Login = () => {
     
     // Basic validation
     if (!email.trim()) {
-      toast.error('Please enter your email address');
+      toastService.error('Please enter your email address');
       return;
     }
     if (!password.trim()) {
-      toast.error('Please enter your password');
+      toastService.error('Please enter your password');
       return;
     }
     
@@ -44,7 +44,7 @@ const Login = () => {
       // Error handling is now done in the auth context
     } catch (err) {
       console.error('[LOGIN] Unexpected error:', err);
-      toast.error('An unexpected error occurred. Please try again.');
+      toastService.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

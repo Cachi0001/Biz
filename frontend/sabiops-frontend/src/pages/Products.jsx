@@ -142,6 +142,17 @@ const Products = () => {
 
   const handleFormSuccess = (response) => {
     console.log('[PRODUCTS] Form success:', response);
+    const isEditing = !!editingProduct;
+    
+    // Show success toast with proper message
+    if (window.showSuccessToast) {
+      window.showSuccessToast(
+        isEditing ? 'Product updated successfully!' : 'Product created successfully!'
+      );
+    } else {
+      toast.success(isEditing ? 'Product updated successfully!' : 'Product created successfully!');
+    }
+    
     setShowAddDialog(false);
     setShowEditDialog(false);
     setEditingProduct(null);

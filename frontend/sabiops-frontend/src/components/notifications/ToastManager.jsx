@@ -157,8 +157,17 @@ const ToastManager = () => {
   // Expose addToast function globally
   useEffect(() => {
     window.addToast = addToast;
+    window.showSuccessToast = (message, options = {}) => addToast({ type: 'success', message, ...options });
+    window.showErrorToast = (message, options = {}) => addToast({ type: 'error', message, ...options });
+    window.showWarningToast = (message, options = {}) => addToast({ type: 'warning', message, ...options });
+    window.showInfoToast = (message, options = {}) => addToast({ type: 'info', message, ...options });
+    
     return () => {
       delete window.addToast;
+      delete window.showSuccessToast;
+      delete window.showErrorToast;
+      delete window.showWarningToast;
+      delete window.showInfoToast;
     };
   }, [addToast]);
 

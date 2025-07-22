@@ -1,58 +1,61 @@
-# Business Web App Fixes - Todo List
+# MVP CRITICAL FIXES - Priority Order
 
-## Phase 1: Setup project and configure Git credentials ✅
-- [x] Clone GitHub repository
-- [x] Configure global Git credentials
-- [x] Set up Git token for pushing
+## PHASE 1: Backend Infrastructure (1-2 hours)
+### CRITICAL: Fix 500 errors and CORS issues
+1. [ ] Fix CORS configuration in backend
+2. [ ] Fix backend API endpoints returning 500 errors:
+   - `/api/products/stock-status` 
+   - `/api/user/usage-status`
+   - `/api/auth/profile`
+   - `/api/sales` (with date filters)
+3. [ ] Add missing 'phone' column to payments table
+4. [ ] Test all critical endpoints with curl
 
-## Phase 2: Analyze codebase and identify issues ✅
-- [x] Explore project structure
-- [x] Examine Sales.jsx for responsiveness issues
-- [x] Examine SalesReport.jsx for statistics and download functionality
-- [x] Examine CustomInvoiceForm.jsx for input box issues
-- [x] Examine Dashboard.jsx for invoices/expenses line
-- [x] Examine Products.jsx for category structure
+## PHASE 2: Core Business Operations (2-3 hours)
+### Product Management
+5. [ ] Fix product update functionality + add toast notifications
+6. [ ] Fix product dropdown to show stock quantities ("Product Name Qty:5")
+7. [ ] Add real-time stock updates after sales
+8. [ ] Add quantity validation alerts
 
-## Phase 3: Fix record sales page responsiveness for big screens ✅
-- [x] Identify responsiveness issues in Sales.jsx
-- [x] Fix table layout for large screens with proper column widths and styling
-- [x] Improve mobile card view layout with enhanced grid and visual hierarchy
-- [x] Test responsive design across different screen sizes
+### Sales & Profit Tracking
+9. [ ] Fix sales recording to calculate and store profit (selling_price - cost_price)
+10. [ ] Fix dashboard calculations (outstanding, this month stats)
+11. [ ] Implement profit calculation system with date filters
+12. [ ] Fix sales reports to show real data
 
-## Phase 4: Implement sales reports statistics and download functionality ✅
-- [x] Fix sales report statistics calculation in getSalesReport API function
-- [x] Implement proper CSV download functionality with comprehensive data
-- [x] Ensure data comes from sales table with proper field mapping
-- [x] Test download format and content with enhanced CSV structure
+## PHASE 3: Essential Features (2-3 hours)
+### Data Export & Invoice
+13. [ ] Fix CSV download functionality (headers/data mixing issue)
+14. [ ] Fix PDF generation and sending
+15. [ ] Fix invoice update functionality
+16. [ ] Fix payment recording (Paystack integration)
 
-## Phase 5: Fix invoice card input boxes and unit price editability ✅
-- [x] Reduce length of quantity and unit price input boxes in invoice cards with compact styling
-- [x] Make unit price non-editable in sales and invoice forms (except when creating/updating products)
-- [x] Ensure content fits properly in cards with responsive design
-- [x] Test input focus behavior with enhanced CSS styling
+### Settings & User Management
+17. [ ] Fix settings profile update (full_name, business_name only)
+18. [ ] Implement team management system (CRUD for team members)
+19. [ ] Set email_confirmed=true for owners automatically
 
-## Phase 6: Add product categories and subcategories with responsive design ✅
-- [x] Add missing product categories and subcategories with comprehensive category data
-- [x] Implement category and subcategory dropdown functionality with auto-selection
-- [x] Make input boxes responsive for card side-by-side layout
-- [x] Ensure system chooses default subcategory when category is selected
-- [x] Test responsive design for category selection forms
+## PHASE 4: Analytics & Advanced Features (1-2 hours) 
+20. [ ] Fix advanced analytics charts (currently showing random data)
+21. [ ] Implement referral system with tracking links
+22. [ ] Fix global search bar functionality
+23. [ ] Fix push notifications
 
-## Phase 7: Remove dashboard line and adjust card spacing ✅
-- [x] Remove the invoices/expenses/weekly line from dashboard SubscriptionStatus component
-- [x] Adjust card spacing to fill out the space properly
-- [x] Test layout changes for better visual hierarchy
+## TESTING STRATEGY (No localhost)
+- Backend: Use curl commands to test API endpoints
+- Frontend: Build and deploy, test live on Vercel
+- Node.js testing for validation logic
+- Simple backend tests with curl/postman
 
-## Phase 8: Build and deploy to Vercel ✅
-- [x] Run npm build to check for syntax errors (converted TypeScript files to JavaScript)
-- [x] Commit all changes with descriptive commit message
-- [x] Push changes to GitHub repository for Vercel auto-deployment
-- [x] Wait for Vercel auto-deployment to complete (2 minutes as requested)
-- [ ] Test deployed application
+## DEPLOYMENT NOTES
+- Frontend: sabiops.vercel.app
+- Backend: sabiops-backend.vercel.app
+- Database: Supabase
+- Payments: Paystack (test keys already configured)
 
-## Critical Notes:
-- ⚠️ **DO NOT** break input focus functionality - user has already solved this issue
-- ⚠️ Unit price should only be editable when creating/updating products
-- ⚠️ No localhost testing - go straight to build and deploy
-- ⚠️ Be very careful with form input handling to maintain focus behavior
+Each phase should be completed and tested before moving to next phase.
 
+No local host testing, the users prefers build and only nodejs testing for frontend and CURL(api testing) with simple/easy to set up backend testing
+
+'sabiops-backend.vercel.app'

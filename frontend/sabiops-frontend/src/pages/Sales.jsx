@@ -256,7 +256,14 @@ const Sales = () => {
 
       // Use the formatted data from the validator
       await createSale(validation.formattedData);
-      showSuccessToast('Sale recorded successfully!');
+      
+      // Use global toast function if available, otherwise fallback
+      if (window.showSuccessToast) {
+        window.showSuccessToast('Sale recorded successfully!');
+      } else {
+        showSuccessToast('Sale recorded successfully!');
+      }
+      
       setShowAddDialog(false);
       setFormData({
         product_id: '',
@@ -748,23 +755,81 @@ const Sales = () => {
                       value={formData.product_id}
                       onValueChange={(value) => {
                         const product = products.find(p => p.id === value);
-                        setFormData(prev => ({
-                          ...prev,
-                          product_id: value,
-                          unit_price: product ? parseFloat(product.price || product.unit_price || 0) : 0,
-                          total_amount: (product ? parseFloat(product.price || product.unit_price || 0) : 0) * prev.quantity
-                        }));
+                        if (product) {
+                          const productQuantity = parseInt(product.quantity) || 0;
+                          const requestedQuantity = parseInt(formData.quantity) || 1;
+                          
+                          // Check if requested quantity exceeds available stock
+                          if (requestedQuantity > productQuantity && productQuantity > 0) {
+                            if (window.showWarningToast) {
+                              window.showWarningToast(
+                                `Only ${productQuantity} units available for ${product.name}. Quantity adjusted.`
+                              );
+                            }
+                            // Adjust quantity to available stock
+                            setFormData(prev => ({
+                              ...prev,
+                              product_id: value,
+                              unit_price: parseFloat(product.price || product.unit_price || 0),
+                              quantity: productQuantity,
+                              total_amount: productQuantity * parseFloat(product.price || product.unit_price || 0)
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              product_id: value,
+                              unit_price: parseFloat(product.price || product.unit_price || 0),
+                              total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
+                            }));
+                          }
+                          
+                          // Show out of stock warning
+                          if (productQuantity === 0) {
+                            if (window.showErrorToast) {
+                              window.showErrorToast(`${product.name} is out of stock!`);
+                            }
+                          }
+                        }
                       }}
                     >
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue placeholder="Select product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name} - {formatNaira(product.price || product.unit_price || 0)}
-                          </SelectItem>
-                        ))}
+                        {products.map((product) => {
+                          const quantity = parseInt(product.quantity) || 0;
+                          const isOutOfStock = quantity === 0;
+                          const isLowStock = quantity <= 5 && quantity > 0;
+                          
+                          return (
+                            <SelectItem 
+                              key={product.id} 
+                              value={product.id}
+                              disabled={isOutOfStock}
+                              className={isOutOfStock ? 'opacity-50' : ''}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <span className={isOutOfStock ? 'line-through' : ''}>
+                                  {product.name}
+                                </span>
+                                <div className="flex items-center gap-2 ml-2">
+                                  <span className="text-sm text-green-600 font-medium">
+                                    {formatNaira(product.price || product.unit_price || 0)}
+                                  </span>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    isOutOfStock 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : isLowStock 
+                                      ? 'bg-yellow-100 text-yellow-700' 
+                                      : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {isOutOfStock ? 'Out of Stock' : `Qty: ${quantity}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -779,6 +844,33 @@ const Sales = () => {
                       value={formData.quantity}
                       onChange={(e) => {
                         const quantity = parseInt(e.target.value) || 1;
+                        const selectedProduct = products.find(p => p.id === formData.product_id);
+                        
+                        if (selectedProduct) {
+                          const availableQuantity = parseInt(selectedProduct.quantity) || 0;
+                          
+                          if (quantity > availableQuantity && availableQuantity > 0) {
+                            if (window.showWarningToast) {
+                              window.showWarningToast(
+                                `Only ${availableQuantity} units available for ${selectedProduct.name}. Quantity adjusted.`
+                              );
+                            }
+                            setFormData(prev => ({
+                              ...prev,
+                              quantity: availableQuantity,
+                              total_amount: prev.unit_price * availableQuantity
+                            }));
+                            return;
+                          }
+                          
+                          if (availableQuantity === 0) {
+                            if (window.showErrorToast) {
+                              window.showErrorToast(`${selectedProduct.name} is out of stock!`);
+                            }
+                            return;
+                          }
+                        }
+                        
                         setFormData(prev => ({
                           ...prev,
                           quantity,

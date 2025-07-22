@@ -27,7 +27,7 @@ Referral System
 Subscription Plans
 Offline Functionality
 Transaction History
-Intelligent Upgrade Path
+Intelligent Upgrade Path(pro-rata upgrades calculation)
 
 3.2 Out of Scope (for MVP)
 
@@ -41,14 +41,12 @@ Advanced AI-driven insights
 
 Owners can create team member accounts (Admins and Salespeople) using a single form with fields: full name, email, password, and role dropdown (Admin or Salesperson). Creation requires owner authentication.
 Team members inherit the owner’s subscription plan and remaining trial period (e.g., 6 days left for owner means 6 days for team members).
-Email-based registration with mandatory verification.
-Secure login with password recovery via email:
-User clicks "Forgot Password" on the login page.
+Email-based registration with mandatory verification(only for owners other roles email verification should be true once the role != owner so they can be able to login).
+Secure login with password recovery via email(only for owners):
+User clicks "Forgot Password" on the login page(only for owners).
 Taken to a forgot password page to input email and click "Request Password Reset."
-A unique code is sent to their email.
-User pastes the code into an input box and clicks "Verify Code."
-If valid, inputs for new password and confirmation appear.
-After clicking "Update Password," the password updates via Supabase, and user is redirected to login.
+A password reset link is sent to their email.
+User clicks on the link Gets redirected where they can input there new password and another input box for confirmation and after they hit the password update button the system validates the password with a toast message and redirects them to login"
 
 
 Send warning emails via Gmail before deleting inactive accounts; auto-delete after 30 days (Supabase scheduled function).
