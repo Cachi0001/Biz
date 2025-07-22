@@ -18,11 +18,12 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { AlertTriangle, Clock, X } from 'lucide-react';
+import { AlertTriangle, Clock, X, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GradientCardWrapper } from '../components/ui/gradient-card-wrapper';
 import ErrorBoundary from '../components/ErrorBoundary';
 import dataFlowDebugger from '../utils/dataFlowDebugger';
+import SearchDropdown from '../components/SearchDropdown';
 
 const Dashboard = () => {
   const { dashboardData, loading, error, refreshData, lastRefresh } = useDashboard();
@@ -30,6 +31,9 @@ const Dashboard = () => {
   const { usage, invoiceStatus, expenseStatus, upgradePrompts, clearUpgradePrompts } = useUsageTracking();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showIntelligentPrompt, setShowIntelligentPrompt] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = React.useRef(null);
 
   // Auto-refresh data every 30 seconds
   useEffect(() => {
@@ -99,6 +103,19 @@ const Dashboard = () => {
     setShowUpgradeModal(true);
   };
 
+  // Handler for search input
+  const handleSearchInput = (e) => {
+    setSearchQuery(e.target.value);
+    setSearchOpen(!!e.target.value);
+  };
+
+  // Handler to close dropdown
+  const handleCloseSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    if (searchInputRef.current) searchInputRef.current.blur();
+  };
+
   // Get current usage data from user
   const currentUsage = {
     invoices: user?.current_month_invoices || 0,
@@ -136,6 +153,33 @@ const Dashboard = () => {
     <DashboardLayout>
       {/* Main Dashboard Content with Enhanced Mobile Responsiveness */}
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-7xl">
+        {/* Global Search Bar */}
+        <div className="relative mt-4 mb-6">
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="w-full h-12 rounded-lg border border-gray-300 px-4 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Search customers, products, invoices..."
+            value={searchQuery}
+            onChange={handleSearchInput}
+            onFocus={() => setSearchOpen(!!searchQuery)}
+            autoComplete="off"
+          />
+          <button
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600"
+            onClick={() => setSearchOpen(true)}
+            tabIndex={-1}
+            type="button"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <SearchDropdown
+            isOpen={searchOpen}
+            onClose={handleCloseSearch}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+        </div>
         <div className="space-y-4 sm:space-y-6">
           {/* Real-time Plan Monitoring System */}
           <section className="w-full">
