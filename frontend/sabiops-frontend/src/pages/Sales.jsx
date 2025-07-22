@@ -618,73 +618,78 @@ const Sales = () => {
               ) : (
                 <>
                   {/* Mobile Card View */}
-                  <div className="grid grid-cols-1 gap-4 lg:hidden">
-                    {Array.isArray(filteredSales) && filteredSales.map((sale) => (
-                      <Card key={sale.id} className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
-                        <CardContent className="p-5">
-                          <div className="space-y-4">
-                            {/* Header */}
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-gray-900 truncate text-base">
-                                  {sale.customer_name || 'Walk-in Customer'}
-                                </h3>
-                                <p className="text-sm text-gray-600 truncate mt-1">
-                                  {sale.product_name || 'Unknown Product'}
-                                </p>
+                  <div className="grid grid-cols-2 gap-4 lg:hidden">
+                    {Array.isArray(filteredSales) && filteredSales.map((sale, idx) => (
+                      <div key={sale.id} className={
+                        filteredSales.length % 2 === 1 && idx === filteredSales.length - 1
+                          ? 'col-span-2 flex justify-center' : ''
+                      }>
+                        <Card className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
+                          <CardContent className="p-5">
+                            <div className="space-y-4">
+                              {/* Header */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-gray-900 truncate text-base">
+                                    {sale.customer_name || 'Walk-in Customer'}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 truncate mt-1">
+                                    {sale.product_name || 'Unknown Product'}
+                                  </p>
+                                </div>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
+                                  <Eye className="h-4 w-4 text-blue-600" />
+                                </Button>
                               </div>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
-                                <Eye className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </div>
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Quantity</span>
-                                <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                                  {sale.quantity || 0}
-                                </span>
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Quantity</span>
+                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                                    {sale.quantity || 0}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Unit Price</span>
+                                  <span className="font-semibold text-gray-900">
+                                    {formatNaira(sale.unit_price || 0)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Payment</span>
+                                  <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs">
+                                    {formatPaymentMethod(sale.payment_method)}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Date</span>
+                                  <span className="text-xs text-gray-600">
+                                    {formatDateTime(sale.created_at || sale.date)}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Unit Price</span>
-                                <span className="font-semibold text-gray-900">
-                                  {formatNaira(sale.unit_price || 0)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Payment</span>
-                                <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs">
-                                  {formatPaymentMethod(sale.payment_method)}
-                                </Badge>
-                              </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Date</span>
-                                <span className="text-xs text-gray-600">
-                                  {formatDateTime(sale.created_at || sale.date)}
-                                </span>
-                              </div>
-                            </div>
 
-                            {/* Total */}
-                            <div className="pt-3 border-t border-gray-100">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600">Total Amount</span>
-                                <span className="text-xl font-bold text-green-600">
-                                  {formatNaira(sale.total_amount || 0)}
+                              {/* Total */}
+                              <div className="pt-3 border-t border-gray-100">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-gray-600">Total Amount</span>
+                                  <span className="text-xl font-bold text-green-600">
+                                    {formatNaira(sale.total_amount || 0)}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Profit */}
+                              <div className="pt-1 flex justify-between items-center">
+                                <span className="text-sm text-blue-700 font-medium">Profit:</span>
+                                <span className="text-base font-bold text-blue-700">
+                                  {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
                                 </span>
                               </div>
                             </div>
-                            {/* Profit */}
-                            <div className="pt-1 flex justify-between items-center">
-                              <span className="text-sm text-blue-700 font-medium">Profit:</span>
-                              <span className="text-base font-bold text-blue-700">
-                                {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+                      </div>
                     ))}
                   </div>
 

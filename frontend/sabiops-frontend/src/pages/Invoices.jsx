@@ -524,96 +524,101 @@ const Invoices = () => {
               ) : (
                 <>
                   {/* Mobile Card View */}
-                  <div className="grid grid-cols-1 gap-4 lg:hidden">
-                    {filteredInvoices.map((invoice) => (
-                      <Card key={invoice.id} className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
-                        <CardContent className="p-5">
-                          <div className="space-y-4">
-                            {/* Header */}
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-gray-900 truncate text-base">
-                                  Invoice #{invoice.invoice_number || invoice.id}
-                                </h3>
-                                <p className="text-sm text-gray-600 truncate mt-1">
-                                  {invoice.customer_name || getCustomerName(invoice.customer_id)}
-                                </p>
+                  <div className="grid grid-cols-2 gap-4 lg:hidden">
+                    {filteredInvoices.map((invoice, idx) => (
+                      <div key={invoice.id} className={
+                        filteredInvoices.length % 2 === 1 && idx === filteredInvoices.length - 1
+                          ? 'col-span-2 flex justify-center' : ''
+                      }>
+                        <Card className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
+                          <CardContent className="p-5">
+                            <div className="space-y-4">
+                              {/* Header */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-gray-900 truncate text-base">
+                                    Invoice #{invoice.invoice_number || invoice.id}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 truncate mt-1">
+                                    {invoice.customer_name || getCustomerName(invoice.customer_id)}
+                                  </p>
+                                </div>
+                                <Badge variant={getStatusBadge(invoice.status)}>
+                                  {formatStatus(invoice.status)}
+                                </Badge>
                               </div>
-                              <Badge variant={getStatusBadge(invoice.status)}>
-                                {formatStatus(invoice.status)}
-                              </Badge>
-                            </div>
 
-                            {/* Details */}
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Issue Date</span>
-                                <span className="text-gray-900">
-                                  {formatDate(invoice.issue_date || invoice.created_at)}
-                                </span>
+                              {/* Details */}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Issue Date</span>
+                                  <span className="text-gray-900">
+                                    {formatDate(invoice.issue_date || invoice.created_at)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Due Date</span>
+                                  <span className="text-gray-900">
+                                    {invoice.due_date ? formatDate(invoice.due_date) : 'Not set'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Amount</span>
+                                  <span className="font-semibold text-green-600">
+                                    {formatNaira(invoice.total_amount || 0)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 font-medium block mb-1">Items</span>
+                                  <span className="text-gray-900">
+                                    {invoice.items?.length || 0} items
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Due Date</span>
-                                <span className="text-gray-900">
-                                  {invoice.due_date ? formatDate(invoice.due_date) : 'Not set'}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Amount</span>
-                                <span className="font-semibold text-green-600">
-                                  {formatNaira(invoice.total_amount || 0)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500 font-medium block mb-1">Items</span>
-                                <span className="text-gray-900">
-                                  {invoice.items?.length || 0} items
-                                </span>
-                              </div>
-                            </div>
 
-                            {/* Actions */}
-                            <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleEdit(invoice)}
-                                className="flex-1"
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleSend(invoice.id)}
-                                className="flex-1"
-                              >
-                                <Send className="h-4 w-4 mr-1" />
-                                Send
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleDownload(invoice.id)}
-                                className="flex-1"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                PDF
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleDelete(invoice.id)}
-                                className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
+                              {/* Actions */}
+                              <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleEdit(invoice)}
+                                  className="flex-1"
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleSend(invoice.id)}
+                                  className="flex-1"
+                                >
+                                  <Send className="h-4 w-4 mr-1" />
+                                  Send
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleDownload(invoice.id)}
+                                  className="flex-1"
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  PDF
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleDelete(invoice.id)}
+                                  className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+                      </div>
                     ))}
                   </div>
 

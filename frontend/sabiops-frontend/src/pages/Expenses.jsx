@@ -477,15 +477,19 @@ const Expenses = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredExpenses.map((expense) => (
-                    <ExpenseCard
-                      key={expense.id}
-                      expense={expense}
-                      onEdit={handleEditExpense}
-                      onDelete={handleDeleteExpense}
-                      onView={handleViewExpense}
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filteredExpenses.map((expense, idx) => (
+                    <div key={expense.id} className={
+                      filteredExpenses.length % 2 === 1 && idx === filteredExpenses.length - 1
+                        ? 'col-span-2 flex justify-center' : ''
+                    }>
+                      <ExpenseCard
+                        expense={expense}
+                        onEdit={handleEditExpense}
+                        onDelete={handleDeleteExpense}
+                        onView={handleViewExpense}
+                      />
+                    </div>
                   ))}
                 </div>
               )}

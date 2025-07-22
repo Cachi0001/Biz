@@ -9,7 +9,7 @@ const DashboardLayout = ({ children }) => {
       <ModernHeader />
       
       {/* Main content with proper responsive spacing */}
-      <main className="pt-[80px] sm:pt-[70px] lg:pt-[65px] pb-20 sm:pb-16 min-h-screen"> 
+      <main className="pt-2 pb-20 sm:pb-16 min-h-screen"> 
         {children}
       </main>
       
