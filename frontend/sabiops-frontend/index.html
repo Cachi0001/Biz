@@ -4,11 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/sabiops.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#22c55e" />
+    <meta name="description" content="Business Management Platform for Nigerian SMEs" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/sabiops.jpg" />
     <title>SabiOps SME Nigeria - Business Management Platform</title>
   </head>
   <body>
     <div id="root"></div>
     <script src="https://js.paystack.co/v1/inline.js"></script>
     <script type="module" src="/src/main.jsx"></script>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script>
+      // Register service worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(error => {
+              console.error('ServiceWorker registration failed: ', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

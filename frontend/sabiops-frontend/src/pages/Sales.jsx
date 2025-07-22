@@ -240,14 +240,22 @@ const Sales = () => {
     setError('');
 
     try {
-      const saleData = {
-        ...formData,
-        quantity: parseInt(formData.quantity) || 1,
-        unit_price: parseFloat(formData.unit_price) || 0,
-        total_amount: parseFloat(formData.total_amount) || 0
-      };
+      // Import the validator dynamically to avoid circular dependencies
+      const { validateSaleData } = await import('../utils/salesValidator');
+      
+      // Validate the sale data
+      const validation = validateSaleData(formData);
+      
+      if (!validation.isValid) {
+        // Show the first validation error
+        const firstError = Object.values(validation.errors)[0];
+        setError(firstError);
+        setSubmitting(false);
+        return;
+      }
 
-      await createSale(saleData);
+      // Use the formatted data from the validator
+      await createSale(validation.formattedData);
       showSuccessToast('Sale recorded successfully!');
       setShowAddDialog(false);
       setFormData({
@@ -265,7 +273,7 @@ const Sales = () => {
       fetchSalesStats();
     } catch (error) {
       console.error('Error creating sale:', error);
-      setError('Failed to record sale. Please try again.');
+      setError(error.message || 'Failed to record sale. Please try again.');
     } finally {
       setSubmitting(false);
     }

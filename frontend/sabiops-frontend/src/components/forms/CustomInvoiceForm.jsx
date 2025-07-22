@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { createInvoice, updateInvoice } from '../../services/api';
-import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
+import { handleApiErrorWithToast } from '../../utils/errorHandling';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { formatNaira } from '../../utils/formatting';
 import { Plus, Trash2, RefreshCw, Eye } from 'lucide-react';
@@ -204,6 +202,9 @@ const CustomInvoiceForm = ({
     // Show review dialog instead of directly submitting
     if (onReview) {
       onReview(formData);
+    } else if (onSuccess) {
+      // If no review function is provided, call onSuccess directly
+      onSuccess(formData);
     }
   };
 
@@ -220,6 +221,11 @@ const CustomInvoiceForm = ({
       items: [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
     });
     clearErrors();
+    
+    // Reset form fields
+    if (formRef.current) {
+      formRef.current.reset();
+    }
   };
 
   return (
@@ -823,6 +829,13 @@ const CustomInvoiceForm = ({
             onClick={onCancel}
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={resetForm}
+          >
+            Reset Form
           </button>
           <button
             type="submit"

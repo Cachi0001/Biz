@@ -110,7 +110,7 @@ const CustomProductForm = ({
       sku: formData.sku || skuInputRef.current?.value?.trim() || '',
       description: formData.description || descriptionInputRef.current?.value?.trim() || '',
       category: formData.category || '',
-      sub_category: formData.subcategory || '', // Map subcategory to sub_category for backend
+      subcategory: formData.subcategory || '', // Map subcategory to sub_category for backend
       price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
       cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
       quantity: parseInt(formData.quantity || quantityInputRef.current?.value) || 0,
@@ -120,47 +120,46 @@ const CustomProductForm = ({
 
     console.log('🎯 CustomProductForm: Form data:', submitData);
 
-    // Validation
-    if (!submitData.name) {
-      handleApiErrorWithToast(new Error("Product name is required"));
-      nameInputRef.current?.focus();
-      return;
-    }
-
-    if (!submitData.category) {
-      handleApiErrorWithToast(new Error("Category is required"));
-      return;
-    }
-
-    if (!submitData.price || submitData.price <= 0) {
-      handleApiErrorWithToast(new Error("Valid price is required"));
-      priceInputRef.current?.focus();
-      return;
-    }
-
-    if (submitData.quantity < 0) {
-      handleApiErrorWithToast(new Error("Quantity cannot be negative"));
-      quantityInputRef.current?.focus();
-      return;
-    }
-
-    if (submitData.low_stock_threshold < 0) {
-      handleApiErrorWithToast(new Error("Low stock threshold cannot be negative"));
-      lowStockThresholdInputRef.current?.focus();
-      return;
-    }
-
     try {
+      // Import the validator dynamically to avoid circular dependencies
+      const { validateProductData } = await import('../../utils/productValidator');
+      
+      // Validate the product data
+      const validation = validateProductData(submitData);
+      
+      if (!validation.isValid) {
+        // Show the first validation error
+        const firstErrorKey = Object.keys(validation.errors)[0];
+        const firstError = validation.errors[firstErrorKey];
+        handleApiErrorWithToast(new Error(firstError));
+        
+        // Focus on the field with the error
+        if (firstErrorKey === 'name' && nameInputRef.current) {
+          nameInputRef.current.focus();
+        } else if (firstErrorKey === 'price' && priceInputRef.current) {
+          priceInputRef.current.focus();
+        } else if (firstErrorKey === 'quantity' && quantityInputRef.current) {
+          quantityInputRef.current.focus();
+        } else if (firstErrorKey === 'low_stock_threshold' && lowStockThresholdInputRef.current) {
+          lowStockThresholdInputRef.current.focus();
+        } else if (firstErrorKey === 'cost_price' && costPriceInputRef.current) {
+          costPriceInputRef.current.focus();
+        }
+        
+        return;
+      }
+
       console.log('🎯 CustomProductForm: Submitting to API...');
+      console.log('🎯 CustomProductForm: Formatted data:', validation.formattedData);
       
       let response;
       if (editingProduct) {
         console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
-        response = await updateProduct(editingProduct.id, submitData);
+        response = await updateProduct(editingProduct.id, validation.formattedData);
         showSuccessToast("Product updated successfully!");
       } else {
         console.log('🎯 CustomProductForm: Creating new product');
-        response = await createProduct(submitData);
+        response = await createProduct(validation.formattedData);
         showSuccessToast("Product created successfully!");
       }
 

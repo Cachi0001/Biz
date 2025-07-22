@@ -35,7 +35,7 @@ const ModernHeader = () => {
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
-        // Initialize Firebase messaging
+        // Initialize Firebase messaging (with fallback support)
         await FirebaseService.initialize();
         
         // Load notifications
@@ -46,6 +46,8 @@ const ModernHeader = () => {
         
       } catch (error) {
         console.error('Failed to initialize notifications:', error);
+        // Even if initialization fails, try to load notifications from backend
+        await loadNotifications();
       }
     };
 

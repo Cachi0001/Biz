@@ -1,15 +1,18 @@
 /**
  * FirebaseService - Handles Firebase push notifications for SabiOps
  * Integrates with existing Firebase configuration and backend notification system
+ * Provides fallback for browsers that don't support Firebase messaging
  */
 
 import { messaging, getToken, onMessage, VAPID_KEY } from '../firebase';
+import FallbackNotificationService from './fallbackNotificationService';
 
 class FirebaseService {
   static instance = null;
   static isInitialized = false;
   static currentToken = null;
   static messageHandlers = [];
+  static usingFallback = false;
 
   /**
    * Get singleton instance
@@ -22,7 +25,7 @@ class FirebaseService {
   }
 
   /**
-   * Initialize Firebase messaging
+   * Initialize Firebase messaging with fallback support
    */
   static async initialize() {
     if (this.isInitialized) {
@@ -34,13 +37,15 @@ class FirebaseService {
 
       // Check if messaging is supported
       if (!messaging) {
-        throw new Error('Firebase messaging not supported in this browser');
+        console.warn('FirebaseService: Firebase messaging not supported in this browser, using fallback notification system');
+        return await this.initializeFallbackNotifications();
       }
 
       // Request notification permission
       const permission = await this.requestPermission();
       if (permission !== 'granted') {
-        throw new Error('Notification permission not granted');
+        console.warn('FirebaseService: Notification permission not granted, using fallback notification system');
+        return await this.initializeFallbackNotifications();
       }
 
       // Get FCM token
@@ -58,12 +63,46 @@ class FirebaseService {
         this.isInitialized = true;
         return token;
       } else {
-        throw new Error('Failed to get FCM registration token');
+        console.warn('FirebaseService: Failed to get FCM registration token, using fallback notification system');
+        return await this.initializeFallbackNotifications();
       }
 
     } catch (error) {
       console.error('FirebaseService: Initialization failed:', error);
-      throw error;
+      console.warn('FirebaseService: Using fallback notification system');
+      return await this.initializeFallbackNotifications();
+    }
+  }
+  
+  /**
+   * Initialize fallback notification system when Firebase messaging is not available
+   */
+  static async initializeFallbackNotifications() {
+    try {
+      console.log('FirebaseService: Initializing fallback notification system...');
+      
+      // Initialize the fallback notification service
+      FallbackNotificationService.initialize();
+      
+      // Transfer any existing message handlers to the fallback service
+      this.messageHandlers.forEach(handler => {
+        FallbackNotificationService.addHandler(handler);
+      });
+      
+      // Start polling for notifications
+      FallbackNotificationService.startPolling(
+        () => this.getNotifications(5, 0),
+        30000 // Poll every 30 seconds
+      );
+      
+      this.usingFallback = true;
+      this.isInitialized = true;
+      return null;
+    } catch (error) {
+      console.error('FirebaseService: Fallback initialization failed:', error);
+      this.usingFallback = true;
+      this.isInitialized = true;
+      return null;
     }
   }
 
@@ -195,6 +234,11 @@ class FirebaseService {
     if (typeof handler === 'function') {
       this.messageHandlers.push(handler);
       console.log('FirebaseService: Message handler added');
+      
+      // If using fallback, also add handler to fallback service
+      if (this.usingFallback) {
+        FallbackNotificationService.addHandler(handler);
+      }
     }
   }
 
@@ -206,6 +250,11 @@ class FirebaseService {
     if (index > -1) {
       this.messageHandlers.splice(index, 1);
       console.log('FirebaseService: Message handler removed');
+      
+      // If using fallback, also remove handler from fallback service
+      if (this.usingFallback) {
+        FallbackNotificationService.removeHandler(handler);
+      }
     }
   }
 
@@ -450,9 +499,15 @@ class FirebaseService {
         });
       }
 
+      // Clean up fallback service if it was being used
+      if (this.usingFallback) {
+        FallbackNotificationService.cleanup();
+      }
+
       this.currentToken = null;
       this.isInitialized = false;
       this.messageHandlers = [];
+      this.usingFallback = false;
 
     } catch (error) {
       console.error('FirebaseService: Cleanup failed:', error);
