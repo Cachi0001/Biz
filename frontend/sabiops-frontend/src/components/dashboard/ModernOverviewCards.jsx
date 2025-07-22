@@ -36,6 +36,8 @@ const ModernOverviewCards = ({ data, loading }) => {
     Math.round(((thisMonthRevenue / (totalRevenue - thisMonthRevenue)) * 100)) : 0;
   const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
+  const todayCOGS = data?.revenue?.today_cogs || 0;
+
   const cards = [
     {
       title: 'Total Revenue',
@@ -47,9 +49,9 @@ const ModernOverviewCards = ({ data, loading }) => {
       trend: 'up'
     },
     {
-      title: 'This Month',
-      value: formatNaira(thisMonthRevenue),
-      change: revenueGrowth > 0 ? `+${revenueGrowth}%` : 'New business',
+      title: 'Today COGS',
+      value: formatNaira(todayCOGS),
+      change: 'Cost of Goods Sold (COGS) for today',
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',

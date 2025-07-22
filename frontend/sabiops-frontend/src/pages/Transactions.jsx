@@ -27,6 +27,7 @@ import {
   Package
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { MobileDateInput } from '../components/MobileDateInput';
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -335,19 +336,17 @@ const Transactions = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>From Date</Label>
-              <Input
-                type="date"
+              <MobileDateInput
                 value={filters.dateFrom}
-                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                onChange={(date) => setFilters({...filters, dateFrom: date})}
               />
             </div>
             
             <div className="space-y-2">
               <Label>To Date</Label>
-              <Input
-                type="date"
+              <MobileDateInput
                 value={filters.dateTo}
-                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                onChange={(date) => setFilters({...filters, dateTo: date})}
               />
             </div>
             

@@ -16,6 +16,7 @@ import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
 import ReviewDialog from '../components/invoice/ReviewDialog';
 import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
+import { updateInvoice } from '../services/api';
 
 const Invoices = () => {
   // State
@@ -353,6 +354,19 @@ const Invoices = () => {
     }
   };
 
+  const handleStatusChange = async (invoiceId, newStatus) => {
+    try {
+      setLoading(true);
+      await updateInvoice(invoiceId, { status: newStatus });
+      showSuccessToast('Invoice status updated successfully!');
+      fetchInvoices();
+    } catch (error) {
+      handleApiErrorWithToast(error, 'Failed to update invoice status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gray-50">
@@ -543,9 +557,21 @@ const Invoices = () => {
                                     {invoice.customer_name || getCustomerName(invoice.customer_id)}
                                   </p>
                                 </div>
-                                <Badge variant={getStatusBadge(invoice.status)}>
-                                  {formatStatus(invoice.status)}
-                                </Badge>
+                                <Select
+                                  value={invoice.status}
+                                  onValueChange={(value) => handleStatusChange(invoice.id, value)}
+                                  disabled={loading}
+                                >
+                                  <SelectTrigger className="w-24 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="sent">Sent</SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
 
                               {/* Details */}
@@ -666,9 +692,21 @@ const Invoices = () => {
                                 </span>
                               </TableCell>
                               <TableCell className="px-6 py-4 text-center">
-                                <Badge variant={getStatusBadge(invoice.status)}>
-                                  {formatStatus(invoice.status)}
-                                </Badge>
+                                <Select
+                                  value={invoice.status}
+                                  onValueChange={(value) => handleStatusChange(invoice.id, value)}
+                                  disabled={loading}
+                                >
+                                  <SelectTrigger className="w-24 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="sent">Sent</SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </TableCell>
                               <TableCell className="px-6 py-4">
                                 <div className="flex justify-center space-x-2">
@@ -787,3 +825,29 @@ const Invoices = () => {
 };
 
 export default Invoices;
+
+<style>{`
+  @media (max-width: 639px) {
+    .mobile-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .mobile-grid-2 > .col-span-2 {
+      grid-column: span 2 / span 2;
+      justify-content: center;
+    }
+    .mobile-card-content {
+      padding: 1rem !important;
+    }
+    .mobile-btn,
+    .mobile-input {
+      width: 100% !important;
+      min-width: 0;
+      font-size: 16px;
+      padding: 0.75rem;
+      height: auto;
+      min-height: 2.5rem;
+    }
+  }
+`}</style>

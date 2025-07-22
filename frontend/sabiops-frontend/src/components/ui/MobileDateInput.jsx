@@ -44,7 +44,7 @@ const MobileDateInput = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -54,6 +54,7 @@ const MobileDateInput = ({
               !selectedDate && "text-muted-foreground",
               className
             )}
+            style={{ width: '100%' }}
             disabled={disabled}
             {...props}
           >
@@ -62,14 +63,17 @@ const MobileDateInput = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0" 
+          className="w-full max-w-xs p-0" 
           align="start"
           side="bottom"
           sideOffset={4}
           style={{
-            maxWidth: 'calc(100vw - 2rem)',
-            maxHeight: 'calc(100vh - 2rem)',
-            overflow: 'auto'
+            minWidth: '100%',
+            maxWidth: '100vw',
+            width: '100%',
+            boxSizing: 'border-box',
+            overflow: 'auto',
+            zIndex: 9999
           }}
         >
           <CalendarComponent

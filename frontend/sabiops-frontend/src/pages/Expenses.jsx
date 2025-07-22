@@ -15,6 +15,7 @@ import ExpenseCard from '../components/expenses/ExpenseCard';
 import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
 import { EXPENSE_CATEGORIES } from '../constants/categories';
+import MobileDateInput from '../components/ui/MobileDateInput';
 
 const Expenses = () => {
   // State
@@ -636,6 +637,31 @@ const Expenses = () => {
           )}
         </DialogContent>
       </Dialog>
+      <style>{`
+  @media (max-width: 639px) {
+    .mobile-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .mobile-grid-2 > .col-span-2 {
+      grid-column: span 2 / span 2;
+      justify-content: center;
+    }
+    .mobile-card-content {
+      padding: 1rem !important;
+    }
+    .mobile-btn,
+    .mobile-input {
+      width: 100% !important;
+      min-width: 0;
+      font-size: 16px;
+      padding: 0.75rem;
+      height: auto;
+      min-height: 2.5rem;
+    }
+  }
+`}</style>
     </DashboardLayout>
   );
 };

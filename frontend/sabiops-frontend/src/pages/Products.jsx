@@ -42,8 +42,6 @@ import { formatNaira } from '../utils/formatting';
 import { handleApiErrorWithToast } from '../utils/errorHandling';
 
 const Products = () => {
-  useDebugRenders('Products');
-
   // Main state
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -63,7 +61,6 @@ const Products = () => {
     try {
       setLoading(true);
       const response = await getProducts();
-      console.log('[PRODUCTS] Products response:', response);
 
       // Handle standardized API response format
       if (response && response.success && response.data) {
@@ -92,7 +89,6 @@ const Products = () => {
   const fetchCategories = async () => {
     try {
       const response = await getCategories();
-      console.log('[PRODUCTS] Categories response:', response);
 
       // Handle standardized API response format
       if (response && response.success && response.data) {
@@ -136,7 +132,6 @@ const Products = () => {
 
     try {
       const response = await deleteProduct(productId);
-      console.log('[PRODUCTS] Delete response:', response);
       
       // Remove loading toast and show success
       toastService.removeToast(loadingToastId);
@@ -157,7 +152,6 @@ const Products = () => {
   };
 
   const handleFormSuccess = (response) => {
-    console.log('[PRODUCTS] Form success:', response);
     const isEditing = !!editingProduct;
     
     // Show success toast with proper message
@@ -173,6 +167,11 @@ const Products = () => {
     setShowAddDialog(false);
     setShowEditDialog(false);
     setEditingProduct(null);
+  };
+
+  // Add a global search handler for the search bar
+  const handleGlobalSearch = (e) => {
+    setSearchTerm(e.target.value);
   };
 
   const filteredProducts = products.filter(product => {
@@ -298,7 +297,7 @@ const Products = () => {
                     <StableInput
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={handleGlobalSearch}
                       className="pl-10 h-12 text-base touch-manipulation"
                     />
                   </div>

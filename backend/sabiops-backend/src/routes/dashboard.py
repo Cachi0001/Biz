@@ -84,23 +84,29 @@ def get_overview():
         }
         
         # Get total revenue from sales (ensure data consistency)
-        sales_result = supabase.table('sales').select('total_amount, date, gross_profit').eq('owner_id', user_id).execute()
+        sales_result = supabase.table('sales').select('total_amount, date, gross_profit, total_cogs').eq('owner_id', user_id).execute()
         if sales_result.data:
             total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
             total_gross_profit = sum(float(sale.get('gross_profit', 0)) for sale in sales_result.data)
             overview["revenue"]["total"] = total_revenue
             overview["revenue"]["gross_profit"] = total_gross_profit
-            
+
             # Calculate this month's revenue
             this_month_revenue = 0
             this_month_gross_profit = 0
+            today_cogs = 0
+            today_str = now.strftime('%Y-%m-%d')
             for sale in sales_result.data:
                 sale_date = parse_supabase_datetime(sale.get('date'))
                 if sale_date and sale_date >= current_month_start:
                     this_month_revenue += float(sale.get('total_amount', 0))
                     this_month_gross_profit += float(sale.get('gross_profit', 0))
+                # Calculate today's COGS
+                if sale_date and sale_date.strftime('%Y-%m-%d') == today_str:
+                    today_cogs += float(sale.get('total_cogs', 0))
             overview["revenue"]["this_month"] = this_month_revenue
             overview["revenue"]["this_month_gross_profit"] = this_month_gross_profit
+            overview["revenue"]["today_cogs"] = today_cogs
         
         # Get outstanding revenue from invoices - fix calculation
         invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', user_id).execute()

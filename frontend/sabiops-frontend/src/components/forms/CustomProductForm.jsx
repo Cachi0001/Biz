@@ -56,8 +56,6 @@ const CustomProductForm = ({
   // Populate form with editing data
   useEffect(() => {
     if (editingProduct) {
-      console.log('🎯 CustomProductForm: Populating form with editing data:', editingProduct);
-      
       // Set form values
       if (nameInputRef.current) nameInputRef.current.value = editingProduct.name || '';
       if (skuInputRef.current) skuInputRef.current.value = editingProduct.sku || '';
@@ -131,38 +129,12 @@ const CustomProductForm = ({
     }
   };
 
-  const handleInputFocus = (inputName) => {
-    console.log(`🎯 CustomProductForm: ${inputName} focused`);
-  };
+  const handleInputFocus = (inputName) => {};
 
-  const handleInputBlur = (inputName) => {
-    console.log(`🎯 CustomProductForm: ${inputName} blurred`);
-  };
+  const handleInputBlur = (inputName) => {};
 
   const handleInputChange = (inputName, value) => {
-    console.log(`🎯 CustomProductForm: ${inputName} changed to:`, value);
-    
-    // Update formData state for Select components
-    if (inputName === 'category') {
-      setFormData(prev => ({ 
-        ...prev, 
-        category: value,
-        subcategory: '' // Reset subcategory when category changes
-      }));
-      
-      // Auto-select first subcategory if available
-      const subcategories = getSubcategories(value);
-      if (subcategories.length > 0) {
-        setTimeout(() => {
-          setFormData(prev => ({ 
-            ...prev, 
-            subcategory: subcategories[0] 
-          }));
-        }, 100);
-      }
-    } else if (inputName === 'subcategory') {
-      setFormData(prev => ({ ...prev, subcategory: value }));
-    }
+    setFormData(prev => ({ ...prev, [inputName]: value }));
   };
 
   return (
