@@ -151,16 +151,37 @@ const CustomProductForm = ({
 
       console.log('🎯 CustomProductForm: Submitting to API...');
       console.log('🎯 CustomProductForm: Formatted data:', validation.formattedData);
+      console.log('🎯 CustomProductForm: Detailed payload inspection:');
+      console.log('- name:', validation.formattedData.name, typeof validation.formattedData.name);
+      console.log('- sku:', validation.formattedData.sku, typeof validation.formattedData.sku);
+      console.log('- description:', validation.formattedData.description, typeof validation.formattedData.description);
+      console.log('- category:', validation.formattedData.category, typeof validation.formattedData.category);
+      console.log('- sub_category:', validation.formattedData.sub_category, typeof validation.formattedData.sub_category);
+      console.log('- price:', validation.formattedData.price, typeof validation.formattedData.price);
+      console.log('- cost_price:', validation.formattedData.cost_price, typeof validation.formattedData.cost_price);
+      console.log('- quantity:', validation.formattedData.quantity, typeof validation.formattedData.quantity);
+      console.log('- low_stock_threshold:', validation.formattedData.low_stock_threshold, typeof validation.formattedData.low_stock_threshold);
+      console.log('- barcode:', validation.formattedData.barcode, typeof validation.formattedData.barcode);
       
       let response;
-      if (editingProduct) {
-        console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
-        response = await updateProduct(editingProduct.id, validation.formattedData);
-        showSuccessToast("Product updated successfully!");
-      } else {
-        console.log('🎯 CustomProductForm: Creating new product');
-        response = await createProduct(validation.formattedData);
-        showSuccessToast("Product created successfully!");
+      try {
+        if (editingProduct) {
+          console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
+          response = await updateProduct(editingProduct.id, validation.formattedData);
+          showSuccessToast("Product updated successfully!");
+        } else {
+          console.log('🎯 CustomProductForm: Creating new product');
+          response = await createProduct(validation.formattedData);
+          showSuccessToast("Product created successfully!");
+        }
+      } catch (apiError) {
+        console.error('🎯 CustomProductForm: API Error Details:', apiError);
+        if (apiError.response) {
+          console.error('🎯 CustomProductForm: Error Status:', apiError.response.status);
+          console.error('🎯 CustomProductForm: Error Data:', apiError.response.data);
+          console.error('🎯 CustomProductForm: Error Headers:', apiError.response.headers);
+        }
+        throw apiError;
       }
 
       console.log('🎯 CustomProductForm: API response:', response);

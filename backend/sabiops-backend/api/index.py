@@ -16,10 +16,8 @@ from werkzeug.utils import secure_filename
 import uuid
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Import route modules
 from routes.auth import auth_bp
 from routes.customer import customer_bp
 from routes.invoice import invoice_bp
@@ -31,18 +29,15 @@ from routes.payment import payment_bp
 from routes.dashboard import dashboard_bp
 from routes.notifications import notifications_bp
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Configuration
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Initialize extensions
 CORS(
     app,
     origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],
@@ -52,11 +47,9 @@ CORS(
 )
 jwt = JWTManager(app)
 
-# Check for required environment variables
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
 
-# Initialize Supabase client if credentials are available
 supabase = None
 if supabase_url and supabase_key and not (supabase_url.startswith('dummy') or supabase_key.startswith('dummy')):
     try:
@@ -70,7 +63,6 @@ if supabase_url and supabase_key and not (supabase_url.startswith('dummy') or su
 else:
     logger.info("Running in development mode without Supabase")
 
-# Mock database for development/testing
 if not supabase:
     app.config['MOCK_DB'] = {
         'users': [],

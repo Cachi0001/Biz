@@ -1,153 +1,55 @@
 [
   {
-    "table_name": "sales",
-    "column_name": "quantity",
-    "data_type": "integer",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "invoice_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
+    "table_name": "invoices",
     "column_name": "amount",
     "data_type": "numeric",
     "is_nullable": "NO",
     "column_default": null
   },
   {
-    "table_name": "products",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "products",
-    "column_name": "last_restocked_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
     "column_default": null
   },
   {
-    "table_name": "sales",
+    "table_name": "team",
     "column_name": "id",
     "data_type": "uuid",
     "is_nullable": "NO",
     "column_default": "uuid_generate_v4()"
   },
   {
-    "table_name": "sales",
+    "table_name": "team",
     "column_name": "owner_id",
     "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
-    "table_name": "sales",
-    "column_name": "customer_id",
+    "table_name": "team",
+    "column_name": "team_member_id",
     "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
-    "table_name": "sales",
-    "column_name": "product_id",
-    "data_type": "uuid",
+    "table_name": "team",
+    "column_name": "active",
+    "data_type": "boolean",
     "is_nullable": "YES",
-    "column_default": null
+    "column_default": "true"
   },
   {
-    "table_name": "payments",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "unit_price",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "total_amount",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "salesperson_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "date",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "sales",
+    "table_name": "team",
     "column_name": "created_at",
     "data_type": "timestamp with time zone",
     "is_nullable": "YES",
     "column_default": "now()"
   },
   {
-    "table_name": "sales",
-    "column_name": "total_cogs",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "gross_profit",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "profit_margin",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "paid_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "payments",
+    "table_name": "team",
     "column_name": "updated_at",
     "data_type": "timestamp with time zone",
     "is_nullable": "YES",
@@ -210,125 +112,591 @@
     "column_default": "now()"
   },
   {
-    "table_name": "payments",
-    "column_name": "status",
-    "data_type": "text",
+    "table_name": "products",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
     "is_nullable": "YES",
-    "column_default": "'pending'::text"
+    "column_default": "now()"
   },
   {
-    "table_name": "payments",
-    "column_name": "payment_reference",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "payment_method",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": "'cash'::text"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "customer_name",
-    "data_type": "text",
+    "table_name": "products",
+    "column_name": "last_restocked_at",
+    "data_type": "timestamp with time zone",
     "is_nullable": "YES",
     "column_default": null
   },
   {
     "table_name": "products",
-    "column_name": "category",
-    "data_type": "text",
+    "column_name": "reorder_level",
+    "data_type": "integer",
     "is_nullable": "YES",
-    "column_default": "'General'::text"
+    "column_default": "5"
   },
   {
     "table_name": "products",
-    "column_name": "image_url",
-    "data_type": "text",
+    "column_name": "supplier_id",
+    "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
-    "table_name": "payments",
-    "column_name": "currency",
-    "data_type": "text",
+    "table_name": "products",
+    "column_name": "last_sold_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "expenses",
+    "column_name": "id",
+    "data_type": "uuid",
     "is_nullable": "NO",
-    "column_default": "'NGN'::text"
+    "column_default": "uuid_generate_v4()"
   },
   {
-    "table_name": "payments",
-    "column_name": "customer_email",
-    "data_type": "text",
+    "table_name": "expenses",
+    "column_name": "owner_id",
+    "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
-    "table_name": "products",
-    "column_name": "sku",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "payment_method",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": "'cash'::text"
-  },
-  {
-    "table_name": "products",
-    "column_name": "name",
-    "data_type": "text",
+    "table_name": "expenses",
+    "column_name": "amount",
+    "data_type": "numeric",
     "is_nullable": "NO",
     "column_default": null
   },
   {
-    "table_name": "products",
-    "column_name": "description",
-    "data_type": "text",
+    "table_name": "expenses",
+    "column_name": "date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "expenses",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "expenses",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "owner_id",
+    "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
     "table_name": "sales",
-    "column_name": "product_name",
-    "data_type": "text",
+    "column_name": "customer_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sales",
+    "column_name": "product_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sales",
+    "column_name": "quantity",
+    "data_type": "integer",
     "is_nullable": "NO",
     "column_default": null
   },
   {
     "table_name": "sales",
-    "column_name": "notes",
-    "data_type": "text",
+    "column_name": "unit_price",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sales",
+    "column_name": "total_amount",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sales",
+    "column_name": "salesperson_id",
+    "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
   },
   {
-    "table_name": "products",
-    "column_name": "supplier",
-    "data_type": "text",
+    "table_name": "sales",
+    "column_name": "date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "total_cogs",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "gross_profit",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "profit_margin",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "discount_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "sales",
+    "column_name": "tax_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "owner_id",
+    "data_type": "uuid",
     "is_nullable": "YES",
     "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "customer_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "instance_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "tax_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "total_amount",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "due_date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "paid_date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "items",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "total_cogs",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "gross_profit",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "reminder_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "issue_date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "invoices",
+    "column_name": "discount_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "keys",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "active",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "push_subscriptions",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "payments",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "payments",
+    "column_name": "owner_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "payments",
+    "column_name": "invoice_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "payments",
+    "column_name": "amount",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "payments",
+    "column_name": "paid_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "payments",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "payments",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "payments",
+    "column_name": "sale_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_confirmed_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "invited_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "confirmation_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "recovery_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_sign_in_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "raw_app_meta_data",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "raw_user_meta_data",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_super_admin",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_confirmed_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_change_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "confirmed_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_confirm_status",
+    "data_type": "smallint",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "users",
+    "column_name": "banned_until",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "reauthentication_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_sso_user",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "column_default": "false"
+  },
+  {
+    "table_name": "users",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_anonymous",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "column_default": "false"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "read",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "data",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "owner_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "trial_ends_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "(now() + '7 days'::interval)"
   }
 ]
--- this is query below is already executed and was successful
-
--- Ensure products table id has default (already correct, but verify)
-ALTER TABLE products
-ALTER COLUMN id SET DEFAULT uuid_generate_v4();
-
--- Ensure payments table has all required columns
-ALTER TABLE payments
-ADD COLUMN IF NOT EXISTS customer_email text,
-ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'NGN';
-
--- Ensure sales table supports customer_email (optional)
-ALTER TABLE sales
-ADD COLUMN IF NOT EXISTS customer_email text;
-
--- Refresh PostgREST schema cache
-NOTIFY pgrst, 'reload';
