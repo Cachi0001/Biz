@@ -47,6 +47,10 @@ const Register = () => {
       toast.error('Full name is required');
       return false;
     }
+    if (!formData.password.trim()) {
+      toast.error('Password is required. Please enter your password to continue.');
+      return false;
+    }
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters long');
       return false;

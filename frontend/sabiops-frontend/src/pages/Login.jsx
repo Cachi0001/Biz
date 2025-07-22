@@ -25,7 +25,7 @@ const Login = () => {
       return;
     }
     if (!password.trim()) {
-      toastService.error('Please enter your password');
+      toastService.error('Password is required. Please enter your password to continue.');
       return;
     }
     

@@ -23,11 +23,18 @@ const PaymentModal = ({
 
   // Load Paystack script
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.PaystackPop) return; // Already loaded
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
     script.async = true;
+    script.onload = () => {
+      // Script loaded
+    };
+    script.onerror = () => {
+      setErrorMessage('Failed to load Paystack payment script. Please check your connection and try again.');
+    };
     document.body.appendChild(script);
-
     return () => {
       const existingScript = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
       if (existingScript) {
@@ -41,6 +48,14 @@ const PaymentModal = ({
       setLoading(true);
       setPaymentStatus('processing');
       setErrorMessage('');
+
+      // Ensure PaystackPop is loaded
+      if (typeof window === 'undefined' || !window.PaystackPop) {
+        setErrorMessage('Payment system is not ready. Please wait for the payment script to load and try again.');
+        setPaymentStatus('error');
+        setLoading(false);
+        return;
+      }
 
       // Initialize payment with backend
       const response = await initializePayment({
@@ -57,7 +72,6 @@ const PaymentModal = ({
 
       if (response.success && response.data.authorization_url) {
         setPaymentReference(response.data.reference);
-        
         // Initialize Paystack popup
         const handler = window.PaystackPop.setup({
           key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_58449e3de8d50386cfbcdbfba368ad8ece5737f9',
@@ -78,7 +92,6 @@ const PaymentModal = ({
             setPaymentStatus('idle');
           }
         });
-
         handler.openIframe();
       } else {
         throw new Error(response.message || 'Failed to initialize payment');
