@@ -49,7 +49,6 @@ const ToastItem: React.FC<{ toast: ToastData; onRemove: (id: string) => void }> 
   toast, 
   onRemove 
 }) => {
-  const navigate = useSafeNavigate();
   const brandColors = toastService.getBrandColors();
 
   const getIcon = () => {
@@ -85,14 +84,25 @@ const ToastItem: React.FC<{ toast: ToastData; onRemove: (id: string) => void }> 
 
   const handleClick = () => {
     if (toast.clickAction?.url) {
+      let navigated = false;
       try {
-        navigate(toast.clickAction.url, { 
-          state: toast.clickAction.params || {} 
-        });
-        onRemove(toast.id);
+        // Try to use useNavigate if in Router context
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const navigate = require('react-router-dom').useNavigate?.();
+        if (navigate) {
+          navigate(toast.clickAction.url, { state: toast.clickAction.params || {} });
+          navigated = true;
+        }
       } catch (error) {
-        console.error('Navigation error:', error);
+        // Not in Router context or error
       }
+      if (!navigated) {
+        // Fallback to window.location
+        try {
+          window.location.href = toast.clickAction.url;
+        } catch (e) {}
+      }
+      onRemove(toast.id);
     }
   };
 
