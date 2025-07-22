@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { resetPassword } from '../services/api';
+import { resetPassword, getErrorMessage } from '../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -43,10 +43,10 @@ const ResetPassword = () => {
         toast.success('Password reset successful! You can now log in.');
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        toast.error(response.message || 'Failed to reset password.');
+        toast.error(getErrorMessage(response, 'Failed to reset password.'));
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reset password.');
+      toast.error(getErrorMessage(err, 'Failed to reset password.'));
     }
     setIsResetting(false);
   };

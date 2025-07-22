@@ -985,7 +985,13 @@ const Sales = () => {
                       }}
                       className="h-12 text-base"
                       required
+                      disabled={!!formData.product_id}
                     />
+                    {formData.product_id && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Price from selected product. Edit product to change price.
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

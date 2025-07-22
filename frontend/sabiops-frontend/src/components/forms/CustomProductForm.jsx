@@ -496,7 +496,8 @@ const CustomProductForm = ({
           </div>
         </div>
 
-        <div className="form-buttons">
+        {/* Form Buttons */}
+        <div className="form-buttons grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:justify-end">
           <button
             type="button"
             className="btn btn-outline"

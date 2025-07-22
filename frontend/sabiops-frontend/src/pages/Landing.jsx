@@ -372,44 +372,40 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <div className="bg-primary text-primary-foreground rounded-lg p-2 font-bold text-xl">
-                  S
-                </div>
-                <span className="ml-2 text-2xl font-bold">SabiOps</span>
+      <footer className="bg-slate-900 text-white py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-8 md:gap-8 lg:gap-8 items-start text-center md:text-left">
+            <div className="mb-4 sm:mb-8 md:mb-0 flex flex-col items-center md:items-start">
+              <div className="flex items-center mb-2 sm:mb-4">
+                <div className="bg-primary text-primary-foreground rounded-lg p-2 font-bold text-lg sm:text-xl">S</div>
+                <span className="ml-2 text-lg sm:text-2xl font-bold">SabiOps</span>
               </div>
-              <p className="text-slate-400">
-                Simplifying business management for Nigerian SMEs
-              </p>
+              <p className="text-slate-400 text-xs sm:text-sm max-w-xs">Simplifying business management for Nigerian SMEs</p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-slate-400">
+            <div className="mb-4 sm:mb-8 md:mb-0 flex flex-col items-center md:items-start">
+              <h3 className="text-xs sm:text-base font-semibold mb-1 sm:mb-2">Product</h3>
+              <ul className="space-y-0.5 sm:space-y-1 text-slate-400 text-xs sm:text-sm">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-slate-400">
+            <div className="mb-4 sm:mb-8 md:mb-0 flex flex-col items-center md:items-start">
+              <h3 className="text-xs sm:text-base font-semibold mb-1 sm:mb-2">Company</h3>
+              <ul className="space-y-0.5 sm:space-y-1 text-slate-400 text-xs sm:text-sm">
                 <li><a href="#" className="hover:text-white transition-colors">About</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-slate-400">
+            <div className="hidden md:flex flex-col items-center md:items-start">
+              <h3 className="text-base font-semibold mb-2">Support</h3>
+              <ul className="space-y-1 text-slate-400 text-sm">
                 <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2025 Sabiops SME Nigeria. All rights reserved.</p>
+          <div className="border-t border-slate-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-slate-400">
+            <p className="text-xs sm:text-sm">&copy; 2025 Sabiops SME Nigeria. All rights reserved.</p>
           </div>
         </div>
       </footer>

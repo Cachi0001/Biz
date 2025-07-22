@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice, sendInvoice } from "../services/api";
+import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice, sendInvoice, downloadInvoicePdf } from "../services/api";
 import { formatNaira, formatDate, formatDateTime } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
@@ -149,12 +149,41 @@ const Invoices = () => {
   const handleSend = async (invoiceId) => {
     try {
       setLoading(true);
-      await sendInvoice(invoiceId);
-      showSuccessToast('Invoice sent successfully');
+      const response = await sendInvoice(invoiceId);
+      if (response.success || response.message?.toLowerCase().includes('sent')) {
+        showSuccessToast('Invoice sent successfully');
+      } else {
+        handleApiErrorWithToast(new Error(response.message || 'Failed to send invoice'));
+      }
       fetchInvoices();
     } catch (error) {
       console.error('Error sending invoice:', error);
       handleApiErrorWithToast(error, 'Failed to send invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle download invoice as PDF
+  const handleDownload = async (invoiceId) => {
+    try {
+      setLoading(true);
+      const blob = await downloadInvoicePdf(invoiceId);
+      if (blob && blob.size > 0) {
+        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice-${invoiceId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        showSuccessToast('Invoice PDF downloaded');
+      } else {
+        handleApiErrorWithToast(new Error('Failed to download PDF. The file may not exist.'));
+      }
+    } catch (error) {
+      console.error('Error downloading invoice PDF:', error);
+      handleApiErrorWithToast(error, 'Failed to download invoice PDF');
     } finally {
       setLoading(false);
     }
@@ -322,12 +351,6 @@ const Invoices = () => {
       case 'draft': return 'Draft';
       default: return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     }
-  };
-
-  // Download invoice as PDF
-  const handleDownload = (invoiceId) => {
-    // This would typically call an API endpoint to generate and download a PDF
-    showSuccessToast('Invoice download started');
   };
 
   return (
@@ -704,7 +727,11 @@ const Invoices = () => {
             <CustomInvoiceForm
               customers={customers}
               products={products}
-              onSuccess={() => {}}
+              onSuccess={() => {
+                showSuccessToast('Invoice created successfully!');
+                setShowAddDialog(false);
+                fetchInvoices();
+              }}
               onCancel={handleFormCancel}
               onReview={handleReview}
             />
@@ -725,7 +752,12 @@ const Invoices = () => {
             <CustomInvoiceForm
               customers={customers}
               products={products}
-              onSuccess={() => {}}
+              onSuccess={() => {
+                showSuccessToast('Invoice updated successfully!');
+                setShowEditDialog(false);
+                setEditingInvoice(null);
+                fetchInvoices();
+              }}
               onCancel={handleFormCancel}
               editingInvoice={editingInvoice}
               onReview={handleReview}

@@ -871,7 +871,7 @@ const CustomInvoiceForm = ({
         </div>
 
         {/* Form Buttons */}
-        <div className="form-buttons">
+        <div className="form-buttons grid grid-cols-2 gap-2 sm:flex sm:gap-3 sm:justify-end">
           <button
             type="button"
             className="btn btn-outline"
@@ -888,7 +888,7 @@ const CustomInvoiceForm = ({
           </button>
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary col-span-2 sm:col-span-1"
             disabled={isValidating}
           >
             {isValidating ? (
