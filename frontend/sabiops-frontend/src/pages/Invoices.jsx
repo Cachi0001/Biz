@@ -357,7 +357,7 @@ const Invoices = () => {
     <DashboardLayout>
       <div className="min-h-screen bg-gray-50">
         {/* Header Section */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -380,7 +380,7 @@ const Invoices = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
           {/* Error Display */}
           {error && (
             <Alert variant="destructive" className="mb-6">
