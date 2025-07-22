@@ -227,19 +227,6 @@ const Register = () => {
               autoComplete="tel"
                     />
                   </div>
-          
-          <div>
-            <Label htmlFor="business_name">Business Name (Optional)</Label>
-            <Input
-              id="business_name"
-              name="business_name"
-              type="text"
-              value={formData.business_name}
-              onChange={handleChange}
-              placeholder="Your business name"
-              autoComplete="organization"
-            />
-                </div>
 
           <div>
             <Label htmlFor="password">Password</Label>
@@ -265,6 +252,19 @@ const Register = () => {
               </button>
                     </div>
                   </div>
+
+          <div>
+            <Label htmlFor="business_name">Business Name (Optional)</Label>
+            <Input
+              id="business_name"
+              name="business_name"
+              type="text"
+              value={formData.business_name}
+              onChange={handleChange}
+              placeholder="Your business name"
+              autoComplete="organization"
+            />
+                </div>
 
           <div>
             <Label htmlFor="referral_code">Referral Code (Optional)</Label>
