@@ -70,7 +70,7 @@ const Register = () => {
     setIsLoading(true);
     try {
       const result = await register(formData);
-      if (result.success) {
+      if (result.success || (result.message && result.message.toLowerCase().includes('check your email'))) {
         toast.success('Registration successful! Please check your email for confirmation.');
         localStorage.setItem('pending_registration', JSON.stringify(formData));
         setShowCheckEmail(true);
@@ -85,6 +85,10 @@ const Register = () => {
             return prev - 1;
           });
         }, 1000);
+      } else if (result.message) {
+        toast.error(result.message);
+      } else {
+        toast.error('Registration failed. Please try again.');
       }
       // Error handling is now done in the auth context
     } catch (error) {
