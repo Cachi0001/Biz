@@ -102,22 +102,36 @@ def get_overview():
             overview["revenue"]["this_month"] = this_month_revenue
             overview["revenue"]["this_month_gross_profit"] = this_month_gross_profit
         
-        # Get outstanding revenue from invoices
-        invoices_result = supabase.table('invoices').select('total_amount, status, due_date').eq('owner_id', user_id).execute()
+        # Get outstanding revenue from invoices - fix calculation
+        invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', user_id).execute()
         if invoices_result.data:
             outstanding = 0
             overdue_count = 0
             for invoice in invoices_result.data:
-                if invoice.get('status') in ['sent', 'pending']:
+                # Consider unpaid invoices as outstanding
+                if invoice.get('status') in ['sent', 'pending', 'draft'] and not invoice.get('paid_date'):
                     outstanding += float(invoice.get('total_amount', 0))
                     
-                    # Check if overdue
+                    # Check if overdue (unpaid and past due date)
                     due_date = parse_supabase_datetime(invoice.get('due_date'))
-                    if due_date and due_date < now:
+                    if due_date and due_date < now and not invoice.get('paid_date'):
                         overdue_count += 1
             
             overview["revenue"]["outstanding"] = outstanding
             overview["invoices"]["overdue"] = overdue_count
+        
+        # If no invoices data, also check for outstanding amounts from sales (credit sales)
+        # This ensures outstanding calculation works even without invoice system
+        if overview["revenue"]["outstanding"] == 0:
+            # Check for any pending payments or credit sales
+            payments_result = supabase.table('payments').select('amount, status').eq('owner_id', user_id).execute()
+            if payments_result.data:
+                pending_payments = sum(
+                    float(payment.get('amount', 0))
+                    for payment in payments_result.data
+                    if payment.get('status') in ['pending', 'processing']
+                )
+                overview["revenue"]["outstanding"] = pending_payments
         
         # Get customer statistics
         customers_result = supabase.table('customers').select('id, created_at').eq('owner_id', user_id).execute()

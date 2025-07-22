@@ -126,7 +126,15 @@ def create_sale():
         required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
         for field in required_fields:
             if not data.get(field):
-                return error_response(f"{field} is required", status_code=400)
+                return jsonify({
+                    "success": False,
+                    "message": f"{field} is required",
+                    "toast": {
+                        "type": "error",
+                        "message": f"{field} is required",
+                        "timeout": 3000
+                    }
+                }), 400
         
         # Validate numeric fields
         try:
@@ -135,14 +143,46 @@ def create_sale():
             total_amount = float(data["total_amount"])
             
             if quantity <= 0:
-                return error_response("Quantity must be greater than 0", status_code=400)
+                return jsonify({
+                    "success": False,
+                    "message": "Quantity must be greater than 0",
+                    "toast": {
+                        "type": "error",
+                        "message": "Quantity must be greater than 0",
+                        "timeout": 3000
+                    }
+                }), 400
             if unit_price < 0:
-                return error_response("Unit price cannot be negative", status_code=400)
+                return jsonify({
+                    "success": False,
+                    "message": "Unit price cannot be negative",
+                    "toast": {
+                        "type": "error",
+                        "message": "Unit price cannot be negative",
+                        "timeout": 3000
+                    }
+                }), 400
             if total_amount < 0:
-                return error_response("Total amount cannot be negative", status_code=400)
+                return jsonify({
+                    "success": False,
+                    "message": "Total amount cannot be negative",
+                    "toast": {
+                        "type": "error",
+                        "message": "Total amount cannot be negative",
+                        "timeout": 3000
+                    }
+                }), 400
                 
         except (ValueError, TypeError):
-            return error_response("Invalid numeric values provided", status_code=400)
+            return jsonify({
+                "success": False,
+                "message": "Invalid numeric values provided",
+                "toast": {
+                    "type": "error",
+                    "message": "Invalid numeric values provided",
+                    "timeout": 3000
+                }
+            }), 400
         
         # Use business operations manager for data consistency
         from src.utils.business_operations import BusinessOperationsManager
@@ -152,19 +192,41 @@ def create_sale():
         success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
         
         if not success:
-            return error_response(error_message, status_code=400)
+            return jsonify({
+                "success": False,
+                "message": error_message,
+                "toast": {
+                    "type": "error",
+                    "message": error_message,
+                    "timeout": 3000
+                }
+            }), 400
         
-        return success_response(
-            message="Sale created successfully with automatic inventory update and transaction record",
-            data={
+        return jsonify({
+            "success": True,
+            "message": "Sale created successfully with inventory update",
+            "data": {
                 "sale": sale_record
             },
-            status_code=201
-        )
+            "toast": {
+                "type": "success",
+                "message": "Sale created successfully.",
+                "timeout": 3000
+            }
+        }), 201
         
     except Exception as e:
         logging.error(f"Error creating sale: {str(e)}")
-        return error_response(str(e), "Failed to create sale", status_code=500)
+        return jsonify({
+            "success": False,
+            "message": "Failed to create sale",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred while creating the sale.",
+                "timeout": 4000
+            }
+        }), 500
 
 @sales_bp.route("/stats", methods=["GET"])
 @jwt_required()

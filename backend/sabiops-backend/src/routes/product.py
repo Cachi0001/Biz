@@ -343,28 +343,69 @@ def update_product(product_id):
         data = request.get_json()
         
         if not supabase:
-            return error_response("Database connection not available", status_code=500)
+            return jsonify({
+                "success": False,
+                "message": "Database connection not available",
+                "toast": {
+                    "type": "error",
+                    "message": "Database connection failed. Please try again.",
+                    "timeout": 5000
+                }
+            }), 500
         
         if not data:
-            return error_response("No data provided", status_code=400)
+            return jsonify({
+                "success": False,
+                "message": "No data provided",
+                "toast": {
+                    "type": "error",
+                    "message": "No update data provided",
+                    "timeout": 3000
+                }
+            }), 400
         
         # Get existing product
         product = supabase.table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         if not product.data:
-            return error_response("Product not found", status_code=404)
+            return jsonify({
+                "success": False,
+                "message": "Product not found",
+                "toast": {
+                    "type": "error",
+                    "message": "Product not found or you don't have permission to update it",
+                    "timeout": 3000
+                }
+            }), 404
         
         existing_product = product.data
         
         # Comprehensive validation for update
         validation_errors = validate_product_data(data, is_update=True)
         if validation_errors:
-            return error_response("; ".join(validation_errors), "Validation failed", status_code=400)
+            return jsonify({
+                "success": False,
+                "message": "Validation failed",
+                "errors": validation_errors,
+                "toast": {
+                    "type": "error",
+                    "message": f"Validation failed: {validation_errors[0]}",
+                    "timeout": 4000
+                }
+            }), 400
         
         # Check for duplicate SKU if SKU is being updated
         if data.get("sku") and data["sku"].strip() != existing_product.get("sku"):
             existing_sku = supabase.table("products").select("id").eq("owner_id", owner_id).eq("sku", data["sku"].strip()).eq("active", True).execute()
             if existing_sku.data:
-                return error_response("A product with this SKU already exists", status_code=400)
+                return jsonify({
+                    "success": False,
+                    "message": "SKU already exists",
+                    "toast": {
+                        "type": "error",
+                        "message": "A product with this SKU already exists",
+                        "timeout": 3000
+                    }
+                }), 400
         
         # Build update data with validation
         update_data = {
@@ -405,7 +446,15 @@ def update_product(product_id):
         result = supabase.table("products").update(update_data).eq("id", product_id).execute()
         
         if not result.data:
-            return error_response("Failed to update product", status_code=500)
+            return jsonify({
+                "success": False,
+                "message": "Failed to update product",
+                "toast": {
+                    "type": "error",
+                    "message": "Failed to update product. Please try again.",
+                    "timeout": 4000
+                }
+            }), 500
         
         updated_product = result.data[0]
         
@@ -413,6 +462,17 @@ def update_product(product_id):
         threshold = updated_product.get("low_stock_threshold", 5)
         updated_product['is_low_stock'] = new_quantity <= threshold
         updated_product['stock_status'] = 'out_of_stock' if new_quantity == 0 else ('low_stock' if new_quantity <= threshold else 'in_stock')
+        
+        # Determine success message based on changes
+        product_name = updated_product.get("name", "Product")
+        success_message = f"'{product_name}' updated successfully"
+        
+        # Add stock status info to success message if relevant
+        if new_quantity != old_quantity:
+            if new_quantity <= threshold:
+                success_message += f" (Low stock: {new_quantity} units)"
+            else:
+                success_message += f" (Stock: {new_quantity} units)"
         
         # Send low stock notification if quantity decreased to low stock level
         if new_quantity <= threshold and (old_quantity > threshold or new_quantity < old_quantity):
@@ -427,16 +487,31 @@ def update_product(product_id):
             except Exception as e:
                 logger.warning(f"Failed to send low stock notification: {e}")
         
-        return success_response(
-            message="Product updated successfully",
-            data={
+        return jsonify({
+            "success": True,
+            "message": "Product updated successfully",
+            "data": {
                 "product": updated_product
+            },
+            "toast": {
+                "type": "success",
+                "message": success_message,
+                "timeout": 3000
             }
-        )
+        }), 200
         
     except Exception as e:
         logger.error(f"Error updating product: {str(e)}")
-        return error_response("Failed to update product", status_code=500)
+        return jsonify({
+            "success": False,
+            "message": "Failed to update product",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred while updating the product",
+                "timeout": 4000
+            }
+        }), 500
 
 @product_bp.route("/<product_id>", methods=["DELETE"])
 @jwt_required()
@@ -790,6 +865,84 @@ def bulk_update_products():
         logger.error(f"Error in bulk update: {str(e)}")
         return error_response("Failed to perform bulk update", status_code=500)
 
+@product_bp.route("/stock-status", methods=["GET"])
+@jwt_required()
+def get_stock_status():
+    """Get stock status overview for all products"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        if not supabase:
+            return error_response("Database connection not available", status_code=500)
+        
+        # Get all active products
+        products = supabase.table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
+        
+        if not products.data:
+            return success_response(
+                data={
+                    "products_status": [],
+                    "summary": {
+                        "total_products": 0,
+                        "low_stock_count": 0,
+                        "out_of_stock_count": 0,
+                        "in_stock_count": 0
+                    }
+                },
+                message="No products found"
+            )
+        
+        products_status = []
+        low_stock_count = 0
+        out_of_stock_count = 0
+        in_stock_count = 0
+        
+        for product in products.data:
+            quantity = int(product.get("quantity", 0))
+            threshold = int(product.get("low_stock_threshold", 5))
+            
+            # Determine stock status
+            if quantity == 0:
+                stock_status = "out_of_stock"
+                out_of_stock_count += 1
+            elif quantity <= threshold:
+                stock_status = "low_stock"
+                low_stock_count += 1
+            else:
+                stock_status = "in_stock"
+                in_stock_count += 1
+            
+            products_status.append({
+                "id": product["id"],
+                "name": product.get("name", ""),
+                "category": product.get("category", "Other"),
+                "quantity": quantity,
+                "low_stock_threshold": threshold,
+                "stock_status": stock_status,
+                "is_low_stock": quantity <= threshold,
+                "sku": product.get("sku", ""),
+                "price": float(product.get("price", 0))
+            })
+        
+        return success_response(
+            data={
+                "products_status": products_status,
+                "summary": {
+                    "total_products": len(products.data),
+                    "low_stock_count": low_stock_count,
+                    "out_of_stock_count": out_of_stock_count,
+                    "in_stock_count": in_stock_count,
+                    "alert_count": low_stock_count + out_of_stock_count
+                }
+            },
+            message="Stock status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting stock status: {str(e)}")
+        return error_response("Failed to get stock status", status_code=500)
+
 @product_bp.route("/inventory-summary", methods=["GET"])
 @jwt_required()
 def get_inventory_summary():
@@ -889,6 +1042,93 @@ def get_inventory_summary():
     except Exception as e:
         logger.error(f"Error getting inventory summary: {str(e)}")
         return error_response("Failed to get inventory summary", status_code=500)
+
+@product_bp.route("/dropdown", methods=["GET"])
+@jwt_required()
+def get_products_for_dropdown():
+    """Get products formatted for dropdown with stock quantities - for sales recording"""
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        
+        if not supabase:
+            return error_response("Database connection not available", status_code=500)
+        
+        # Get only active products with stock for sales
+        products = supabase.table("products").select(
+            "id, name, price, cost_price, quantity, low_stock_threshold, sku, category"
+        ).eq("owner_id", owner_id).eq("active", True).order("name").execute()
+        
+        if not products.data:
+            return success_response(
+                data={
+                    "products": [],
+                    "available_count": 0,
+                    "out_of_stock_count": 0
+                },
+                message="No products available"
+            )
+        
+        # Format products for dropdown with real-time stock info
+        dropdown_products = []
+        available_count = 0
+        out_of_stock_count = 0
+        
+        for product in products.data:
+            quantity = int(product.get("quantity", 0))
+            threshold = int(product.get("low_stock_threshold", 5))
+            
+            # Determine stock status and availability
+            if quantity == 0:
+                stock_status = "out_of_stock"
+                stock_indicator = "(Out of Stock)"
+                out_of_stock_count += 1
+                is_available = False
+            elif quantity <= threshold:
+                stock_status = "low_stock"
+                stock_indicator = f"(Low Stock: {quantity})"
+                available_count += 1
+                is_available = True
+            else:
+                stock_status = "in_stock"
+                stock_indicator = f"(Qty: {quantity})"
+                available_count += 1
+                is_available = True
+            
+            # Format product name with stock info for dropdown display
+            display_name = f"{product.get('name', '')} {stock_indicator}"
+            
+            dropdown_product = {
+                "id": product.get("id"),
+                "name": product.get("name", ""),
+                "display_name": display_name,
+                "price": float(product.get("price", 0)),
+                "cost_price": float(product.get("cost_price", 0)),
+                "quantity": quantity,
+                "low_stock_threshold": threshold,
+                "sku": product.get("sku", ""),
+                "category": product.get("category", "Other"),
+                "stock_status": stock_status,
+                "is_available": is_available,
+                "is_low_stock": quantity <= threshold and quantity > 0,
+                "is_out_of_stock": quantity == 0
+            }
+            
+            dropdown_products.append(dropdown_product)
+        
+        return success_response(
+            data={
+                "products": dropdown_products,
+                "available_count": available_count,
+                "out_of_stock_count": out_of_stock_count,
+                "total_count": len(dropdown_products)
+            },
+            message="Products for dropdown retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting products for dropdown: {str(e)}")
+        return error_response("Failed to get products for dropdown", status_code=500)
 
 
 
