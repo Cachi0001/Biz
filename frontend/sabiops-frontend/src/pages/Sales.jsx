@@ -49,6 +49,8 @@ const Sales = () => {
     today_sales: 0,
     average_sale: 0
   });
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState('');
 
   useEffect(() => {
     fetchSales();
@@ -93,6 +95,8 @@ const Sales = () => {
 
   const fetchProductsData = async () => {
     try {
+      setProductsLoading(true);
+      setProductsError('');
       console.log('[SalesPage] Fetching products with stock for dropdown...');
       console.log('[SalesPage] Products API endpoint: /products/with-stock');
 
@@ -164,9 +168,10 @@ const Sales = () => {
       }
 
     } catch (error) {
-      console.error('[SalesPage] Error fetching products with stock:', error);
-      console.error('[SalesPage] Products error message:', error.message);
+      setProductsError('Failed to load products. Please try again.');
       setProducts([]);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -800,7 +805,20 @@ const Sales = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="product" className="text-base font-medium">Product *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="product" className="text-base font-medium">Product *</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={fetchProductsData}
+                        disabled={productsLoading}
+                        className="ml-2 px-2 py-1 text-xs h-8"
+                        aria-label="Refresh products"
+                      >
+                        {productsLoading ? 'Refreshing...' : 'Refresh'}
+                      </Button>
+                    </div>
                     <Select
                       value={formData.product_id}
                       onValueChange={(value) => {
@@ -837,46 +855,61 @@ const Sales = () => {
                           }
                         }
                       }}
+                      disabled={productsLoading || !!productsError || products.length === 0}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select product" />
+                        <SelectValue placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {products.map((product) => {
-                          const quantity = parseInt(product.quantity) || 0;
-                          const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
-                          const isOutOfStock = quantity === 0;
-                          const isLowStock = quantity <= lowStockThreshold && quantity > 0;
-                          
-                          return (
-                            <SelectItem 
-                              key={product.id} 
-                              value={product.id}
-                              disabled={isOutOfStock}
-                              className={isOutOfStock ? 'opacity-50' : ''}
-                            >
-                              <div className="flex justify-between items-center w-full">
-                                <span className={isOutOfStock ? 'line-through' : ''}>
-                                  {product.stockLabel || product.name}
-                                </span>
-                                <div className="flex items-center gap-2 ml-2">
-                                  <span className="text-sm text-green-600 font-medium">
-                                    {formatNaira(product.price || product.unit_price || 0)}
+                        {productsLoading ? (
+                          <SelectItem value="" disabled>
+                            Loading products...
+                          </SelectItem>
+                        ) : productsError ? (
+                          <SelectItem value="" disabled>
+                            {productsError}
+                          </SelectItem>
+                        ) : products.length === 0 ? (
+                          <SelectItem value="" disabled>
+                            No products available
+                          </SelectItem>
+                        ) : (
+                          products.map((product) => {
+                            const quantity = parseInt(product.quantity) || 0;
+                            const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
+                            const isOutOfStock = quantity === 0;
+                            const isLowStock = quantity <= lowStockThreshold && quantity > 0;
+                            
+                            return (
+                              <SelectItem 
+                                key={product.id} 
+                                value={product.id}
+                                disabled={isOutOfStock}
+                                className={isOutOfStock ? 'opacity-50' : ''}
+                              >
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={isOutOfStock ? 'line-through' : ''}>
+                                    {product.stockLabel || product.name}
                                   </span>
-                                  <span className={`text-xs px-2 py-1 rounded ${
-                                    isOutOfStock 
-                                      ? 'bg-red-100 text-red-700' 
-                                      : isLowStock 
-                                      ? 'bg-yellow-100 text-yellow-700' 
-                                      : 'bg-green-100 text-green-700'
-                                  }`}>
-                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
-                                  </span>
+                                  <div className="flex items-center gap-2 ml-2">
+                                    <span className="text-sm text-green-600 font-medium">
+                                      {formatNaira(product.price || product.unit_price || 0)}
+                                    </span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      isOutOfStock 
+                                        ? 'bg-red-100 text-red-700' 
+                                        : isLowStock 
+                                        ? 'bg-yellow-100 text-yellow-700' 
+                                        : 'bg-green-100 text-green-700'
+                                    }`}>
+                                      {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
+                              </SelectItem>
+                            );
+                          })
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
