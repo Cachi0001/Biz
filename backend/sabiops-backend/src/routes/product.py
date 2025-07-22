@@ -1050,6 +1050,36 @@ def get_products_for_dropdown():
         logger.error(f"Error getting products for dropdown: {str(e)}")
         return error_response("Failed to get products for dropdown", status_code=500)
 
+@product_bp.route('/with-stock', methods=['GET'])
+@jwt_required()
+def get_products_with_stock():
+    try:
+        supabase = get_supabase()
+        owner_id = get_jwt_identity()
+        if not supabase:
+            return error_response("Database connection not available", status_code=500)
+        products_result = supabase.table("products").select("*").eq("owner_id", owner_id).execute()
+        if not products_result.data:
+            return success_response(data={"products": []}, message="No products found")
+        products_with_stats = []
+        for product in products_result.data:
+            quantity = int(product.get('quantity', 0))
+            threshold = int(product.get('low_stock_threshold', 5))
+            is_low_stock = quantity <= threshold
+            product_data = {
+                **product,
+                'is_low_stock': is_low_stock,
+                'stock_status': 'out_of_stock' if quantity == 0 else ('low_stock' if is_low_stock else 'in_stock')
+            }
+            products_with_stats.append(product_data)
+        return success_response(
+            data={"products": products_with_stats},
+            message="Products with stock info retrieved successfully"
+        )
+    except Exception as e:
+        logger.error(f"Error fetching products with stock: {str(e)}")
+        return error_response("Failed to fetch products with stock", status_code=500)
+
 
 
 

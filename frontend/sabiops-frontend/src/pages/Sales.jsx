@@ -284,6 +284,18 @@ const Sales = () => {
         return;
       }
 
+      // Quantity validation against available stock
+      const selectedProduct = products.find(p => p.id === formData.product_id);
+      if (selectedProduct) {
+        const availableQuantity = parseInt(selectedProduct.quantity) || 0;
+        const requestedQuantity = parseInt(formData.quantity) || 1;
+        if (requestedQuantity > availableQuantity) {
+          toastService.error(`Cannot sell more than available stock. Only ${availableQuantity} units available for ${selectedProduct.name}.`);
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Use the formatted data from the validator
       await createSale(validation.formattedData);
       
