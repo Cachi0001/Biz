@@ -867,15 +867,15 @@ const Sales = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {productsLoading ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="all" disabled>
                             Loading products...
                           </SelectItem>
                         ) : productsError ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="all" disabled>
                             {productsError}
                           </SelectItem>
                         ) : products.length === 0 ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="all" disabled>
                             No products available
                           </SelectItem>
                         ) : (

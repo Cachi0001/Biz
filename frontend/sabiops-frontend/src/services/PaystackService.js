@@ -4,7 +4,7 @@
  */
 
 class PaystackService {
-  static PAYSTACK_PUBLIC_KEY = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_your_public_key_here';
+  static PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
   
   /**
    * Initialize Paystack payment for subscription upgrade

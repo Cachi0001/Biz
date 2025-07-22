@@ -17,7 +17,8 @@ const CustomInvoiceForm = ({
   onSuccess, 
   onCancel,
   editingInvoice = null,
-  onReview
+  onReview,
+  onError
 }) => {
   const formRef = useRef(null);
   
@@ -214,6 +215,7 @@ const CustomInvoiceForm = ({
       } else {
         handleApiErrorWithToast(new Error(`Please fix ${allErrors.length} errors before submitting`));
       }
+      if (typeof onError === 'function') onError(new Error('Validation failed'), editingInvoice ? 'update' : 'create');
       return;
     }
 
@@ -222,7 +224,7 @@ const CustomInvoiceForm = ({
       onReview(formData);
     } else if (onSuccess) {
       // If no review function is provided, call onSuccess directly
-      onSuccess(formData);
+      onSuccess(formData, editingInvoice ? 'update' : 'create');
     }
   };
 

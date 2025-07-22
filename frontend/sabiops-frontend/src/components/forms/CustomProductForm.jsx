@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
 
 const CustomProductForm = ({ 
   categories = [], 
@@ -439,16 +440,15 @@ const CustomProductForm = ({
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Stock Quantity *</label>
-            <input
-              ref={quantityInputRef}
+            <Input
+              id="quantity"
+              name="quantity"
               type="number"
-              min="0"
-              className="form-input"
-              placeholder="Enter quantity"
-              required
-              onFocus={() => handleInputFocus('quantity')}
-              onBlur={() => handleInputBlur('quantity')}
+              value={formData.quantity === undefined ? '' : formData.quantity}
               onChange={(e) => handleInputChange('quantity', e.target.value)}
+              placeholder="Quantity"
+              min={1}
+              required
             />
           </div>
 

@@ -150,7 +150,7 @@ def create_sale():
             "total_amount": total_amount,
             "net_amount": total_amount - float(data.get("discount_amount", 0)) + float(data.get("tax_amount", 0)),
             "sale_items": sale_items_processed,
-            "date": datetime.now().isoformat(),
+            "date": datetime.utcnow().date().isoformat(),
             "created_at": datetime.now().isoformat(),
             "total_cogs": total_cogs,
             "gross_profit": total_amount - total_cogs

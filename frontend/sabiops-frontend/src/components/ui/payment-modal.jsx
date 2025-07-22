@@ -74,7 +74,7 @@ const PaymentModal = ({
         setPaymentReference(response.data.reference);
         // Initialize Paystack popup
         const handler = window.PaystackPop.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_58449e3de8d50386cfbcdbfba368ad8ece5737f9',
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
           email: user.email,
           amount: amount * 100,
           currency: 'NGN',
