@@ -27,7 +27,7 @@ const MobileNavigation = () => {
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
       { icon: Users, label: 'Customers', path: '/customers' },
       { icon: FileText, label: 'Invoices', path: '/invoices' },
-      { icon: TrendingUp, label: 'Sales', path: '/sales/report' },
+      { icon: TrendingUp, label: 'Sales', path: '/sales' }, // Fixed path
     ];
 
     // Add the 5th item based on current page or role

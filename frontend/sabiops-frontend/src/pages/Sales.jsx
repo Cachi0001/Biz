@@ -670,6 +670,13 @@ const Sales = () => {
                                 </span>
                               </div>
                             </div>
+                            {/* Profit */}
+                            <div className="pt-1 flex justify-between items-center">
+                              <span className="text-sm text-blue-700 font-medium">Profit:</span>
+                              <span className="text-base font-bold text-blue-700">
+                                {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
+                              </span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -690,6 +697,7 @@ const Sales = () => {
                             <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Payment Method</TableHead>
                             <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Date</TableHead>
                             <TableHead className="px-6 py-4 text-center font-semibold text-gray-900">Actions</TableHead>
+                            <TableHead className="px-6 py-4 text-right font-semibold text-gray-900">Profit</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -734,6 +742,11 @@ const Sales = () => {
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
                                   <Eye className="h-4 w-4 text-blue-600" />
                                 </Button>
+                              </TableCell>
+                              <TableCell className="px-6 py-4 text-right">
+                                <span className="font-medium text-blue-700">
+                                  {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
+                                </span>
                               </TableCell>
                             </TableRow>
                           ))}

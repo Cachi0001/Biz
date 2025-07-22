@@ -34,12 +34,22 @@ export const useToast = (): ToastContextType => {
   return context;
 };
 
+// Safe useNavigate hook
+function useSafeNavigate() {
+  try {
+    return useNavigate();
+  } catch {
+    // Return a no-op function if not in a Router context
+    return () => {};
+  }
+}
+
 // Toast item component
 const ToastItem: React.FC<{ toast: ToastData; onRemove: (id: string) => void }> = ({ 
   toast, 
   onRemove 
 }) => {
-  const navigate = useNavigate();
+  const navigate = useSafeNavigate();
   const brandColors = toastService.getBrandColors();
 
   const getIcon = () => {
