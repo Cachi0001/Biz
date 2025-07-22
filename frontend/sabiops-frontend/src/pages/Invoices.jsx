@@ -16,7 +16,6 @@ import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
 import ReviewDialog from '../components/invoice/ReviewDialog';
 import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
-import { updateInvoice } from '../services/api';
 
 const Invoices = () => {
   // State

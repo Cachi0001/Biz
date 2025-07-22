@@ -118,7 +118,27 @@ Deno.serve(async (req) => {
           trial_ends_at: verifiedUser.trial_ends_at
         }));
 
-        return Response.redirect(`${frontendUrl}/email-verified?success=true&auto_login=true&user=${userData}`, 302);
+        // Generate a real JWT access token for the user
+        let accessToken = '';
+        try {
+          // Use Supabase Auth Admin API to create a session for the user
+          const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email: verifiedUser.email
+          });
+          if (sessionError || !sessionData?.action_link) {
+            console.error('Failed to generate magic link for JWT:', sessionError);
+          } else {
+            // Extract the token from the magic link
+            const url = new URL(sessionData.action_link);
+            accessToken = url.searchParams.get('token') || '';
+          }
+        } catch (jwtError) {
+          console.error('JWT generation error:', jwtError);
+        }
+
+        // Redirect with user data and token for auto-login
+        return Response.redirect(`${frontendUrl}/email-verified?success=true&auto_login=true&user=${userData}&token=${accessToken}`, 302);
       } catch (fetchError) {
         console.error('User fetch error:', fetchError);
         // Email is verified but something went wrong - redirect to login

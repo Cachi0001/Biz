@@ -27,7 +27,7 @@ import {
   Package
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { MobileDateInput } from '../components/MobileDateInput';
+import MobileDateInput from '@/components/ui/MobileDateInput';
 
 const Transactions = () => {
   const { user } = useAuth();

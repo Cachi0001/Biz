@@ -117,13 +117,15 @@ const ModernQuickActions = () => {
             variant={action.variant}
             size="lg"
             onClick={() => handleNavigation(action.path)}
-            className="h-20 flex-col space-y-1 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="h-20 flex flex-col items-center justify-center space-y-1 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-2"
           >
-            <action.icon className="h-6 w-6" />
-            <div className="text-center">
-              <div className="text-sm font-semibold">{action.label}</div>
-              <div className="text-xs opacity-90">{action.description}</div>
-            </div>
+            <span className="flex items-center justify-center w-full mb-1">
+              <action.icon className="h-6 w-6" />
+            </span>
+            <span className="w-full">
+              <div className="text-sm font-semibold w-full text-center">{action.label}</div>
+              <div className="text-xs opacity-90 w-full text-center">{action.description}</div>
+            </span>
           </Button>
         ))}
       </div>

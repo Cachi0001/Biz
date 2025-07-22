@@ -11,6 +11,7 @@ const EmailVerified = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let didNavigate = false;
     const params = new URLSearchParams(window.location.search);
     const success = params.get('success');
     const autoLogin = params.get('auto_login');
@@ -29,8 +30,17 @@ const EmailVerified = () => {
     
     console.log('Parameter validation:', { hasValidSuccessParams, hasLegacyVerifiedParams, hasTokenParams });
 
+    // If a token is present in the URL, set it and trigger checkAuth
+    useEffect(() => {
+      if (token) {
+        localStorage.setItem('token', token);
+        checkAuth();
+      }
+    }, [token, checkAuth]);
+
     // If user is already authenticated, redirect to dashboard
-    if (isAuthenticated) {
+    if (isAuthenticated && !didNavigate) {
+      didNavigate = true;
       console.log('Already authenticated, navigating to dashboard');
       navigate('/dashboard');
       return;
@@ -77,10 +87,13 @@ const EmailVerified = () => {
               // Update auth context and ensure authentication state is set
               await checkAuth();
               
-              // Give a moment for auth context to update, then navigate
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 1500);
+              // Wait for isAuthenticated to become true before navigating
+              const interval = setInterval(async () => {
+                if (isAuthenticated) {
+                  clearInterval(interval);
+                  navigate('/dashboard');
+                }
+              }, 100); // Check every 100ms
             } else {
               // Even if backend call fails, email is verified, so redirect to login
               console.log('Backend token generation failed, but email is verified');
@@ -140,9 +153,13 @@ const EmailVerified = () => {
             // Update auth context
             await checkAuth();
             
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
+            // Wait for isAuthenticated to become true before navigating
+            const interval = setInterval(async () => {
+              if (isAuthenticated) {
+                clearInterval(interval);
+                navigate('/dashboard');
+              }
+            }, 100); // Check every 100ms
           } else if (response && (response.message || '').toLowerCase().includes('already confirmed')) {
             setStatus('verified-login');
             toast.success('Email already verified! Please log in to continue.');
