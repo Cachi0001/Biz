@@ -14,6 +14,7 @@ import ExpenseForm from '../components/forms/ExpenseForm';
 import ExpenseCard from '../components/expenses/ExpenseCard';
 import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
+import { EXPENSE_CATEGORIES } from '../constants/categories';
 
 const Expenses = () => {
   // State
@@ -83,48 +84,16 @@ const Expenses = () => {
         categoriesData = response.categories;
       }
 
-      // If no categories returned, use default list
+      // If no categories returned, use shared expense categories constants
       if (categoriesData.length === 0) {
-        categoriesData = [
-          { id: 'Inventory/Stock Purchase', name: 'Inventory/Stock Purchase' },
-          { id: 'Rent & Utilities', name: 'Rent & Utilities' },
-          { id: 'Staff Salaries', name: 'Staff Salaries' },
-          { id: 'Transportation', name: 'Transportation' },
-          { id: 'Marketing & Advertising', name: 'Marketing & Advertising' },
-          { id: 'Equipment & Tools', name: 'Equipment & Tools' },
-          { id: 'Professional Services', name: 'Professional Services' },
-          { id: 'Insurance', name: 'Insurance' },
-          { id: 'Taxes & Government Fees', name: 'Taxes & Government Fees' },
-          { id: 'Bank Charges', name: 'Bank Charges' },
-          { id: 'Maintenance & Repairs', name: 'Maintenance & Repairs' },
-          { id: 'Office Supplies', name: 'Office Supplies' },
-          { id: 'Communication', name: 'Communication' },
-          { id: 'Training & Development', name: 'Training & Development' },
-          { id: 'Other', name: 'Other' }
-        ];
+        categoriesData = EXPENSE_CATEGORIES.map(category => ({ id: category, name: category }));
       }
 
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      // Use default categories on error
-      setCategories([
-        { id: 'Inventory/Stock Purchase', name: 'Inventory/Stock Purchase' },
-        { id: 'Rent & Utilities', name: 'Rent & Utilities' },
-        { id: 'Staff Salaries', name: 'Staff Salaries' },
-        { id: 'Transportation', name: 'Transportation' },
-        { id: 'Marketing & Advertising', name: 'Marketing & Advertising' },
-        { id: 'Equipment & Tools', name: 'Equipment & Tools' },
-        { id: 'Professional Services', name: 'Professional Services' },
-        { id: 'Insurance', name: 'Insurance' },
-        { id: 'Taxes & Government Fees', name: 'Taxes & Government Fees' },
-        { id: 'Bank Charges', name: 'Bank Charges' },
-        { id: 'Maintenance & Repairs', name: 'Maintenance & Repairs' },
-        { id: 'Office Supplies', name: 'Office Supplies' },
-        { id: 'Communication', name: 'Communication' },
-        { id: 'Training & Development', name: 'Training & Development' },
-        { id: 'Other', name: 'Other' }
-      ]);
+      // Use shared expense categories constants as fallback
+      setCategories(EXPENSE_CATEGORIES.map(category => ({ id: category, name: category })));
     }
   };
 

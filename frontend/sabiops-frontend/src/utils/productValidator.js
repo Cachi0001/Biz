@@ -24,7 +24,10 @@ export const validateProductData = (productData) => {
     errors.price = 'Valid price is required (must be greater than 0)';
   }
   
-  if (productData.quantity !== undefined && productData.quantity !== null && parseInt(productData.quantity) < 0) {
+  // Quantity is required
+  if (productData.quantity === undefined || productData.quantity === null || productData.quantity === '') {
+    errors.quantity = 'Quantity is required';
+  } else if (parseInt(productData.quantity) < 0) {
     errors.quantity = 'Quantity cannot be negative';
   }
   
@@ -34,6 +37,10 @@ export const validateProductData = (productData) => {
   
   if (productData.cost_price !== undefined && productData.cost_price !== null && parseFloat(productData.cost_price) < 0) {
     errors.cost_price = 'Cost price cannot be negative';
+  }
+
+  if (productData.selling_price !== undefined && productData.selling_price !== null && parseFloat(productData.selling_price) < 0) {
+    errors.selling_price = 'Selling price cannot be negative';
   }
   
   // Format data for API
@@ -45,7 +52,7 @@ export const validateProductData = (productData) => {
     sub_category: productData.subcategory?.trim() || productData.sub_category?.trim() || '',
     price: parseFloat(productData.price) || 0,
     cost_price: parseFloat(productData.cost_price) || 0,
-    quantity: parseInt(productData.quantity) || 0,
+    quantity: parseInt(productData.quantity),
     low_stock_threshold: parseInt(productData.low_stock_threshold) || 5,
     barcode: productData.barcode?.trim() || null
   };

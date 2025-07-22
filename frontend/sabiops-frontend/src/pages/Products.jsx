@@ -11,6 +11,7 @@ import StableInput from '../components/ui/StableInput';
 import DebugLogger from '../utils/debugLogger';
 import useDebugRenders from '../hooks/useDebugRenders';
 import CustomProductForm from '../components/forms/CustomProductForm';
+import { BUSINESS_CATEGORIES } from '../constants/categories';
 import {
   Dialog,
   DialogContent,
@@ -104,46 +105,14 @@ const Products = () => {
         setCategories(response);
       } else {
         console.warn('[PRODUCTS] Using fallback categories');
-        // Use Nigerian business categories from formatting utils
-        setCategories([
-          { id: 'Electronics & Technology', name: 'Electronics & Technology' },
-          { id: 'Fashion & Clothing', name: 'Fashion & Clothing' },
-          { id: 'Food & Beverages', name: 'Food & Beverages' },
-          { id: 'Health & Beauty', name: 'Health & Beauty' },
-          { id: 'Home & Garden', name: 'Home & Garden' },
-          { id: 'Automotive', name: 'Automotive' },
-          { id: 'Sports & Outdoors', name: 'Sports & Outdoors' },
-          { id: 'Books & Media', name: 'Books & Media' },
-          { id: 'Office Supplies', name: 'Office Supplies' },
-          { id: 'Agriculture', name: 'Agriculture' },
-          { id: 'Construction Materials', name: 'Construction Materials' },
-          { id: 'Jewelry & Accessories', name: 'Jewelry & Accessories' },
-          { id: 'Toys & Games', name: 'Toys & Games' },
-          { id: 'Art & Crafts', name: 'Art & Crafts' },
-          { id: 'Other', name: 'Other' }
-        ]);
+        // Use shared business categories constants
+        setCategories(BUSINESS_CATEGORIES.map(category => ({ id: category, name: category })));
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error(getErrorMessage(error, 'Failed to load categories'));
-      // Use Nigerian business categories as fallback
-      setCategories([
-        { id: 'Electronics & Technology', name: 'Electronics & Technology' },
-        { id: 'Fashion & Clothing', name: 'Fashion & Clothing' },
-        { id: 'Food & Beverages', name: 'Food & Beverages' },
-        { id: 'Health & Beauty', name: 'Health & Beauty' },
-        { id: 'Home & Garden', name: 'Home & Garden' },
-        { id: 'Automotive', name: 'Automotive' },
-        { id: 'Sports & Outdoors', name: 'Sports & Outdoors' },
-        { id: 'Books & Media', name: 'Books & Media' },
-        { id: 'Office Supplies', name: 'Office Supplies' },
-        { id: 'Agriculture', name: 'Agriculture' },
-        { id: 'Construction Materials', name: 'Construction Materials' },
-        { id: 'Jewelry & Accessories', name: 'Jewelry & Accessories' },
-        { id: 'Toys & Games', name: 'Toys & Games' },
-        { id: 'Art & Crafts', name: 'Art & Crafts' },
-        { id: 'Other', name: 'Other' }
-      ]);
+      // Use shared business categories constants as fallback
+      setCategories(BUSINESS_CATEGORIES.map(category => ({ id: category, name: category })));
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { createProduct, updateProduct } from '../../services/api';
 import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
+import { BUSINESS_CATEGORIES, BUSINESS_SUBCATEGORIES, getSubcategories } from '../../constants/categories';
 import {
   Select,
   SelectContent,
@@ -36,29 +37,12 @@ const CustomProductForm = ({
     subcategory: '',
     price: '',
     cost_price: '',
-    quantity: '0',
+    quantity: '',
     low_stock_threshold: '5',
     barcode: ''
   });
 
-  // Define categories and subcategories
-  const categoryData = {
-    'Electronics': ['Smartphones', 'Laptops', 'Tablets', 'Accessories', 'Audio Equipment'],
-    'Clothing': ['Men\'s Wear', 'Women\'s Wear', 'Children\'s Wear', 'Shoes', 'Accessories'],
-    'Food & Beverages': ['Snacks', 'Beverages', 'Dairy Products', 'Frozen Foods', 'Fresh Produce'],
-    'Home & Garden': ['Furniture', 'Appliances', 'Decor', 'Garden Tools', 'Cleaning Supplies'],
-    'Health & Beauty': ['Skincare', 'Makeup', 'Hair Care', 'Personal Care', 'Supplements'],
-    'Sports & Outdoors': ['Exercise Equipment', 'Outdoor Gear', 'Sports Apparel', 'Team Sports', 'Water Sports'],
-    'Books & Media': ['Fiction', 'Non-Fiction', 'Educational', 'Magazines', 'Digital Media'],
-    'Automotive': ['Car Parts', 'Accessories', 'Tools', 'Maintenance', 'Electronics'],
-    'Office Supplies': ['Stationery', 'Technology', 'Furniture', 'Organization', 'Printing'],
-    'Toys & Games': ['Educational Toys', 'Action Figures', 'Board Games', 'Video Games', 'Outdoor Toys']
-  };
-
-  // Get available subcategories based on selected category
-  const getSubcategories = (category) => {
-    return categoryData[category] || [];
-  };
+  // Categories and subcategories are now imported from shared constants
 
   useEffect(() => {
     // Focus on first input
@@ -105,6 +89,9 @@ const CustomProductForm = ({
     console.log('🎯 CustomProductForm: Form submitted');
 
     // Get values from formData state and DOM elements
+    // For quantity, preserve the raw value before parseInt to allow proper validation
+    const rawQuantity = formData.quantity || quantityInputRef.current?.value;
+    
     const submitData = {
       name: formData.name || nameInputRef.current?.value?.trim() || '',
       sku: formData.sku || skuInputRef.current?.value?.trim() || '',
@@ -113,7 +100,7 @@ const CustomProductForm = ({
       subcategory: formData.subcategory || '', // Map subcategory to sub_category for backend
       price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
       cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
-      quantity: parseInt(formData.quantity || quantityInputRef.current?.value) || 0,
+      quantity: rawQuantity, // Send raw value to validator to preserve empty check
       low_stock_threshold: parseInt(formData.low_stock_threshold || lowStockThresholdInputRef.current?.value) || 5,
       barcode: formData.barcode || barcodeInputRef.current?.value?.trim() || null
     };
@@ -198,7 +185,7 @@ const CustomProductForm = ({
         subcategory: '',
         price: '',
         cost_price: '',
-        quantity: '0',
+        quantity: '',
         low_stock_threshold: '5',
         barcode: ''
       });
@@ -470,7 +457,7 @@ const CustomProductForm = ({
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {Object.keys(categoryData).map((category) => (
+                {BUSINESS_CATEGORIES.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>
@@ -550,14 +537,14 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Stock Quantity</label>
+            <label className="form-label">Stock Quantity *</label>
             <input
               ref={quantityInputRef}
               type="number"
               min="0"
               className="form-input"
-              placeholder="0"
-              defaultValue="0"
+              placeholder="Enter quantity"
+              required
               onFocus={() => handleInputFocus('quantity')}
               onBlur={() => handleInputBlur('quantity')}
               onChange={(e) => handleInputChange('quantity', e.target.value)}
