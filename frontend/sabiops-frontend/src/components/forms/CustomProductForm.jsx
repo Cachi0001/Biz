@@ -111,11 +111,11 @@ const CustomProductForm = ({
         return;
       }
       let response;
-      if (editingProduct) {
-        response = await updateProduct(editingProduct.id, validation.formattedData);
+        if (editingProduct) {
+          response = await updateProduct(editingProduct.id, validation.formattedData);
         toastService.success('Product updated successfully!');
-      } else {
-        response = await createProduct(validation.formattedData);
+        } else {
+          response = await createProduct(validation.formattedData);
         toastService.success('Product created successfully!');
       }
       setFormData({

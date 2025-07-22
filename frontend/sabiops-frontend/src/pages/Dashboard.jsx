@@ -153,33 +153,7 @@ const Dashboard = () => {
     <DashboardLayout>
       {/* Main Dashboard Content with Enhanced Mobile Responsiveness */}
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-7xl">
-        {/* Global Search Bar */}
-        <div className="relative mt-4 mb-6">
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="w-full h-12 rounded-lg border border-gray-300 px-4 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Search customers, products, invoices..."
-            value={searchQuery}
-            onChange={handleSearchInput}
-            onFocus={() => setSearchOpen(!!searchQuery)}
-            autoComplete="off"
-          />
-          <button
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600"
-            onClick={() => setSearchOpen(true)}
-            tabIndex={-1}
-            type="button"
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          <SearchDropdown
-            isOpen={searchOpen}
-            onClose={handleCloseSearch}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
-        </div>
+        {/* Remove duplicate Global Search Bar here */}
         <div className="space-y-4 sm:space-y-6">
           {/* Real-time Plan Monitoring System */}
           <section className="w-full">

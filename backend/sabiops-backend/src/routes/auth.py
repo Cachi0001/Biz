@@ -1184,18 +1184,18 @@ def get_profile():
         user = None
         if supabase:
             try:
-                user_result = supabase.table("users").select("*").eq("id", user_id).execute()
-                if user_result.data:
-                    user = user_result.data[0]
+            user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+            if user_result.data:
+                user = user_result.data[0]
             except Exception as db_exc:
                 print(f"[ERROR] Supabase DB error in get_profile: {db_exc}")
                 return error_response("Database error: " + str(db_exc), status_code=500)
         else:
             try:
-                for u in mock_db["users"]:
-                    if u["id"] == user_id:
-                        user = u
-                        break
+            for u in mock_db["users"]:
+                if u["id"] == user_id:
+                    user = u
+                    break
             except Exception as mock_exc:
                 print(f"[ERROR] Mock DB error in get_profile: {mock_exc}")
                 return error_response("Mock DB error: " + str(mock_exc), status_code=500)
