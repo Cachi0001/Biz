@@ -10,6 +10,7 @@ const EmailVerified = () => {
   const [status, setStatus] = useState('verifying');
   const [error, setError] = useState('');
 
+  // Move all useEffect hooks to the top level and ensure toast.success is always called
   useEffect(() => {
     let didNavigate = false;
     const params = new URLSearchParams(window.location.search);
@@ -31,17 +32,14 @@ const EmailVerified = () => {
     console.log('Parameter validation:', { hasValidSuccessParams, hasLegacyVerifiedParams, hasTokenParams });
 
     // If a token is present in the URL, set it and trigger checkAuth
-    useEffect(() => {
-      if (token) {
-        localStorage.setItem('token', token);
-        checkAuth();
-      }
-    }, [token, checkAuth]);
+    if (token) {
+      localStorage.setItem('token', token);
+      checkAuth();
+    }
 
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated && !didNavigate) {
       didNavigate = true;
-      console.log('Already authenticated, navigating to dashboard');
       navigate('/dashboard');
       return;
     }
@@ -194,7 +192,7 @@ const EmailVerified = () => {
         navigate('/login');
       }, 2000);
     }
-  }, [navigate, isAuthenticated, checkAuth]);
+  }, [navigate, isAuthenticated, checkAuth, status]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
