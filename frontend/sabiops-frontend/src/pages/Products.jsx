@@ -36,10 +36,10 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { getProducts, getCategories, updateProduct, createProduct, deleteProduct } from "../services/api";
-import { toast } from 'react-hot-toast'; // Corrected import
+import { toastService } from '../services/ToastService';
 import { getErrorMessage } from '../services/api';
 import { formatNaira } from '../utils/formatting';
-import { handleApiErrorWithToast, showSuccessToast } from '../utils/errorHandling';
+import { handleApiErrorWithToast } from '../utils/errorHandling';
 
 const Products = () => {
   useDebugRenders('Products');
@@ -82,7 +82,7 @@ const Products = () => {
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast.error(getErrorMessage(error, 'Failed to load products'));
+      toastService.error(getErrorMessage(error, 'Failed to load products'));
       setProducts([]);
     } finally {
       setLoading(false);
@@ -110,7 +110,7 @@ const Products = () => {
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast.error(getErrorMessage(error, 'Failed to load categories'));
+      toastService.error(getErrorMessage(error, 'Failed to load categories'));
       // Use shared business categories constants as fallback
       setCategories(BUSINESS_CATEGORIES.map(category => ({ id: category, name: category })));
     }
@@ -126,18 +126,34 @@ const Products = () => {
       return;
     }
 
-      try {
-        setLoading(true);
-        const response = await deleteProduct(productId);
-        console.log('[PRODUCTS] Delete response:', response);
-        showSuccessToast("Product deleted successfully!");
-        await fetchProducts();
-      } catch (error) {
-        console.error('Failed to delete product:', error);
-        handleApiErrorWithToast(error, 'Failed to delete product');
-      } finally {
-        setLoading(false);
-      }
+    // Optimistic UI - remove product immediately
+    const originalProducts = [...products];
+    const productToDelete = products.find(p => p.id === productId);
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    
+    // Show loading toast
+    const loadingToastId = toastService.loading('Deleting product...');
+
+    try {
+      const response = await deleteProduct(productId);
+      console.log('[PRODUCTS] Delete response:', response);
+      
+      // Remove loading toast and show success
+      toastService.removeToast(loadingToastId);
+      toastService.success("Product deleted successfully!");
+      
+      // Refresh products to ensure consistency
+      await fetchProducts();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      
+      // Rollback optimistic update
+      setProducts(originalProducts);
+      
+      // Remove loading toast and show error
+      toastService.removeToast(loadingToastId);
+      toastService.error(`Failed to delete ${productToDelete?.name || 'product'}`);
+    }
   };
 
   const handleFormSuccess = (response) => {
@@ -145,13 +161,7 @@ const Products = () => {
     const isEditing = !!editingProduct;
     
     // Show success toast with proper message
-    if (window.showSuccessToast) {
-      window.showSuccessToast(
-        isEditing ? 'Product updated successfully!' : 'Product created successfully!'
-      );
-    } else {
-      toast.success(isEditing ? 'Product updated successfully!' : 'Product created successfully!');
-    }
+    toastService.success(isEditing ? 'Product updated successfully!' : 'Product created successfully!');
     
     setShowAddDialog(false);
     setShowEditDialog(false);

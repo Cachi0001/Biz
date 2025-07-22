@@ -371,6 +371,17 @@ export async function getProducts() {
   }
 }
 
+export async function getProductsWithStock() {
+  try {
+    const response = await api.get('/products/with-stock');
+    console.log("[DEBUG] getProductsWithStock response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("[ERROR] getProductsWithStock failed:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 export async function createProduct(productData) {
   const response = await api.post('/products/', productData);
   return response.data;

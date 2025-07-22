@@ -201,13 +201,18 @@ class ToastService {
   updateToast(id: string, updates: Partial<Omit<ToastData, 'id' | 'timestamp'>>): void {
     const toastIndex = this.toasts.findIndex(toast => toast.id === id);
     if (toastIndex !== -1) {
-      this.toasts[toastIndex] = { 
-        ...this.toasts[toastIndex], 
-        ...updates,
-        id: this.toasts[toastIndex].id, // Ensure id is preserved
-        timestamp: this.toasts[toastIndex].timestamp // Ensure timestamp is preserved
-      };
-      this.notifyListeners();
+      const currentToast = this.toasts[toastIndex];
+      if (currentToast) {
+        this.toasts[toastIndex] = { 
+          ...currentToast, 
+          ...updates,
+          id: currentToast.id, // Ensure id is preserved
+          timestamp: currentToast.timestamp, // Ensure timestamp is preserved
+          type: currentToast.type, // Ensure type is preserved
+          message: updates.message || currentToast.message // Ensure message is preserved
+        };
+        this.notifyListeners();
+      }
     }
   }
 

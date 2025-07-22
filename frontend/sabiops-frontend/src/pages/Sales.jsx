@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getSales, getProducts, getCustomers, createSale } from "../services/api";
+import { getSales, getProductsWithStock, getCustomers, createSale } from "../services/api";
 import { enhancedCreateSale } from "../services/enhancedApi";
 import { formatNaira, formatDate, formatDateTime, formatPaymentMethod } from '../utils/formatting';
-import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
+import { toastService } from '../services/ToastService';
+import { handleApiErrorWithToast } from '../utils/errorHandling';
 import { validateSaleData } from "../services/enhancedApi";
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
@@ -92,12 +93,12 @@ const Sales = () => {
 
   const fetchProductsData = async () => {
     try {
-      console.log('[SalesPage] Fetching products for dropdown...');
-      console.log('[SalesPage] Products API endpoint: /products');
+      console.log('[SalesPage] Fetching products with stock for dropdown...');
+      console.log('[SalesPage] Products API endpoint: /products/with-stock');
 
-      const response = await getProducts();
+      const response = await getProductsWithStock();
 
-      console.log('[SalesPage] Raw products response:', response);
+      console.log('[SalesPage] Raw products with stock response:', response);
       console.log('[SalesPage] Products response type:', typeof response);
       console.log('[SalesPage] Products response keys:', response ? Object.keys(response) : 'null/undefined');
 
@@ -121,20 +122,49 @@ const Sales = () => {
         productsArray = [];
       }
 
-      setProducts(productsArray);
+      // Enhance products with stock labeling for better UX
+      const productsWithLabels = productsArray.map(product => {
+        const quantity = parseInt(product.quantity) || 0;
+        const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
+        
+        let stockLabel = '';
+        if (quantity > lowStockThreshold) {
+          stockLabel = `${product.name} (Qty: ${quantity})`;
+        } else if (quantity <= lowStockThreshold && quantity > 0) {
+          stockLabel = `${product.name} (Low Stock: ${quantity})`;
+        } else {
+          stockLabel = `${product.name} (Out of Stock)`;
+        }
 
-      console.log('[SalesPage] Products set in state:', productsArray.length, 'products');
+        return {
+          ...product,
+          stockLabel,
+          isLowStock: quantity <= lowStockThreshold && quantity > 0,
+          isOutOfStock: quantity === 0
+        };
+      });
+
+      setProducts(productsWithLabels);
+
+      console.log('[SalesPage] Products with stock labels set in state:', productsWithLabels.length, 'products');
 
       // Log if no products found for dropdown
-      if (productsArray.length === 0) {
+      if (productsWithLabels.length === 0) {
         console.warn('[SalesPage] No products available for sales dropdown');
       } else {
-        console.log('[SalesPage] Products available:', productsArray.map(p => ({ id: p.id, name: p.name, price: p.price || p.unit_price })));
-        console.log('[SalesPage] First product example:', productsArray[0]);
+        console.log('[SalesPage] Products available with stock info:', productsWithLabels.map(p => ({ 
+          id: p.id, 
+          name: p.name, 
+          stockLabel: p.stockLabel,
+          quantity: p.quantity,
+          lowStockThreshold: p.low_stock_threshold,
+          price: p.price || p.unit_price 
+        })));
+        console.log('[SalesPage] First product example with stock info:', productsWithLabels[0]);
       }
 
     } catch (error) {
-      console.error('[SalesPage] Error fetching products:', error);
+      console.error('[SalesPage] Error fetching products with stock:', error);
       console.error('[SalesPage] Products error message:', error.message);
       setProducts([]);
     }
@@ -257,12 +287,7 @@ const Sales = () => {
       // Use the formatted data from the validator
       await createSale(validation.formattedData);
       
-      // Use global toast function if available, otherwise fallback
-      if (window.showSuccessToast) {
-        window.showSuccessToast('Sale recorded successfully!');
-      } else {
-        showSuccessToast('Sale recorded successfully!');
-      }
+      toastService.success('Sale recorded successfully!');
       
       setShowAddDialog(false);
       setFormData({
@@ -324,10 +349,10 @@ const Sales = () => {
       link.click();
       document.body.removeChild(link);
       
-      showSuccessToast('Sales report downloaded successfully!');
+      toastService.success('Sales report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);
-      showErrorToast('Failed to download report');
+      toastService.error('Failed to download report');
     }
   };
 
@@ -761,11 +786,9 @@ const Sales = () => {
                           
                           // Check if requested quantity exceeds available stock
                           if (requestedQuantity > productQuantity && productQuantity > 0) {
-                            if (window.showWarningToast) {
-                              window.showWarningToast(
-                                `Only ${productQuantity} units available for ${product.name}. Quantity adjusted.`
-                              );
-                            }
+                            toastService.warning(
+                              `Only ${productQuantity} units available for ${product.name}. Quantity adjusted.`
+                            );
                             // Adjust quantity to available stock
                             setFormData(prev => ({
                               ...prev,
@@ -785,9 +808,7 @@ const Sales = () => {
                           
                           // Show out of stock warning
                           if (productQuantity === 0) {
-                            if (window.showErrorToast) {
-                              window.showErrorToast(`${product.name} is out of stock!`);
-                            }
+                            toastService.error(`${product.name} is out of stock!`);
                           }
                         }
                       }}
@@ -798,8 +819,9 @@ const Sales = () => {
                       <SelectContent>
                         {products.map((product) => {
                           const quantity = parseInt(product.quantity) || 0;
+                          const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
                           const isOutOfStock = quantity === 0;
-                          const isLowStock = quantity <= 5 && quantity > 0;
+                          const isLowStock = quantity <= lowStockThreshold && quantity > 0;
                           
                           return (
                             <SelectItem 
@@ -810,7 +832,7 @@ const Sales = () => {
                             >
                               <div className="flex justify-between items-center w-full">
                                 <span className={isOutOfStock ? 'line-through' : ''}>
-                                  {product.name}
+                                  {product.stockLabel || product.name}
                                 </span>
                                 <div className="flex items-center gap-2 ml-2">
                                   <span className="text-sm text-green-600 font-medium">
@@ -823,7 +845,7 @@ const Sales = () => {
                                       ? 'bg-yellow-100 text-yellow-700' 
                                       : 'bg-green-100 text-green-700'
                                   }`}>
-                                    {isOutOfStock ? 'Out of Stock' : `Qty: ${quantity}`}
+                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
                                   </span>
                                 </div>
                               </div>
@@ -848,13 +870,12 @@ const Sales = () => {
                         
                         if (selectedProduct) {
                           const availableQuantity = parseInt(selectedProduct.quantity) || 0;
+                          const lowStockThreshold = parseInt(selectedProduct.low_stock_threshold) || 5;
                           
                           if (quantity > availableQuantity && availableQuantity > 0) {
-                            if (window.showWarningToast) {
-                              window.showWarningToast(
-                                `Only ${availableQuantity} units available for ${selectedProduct.name}. Quantity adjusted.`
-                              );
-                            }
+                            toastService.warning(
+                              `Only ${availableQuantity} units available for ${selectedProduct.name}. Quantity adjusted.`
+                            );
                             setFormData(prev => ({
                               ...prev,
                               quantity: availableQuantity,
@@ -864,10 +885,15 @@ const Sales = () => {
                           }
                           
                           if (availableQuantity === 0) {
-                            if (window.showErrorToast) {
-                              window.showErrorToast(`${selectedProduct.name} is out of stock!`);
-                            }
+                            toastService.error(`${selectedProduct.name} is out of stock!`);
                             return;
+                          }
+                          
+                          // Show low stock warning
+                          if (quantity <= lowStockThreshold && availableQuantity > 0) {
+                            toastService.info(
+                              `${selectedProduct.name} is running low on stock (${availableQuantity} remaining)`
+                            );
                           }
                         }
                         

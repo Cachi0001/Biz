@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { toast } from 'react-hot-toast';
+import { toastService } from '../../services/ToastService';
 import { createProduct, updateProduct } from '../../services/api';
-import { handleApiErrorWithToast, showSuccessToast } from '../../utils/errorHandling';
+import { handleApiErrorWithToast } from '../../utils/errorHandling';
 import { BUSINESS_CATEGORIES, BUSINESS_SUBCATEGORIES, getSubcategories } from '../../constants/categories';
 import {
   Select,
@@ -155,15 +155,16 @@ const CustomProductForm = ({
         if (editingProduct) {
           console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
           response = await updateProduct(editingProduct.id, validation.formattedData);
-          showSuccessToast("Product updated successfully!");
+          toastService.success("Product updated successfully!");
         } else {
           console.log('🎯 CustomProductForm: Creating new product');
           response = await createProduct(validation.formattedData);
-          showSuccessToast("Product created successfully!");
+          toastService.success("Product created successfully!");
         }
       } catch (apiError) {
         console.error('🎯 CustomProductForm: API Error Details:', apiError);
         if (apiError.response) {
+          toastService.error(`Failed to ${editingProduct ? 'update' : 'create'} product`);
           console.error('🎯 CustomProductForm: Error Status:', apiError.response.status);
           console.error('🎯 CustomProductForm: Error Data:', apiError.response.data);
           console.error('🎯 CustomProductForm: Error Headers:', apiError.response.headers);
