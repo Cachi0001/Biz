@@ -52,9 +52,10 @@ def create_app():
             "http://localhost:5173"
         ],
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     )
+    print("[DEBUG] CORS initialized with origins: https://sabiops.vercel.app, http://localhost:3000, http://localhost:5173")
     jwt = JWTManager(app)
 
     # Check for required environment variables

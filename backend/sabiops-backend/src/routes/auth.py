@@ -1183,16 +1183,25 @@ def get_profile():
 
         user = None
         if supabase:
-            user_result = supabase.table("users").select("*").eq("id", user_id).execute()
-            if user_result.data:
-                user = user_result.data[0]
+            try:
+                user_result = supabase.table("users").select("*").eq("id", user_id).execute()
+                if user_result.data:
+                    user = user_result.data[0]
+            except Exception as db_exc:
+                print(f"[ERROR] Supabase DB error in get_profile: {db_exc}")
+                return error_response("Database error: " + str(db_exc), status_code=500)
         else:
-            for u in mock_db["users"]:
-                if u["id"] == user_id:
-                    user = u
-                    break
+            try:
+                for u in mock_db["users"]:
+                    if u["id"] == user_id:
+                        user = u
+                        break
+            except Exception as mock_exc:
+                print(f"[ERROR] Mock DB error in get_profile: {mock_exc}")
+                return error_response("Mock DB error: " + str(mock_exc), status_code=500)
 
         if not user:
+            print(f"[ERROR] User not found in get_profile for user_id: {user_id}")
             return error_response("User not found", status_code=404)
 
         return success_response(
@@ -1213,6 +1222,9 @@ def get_profile():
         )
 
     except Exception as e:
+        print(f"[ERROR] Unhandled exception in get_profile: {e}")
+        import traceback
+        print(traceback.format_exc())
         return error_response(str(e), status_code=500)
 
 @auth_bp.route("/verify-token", methods=["POST"])

@@ -30,29 +30,28 @@ def get_sales():
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        
+        if not supabase:
+            print("[ERROR] Supabase connection not available in get_sales")
+            return error_response("Database connection not available", 500)
         # Build query with filters
         query = supabase.table("sales").select("*").eq("owner_id", owner_id)
-        
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
         customer_id = request.args.get("customer_id")
         product_id = request.args.get("product_id")
-        
         if start_date:
             query = query.gte("date", start_date)
-        
         if end_date:
             query = query.lte("date", end_date)
-        
         if customer_id:
             query = query.eq("customer_id", customer_id)
-        
         if product_id:
             query = query.eq("product_id", product_id)
-        
-        sales_result = query.order("date", desc=True).execute()
-        
+        try:
+            sales_result = query.order("date", desc=True).execute()
+        except Exception as db_exc:
+            print(f"[ERROR] Supabase DB error in get_sales: {db_exc}")
+            return error_response("Database error: " + str(db_exc), 500)
         if not sales_result.data:
             return success_response(
                 data={
@@ -64,21 +63,20 @@ def get_sales():
                     }
                 }
             )
-        
         # Calculate summary statistics
         sales_data = sales_result.data
-        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales_data)
-        total_transactions = len(sales_data)
-        
-        # Calculate today's sales
-        today = datetime.now().date().isoformat()
-        today_sales = sum(
-            float(sale.get("total_amount", 0)) 
-            for sale in sales_data 
-            if sale.get("date", "").startswith(today)
-        )
-        
-        # Format sales data for response
+        try:
+            total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales_data)
+            total_transactions = len(sales_data)
+            today = datetime.now().date().isoformat()
+            today_sales = sum(
+                float(sale.get("total_amount", 0)) 
+                for sale in sales_data 
+                if sale.get("date", "").startswith(today)
+            )
+        except Exception as calc_exc:
+            print(f"[ERROR] Calculation error in get_sales: {calc_exc}")
+            return error_response("Calculation error: " + str(calc_exc), 500)
         formatted_sales = []
         for sale in sales_data:
             formatted_sale = {
@@ -98,7 +96,6 @@ def get_sales():
                 "created_at": sale.get("created_at")
             }
             formatted_sales.append(formatted_sale)
-        
         return success_response(
             data={
                 "sales": formatted_sales,
@@ -109,9 +106,10 @@ def get_sales():
                 }
             }
         )
-        
     except Exception as e:
-        logging.error(f"Error fetching sales: {str(e)}")
+        print(f"[ERROR] Unhandled exception in get_sales: {e}")
+        import traceback
+        print(traceback.format_exc())
         return error_response(str(e), "Failed to fetch sales", status_code=500)
 
 @sales_bp.route("/", methods=["POST"])

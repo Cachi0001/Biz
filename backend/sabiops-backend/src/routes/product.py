@@ -442,10 +442,9 @@ def update_product(product_id):
         if data.get("active") is not None:
             update_data["active"] = data["active"]
         
-        # Update the product
-        result = supabase.table("products").update(update_data).eq("id", product_id).execute()
-        
-        if not result.data:
+        # Perform the update
+        updated = supabase.table("products").update(update_data).eq("id", product_id).eq("owner_id", owner_id).execute()
+        if not updated.data:
             return jsonify({
                 "success": False,
                 "message": "Failed to update product",
@@ -455,47 +454,14 @@ def update_product(product_id):
                     "timeout": 4000
                 }
             }), 500
-        
-        updated_product = result.data[0]
-        
-        # Add stock status to response
-        threshold = updated_product.get("low_stock_threshold", 5)
-        updated_product['is_low_stock'] = new_quantity <= threshold
-        updated_product['stock_status'] = 'out_of_stock' if new_quantity == 0 else ('low_stock' if new_quantity <= threshold else 'in_stock')
-        
-        # Determine success message based on changes
-        product_name = updated_product.get("name", "Product")
-        success_message = f"'{product_name}' updated successfully"
-        
-        # Add stock status info to success message if relevant
-        if new_quantity != old_quantity:
-            if new_quantity <= threshold:
-                success_message += f" (Low stock: {new_quantity} units)"
-            else:
-                success_message += f" (Stock: {new_quantity} units)"
-        
-        # Send low stock notification if quantity decreased to low stock level
-        if new_quantity <= threshold and (old_quantity > threshold or new_quantity < old_quantity):
-            try:
-                supa_service = SupabaseService()
-                supa_service.notify_user(
-                    str(owner_id),
-                    "Low Stock Alert!",
-                    f"Product '{updated_product['name']}' is now low on stock (Qty: {new_quantity}). Please restock soon.",
-                    "warning"
-                )
-            except Exception as e:
-                logger.warning(f"Failed to send low stock notification: {e}")
-        
+        updated_product = updated.data[0]
         return jsonify({
             "success": True,
             "message": "Product updated successfully",
-            "data": {
-                "product": updated_product
-            },
+            "product": updated_product,
             "toast": {
                 "type": "success",
-                "message": success_message,
+                "message": "Product updated successfully!",
                 "timeout": 3000
             }
         }), 200
@@ -868,80 +834,34 @@ def bulk_update_products():
 @product_bp.route("/stock-status", methods=["GET"])
 @jwt_required()
 def get_stock_status():
-    """Get stock status overview for all products"""
     try:
         supabase = get_supabase()
         owner_id = get_jwt_identity()
-        
         if not supabase:
-            return error_response("Database connection not available", status_code=500)
-        
-        # Get all active products
-        products = supabase.table("products").select("*").eq("owner_id", owner_id).eq("active", True).execute()
-        
-        if not products.data:
-            return success_response(
-                data={
-                    "products_status": [],
-                    "summary": {
-                        "total_products": 0,
-                        "low_stock_count": 0,
-                        "out_of_stock_count": 0,
-                        "in_stock_count": 0
-                    }
-                },
-                message="No products found"
-            )
-        
-        products_status = []
-        low_stock_count = 0
-        out_of_stock_count = 0
-        in_stock_count = 0
-        
-        for product in products.data:
-            quantity = int(product.get("quantity", 0))
-            threshold = int(product.get("low_stock_threshold", 5))
-            
-            # Determine stock status
-            if quantity == 0:
-                stock_status = "out_of_stock"
-                out_of_stock_count += 1
-            elif quantity <= threshold:
-                stock_status = "low_stock"
-                low_stock_count += 1
-            else:
-                stock_status = "in_stock"
-                in_stock_count += 1
-            
-            products_status.append({
-                "id": product["id"],
-                "name": product.get("name", ""),
-                "category": product.get("category", "Other"),
-                "quantity": quantity,
-                "low_stock_threshold": threshold,
-                "stock_status": stock_status,
-                "is_low_stock": quantity <= threshold,
-                "sku": product.get("sku", ""),
-                "price": float(product.get("price", 0))
-            })
-        
-        return success_response(
-            data={
-                "products_status": products_status,
-                "summary": {
-                    "total_products": len(products.data),
-                    "low_stock_count": low_stock_count,
-                    "out_of_stock_count": out_of_stock_count,
-                    "in_stock_count": in_stock_count,
-                    "alert_count": low_stock_count + out_of_stock_count
-                }
-            },
-            message="Stock status retrieved successfully"
-        )
-        
+            print("[ERROR] Supabase connection not available in get_stock_status")
+            return error_response("Database connection not available", 500)
+        try:
+            products_result = supabase.table("products").select("id, name, quantity, low_stock_threshold").eq("owner_id", owner_id).execute()
+        except Exception as db_exc:
+            print(f"[ERROR] Supabase DB error in get_stock_status: {db_exc}")
+            return error_response("Database error: " + str(db_exc), 500)
+        if not products_result.data:
+            return success_response(data={"stock_status": []})
+        stock_status = [
+            {
+                "id": p["id"],
+                "name": p["name"],
+                "quantity": p["quantity"],
+                "low_stock_threshold": p.get("low_stock_threshold", 5)
+            }
+            for p in products_result.data
+        ]
+        return success_response(data={"stock_status": stock_status})
     except Exception as e:
-        logger.error(f"Error getting stock status: {str(e)}")
-        return error_response("Failed to get stock status", status_code=500)
+        print(f"[ERROR] Unhandled exception in get_stock_status: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return error_response(str(e), status_code=500)
 
 @product_bp.route("/inventory-summary", methods=["GET"])
 @jwt_required()

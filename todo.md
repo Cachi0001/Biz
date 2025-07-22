@@ -14,7 +14,7 @@
 ## PHASE 2: Core Business Operations (2-3 hours)
 ### Product Management
 5. [ ] Fix product update functionality + add toast notifications
-6. [ ] Fix product dropdown to show stock quantities ("Product Name Qty:5")
+6. [ ] Fix product dropdown to show stock quantities ("Product Name Qty:5 price")
 7. [ ] Add real-time stock updates after sales
 8. [ ] Add quantity validation alerts
 
@@ -34,7 +34,8 @@
 ### Settings & User Management
 17. [ ] Fix settings profile update (full_name, business_name only)
 18. [ ] Implement team management system (CRUD for team members)
-19. [ ] Set email_confirmed=true for owners automatically
+19. [ ] Set email_confirmed=true for owners automatically(already done in the database)ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmed BOOLEAN DEFAULT false;
+
 
 ## PHASE 4: Analytics & Advanced Features (1-2 hours) 
 20. [ ] Fix advanced analytics charts (currently showing random data)
