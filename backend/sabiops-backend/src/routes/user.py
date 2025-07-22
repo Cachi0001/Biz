@@ -418,3 +418,22 @@ def get_user_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@user_bp.route('/usage-status', methods=['GET'])
+@jwt_required()
+def get_usage_status():
+    try:
+        user_id = get_jwt_identity()
+        # Dummy usage status for now; replace with real logic if needed
+        usage_status = {
+            'invoices_used': 10,
+            'invoices_limit': 100,
+            'expenses_used': 5,
+            'expenses_limit': 100,
+            'products_used': 20,
+            'products_limit': 100,
+            'status': 'ok'
+        }
+        return jsonify({'usage_status': usage_status}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+

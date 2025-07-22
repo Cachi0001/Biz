@@ -634,7 +634,7 @@ const CustomInvoiceForm = ({
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name}
+                          {`${product.name} - ${formatNaira(product.price || product.unit_price || 0)} (Qty: ${product.quantity || 0})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
