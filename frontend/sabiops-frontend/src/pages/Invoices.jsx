@@ -162,7 +162,17 @@ const Invoices = () => {
 
   // Handle form review
   const handleReview = (formData) => {
-    setReviewData(formData);
+    console.log('Review data:', formData);
+    
+    // Ensure formData has all required fields
+    const reviewFormData = {
+      ...formData,
+      customer_id: formData.customer_id || '',
+      items: formData.items || [],
+      status: formData.status || 'draft'
+    };
+    
+    setReviewData(reviewFormData);
     setShowReviewDialog(true);
   };
 
@@ -178,6 +188,13 @@ const Invoices = () => {
   const handleReviewConfirm = async () => {
     try {
       setLoading(true);
+      
+      // Check if reviewData exists
+      if (!reviewData) {
+        handleApiErrorWithToast(new Error('No invoice data to save'));
+        setLoading(false);
+        return;
+      }
       
       // Import the validator dynamically to avoid circular dependencies
       const { validateInvoiceData } = await import('../utils/invoiceValidator');
@@ -209,19 +226,31 @@ const Invoices = () => {
         return;
       }
       
+      // Add status field if not present
+      const dataToSave = {
+        ...validation.formattedData,
+        status: validation.formattedData.status || 'draft'
+      };
+      
+      console.log('Saving invoice data:', dataToSave);
+      
       if (isEdit && editingInvoice) {
-        await updateInvoice(editingInvoice.id, validation.formattedData);
+        await updateInvoice(editingInvoice.id, dataToSave);
         showSuccessToast('Invoice updated successfully');
       } else {
-        await createInvoice(validation.formattedData);
+        await createInvoice(dataToSave);
         showSuccessToast('Invoice created successfully');
       }
       
+      // Close dialogs and reset state
       setShowAddDialog(false);
       setShowEditDialog(false);
+      setShowReviewDialog(false);
       setEditingInvoice(null);
       setReviewData(null);
       setIsEdit(false);
+      
+      // Refresh invoices list
       fetchInvoices();
     } catch (error) {
       console.error('Error saving invoice:', error);

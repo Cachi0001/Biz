@@ -9,6 +9,14 @@
  * @returns {Object} - Object with isValid and errors properties
  */
 export const validateInvoiceData = (invoiceData) => {
+  if (!invoiceData) {
+    return {
+      isValid: false,
+      errors: { general: 'No invoice data provided' },
+      formattedData: {}
+    };
+  }
+  
   const errors = {};
   
   // Required field validation
@@ -24,7 +32,7 @@ export const validateInvoiceData = (invoiceData) => {
     errors.due_date = 'Due date cannot be before issue date';
   }
   
-  if (!invoiceData.items || invoiceData.items.length === 0) {
+  if (!invoiceData.items || !Array.isArray(invoiceData.items) || invoiceData.items.length === 0) {
     errors.items = 'At least one item is required';
   } else {
     // Validate each item
@@ -32,6 +40,12 @@ export const validateInvoiceData = (invoiceData) => {
     let hasItemErrors = false;
     
     invoiceData.items.forEach((item, index) => {
+      if (!item) {
+        itemErrors[index] = { general: 'Invalid item' };
+        hasItemErrors = true;
+        return;
+      }
+      
       const itemError = {};
       
       if (!item.description || !item.description.trim()) {
@@ -49,12 +63,14 @@ export const validateInvoiceData = (invoiceData) => {
         hasItemErrors = true;
       }
       
-      if (item.tax_rate < 0 || item.tax_rate > 100) {
+      const taxRate = parseFloat(item.tax_rate || 0);
+      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) {
         itemError.tax_rate = 'Tax rate must be between 0 and 100';
         hasItemErrors = true;
       }
       
-      if (item.discount_rate < 0 || item.discount_rate > 100) {
+      const discountRate = parseFloat(item.discount_rate || 0);
+      if (isNaN(discountRate) || discountRate < 0 || discountRate > 100) {
         itemError.discount_rate = 'Discount rate must be between 0 and 100';
         hasItemErrors = true;
       }
@@ -68,15 +84,19 @@ export const validateInvoiceData = (invoiceData) => {
   }
   
   // Format data for API
-  const formattedItems = invoiceData.items?.map(item => ({
-    product_id: item.product_id || null,
-    description: item.description?.trim() || '',
-    quantity: parseInt(item.quantity) || 1,
-    unit_price: parseFloat(item.unit_price) || 0,
-    tax_rate: parseFloat(item.tax_rate) || 0,
-    discount_rate: parseFloat(item.discount_rate) || 0,
-    total: calculateItemTotal(item)
-  })) || [];
+  const formattedItems = Array.isArray(invoiceData.items) ? invoiceData.items.map(item => {
+    if (!item) return null;
+    
+    return {
+      product_id: item.product_id || null,
+      description: item.description?.trim() || '',
+      quantity: parseInt(item.quantity) || 1,
+      unit_price: parseFloat(item.unit_price) || 0,
+      tax_rate: parseFloat(item.tax_rate) || 0,
+      discount_rate: parseFloat(item.discount_rate) || 0,
+      total: calculateItemTotal(item)
+    };
+  }).filter(Boolean) : [];
   
   const formattedData = {
     customer_id: invoiceData.customer_id || null,
@@ -88,7 +108,7 @@ export const validateInvoiceData = (invoiceData) => {
     currency: invoiceData.currency || 'NGN',
     discount_amount: parseFloat(invoiceData.discount_amount) || 0,
     items: formattedItems,
-    status: 'draft',
+    status: invoiceData.status || 'draft',
     total_amount: calculateInvoiceTotal(invoiceData)
   };
   
@@ -105,6 +125,8 @@ export const validateInvoiceData = (invoiceData) => {
  * @returns {number} - The item total
  */
 const calculateItemTotal = (item) => {
+  if (!item) return 0;
+  
   const quantity = Math.max(0, parseFloat(item.quantity) || 0);
   const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
   const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
@@ -123,7 +145,7 @@ const calculateItemTotal = (item) => {
  * @returns {number} - The invoice total
  */
 const calculateInvoiceTotal = (invoiceData) => {
-  if (!invoiceData || !invoiceData.items) return 0;
+  if (!invoiceData || !invoiceData.items || !Array.isArray(invoiceData.items)) return 0;
   const itemsTotal = invoiceData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
   const discount = Math.max(0, parseFloat(invoiceData.discount_amount) || 0);
   const total = itemsTotal - discount;

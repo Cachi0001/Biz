@@ -22,23 +22,12 @@ const ReviewDialog = ({
   const [loading, setLoading] = useState(false);
   const [sellerInfo, setSellerInfo] = useState(null);
 
-  // Early return if no invoice data
-  if (!invoiceData) {
-    return null;
-  }
-
-  // Additional safety check for required data
-  if (!invoiceData.customer_id || !invoiceData.items || !Array.isArray(invoiceData.items)) {
-    console.warn('[ReviewDialog] Missing required invoice data:', invoiceData);
-    return null;
-  }
-
   // Fetch seller information when dialog opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && invoiceData) {
       fetchSellerInfo();
     }
-  }, [isOpen]);
+  }, [isOpen, invoiceData]);
 
   const fetchSellerInfo = async () => {
     try {
@@ -74,18 +63,20 @@ const ReviewDialog = ({
 
   // Get customer information
   const getCustomerInfo = () => {
-    if (!invoiceData || !invoiceData.customer_id) return null;
+    if (!invoiceData || !invoiceData.customer_id || !customers) return null;
     return customers.find(c => c.id === invoiceData.customer_id) || null;
   };
 
   // Get product information for an item
   const getProductInfo = (productId) => {
-    if (!productId) return null;
+    if (!productId || !products) return null;
     return products.find(p => p.id === productId) || null;
   };
 
   // Calculate item total
   const calculateItemTotal = (item) => {
+    if (!item) return 0;
+    
     const quantity = Math.max(0, parseFloat(item.quantity) || 0);
     const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
     const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
@@ -100,7 +91,7 @@ const ReviewDialog = ({
 
   // Calculate invoice total
   const calculateInvoiceTotal = () => {
-    if (!invoiceData || !invoiceData.items) return 0;
+    if (!invoiceData || !invoiceData.items || !Array.isArray(invoiceData.items)) return 0;
     const itemsTotal = invoiceData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
     const discount = Math.max(0, parseFloat(invoiceData.discount_amount) || 0);
     const total = itemsTotal - discount;
@@ -108,18 +99,30 @@ const ReviewDialog = ({
     return Math.round(Math.max(0, total) * 100) / 100;
   };
 
-  const customer = getCustomerInfo();
-  const invoiceTotal = calculateInvoiceTotal();
-
   const handleConfirm = () => {
-    onConfirm();
-    onClose();
+    if (onConfirm) onConfirm();
+    if (onClose) onClose();
   };
 
   const handleCancel = () => {
-    onCancel();
-    onClose();
+    if (onCancel) onCancel();
+    if (onClose) onClose();
   };
+
+  // Early return if no invoice data or required fields
+  if (!isOpen || !invoiceData) {
+    return null;
+  }
+
+  // Check for required data
+  const hasRequiredData = invoiceData.customer_id && invoiceData.items && Array.isArray(invoiceData.items);
+  if (!hasRequiredData) {
+    console.warn('[ReviewDialog] Missing required invoice data:', invoiceData);
+    return null;
+  }
+
+  const customer = getCustomerInfo();
+  const invoiceTotal = calculateInvoiceTotal();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
