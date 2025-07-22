@@ -42,6 +42,8 @@ const CustomProductForm = ({
     barcode: ''
   });
 
+  const [loading, setLoading] = React.useState(false);
+
   // Categories and subcategories are now imported from shared constants
 
   useEffect(() => {
@@ -85,121 +87,47 @@ const CustomProductForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setLoading(true);
 
-    console.log('🎯 CustomProductForm: Form submitted');
-
-    // Get values from formData state and DOM elements
-    // For quantity, preserve the raw value before parseInt to allow proper validation
-    const rawQuantity = formData.quantity || quantityInputRef.current?.value;
-    
+    // Always use the latest value from formData for quantity
     const submitData = {
-      name: formData.name || nameInputRef.current?.value?.trim() || '',
-      sku: formData.sku || skuInputRef.current?.value?.trim() || '',
-      description: formData.description || descriptionInputRef.current?.value?.trim() || '',
-      category: formData.category || '',
-      subcategory: formData.subcategory || '', // Map subcategory to sub_category for backend
-      price: parseFloat(formData.price || priceInputRef.current?.value) || 0,
-      cost_price: parseFloat(formData.cost_price || costPriceInputRef.current?.value) || 0,
-      quantity: rawQuantity, // Send raw value to validator to preserve empty check
-      low_stock_threshold: parseInt(formData.low_stock_threshold || lowStockThresholdInputRef.current?.value) || 5,
-      barcode: formData.barcode || barcodeInputRef.current?.value?.trim() || null
+      name: formData.name.trim(),
+      sku: formData.sku.trim(),
+      description: formData.description.trim(),
+      category: formData.category,
+      subcategory: formData.subcategory,
+      price: parseFloat(formData.price) || 0,
+      cost_price: parseFloat(formData.cost_price) || 0,
+      quantity: parseInt(formData.quantity) || 0,
+      low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
+      barcode: formData.barcode.trim() || null
     };
 
-    console.log('🎯 CustomProductForm: Form data:', submitData);
-
     try {
-      // Import the validator dynamically to avoid circular dependencies
       const { validateProductData } = await import('../../utils/productValidator');
-      
-      // Validate the product data
       const validation = validateProductData(submitData);
-      
       if (!validation.isValid) {
-        // Show the first validation error
         const firstErrorKey = Object.keys(validation.errors)[0];
         const firstError = validation.errors[firstErrorKey];
-        handleApiErrorWithToast(new Error(firstError));
-        
-        // Focus on the field with the error
-        if (firstErrorKey === 'name' && nameInputRef.current) {
-          nameInputRef.current.focus();
-        } else if (firstErrorKey === 'price' && priceInputRef.current) {
-          priceInputRef.current.focus();
-        } else if (firstErrorKey === 'quantity' && quantityInputRef.current) {
-          quantityInputRef.current.focus();
-        } else if (firstErrorKey === 'low_stock_threshold' && lowStockThresholdInputRef.current) {
-          lowStockThresholdInputRef.current.focus();
-        } else if (firstErrorKey === 'cost_price' && costPriceInputRef.current) {
-          costPriceInputRef.current.focus();
-        }
-        
+        toastService.error(firstError);
         return;
       }
-
-      console.log('🎯 CustomProductForm: Submitting to API...');
-      console.log('🎯 CustomProductForm: Formatted data:', validation.formattedData);
-      console.log('🎯 CustomProductForm: Detailed payload inspection:');
-      console.log('- name:', validation.formattedData.name, typeof validation.formattedData.name);
-      console.log('- sku:', validation.formattedData.sku, typeof validation.formattedData.sku);
-      console.log('- description:', validation.formattedData.description, typeof validation.formattedData.description);
-      console.log('- category:', validation.formattedData.category, typeof validation.formattedData.category);
-      console.log('- sub_category:', validation.formattedData.sub_category, typeof validation.formattedData.sub_category);
-      console.log('- price:', validation.formattedData.price, typeof validation.formattedData.price);
-      console.log('- cost_price:', validation.formattedData.cost_price, typeof validation.formattedData.cost_price);
-      console.log('- quantity:', validation.formattedData.quantity, typeof validation.formattedData.quantity);
-      console.log('- low_stock_threshold:', validation.formattedData.low_stock_threshold, typeof validation.formattedData.low_stock_threshold);
-      console.log('- barcode:', validation.formattedData.barcode, typeof validation.formattedData.barcode);
-      
       let response;
-      try {
-        if (editingProduct) {
-          console.log('🎯 CustomProductForm: Updating product:', editingProduct.id);
-          response = await updateProduct(editingProduct.id, validation.formattedData);
-          toastService.success("Product updated successfully!");
-        } else {
-          console.log('🎯 CustomProductForm: Creating new product');
-          response = await createProduct(validation.formattedData);
-          toastService.success("Product created successfully!");
-        }
-      } catch (apiError) {
-        console.error('🎯 CustomProductForm: API Error Details:', apiError);
-        if (apiError.response) {
-          toastService.error(`Failed to ${editingProduct ? 'update' : 'create'} product`);
-          console.error('🎯 CustomProductForm: Error Status:', apiError.response.status);
-          console.error('🎯 CustomProductForm: Error Data:', apiError.response.data);
-          console.error('🎯 CustomProductForm: Error Headers:', apiError.response.headers);
-        }
-        throw apiError;
-      }
-
-      console.log('🎯 CustomProductForm: API response:', response);
-
-      // Reset form
-      if (formRef.current) {
-        formRef.current.reset();
+      if (editingProduct) {
+        response = await updateProduct(editingProduct.id, validation.formattedData);
+        toastService.success('Product updated successfully!');
+      } else {
+        response = await createProduct(validation.formattedData);
+        toastService.success('Product created successfully!');
       }
       setFormData({
-        name: '',
-        sku: '',
-        description: '',
-        category: '',
-        subcategory: '',
-        price: '',
-        cost_price: '',
-        quantity: '',
-        low_stock_threshold: '5',
-        barcode: ''
+        name: '', sku: '', description: '', category: '', subcategory: '', price: '', cost_price: '', quantity: '', low_stock_threshold: '5', barcode: ''
       });
-
-      // Call success callback
-      if (onSuccess) {
-        onSuccess(response);
-      }
-
+      if (onSuccess) onSuccess(response);
     } catch (error) {
-      console.error('🎯 CustomProductForm: Error:', error);
-      const action = editingProduct ? 'update' : 'create';
-      handleApiErrorWithToast(error, `Failed to ${action} product`);
+      toastService.error(error?.response?.data?.message || error.message || 'Failed to create product');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -579,8 +507,9 @@ const CustomProductForm = ({
           <button
             type="submit"
             className="btn btn-primary"
+            disabled={loading}
           >
-            {editingProduct ? 'Update Product' : 'Create Product'}
+            {loading ? (editingProduct ? 'Updating...' : 'Creating...') : (editingProduct ? 'Update Product' : 'Create Product')}
           </button>
         </div>
       </form>

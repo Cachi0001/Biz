@@ -62,6 +62,24 @@ const CustomInvoiceForm = ({
     getAllErrors
   } = useFormValidation(formData);
 
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState('');
+
+  const fetchProductsData = async () => {
+    try {
+      setProductsLoading(true);
+      setProductsError('');
+      // Assume products prop is managed by parent, or fetch here if needed
+      // If fetching here, call the API and set products state
+      // setProducts(await getProductsWithStock());
+    } catch (error) {
+      setProductsError('Failed to load products. Please try again.');
+      // setProducts([]);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
   // Initialize form with editing data
   useEffect(() => {
     if (editingInvoice) {
@@ -623,20 +641,51 @@ const CustomInvoiceForm = ({
 
               <div className="item-grid">
                 <div className="form-group">
-                  <label className="form-label">Product</label>
-                  <Select 
-                    value={item.product_id} 
+                  <div className="flex items-center justify-between">
+                    <label className="form-label">Product</label>
+                    <button
+                      type="button"
+                      className="btn btn-outline px-2 py-1 text-xs h-8 ml-2"
+                      onClick={fetchProductsData}
+                      disabled={productsLoading}
+                      aria-label="Refresh products"
+                    >
+                      {productsLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  <Select
+                    value={item.product_id}
                     onValueChange={(value) => handleItemChange(index, 'product_id', value)}
+                    disabled={productsLoading || !!productsError}
                   >
                     <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}>
-                      <SelectValue placeholder="Select product (optional)" />
+                      <SelectValue placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {`${product.name} - ${formatNaira(product.price || product.unit_price || 0)} (Qty: ${product.quantity || 0})`}
+                      {productsLoading ? (
+                        <SelectItem value="" disabled>
+                          Loading products...
                         </SelectItem>
-                      ))}
+                      ) : productsError ? (
+                        <SelectItem value="" disabled>
+                          {productsError}
+                        </SelectItem>
+                      ) : products.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No products available
+                        </SelectItem>
+                      ) : (
+                        products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            <div className="flex justify-between items-center w-full">
+                              <span>{`${product.name} - ${formatNaira(product.price || product.unit_price || 0)}`}</span>
+                              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 ml-2">
+                                {`Qty: ${product.quantity || 0}`}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

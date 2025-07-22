@@ -806,7 +806,7 @@ const Sales = () => {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="product" className="text-base font-medium">Product *</Label>
+                    <Label htmlFor="product" className="text-base font-medium">Product *</Label>
                       <Button
                         type="button"
                         size="sm"
@@ -875,39 +875,39 @@ const Sales = () => {
                           </SelectItem>
                         ) : (
                           products.map((product) => {
-                            const quantity = parseInt(product.quantity) || 0;
-                            const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
-                            const isOutOfStock = quantity === 0;
-                            const isLowStock = quantity <= lowStockThreshold && quantity > 0;
-                            
-                            return (
-                              <SelectItem 
-                                key={product.id} 
-                                value={product.id}
-                                disabled={isOutOfStock}
-                                className={isOutOfStock ? 'opacity-50' : ''}
-                              >
-                                <div className="flex justify-between items-center w-full">
-                                  <span className={isOutOfStock ? 'line-through' : ''}>
-                                    {product.stockLabel || product.name}
+                          const quantity = parseInt(product.quantity) || 0;
+                          const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
+                          const isOutOfStock = quantity === 0;
+                          const isLowStock = quantity <= lowStockThreshold && quantity > 0;
+                          
+                          return (
+                            <SelectItem 
+                              key={product.id} 
+                              value={product.id}
+                              disabled={isOutOfStock}
+                              className={isOutOfStock ? 'opacity-50' : ''}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <span className={isOutOfStock ? 'line-through' : ''}>
+                                  {product.stockLabel || product.name}
+                                </span>
+                                <div className="flex items-center gap-2 ml-2">
+                                  <span className="text-sm text-green-600 font-medium">
+                                    {formatNaira(product.price || product.unit_price || 0)}
                                   </span>
-                                  <div className="flex items-center gap-2 ml-2">
-                                    <span className="text-sm text-green-600 font-medium">
-                                      {formatNaira(product.price || product.unit_price || 0)}
-                                    </span>
-                                    <span className={`text-xs px-2 py-1 rounded ${
-                                      isOutOfStock 
-                                        ? 'bg-red-100 text-red-700' 
-                                        : isLowStock 
-                                        ? 'bg-yellow-100 text-yellow-700' 
-                                        : 'bg-green-100 text-green-700'
-                                    }`}>
-                                      {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
-                                    </span>
-                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    isOutOfStock 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : isLowStock 
+                                      ? 'bg-yellow-100 text-yellow-700' 
+                                      : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
+                                  </span>
                                 </div>
-                              </SelectItem>
-                            );
+                              </div>
+                            </SelectItem>
+                          );
                           })
                         )}
                       </SelectContent>
