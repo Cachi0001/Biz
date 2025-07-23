@@ -15,7 +15,7 @@ from threading import Lock
 import requests
 import os
 import string # Added for secrets.choice
-import time # Added for time.sleep
+import time 
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -27,10 +27,10 @@ def success_response(data=None, message="Success", status_code=200):
     }), status_code
 
 def error_response(error, message="Error", status_code=400):
-    print(f"[ERROR] {message}: {error}") # Added for debugging
+    print(f"[ERROR] {message}: {error}") 
     return jsonify({
         "success": False,
-        "error": str(error), # Ensure error is a string
+        "error": str(error), 
         "message": message
     }), status_code
 
@@ -51,7 +51,6 @@ def register():
             return error_response("Missing required fields", status_code=400)
 
         if supabase:
-            print(f"[DEBUG] Starting registration for email: {email}")
 
             existing_user_result = supabase.table("users").select("*").eq("email", email).execute()
             existing_user = existing_user_result.data[0] if existing_user_result.data else None
@@ -65,14 +64,11 @@ def register():
                     print(f"[DEBUG] User exists but not confirmed, resending verification for: {email}")
                     user_id = existing_user["id"]
 
-                    # Generate new token
                     token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
                     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
 
-                    # Mark old tokens as used
                     supabase.table("email_verification_tokens").update({"used": True}).eq("user_id", user_id).execute()
 
-                    # Insert new token
                     print(f"[DEBUG] Re-registration: Creating new token for user_id: {user_id}")
                     token_result = supabase.table("email_verification_tokens").insert({
                         "user_id": user_id,
@@ -87,7 +83,6 @@ def register():
 
                     print(f"[DEBUG] Re-registration: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
-                    # Send verification email
                     confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
                     print(f"[DEBUG] Re-registration: Sending verification email to {email} with token: {token[:10]}...")
                     subject = "SabiOps Email Confirmation"
@@ -117,15 +112,12 @@ def register():
 
                     return success_response(message="A new verification email has been sent. Please check your email to confirm your account.")
 
-            # Check if phone already exists
             existing_phone_result = supabase.table("users").select("id").eq("phone", phone).execute()
             if existing_phone_result.data:
                 return error_response("Phone already exists", status_code=400)
 
-            # Create new user - NO RPC FUNCTION, direct table operations
             print(f"[DEBUG] Creating new user for email: {email}")
 
-            # Generate user data
             user_id = str(uuid.uuid4())
             password_hash = generate_password_hash(password)
 
@@ -144,7 +136,6 @@ def register():
                 "email_confirmed": False
             }
 
-            # Insert user first
             print(f"[DEBUG] Inserting user with ID: {user_id}")
             print(f"[DEBUG] User data to insert: {user_data}")
             try:
@@ -174,7 +165,6 @@ def register():
                 verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
                 print(f"[DEBUG] User verification result: {verify_result}")
                 print(f"[DEBUG] User verification data: {verify_result.data}")
-                # Check if there's an error in the response
                 if hasattr(verify_result, 'error') and verify_result.error:
                     print(f"[DEBUG] User verification error: {verify_result.error}")
                 else:
@@ -194,7 +184,7 @@ def register():
             token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
 
-            time.sleep(0.1)  # 100ms delay to ensure user is committed
+            time.sleep(0.1) 
 
             token_data = {
                 "user_id": actual_user_id,
@@ -208,17 +198,15 @@ def register():
 
             if not token_result.data:
                 print(f"[ERROR] New user: Failed to create verification token, rolling back user")
-                # Rollback: delete the user
                 supabase.table("users").delete().eq("id", actual_user_id).execute()
                 return error_response("Failed to generate verification token", status_code=500)
 
             print(f"[DEBUG] New user: Token created successfully - token_id: {token_result.data[0].get('id')}")
 
-            # Send verification email
             confirm_link = f"https://okpqkuxnzibrjmniihhu.supabase.co/functions/v1/smooth-api/verify-email?token={token}&email={email}"
             print(f"[DEBUG] New user: Sending verification email to {email} with token: {token[:10]}...")
             subject = "SabiOps Email Confirmation"
-            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not register, please ignore this email."
+            body = f"Welcome to SabiOps! Please confirm your email by clicking the link below:\n\n{confirm_link}\n\nIf you did not request for this, please ignore this email."
             html_body = f"""
 <html>
   <body style=\"font-family: Arial, sans-serif; color: #222;\">
@@ -361,7 +349,6 @@ def resend_verification_email():
         if not email:
             return error_response("Email is required", status_code=400)
 
-        # Find user
         user = None
         if supabase:
             user_result = supabase.table("users").select("*").eq("email", email).execute()

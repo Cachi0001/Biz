@@ -66,10 +66,8 @@ const Sales = () => {
       setError('');
       
       const response = await getSales({
-        params: {
-          start_date: selectedDate,
-          end_date: selectedDate
-        }
+        start_date: selectedDate,
+        end_date: selectedDate
       });
 
       let salesData = [];
@@ -228,10 +226,8 @@ const Sales = () => {
   const fetchSalesStats = async () => {
     try {
       const response = await getSales({
-        params: {
-          start_date: selectedDate,
-          end_date: selectedDate
-        }
+        start_date: selectedDate,
+        end_date: selectedDate
       });
 
       console.log('[DEBUG] fetchSalesStats - Full API response:', response);
@@ -299,7 +295,7 @@ const Sales = () => {
         total_transactions: 0,
         total_quantity: 0,
         average_sale: 0,
-        profit_from_sales: 0
+        profit_from_sales_monthly: 0
       });
     }
   };

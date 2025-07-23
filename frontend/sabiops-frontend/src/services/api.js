@@ -503,9 +503,24 @@ export async function getExpenseCategories() {
 }
 
 // Sales Management
-export async function getSales() {
+export async function getSales(params = {}) {
   try {
-    const response = await api.get('/sales/');
+    let url = '/sales/';
+    const queryParams = new URLSearchParams();
+    
+    if (params.start_date) {
+      queryParams.append('start_date', params.start_date);
+    }
+    if (params.end_date) {
+      queryParams.append('end_date', params.end_date);
+    }
+    
+    if (queryParams.toString()) {
+      url += `?${queryParams.toString()}`;
+    }
+    
+    console.log("[DEBUG] getSales called with URL:", url, "params:", params);
+    const response = await api.get(url);
     console.log("[DEBUG] getSales response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
