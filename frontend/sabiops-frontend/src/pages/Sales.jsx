@@ -234,23 +234,54 @@ const Sales = () => {
         }
       });
 
+      console.log('[DEBUG] fetchSalesStats - Full API response:', response);
+      console.log('[DEBUG] fetchSalesStats - Response type:', typeof response);
+      console.log('[DEBUG] fetchSalesStats - Response has data?', !!response?.data);
+      console.log('[DEBUG] fetchSalesStats - Response.data:', response?.data);
+
       // Use the original working logic
       if (response?.data) {
+        console.log('[DEBUG] fetchSalesStats - Using response.data directly');
+        console.log('[DEBUG] fetchSalesStats - response.data.profit_from_sales_monthly:', response.data.profit_from_sales_monthly);
         setSalesStats(response.data);
       } else {
+        console.log('[DEBUG] fetchSalesStats - Using fallback calculation');
         // Fallback calculation if response.data doesn't exist
         let salesData = [];
         if (response?.sales && Array.isArray(response.sales)) {
           salesData = response.sales;
+          console.log('[DEBUG] fetchSalesStats - Using response.sales');
         } else if (Array.isArray(response)) {
           salesData = response;
+          console.log('[DEBUG] fetchSalesStats - Using response as array');
         }
+
+        console.log('[DEBUG] fetchSalesStats - salesData length:', salesData.length);
+        console.log('[DEBUG] fetchSalesStats - First sale item:', salesData[0]);
+        
+        // Log individual profit values
+        salesData.forEach((sale, index) => {
+          console.log(`[DEBUG] fetchSalesStats - Sale ${index + 1}:`, {
+            id: sale.id,
+            total_amount: sale.total_amount,
+            profit_from_sales: sale.profit_from_sales,
+            profit_from_sales_type: typeof sale.profit_from_sales
+          });
+        });
 
         const totalSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
         const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
         const totalTransactions = salesData.length;
         const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0;
         const profitFromSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales) || 0), 0);
+
+        console.log('[DEBUG] fetchSalesStats - Calculated stats:', {
+          totalSales,
+          totalQuantity,
+          totalTransactions,
+          averageSale,
+          profitFromSales
+        });
 
         setSalesStats({
           total_sales: totalSales,
