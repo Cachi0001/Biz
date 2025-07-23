@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { invoiceApi, productApi, authApi as customerApi } from '../services/enhancedApiClient';
+import { invoiceApi, productApi, customerApi } from '../services/enhancedApiClient';
 import { formatNaira, formatDate, formatDateTime } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
