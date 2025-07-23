@@ -1297,7 +1297,6 @@ def handle_auth_error(e):
             status_code=401
         )
 
-    # Catch any other exception that might lead to a 401
     return error_response(
         error=str(e),
         message="Authentication failed",
