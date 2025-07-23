@@ -151,7 +151,6 @@ def register():
                 user_result = supabase.table("users").insert(user_data).execute()
                 print(f"[DEBUG] User insert result: {user_result}")
                 print(f"[DEBUG] User insert data: {user_result.data}")
-                # Check if there's an error in the response
                 if hasattr(user_result, 'error') and user_result.error:
                     print(f"[DEBUG] User insert error: {user_result.error}")
                 else:
@@ -170,7 +169,6 @@ def register():
             actual_user_id = created_user["id"]
             print(f"[DEBUG] User created successfully with ID: {actual_user_id}")
 
-            # Verify user exists before creating token
             print(f"[DEBUG] Verifying user exists after creation - ID: {actual_user_id}")
             try:
                 verify_result = supabase.table("users").select("id").eq("id", actual_user_id).execute()
@@ -193,11 +191,9 @@ def register():
 
             print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
 
-            # Generate verification token
             token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
             expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
 
-            # Insert verification token with a small delay to ensure user is committed
             time.sleep(0.1)  # 100ms delay to ensure user is committed
 
             token_data = {
