@@ -34,14 +34,12 @@ const Invoices = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchInvoices();
     fetchCustomers();
     fetchProducts();
   }, []);
 
-  // Fetch invoices
   const fetchInvoices = async () => {
     try {
       setLoading(true);
@@ -57,7 +55,6 @@ const Invoices = () => {
     }
   };
 
-  // Fetch customers
   const fetchCustomers = async () => {
     try {
       const response = await invoiceApi.getCustomers();
@@ -81,7 +78,6 @@ const Invoices = () => {
     }
   };
 
-  // Fetch products
   const fetchProducts = async () => {
     try {
       const response = await invoiceApi.getProducts();
@@ -105,14 +101,12 @@ const Invoices = () => {
     }
   };
 
-  // Handle edit invoice
   const handleEdit = (invoice) => {
     setEditingInvoice(invoice);
     setShowEditDialog(true);
     setIsEdit(true);
   };
 
-  // Handle delete invoice
   const handleDelete = async (invoiceId) => {
     if (!window.confirm('Are you sure you want to delete this invoice?')) {
       return;
@@ -120,17 +114,14 @@ const Invoices = () => {
     try {
       setLoading(true);
       await invoiceApi.deleteInvoice(invoiceId);
-      // No need for showSuccessToast, handled by enhancedApiClient
       fetchInvoices();
     } catch (error) {
-      // No need for handleApiErrorWithToast, handled by enhancedApiClient
       console.error('Error deleting invoice:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle send invoice
   const handleSend = async (invoiceId) => {
     try {
       setLoading(true);
@@ -143,7 +134,6 @@ const Invoices = () => {
     }
   };
 
-  // Handle download invoice as PDF (keep as is, unless you want to add toast for download)
   const handleDownload = async (invoiceId) => {
     try {
       setLoading(true);
@@ -168,11 +158,9 @@ const Invoices = () => {
     }
   };
 
-  // Handle form review
   const handleReview = (formData) => {
     console.log('Review data:', formData);
     
-    // Ensure formData has all required fields
     const reviewFormData = {
       ...formData,
       customer_id: formData.customer_id || '',
@@ -184,7 +172,6 @@ const Invoices = () => {
     setShowReviewDialog(true);
   };
 
-  // Handle form cancel
   const handleFormCancel = () => {
     setShowAddDialog(false);
     setShowEditDialog(false);
@@ -192,31 +179,25 @@ const Invoices = () => {
     setIsEdit(false);
   };
 
-  // Handle review confirm
   const handleReviewConfirm = async () => {
     try {
       setLoading(true);
       
-      // Check if reviewData exists
       if (!reviewData) {
         handleApiErrorWithToast(new Error('No invoice data to save'));
         setLoading(false);
         return;
       }
       
-      // Import the validator dynamically to avoid circular dependencies
       const { validateInvoiceData } = await import('../utils/invoiceValidator');
       
-      // Validate the invoice data
       const validation = validateInvoiceData(reviewData);
       
       if (!validation.isValid) {
-        // Show the first validation error
         const firstErrorKey = Object.keys(validation.errors)[0];
         const firstError = validation.errors[firstErrorKey];
         
         if (firstErrorKey === 'itemErrors') {
-          // Find the first item error
           const itemErrors = validation.errors.itemErrors;
           for (let i = 0; i < itemErrors.length; i++) {
             const itemError = itemErrors[i];
