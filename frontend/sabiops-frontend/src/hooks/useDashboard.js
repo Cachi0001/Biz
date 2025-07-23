@@ -45,12 +45,29 @@ export const useDashboard = () => {
       // Process overview response
       if (overviewResponse.status === 'fulfilled' && overviewResponse.value && (overviewResponse.value.success !== false)) {
         dashboardOverview = overviewResponse.value.data || overviewResponse.value;
+        console.log('[DEBUG] Dashboard Overview Data:', dashboardOverview);
+        console.log('[DEBUG] Overview profit fields:', {
+          today_profit_from_sales: dashboardOverview.today_profit_from_sales,
+          this_month_profit_from_sales: dashboardOverview.this_month_profit_from_sales,
+          total_profit_from_sales: dashboardOverview.total_profit_from_sales,
+          total_cogs: dashboardOverview.total_cogs
+        });
+      } else {
+        console.log('[DEBUG] Overview response failed or empty:', overviewResponse);
       }
 
       // Process accurate metrics response (prioritize this for data consistency)
       if (accurateMetricsResponse.status === 'fulfilled' && accurateMetricsResponse.value) {
         accurateMetrics = accurateMetricsResponse.value;
         console.log('[DEBUG] Using accurate metrics for dashboard:', accurateMetrics);
+        console.log('[DEBUG] Accurate metrics profit fields:', {
+          today_profit_from_sales: accurateMetrics.today_profit_from_sales,
+          this_month_profit_from_sales: accurateMetrics.this_month_profit_from_sales,
+          total_profit_from_sales: accurateMetrics.total_profit_from_sales,
+          total_cogs: accurateMetrics.total_cogs
+        });
+      } else {
+        console.log('[DEBUG] Accurate metrics response failed or empty:', accurateMetricsResponse);
       }
 
       // Merge data with accurate metrics taking precedence

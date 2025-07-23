@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { getInvoices, getCustomers, getProducts, createInvoice, updateInvoice, deleteInvoice, sendInvoice, downloadInvoicePdf } from "../services/api";
+import { invoiceApi } from '../services/enhancedApiClient';
 import { formatNaira, formatDate, formatDateTime } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
@@ -46,22 +46,8 @@ const Invoices = () => {
     try {
       setLoading(true);
       setError('');
-      
-      const response = await getInvoices();
-      
-      let invoicesData = [];
-      
-      if (response?.data?.invoices && Array.isArray(response.data.invoices)) {
-        invoicesData = response.data.invoices;
-      } else if (response?.data && Array.isArray(response.data)) {
-        invoicesData = response.data;
-      } else if (Array.isArray(response)) {
-        invoicesData = response;
-      } else if (response?.invoices && Array.isArray(response.invoices)) {
-        invoicesData = response.invoices;
-      }
-
-      setInvoices(invoicesData);
+      const invoicesData = await invoiceApi.getInvoices();
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : invoicesData.invoices || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       setError('Failed to load invoices. Please try again.');
@@ -74,7 +60,7 @@ const Invoices = () => {
   // Fetch customers
   const fetchCustomers = async () => {
     try {
-      const response = await getCustomers();
+      const response = await invoiceApi.getCustomers();
       
       let customersData = [];
       
@@ -98,7 +84,7 @@ const Invoices = () => {
   // Fetch products
   const fetchProducts = async () => {
     try {
-      const response = await getProducts();
+      const response = await invoiceApi.getProducts();
       
       let productsData = [];
       
@@ -131,15 +117,14 @@ const Invoices = () => {
     if (!window.confirm('Are you sure you want to delete this invoice?')) {
       return;
     }
-
     try {
       setLoading(true);
-      await deleteInvoice(invoiceId);
-      showSuccessToast('Invoice deleted successfully');
+      await invoiceApi.deleteInvoice(invoiceId);
+      // No need for showSuccessToast, handled by enhancedApiClient
       fetchInvoices();
     } catch (error) {
+      // No need for handleApiErrorWithToast, handled by enhancedApiClient
       console.error('Error deleting invoice:', error);
-      handleApiErrorWithToast(error, 'Failed to delete invoice');
     } finally {
       setLoading(false);
     }
@@ -149,26 +134,20 @@ const Invoices = () => {
   const handleSend = async (invoiceId) => {
     try {
       setLoading(true);
-      const response = await sendInvoice(invoiceId);
-      if (response.success || response.message?.toLowerCase().includes('sent')) {
-        showSuccessToast('Invoice sent successfully');
-      } else {
-        handleApiErrorWithToast(new Error(response.message || 'Failed to send invoice'));
-      }
+      await invoiceApi.sendInvoice(invoiceId);
       fetchInvoices();
     } catch (error) {
       console.error('Error sending invoice:', error);
-      handleApiErrorWithToast(error, 'Failed to send invoice');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle download invoice as PDF
+  // Handle download invoice as PDF (keep as is, unless you want to add toast for download)
   const handleDownload = async (invoiceId) => {
     try {
       setLoading(true);
-      const blob = await downloadInvoicePdf(invoiceId);
+      const blob = await invoiceApi.downloadInvoicePdf(invoiceId);
       if (blob && blob.size > 0) {
         const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
         const link = document.createElement('a');
@@ -264,10 +243,10 @@ const Invoices = () => {
       console.log('Saving invoice data:', dataToSave);
       
       if (isEdit && editingInvoice) {
-        await updateInvoice(editingInvoice.id, dataToSave);
+        await invoiceApi.updateInvoice(editingInvoice.id, dataToSave);
         showSuccessToast('Invoice updated successfully');
       } else {
-        await createInvoice(dataToSave);
+        await invoiceApi.createInvoice(dataToSave);
         showSuccessToast('Invoice created successfully');
       }
       
@@ -356,7 +335,7 @@ const Invoices = () => {
   const handleStatusChange = async (invoiceId, newStatus) => {
     try {
       setLoading(true);
-      await updateInvoice(invoiceId, { status: newStatus });
+      await invoiceApi.updateInvoice(invoiceId, { status: newStatus });
       showSuccessToast('Invoice status updated successfully!');
       fetchInvoices();
     } catch (error) {

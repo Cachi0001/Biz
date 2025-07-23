@@ -8,6 +8,12 @@ import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 const ModernOverviewCards = ({ data, loading }) => {
   const { user } = useAuth();
 
+  // DEBUG: Log the complete data object
+  console.log('ModernOverviewCards - Complete data object:', data);
+  console.log('ModernOverviewCards - Revenue data:', data?.revenue);
+  console.log('ModernOverviewCards - today_profit_from_sales value:', data?.revenue?.today_profit_from_sales);
+  console.log('ModernOverviewCards - invoices data:', data?.invoices);
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
