@@ -288,7 +288,7 @@ const Sales = () => {
           total_transactions: totalTransactions,
           total_quantity: totalQuantity,
           average_sale: averageSale,
-          profit_from_sales: profitFromSales
+          profit_from_sales_monthly: profitFromSales
         });
       }
     } catch (error) {
