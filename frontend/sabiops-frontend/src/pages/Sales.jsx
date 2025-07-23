@@ -250,12 +250,14 @@ const Sales = () => {
         const totalQuantity = salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
         const totalTransactions = salesData.length;
         const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+        const profitFromSales = salesData.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales) || 0), 0);
 
         setSalesStats({
           total_sales: totalSales,
           total_transactions: totalTransactions,
           total_quantity: totalQuantity,
-          average_sale: averageSale
+          average_sale: averageSale,
+          profit_from_sales: profitFromSales
         });
       }
     } catch (error) {
@@ -265,7 +267,8 @@ const Sales = () => {
         total_sales: 0,
         total_transactions: 0,
         total_quantity: 0,
-        average_sale: 0
+        average_sale: 0,
+        profit_from_sales: 0
       });
     }
   };

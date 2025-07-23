@@ -91,25 +91,61 @@ def get_overview():
             overview["revenue"]["total"] = total_revenue
             overview["revenue"]["profit_from_sales"] = total_profit_from_sales
 
-            # Calculate this month's revenue
+            # Calculate time periods for proper profit aggregation
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            yesterday_start = (today_start - timedelta(days=1))
+            yesterday_end = (yesterday_start.replace(hour=23, minute=59, second=59, microsecond=999999))
+            
+            # Initialize period calculations
             this_month_revenue = 0
             this_month_profit_from_sales = 0
-            today_cogs = 0
+            today_revenue = 0
             today_profit_from_sales = 0
-            today_str = now.strftime('%Y-%m-%d')
+            today_cogs = 0
+            yesterday_profit_from_sales = 0
+            
+            # Process each sale for accurate period calculations
             for sale in sales_result.data:
                 sale_date = parse_supabase_datetime(sale.get('date'))
-                if sale_date and sale_date >= current_month_start:
-                    this_month_revenue += float(sale.get('total_amount', 0))
-                    this_month_profit_from_sales += float(sale.get('profit_from_sales', 0))
-                # Calculate today's COGS and profit_from_sales
-                if sale_date and sale_date.strftime('%Y-%m-%d') == today_str:
-                    today_cogs += float(sale.get('total_cogs', 0))
-                    today_profit_from_sales += float(sale.get('profit_from_sales', 0))
+                if not sale_date:
+                    continue
+                    
+                sale_amount = float(sale.get('total_amount', 0))
+                sale_profit = float(sale.get('profit_from_sales', 0))
+                sale_cogs = float(sale.get('total_cogs', 0))
+                
+                # This month calculations
+                if sale_date >= current_month_start:
+                    this_month_revenue += sale_amount
+                    this_month_profit_from_sales += sale_profit
+                
+                # Today's calculations (daily profit that resets at midnight)
+                if today_start <= sale_date <= today_end:
+                    today_revenue += sale_amount
+                    today_profit_from_sales += sale_profit
+                    today_cogs += sale_cogs
+                
+                # Yesterday's profit for comparison
+                if yesterday_start <= sale_date <= yesterday_end:
+                    yesterday_profit_from_sales += sale_profit
+            
+            # Calculate daily profit growth
+            daily_profit_growth = 0
+            if yesterday_profit_from_sales > 0:
+                daily_profit_growth = ((today_profit_from_sales - yesterday_profit_from_sales) / yesterday_profit_from_sales) * 100
+            elif today_profit_from_sales > 0:
+                daily_profit_growth = 100  # 100% growth if yesterday was 0 but today has profit
+            
+            # Update overview with calculated values
             overview["revenue"]["this_month"] = this_month_revenue
             overview["revenue"]["this_month_profit_from_sales"] = this_month_profit_from_sales
-            overview["revenue"]["today_cogs"] = today_cogs
+            overview["revenue"]["today_revenue"] = today_revenue
             overview["revenue"]["today_profit_from_sales"] = today_profit_from_sales
+            overview["revenue"]["today_cogs"] = today_cogs
+            overview["revenue"]["yesterday_profit_from_sales"] = yesterday_profit_from_sales
+            overview["revenue"]["daily_profit_growth"] = round(daily_profit_growth, 2)
+            overview["revenue"]["daily_profit_reset_time"] = today_start.isoformat()
         
         # Get outstanding revenue from invoices - fix calculation
         invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', user_id).execute()
@@ -570,6 +606,129 @@ def sync_all_business_data():
     except Exception as e:
         current_app.logger.error(f"Error synchronizing business data: {str(e)}")
         return error_response("Failed to synchronize business data", 500)
+
+@dashboard_bp.route('/profit-calculations', methods=['GET'])
+@jwt_required()
+def get_profit_calculations():
+    """Get profit calculations with date filtering for sales page"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = get_supabase()
+        
+        if not supabase:
+            return error_response("Database connection not available", 500)
+        
+        # Get current date in UTC
+        utc = pytz.UTC
+        now = datetime.now(utc)
+        
+        # Get filter parameters from query string
+        from flask import request
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Build query for sales with profit data
+        query = supabase.table('sales').select('total_amount, profit_from_sales, total_cogs, date, quantity, product_name').eq('owner_id', user_id)
+        
+        # Apply date filters if provided
+        if start_date:
+            query = query.gte('date', start_date)
+        if end_date:
+            query = query.lte('date', end_date)
+        
+        sales_result = query.execute()
+        
+        if not sales_result.data:
+            return success_response("Profit calculations retrieved successfully", {
+                "total_sales_amount": 0,
+                "total_profit_from_sales": 0,
+                "total_cogs": 0,
+                "profit_margin_percentage": 0,
+                "total_transactions": 0,
+                "date_range": {
+                    "start": start_date,
+                    "end": end_date
+                },
+                "daily_breakdown": [],
+                "product_profit_breakdown": []
+            })
+        
+        # Calculate aggregated metrics
+        total_sales_amount = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
+        total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
+        total_cogs = sum(float(sale.get('total_cogs', 0)) for sale in sales_result.data)
+        total_transactions = len(sales_result.data)
+        
+        # Calculate profit margin percentage
+        profit_margin_percentage = 0
+        if total_sales_amount > 0:
+            profit_margin_percentage = (total_profit_from_sales / total_sales_amount) * 100
+        
+        # Daily breakdown for filtered period
+        daily_breakdown = {}
+        product_profits = {}
+        
+        for sale in sales_result.data:
+            sale_date = parse_supabase_datetime(sale.get('date'))
+            if sale_date:
+                date_key = sale_date.strftime('%Y-%m-%d')
+                
+                # Daily breakdown
+                if date_key not in daily_breakdown:
+                    daily_breakdown[date_key] = {
+                        'date': date_key,
+                        'sales_amount': 0,
+                        'profit_from_sales': 0,
+                        'cogs': 0,
+                        'transactions_count': 0
+                    }
+                
+                daily_breakdown[date_key]['sales_amount'] += float(sale.get('total_amount', 0))
+                daily_breakdown[date_key]['profit_from_sales'] += float(sale.get('profit_from_sales', 0))
+                daily_breakdown[date_key]['cogs'] += float(sale.get('total_cogs', 0))
+                daily_breakdown[date_key]['transactions_count'] += 1
+                
+                # Product profit breakdown
+                product_name = sale.get('product_name', 'Unknown Product')
+                if product_name not in product_profits:
+                    product_profits[product_name] = {
+                        'product_name': product_name,
+                        'total_quantity': 0,
+                        'total_sales_amount': 0,
+                        'total_profit': 0,
+                        'total_cogs': 0,
+                        'transactions_count': 0
+                    }
+                
+                product_profits[product_name]['total_quantity'] += int(sale.get('quantity', 0))
+                product_profits[product_name]['total_sales_amount'] += float(sale.get('total_amount', 0))
+                product_profits[product_name]['total_profit'] += float(sale.get('profit_from_sales', 0))
+                product_profits[product_name]['total_cogs'] += float(sale.get('total_cogs', 0))
+                product_profits[product_name]['transactions_count'] += 1
+        
+        # Sort daily breakdown by date
+        daily_breakdown_list = sorted(daily_breakdown.values(), key=lambda x: x['date'])
+        
+        # Sort product profits by total profit (descending)
+        product_profit_list = sorted(product_profits.values(), key=lambda x: x['total_profit'], reverse=True)
+        
+        return success_response("Profit calculations retrieved successfully", {
+            "total_sales_amount": total_sales_amount,
+            "total_profit_from_sales": total_profit_from_sales,
+            "total_cogs": total_cogs,
+            "profit_margin_percentage": round(profit_margin_percentage, 2),
+            "total_transactions": total_transactions,
+            "date_range": {
+                "start": start_date,
+                "end": end_date
+            },
+            "daily_breakdown": daily_breakdown_list,
+            "product_profit_breakdown": product_profit_list
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error calculating profit data: {str(e)}")
+        return error_response("Failed to calculate profit data", 500)
 
 @dashboard_bp.route('/financials', methods=['GET'])
 @jwt_required()

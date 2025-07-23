@@ -1,770 +1,445 @@
-[
-  {
-    "table_name": "sales",
-    "column_name": "customer_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "raw_user_meta_data",
-    "data_type": "jsonb",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "product_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "is_super_admin",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "quantity",
-    "data_type": "integer",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "unit_price",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "total_amount",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "salesperson_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "date",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "total_cogs",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "gross_profit",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "profit_margin",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "users",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "confirmation_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "phone_confirmed_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "sales",
-    "column_name": "discount_amount",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "sales",
-    "column_name": "tax_amount",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "customer_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "email_confirmed_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "trial_ends_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "(now() + '7 days'::interval)"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "amount",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "tax_amount",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "total_amount",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "recovery_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "due_date",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "paid_date",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "referred_by",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "items",
-    "data_type": "jsonb",
-    "is_nullable": "YES",
-    "column_default": "'[]'::jsonb"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "total_cogs",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "gross_profit",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "users",
-    "column_name": "active",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "true"
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "reminder_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "issue_date",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "users",
-    "column_name": "last_login",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "users",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "users",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "users",
-    "column_name": "phone_change_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "invoices",
-    "column_name": "discount_amount",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "users",
-    "column_name": "created_by",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "user_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "is_deactivated",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "false"
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "keys",
-    "data_type": "jsonb",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "active",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "true"
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "push_subscriptions",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "invoice_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "amount",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "email_confirmed",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "false"
-  },
-  {
-    "table_name": "users",
-    "column_name": "email_confirmed_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "current_month_invoices",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "paid_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "payments",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "users",
-    "column_name": "current_month_expenses",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "users",
-    "column_name": "usage_reset_date",
-    "data_type": "date",
-    "is_nullable": "YES",
-    "column_default": "CURRENT_DATE"
-  },
-  {
-    "table_name": "users",
-    "column_name": "dashboard_preferences",
-    "data_type": "jsonb",
-    "is_nullable": "YES",
-    "column_default": "'{\"theme\": \"default\", \"currency\": \"NGN\", \"date_format\": \"DD/MM/YYYY\"}'::jsonb"
-  },
-  {
-    "table_name": "payments",
-    "column_name": "sale_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "confirmed_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "invited_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "email_change_confirm_status",
-    "data_type": "smallint",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "users",
-    "column_name": "instance_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "team",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "team",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "team",
-    "column_name": "team_member_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "banned_until",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "team",
-    "column_name": "active",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "true"
-  },
-  {
-    "table_name": "team",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "team",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "products",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "products",
-    "column_name": "owner_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "reauthentication_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "products",
-    "column_name": "price",
-    "data_type": "numeric",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "products",
-    "column_name": "cost_price",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "products",
-    "column_name": "quantity",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "table_name": "products",
-    "column_name": "low_stock_threshold",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "5"
-  },
-  {
-    "table_name": "users",
-    "column_name": "is_sso_user",
-    "data_type": "boolean",
-    "is_nullable": "NO",
-    "column_default": "false"
-  },
-  {
-    "table_name": "users",
-    "column_name": "deleted_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "is_anonymous",
-    "data_type": "boolean",
-    "is_nullable": "NO",
-    "column_default": "false"
-  },
-  {
-    "table_name": "products",
-    "column_name": "active",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "true"
-  },
-  {
-    "table_name": "products",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "products",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "table_name": "notifications",
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "uuid_generate_v4()"
-  },
-  {
-    "table_name": "products",
-    "column_name": "last_restocked_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "notifications",
-    "column_name": "user_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "email_change_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "products",
-    "column_name": "reorder_level",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "5"
-  },
-  {
-    "table_name": "products",
-    "column_name": "supplier_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "products",
-    "column_name": "last_sold_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "users",
-    "column_name": "last_sign_in_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  }
-  [
-  {
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "gen_random_uuid()"
-  },
-  {
-    "column_name": "user_id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "column_name": "total_sales",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "today_sales",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "total_expenses",
-    "data_type": "numeric",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "customer_count",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "product_count",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "low_stock_count",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": "0"
-  },
-  {
-    "column_name": "last_updated",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  }
-]
-]
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.activities (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  user_id uuid,
+  activity_type text NOT NULL CHECK (activity_type = ANY (ARRAY['sale'::text, 'invoice'::text, 'payment'::text, 'customer'::text, 'product'::text, 'expense'::text])),
+  description text NOT NULL,
+  reference_id uuid,
+  reference_table text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT activities_pkey PRIMARY KEY (id),
+  CONSTRAINT activities_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.customers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  name text NOT NULL,
+  email text,
+  phone text,
+  address text,
+  purchase_history jsonb DEFAULT '[]'::jsonb,
+  interactions jsonb DEFAULT '[]'::jsonb,
+  total_purchases numeric DEFAULT 0,
+  last_purchase_date timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  default_address text DEFAULT 'N/A'::text,
+  business_name text,
+  notes text,
+  total_spent numeric DEFAULT 0,
+  CONSTRAINT customers_pkey PRIMARY KEY (id),
+  CONSTRAINT customers_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.dashboard_metrics (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  total_sales numeric DEFAULT 0,
+  today_sales numeric DEFAULT 0,
+  total_expenses numeric DEFAULT 0,
+  customer_count integer DEFAULT 0,
+  product_count integer DEFAULT 0,
+  low_stock_count integer DEFAULT 0,
+  last_updated timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT dashboard_metrics_pkey PRIMARY KEY (id),
+  CONSTRAINT dashboard_metrics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.email_verification_tokens (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  token text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  used boolean NOT NULL DEFAULT false,
+  CONSTRAINT email_verification_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT email_verification_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.expenses (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  category text NOT NULL DEFAULT 'Miscellaneous'::text,
+  amount numeric NOT NULL,
+  description text,
+  receipt_url text,
+  payment_method text DEFAULT 'cash'::text,
+  date timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  sub_category text,
+  CONSTRAINT expenses_pkey PRIMARY KEY (id),
+  CONSTRAINT expenses_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.invoices (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  customer_id uuid,
+  customer_name text,
+  invoice_number text NOT NULL DEFAULT ('INV-'::text || lpad((nextval('invoice_number_seq'::regclass))::text, 6, '0'::text)) UNIQUE,
+  amount numeric NOT NULL,
+  tax_amount numeric DEFAULT 0,
+  total_amount numeric NOT NULL,
+  status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'sent'::text, 'paid'::text, 'overdue'::text, 'cancelled'::text])),
+  due_date timestamp with time zone,
+  paid_date timestamp with time zone,
+  notes text,
+  items jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  total_cogs numeric DEFAULT 0,
+  gross_profit numeric DEFAULT 0,
+  payment_terms text DEFAULT 30,
+  reminder_sent_at timestamp with time zone,
+  issue_date timestamp with time zone DEFAULT now(),
+  seller_name text,
+  seller_address text,
+  seller_contact text,
+  currency text DEFAULT 'NGN'::text,
+  discount_amount numeric DEFAULT 0,
+  terms_and_conditions text DEFAULT 'Payment is due within 30 days of invoice date.'::text,
+  CONSTRAINT invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT invoices_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT invoices_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  title text NOT NULL,
+  message text NOT NULL,
+  type text DEFAULT 'info'::text CHECK (type = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'error'::text, 'sale'::text, 'low_stock'::text, 'payment'::text, 'trial'::text])),
+  read boolean DEFAULT false,
+  data jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.password_reset_tokens (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  reset_code text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  used boolean NOT NULL DEFAULT false,
+  CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.payment_webhooks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_type text NOT NULL,
+  payload jsonb NOT NULL,
+  received_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_webhooks_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  invoice_id uuid,
+  amount numeric NOT NULL,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])),
+  payment_reference text UNIQUE,
+  payment_method text DEFAULT 'cash'::text,
+  paid_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  currency text NOT NULL DEFAULT 'NGN'::text,
+  customer_email text,
+  customer_name text,
+  sale_id uuid,
+  description text,
+  notes text,
+  reference_number text,
+  phone character varying,
+  customer_phone character varying,
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id),
+  CONSTRAINT payments_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT payments_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id)
+);
+CREATE TABLE public.products (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  name text NOT NULL,
+  description text,
+  price numeric NOT NULL,
+  cost_price numeric,
+  quantity integer DEFAULT 0,
+  low_stock_threshold integer DEFAULT 5,
+  category text DEFAULT 'General'::text,
+  image_url text,
+  sku text,
+  active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  supplier text,
+  last_restocked_at timestamp with time zone,
+  barcode text,
+  unit text DEFAULT 'piece'::text,
+  reorder_level integer DEFAULT 5,
+  supplier_id uuid,
+  last_sold_at timestamp with time zone,
+  sub_category text,
+  CONSTRAINT products_pkey PRIMARY KEY (id),
+  CONSTRAINT products_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.push_subscriptions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  endpoint text NOT NULL,
+  keys jsonb NOT NULL,
+  active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.referral_earnings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  referrer_id uuid,
+  referred_user_id uuid,
+  earning_type text NOT NULL,
+  amount numeric NOT NULL,
+  commission_rate numeric NOT NULL,
+  source_id uuid,
+  source_type text,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'paid'::text])),
+  earned_at timestamp with time zone DEFAULT now(),
+  confirmed_at timestamp with time zone,
+  paid_at timestamp with time zone,
+  CONSTRAINT referral_earnings_pkey PRIMARY KEY (id),
+  CONSTRAINT referral_earnings_referred_user_id_fkey FOREIGN KEY (referred_user_id) REFERENCES public.users(id),
+  CONSTRAINT referral_earnings_referrer_id_fkey FOREIGN KEY (referrer_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.referral_withdrawals (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  amount numeric NOT NULL,
+  withdrawal_method text DEFAULT 'bank_transfer'::text,
+  bank_name text NOT NULL,
+  account_number text NOT NULL,
+  account_name text NOT NULL,
+  bank_code text,
+  recipient_code text,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text])),
+  reference_number text UNIQUE,
+  transaction_id text,
+  admin_notes text,
+  processed_by uuid,
+  processed_at timestamp with time zone,
+  requested_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT referral_withdrawals_pkey PRIMARY KEY (id),
+  CONSTRAINT referral_withdrawals_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.users(id),
+  CONSTRAINT referral_withdrawals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.referrals (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  referrer_id uuid,
+  referred_id uuid,
+  plan_type text DEFAULT 'monthly'::text CHECK (plan_type = ANY (ARRAY['monthly'::text, 'yearly'::text])),
+  reward_amount numeric DEFAULT 0,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'completed'::text, 'paid'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  paid_at timestamp with time zone,
+  CONSTRAINT referrals_pkey PRIMARY KEY (id),
+  CONSTRAINT referrals_referrer_id_fkey FOREIGN KEY (referrer_id) REFERENCES public.users(id),
+  CONSTRAINT referrals_referred_id_fkey FOREIGN KEY (referred_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.sales (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  customer_id uuid,
+  customer_name text,
+  product_id uuid,
+  product_name text NOT NULL,
+  quantity integer NOT NULL,
+  unit_price numeric NOT NULL,
+  total_amount numeric NOT NULL,
+  payment_method text DEFAULT 'cash'::text,
+  salesperson_id uuid,
+  date timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  total_cogs numeric DEFAULT 0,
+  gross_profit numeric DEFAULT 0,
+  profit_margin numeric DEFAULT 0,
+  notes text,
+  customer_email text,
+  currency text DEFAULT 'NGN'::text,
+  payment_status text DEFAULT 'completed'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text, 'refunded'::text])),
+  discount_amount numeric DEFAULT 0,
+  tax_amount numeric DEFAULT 0,
+  profit_from_sales numeric DEFAULT 0,
+  CONSTRAINT sales_pkey PRIMARY KEY (id),
+  CONSTRAINT sales_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
+  CONSTRAINT sales_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT sales_salesperson_id_fkey FOREIGN KEY (salesperson_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.team (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  team_member_id uuid,
+  role text DEFAULT 'Salesperson'::text CHECK (role = ANY (ARRAY['Admin'::text, 'Salesperson'::text])),
+  active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_pkey PRIMARY KEY (id),
+  CONSTRAINT team_team_member_id_fkey FOREIGN KEY (team_member_id) REFERENCES public.users(id),
+  CONSTRAINT team_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.transactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid,
+  type text NOT NULL CHECK (type = ANY (ARRAY['money_in'::text, 'money_out'::text])),
+  amount numeric NOT NULL,
+  category text NOT NULL DEFAULT 'Uncategorized'::text,
+  description text,
+  payment_method text DEFAULT 'cash'::text,
+  reference_id uuid,
+  reference_type text,
+  date timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_settings (
+  user_id uuid NOT NULL,
+  default_customer_address text DEFAULT 'N/A'::text,
+  default_product_category text DEFAULT 'General'::text,
+  default_expense_category text DEFAULT 'Miscellaneous'::text,
+  default_payment_method text DEFAULT 'cash'::text,
+  default_payment_terms integer DEFAULT 30,
+  default_seller_name text,
+  default_seller_address text,
+  default_seller_contact text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_settings_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email text NOT NULL UNIQUE,
+  phone text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  business_name text,
+  role text DEFAULT 'Owner'::text CHECK (role = ANY (ARRAY['Owner'::text, 'Salesperson'::text, 'Admin'::text])),
+  owner_id uuid,
+  subscription_plan text DEFAULT 'weekly'::text CHECK (subscription_plan = ANY (ARRAY['free'::text, 'weekly'::text, 'monthly'::text, 'yearly'::text])),
+  subscription_status text DEFAULT 'trial'::text CHECK (subscription_status = ANY (ARRAY['trial'::text, 'active'::text, 'expired'::text, 'cancelled'::text])),
+  trial_ends_at timestamp with time zone DEFAULT (now() + '7 days'::interval),
+  referral_code text DEFAULT concat('SABI', upper("substring"(md5((random())::text), 1, 6))) UNIQUE,
+  referred_by uuid,
+  active boolean DEFAULT true,
+  last_login timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  password_hash text NOT NULL,
+  created_by uuid,
+  is_deactivated boolean DEFAULT false,
+  email_confirmed boolean DEFAULT false,
+  email_confirmed_at timestamp with time zone,
+  current_month_invoices integer DEFAULT 0,
+  current_month_expenses integer DEFAULT 0,
+  usage_reset_date date DEFAULT CURRENT_DATE,
+  dashboard_preferences jsonb DEFAULT '{"theme": "default", "currency": "NGN", "date_format": "DD/MM/YYYY"}'::jsonb,
+  business_address text DEFAULT 'N/A'::text,
+  business_contact text DEFAULT 'N/A'::text,
+  raw_pass text,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT users_referred_by_fkey FOREIGN KEY (referred_by) REFERENCES public.users(id),
+  CONSTRAINT users_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+-- IMPORTANT: Run these statements ONE AT A TIME in your Supabase SQL editor
+
+-- STEP 1: First, let's fix the global update_updated_at_column function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the table has an updated_at column before trying to set it
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = TG_TABLE_NAME::text
+        AND column_name = 'updated_at'
+    ) THEN
+        NEW.updated_at = NOW();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- STEP 2: Now let's create our profit calculation function
+CREATE OR REPLACE FUNCTION calculate_sale_profit()
+RETURNS TRIGGER AS $$
+DECLARE
+    product_cost_price NUMERIC := 0;
+BEGIN
+    -- Get cost price from products table if product_id is provided
+    IF NEW.product_id IS NOT NULL THEN
+        SELECT COALESCE(cost_price, 0) INTO product_cost_price
+        FROM products 
+        WHERE id = NEW.product_id;
+        
+        -- Calculate total COGS (Cost of Goods Sold)
+        NEW.total_cogs = product_cost_price * NEW.quantity;
+    ELSE
+        NEW.total_cogs = 0;
+    END IF;
+    
+    -- Calculate profit from sales (selling price - cost price) * quantity
+    NEW.profit_from_sales = NEW.total_amount - NEW.total_cogs;
+    
+    -- Also update gross_profit to match profit_from_sales for consistency
+    NEW.gross_profit = NEW.profit_from_sales;
+    
+    -- Calculate profit margin as percentage
+    IF NEW.total_amount > 0 THEN
+        NEW.profit_margin = (NEW.profit_from_sales / NEW.total_amount) * 100;
+    ELSE
+        NEW.profit_margin = 0;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- STEP 3: Create our profit calculation trigger
+DROP TRIGGER IF EXISTS sales_profit_calculation ON sales;
+CREATE TRIGGER sales_profit_calculation
+    BEFORE INSERT OR UPDATE ON sales
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_sale_profit();
+
+-- STEP 4: Update existing sales records with correct profit calculations
+-- We'll do this in a way that doesn't trigger the updated_at trigger
+WITH sales_updates AS (
+    SELECT 
+        s.id,
+        COALESCE(s.total_amount - (COALESCE(p.cost_price, 0) * s.quantity), s.total_amount) AS new_profit_from_sales,
+        COALESCE(COALESCE(p.cost_price, 0) * s.quantity, 0) AS new_total_cogs
+    FROM 
+        sales s
+    LEFT JOIN 
+        products p ON s.product_id = p.id
+)
+UPDATE sales
+SET 
+    profit_from_sales = u.new_profit_from_sales,
+    total_cogs = u.new_total_cogs,
+    gross_profit = u.new_profit_from_sales
+FROM 
+    sales_updates u
+WHERE 
+    sales.id = u.id;
+
+-- STEP 5: Verify the update worked by checking a few records
+SELECT id, product_name, total_amount, total_cogs, profit_from_sales, gross_profit 
+FROM sales 
+WHERE profit_from_sales IS NOT NULL 
+LIMIT 5;

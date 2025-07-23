@@ -22,12 +22,22 @@ def success_response(data=None, message="Success", status_code=200):
         "message": message
     }), status_code
 
-def error_response(error, message="Error", status_code=400):
-    return jsonify({
+def error_response(error, message="Error", status_code=400, include_toast=True):
+    response_data = {
         "success": False,
         "error": error,
         "message": message
-    }), status_code
+    }
+    
+    # Add toast notification for client-side display
+    if include_toast:
+        response_data["toast"] = {
+            "type": "error",
+            "message": message if isinstance(message, str) else str(error),
+            "timeout": 4000
+        }
+    
+    return jsonify(response_data), status_code
 
 def generate_invoice_number(owner_id):
     """Generate unique invoice number with format INV-YYYYMMDD-XXXX"""
@@ -236,13 +246,19 @@ def create_invoice():
         if not result.data:
             return error_response("Failed to create invoice", status_code=500)
 
-        return success_response(
-            message="Invoice created successfully",
-            data={
+        # Success response with toast notification data
+        return jsonify({
+            "success": True,
+            "message": "Invoice created successfully",
+            "data": {
                 "invoice": result.data[0]
             },
-            status_code=201
-        )
+            "toast": {
+                "type": "success",
+                "message": f"Invoice {invoice_number} created successfully!",
+                "timeout": 3000
+            }
+        }), 201
         
     except Exception as e:
         return error_response(str(e), "Failed to create invoice", status_code=500)
@@ -328,12 +344,19 @@ def update_invoice(invoice_id):
         if not result.data:
             return error_response("Failed to update invoice", status_code=500)
         
-        return success_response(
-            message="Invoice updated successfully",
-            data={
+        # Success response with toast notification data
+        return jsonify({
+            "success": True,
+            "message": "Invoice updated successfully",
+            "data": {
                 "invoice": result.data[0]
+            },
+            "toast": {
+                "type": "success",
+                "message": f"Invoice {invoice['invoice_number']} updated successfully!",
+                "timeout": 3000
             }
-        )
+        }), 200
         
     except Exception as e:
         return error_response(str(e), "Failed to update invoice", status_code=500)
@@ -358,9 +381,16 @@ def delete_invoice(invoice_id):
         if not result.data:
             return error_response("Failed to delete invoice", status_code=500)
         
-        return success_response(
-            message="Invoice deleted successfully"
-        )
+        # Success response with toast notification data
+        return jsonify({
+            "success": True,
+            "message": "Invoice deleted successfully",
+            "toast": {
+                "type": "success",
+                "message": f"Invoice {invoice.data['invoice_number']} deleted successfully!",
+                "timeout": 3000
+            }
+        }), 200
         
     except Exception as e:
         return error_response(str(e), "Failed to delete invoice", status_code=500)

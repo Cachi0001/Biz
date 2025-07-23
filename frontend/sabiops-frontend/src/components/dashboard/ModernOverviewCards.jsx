@@ -51,11 +51,11 @@ const ModernOverviewCards = ({ data, loading }) => {
     {
       title: 'Profit From Sales',
       value: formatNaira(data?.revenue?.today_profit_from_sales || data?.revenue?.today_profit_from_sales === 0 ? data.revenue.today_profit_from_sales : 0),
-      change: 'Profit from sales for today',
+      change: `${formatNaira(data?.revenue?.this_month_profit_from_sales || 0)} this month`,
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      trend: 'up'
+      trend: data?.revenue?.today_profit_from_sales > 0 ? 'up' : 'down'
     },
     {
       title: 'Customers',

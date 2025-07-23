@@ -68,9 +68,18 @@ def get_sales():
         try:
             total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales_data)
             total_transactions = len(sales_data)
+            total_profit_from_sales = sum(float(sale.get("profit_from_sales", 0)) for sale in sales_data)
+            total_cogs = sum(float(sale.get("total_cogs", 0)) for sale in sales_data)
+            profit_margin = (total_profit_from_sales / total_sales * 100) if total_sales > 0 else 0
+            
             today = datetime.now().date().isoformat()
             today_sales = sum(
                 float(sale.get("total_amount", 0)) 
+                for sale in sales_data 
+                if sale.get("date", "").startswith(today)
+            )
+            today_profit = sum(
+                float(sale.get("profit_from_sales", 0)) 
                 for sale in sales_data 
                 if sale.get("date", "").startswith(today)
             )
@@ -90,6 +99,7 @@ def get_sales():
                 "total_amount": float(sale.get("total_amount", 0)),
                 "total_cogs": float(sale.get("total_cogs", 0)),
                 "gross_profit": float(sale.get("gross_profit", 0)),
+                "profit_from_sales": float(sale.get("profit_from_sales", 0)),
                 "payment_method": sale.get("payment_method", "cash"),
                 "date": sale.get("date"),
                 "salesperson_id": sale.get("salesperson_id"),
@@ -102,7 +112,11 @@ def get_sales():
                 "summary": {
                     "total_sales": total_sales,
                     "total_transactions": total_transactions,
-                    "today_sales": today_sales
+                    "today_sales": today_sales,
+                    "total_profit_from_sales": total_profit_from_sales,
+                    "total_cogs": total_cogs,
+                    "profit_margin": round(profit_margin, 2),
+                    "today_profit": today_profit
                 }
             }
         )
@@ -379,6 +393,7 @@ def get_sale_by_id(sale_id):
             "total_amount": float(sale.get("total_amount", 0)),
             "total_cogs": float(sale.get("total_cogs", 0)),
             "gross_profit": float(sale.get("gross_profit", 0)),
+            "profit_from_sales": float(sale.get("profit_from_sales", 0)),
             "payment_method": sale.get("payment_method", "cash"),
             "date": sale.get("date"),
             "salesperson_id": sale.get("salesperson_id"),
@@ -454,11 +469,13 @@ def update_sale(sale_id):
             
             new_total_cogs = new_quantity * cost_price
             new_gross_profit = new_total_amount - new_total_cogs
+            new_profit_from_sales = new_total_amount - new_total_cogs  # Same as gross_profit
             
             update_data.update({
                 "total_amount": new_total_amount,
                 "total_cogs": new_total_cogs,
-                "gross_profit": new_gross_profit
+                "gross_profit": new_gross_profit,
+                "profit_from_sales": new_profit_from_sales
             })
         
         # Update the sale
