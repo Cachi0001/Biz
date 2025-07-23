@@ -57,8 +57,19 @@ export const useDashboard = () => {
       const mergedOverview = {
         ...dashboardOverview,
         ...accurateMetrics,
-        // Ensure we have proper structure
-        revenue: accurateMetrics.revenue || dashboardOverview.revenue || { total: 0, this_month: 0 },
+        // Ensure we have proper structure and include profit fields
+        revenue: {
+          ...(dashboardOverview.revenue || {}),
+          ...(accurateMetrics.revenue || {}),
+          total: (accurateMetrics.revenue?.total || dashboardOverview.revenue?.total || 0),
+          this_month: (accurateMetrics.revenue?.this_month || dashboardOverview.revenue?.this_month || 0),
+          // Include profit-related fields
+          today_profit_from_sales: (accurateMetrics.today_profit_from_sales || dashboardOverview.today_profit_from_sales || 0),
+          this_month_profit_from_sales: (accurateMetrics.this_month_profit_from_sales || dashboardOverview.this_month_profit_from_sales || 0),
+          total_profit_from_sales: (accurateMetrics.total_profit_from_sales || dashboardOverview.total_profit_from_sales || 0),
+          total_cogs: (accurateMetrics.total_cogs || dashboardOverview.total_cogs || 0),
+          profit_margin: (accurateMetrics.profit_margin || dashboardOverview.profit_margin || 0)
+        },
         expenses: accurateMetrics.expenses || dashboardOverview.expenses || { total: 0, this_month: 0 },
         customers: accurateMetrics.customers || dashboardOverview.customers || { total: 0, new_this_month: 0 },
         products: accurateMetrics.products || dashboardOverview.products || { total: 0, low_stock: 0 },

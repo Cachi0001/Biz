@@ -23,7 +23,7 @@ const ModernOverviewCards = ({ data, loading }) => {
     );
   }
 
-  // Calculate accurate metrics
+
   const totalRevenue = data?.revenue?.total || 0;
   const thisMonthRevenue = data?.revenue?.this_month || 0;
   const totalExpenses = data?.expenses?.total || 0;
@@ -31,7 +31,6 @@ const ModernOverviewCards = ({ data, loading }) => {
   const netProfit = totalRevenue - totalExpenses;
   const thisMonthNetProfit = thisMonthRevenue - thisMonthExpenses;
   
-  // Calculate percentage changes (comparing this month to previous period)
   const revenueGrowth = totalRevenue > thisMonthRevenue ? 
     Math.round(((thisMonthRevenue / (totalRevenue - thisMonthRevenue)) * 100)) : 0;
   const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
