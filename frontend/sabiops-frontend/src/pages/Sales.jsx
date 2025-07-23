@@ -47,7 +47,8 @@ const Sales = () => {
     total_sales: 0,
     total_transactions: 0,
     today_sales: 0,
-    average_sale: 0
+    average_sale: 0,
+    profit_from_sales_monthly: 0
   });
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState('');
@@ -497,11 +498,11 @@ const Sales = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Average Sale</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{formatNaira(salesStats.average_sale || 0)}</p>
+                    <p className="text-sm font-medium text-gray-600">Profit From Sales (Monthly)</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{formatNaira(salesStats.profit_from_sales_monthly || 0)}</p>
                   </div>
-                  <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <Calculator className="h-6 w-6 text-orange-600" />
+                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>

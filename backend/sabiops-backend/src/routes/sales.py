@@ -253,6 +253,7 @@ def get_sales_stats():
                     "total_transactions": 0,
                     "average_sale_value": 0.0,
                     "total_gross_profit": 0.0,
+                    "total_profit_from_sales": 0.0,
                     "top_selling_products": [],
                     "sales_by_payment_method": {},
                     "monthly_sales": []
@@ -265,6 +266,7 @@ def get_sales_stats():
         total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
         total_transactions = len(sales)
         total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
+        total_profit_from_sales = sum(float(sale.get("profit_from_sales", 0)) for sale in sales)
         average_sale_value = total_sales / total_transactions if total_transactions > 0 else 0
         
         # Calculate product sales statistics
@@ -276,12 +278,14 @@ def get_sales_stats():
                     "product_name": sale.get("product_name", "Unknown"),
                     "quantity": 0, 
                     "total_revenue": 0.0,
-                    "total_profit": 0.0
+                    "total_profit": 0.0,
+                    "total_profit_from_sales": 0.0
                 }
             if product_id:
                 product_sales[product_id]["quantity"] += int(sale.get("quantity", 0))
                 product_sales[product_id]["total_revenue"] += float(sale.get("total_amount", 0))
                 product_sales[product_id]["total_profit"] += float(sale.get("gross_profit", 0))
+                product_sales[product_id]["total_profit_from_sales"] += float(sale.get("profit_from_sales", 0))
         
         # Get top selling products by revenue
         top_selling_products = sorted(
@@ -317,11 +321,13 @@ def get_sales_stats():
                             "month": month_key,
                             "total_sales": 0.0,
                             "transaction_count": 0,
-                            "gross_profit": 0.0
+                            "gross_profit": 0.0,
+                            "profit_from_sales": 0.0
                         }
                     monthly_sales[month_key]["total_sales"] += float(sale.get("total_amount", 0))
                     monthly_sales[month_key]["transaction_count"] += 1
                     monthly_sales[month_key]["gross_profit"] += float(sale.get("gross_profit", 0))
+                    monthly_sales[month_key]["profit_from_sales"] += float(sale.get("profit_from_sales", 0))
                 except:
                     continue
         
@@ -334,6 +340,7 @@ def get_sales_stats():
                 "total_transactions": total_transactions,
                 "average_sale_value": round(average_sale_value, 2),
                 "total_gross_profit": total_gross_profit,
+                "total_profit_from_sales": total_profit_from_sales,
                 "top_selling_products": top_selling_products,
                 "sales_by_payment_method": sales_by_payment_method,
                 "monthly_sales": monthly_sales_list
