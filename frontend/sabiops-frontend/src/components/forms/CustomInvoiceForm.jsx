@@ -665,15 +665,15 @@ const CustomInvoiceForm = ({
                     </SelectTrigger>
                     <SelectContent>
                       {productsLoading ? (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="_info_loading_" disabled>
                           Loading products...
                         </SelectItem>
                       ) : productsError ? (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="_info_error_" disabled>
                           {productsError}
                         </SelectItem>
                       ) : products.length === 0 ? (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="_info_empty_" disabled>
                           No products available
                         </SelectItem>
                       ) : (

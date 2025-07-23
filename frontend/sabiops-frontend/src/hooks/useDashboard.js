@@ -46,11 +46,13 @@ export const useDashboard = () => {
       if (overviewResponse.status === 'fulfilled' && overviewResponse.value && (overviewResponse.value.success !== false)) {
         dashboardOverview = overviewResponse.value.data || overviewResponse.value;
         console.log('[DEBUG] Dashboard Overview Data:', dashboardOverview);
+        console.log('[DEBUG] Dashboard Overview Revenue object:', dashboardOverview.revenue);
         console.log('[DEBUG] Overview profit fields:', {
-          today_profit_from_sales: dashboardOverview.today_profit_from_sales,
-          this_month_profit_from_sales: dashboardOverview.this_month_profit_from_sales,
-          total_profit_from_sales: dashboardOverview.total_profit_from_sales,
-          total_cogs: dashboardOverview.total_cogs
+          profit_from_sales: dashboardOverview.revenue?.profit_from_sales,
+          today_profit_from_sales: dashboardOverview.revenue?.today_profit_from_sales || dashboardOverview.today_profit_from_sales,
+          this_month_profit_from_sales: dashboardOverview.revenue?.this_month_profit_from_sales || dashboardOverview.this_month_profit_from_sales,
+          total_profit_from_sales: dashboardOverview.revenue?.total_profit_from_sales || dashboardOverview.total_profit_from_sales,
+          total_cogs: dashboardOverview.revenue?.total_cogs || dashboardOverview.total_cogs
         });
       } else {
         console.log('[DEBUG] Overview response failed or empty:', overviewResponse);
@@ -80,11 +82,12 @@ export const useDashboard = () => {
           ...(accurateMetrics.revenue || {}),
           total: (accurateMetrics.revenue?.total || dashboardOverview.revenue?.total || 0),
           this_month: (accurateMetrics.revenue?.this_month || dashboardOverview.revenue?.this_month || 0),
-          // Include profit-related fields
-          today_profit_from_sales: (accurateMetrics.today_profit_from_sales || dashboardOverview.today_profit_from_sales || 0),
-          this_month_profit_from_sales: (accurateMetrics.this_month_profit_from_sales || dashboardOverview.this_month_profit_from_sales || 0),
-          total_profit_from_sales: (accurateMetrics.total_profit_from_sales || dashboardOverview.total_profit_from_sales || 0),
-          total_cogs: (accurateMetrics.total_cogs || dashboardOverview.total_cogs || 0),
+          // Include profit-related fields - check all possible locations
+          profit_from_sales: (accurateMetrics.revenue?.profit_from_sales || dashboardOverview.revenue?.profit_from_sales || accurateMetrics.profit_from_sales || dashboardOverview.profit_from_sales || 0),
+          today_profit_from_sales: (accurateMetrics.revenue?.today_profit_from_sales || dashboardOverview.revenue?.today_profit_from_sales || accurateMetrics.today_profit_from_sales || dashboardOverview.today_profit_from_sales || 0),
+          this_month_profit_from_sales: (accurateMetrics.revenue?.this_month_profit_from_sales || dashboardOverview.revenue?.this_month_profit_from_sales || accurateMetrics.this_month_profit_from_sales || dashboardOverview.this_month_profit_from_sales || 0),
+          total_profit_from_sales: (accurateMetrics.revenue?.total_profit_from_sales || dashboardOverview.revenue?.total_profit_from_sales || accurateMetrics.total_profit_from_sales || dashboardOverview.total_profit_from_sales || 0),
+          total_cogs: (accurateMetrics.revenue?.total_cogs || dashboardOverview.revenue?.total_cogs || accurateMetrics.total_cogs || dashboardOverview.total_cogs || 0),
           profit_margin: (accurateMetrics.profit_margin || dashboardOverview.profit_margin || 0)
         },
         expenses: accurateMetrics.expenses || dashboardOverview.expenses || { total: 0, this_month: 0 },
@@ -174,6 +177,10 @@ export const useDashboard = () => {
         ...mergedOverview,
         recent_activities: recentActivities.slice(0, 5)
       };
+
+      console.log('[DEBUG] Final combined dashboard data:', combinedData);
+      console.log('[DEBUG] Final revenue object:', combinedData.revenue);
+      console.log('[DEBUG] Final profit_from_sales value:', combinedData.revenue?.profit_from_sales);
 
       setDashboardData(combinedData);
       setLastRefresh(new Date());
