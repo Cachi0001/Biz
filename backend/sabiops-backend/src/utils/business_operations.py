@@ -39,7 +39,7 @@ class BusinessOperationsManager:
             total_amount = float(sale_data["total_amount"])
             cost_price = float(product.get("cost_price", 0))
             total_cogs = quantity * cost_price
-            gross_profit = total_amount - total_cogs
+            profit_from_sales = total_amount - total_cogs
             
             # Get customer name if needed
             customer_name = sale_data.get("customer_name", "Walk-in Customer")
@@ -61,7 +61,7 @@ class BusinessOperationsManager:
                 "unit_price": unit_price,
                 "total_amount": total_amount,
                 "total_cogs": total_cogs,
-                "gross_profit": gross_profit,
+                "profit_from_sales": profit_from_sales,
                 "payment_method": sale_data.get("payment_method", "cash"),
                 "salesperson_id": sale_data.get("salesperson_id"),
                 "date": sale_data.get("date", datetime.now().isoformat()),

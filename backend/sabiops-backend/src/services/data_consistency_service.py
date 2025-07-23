@@ -191,7 +191,7 @@ class DataConsistencyService:
             month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             
             # Get sales data
-            sales_result = self.supabase.table("sales").select("total_amount, gross_profit, date").eq("owner_id", owner_id).execute()
+            sales_result = self.supabase.table("sales").select("total_amount, profit_from_sales, date").eq("owner_id", owner_id).execute()
             if sales_result.data:
                 for sale in sales_result.data:
                     amount = float(sale.get("total_amount", 0))

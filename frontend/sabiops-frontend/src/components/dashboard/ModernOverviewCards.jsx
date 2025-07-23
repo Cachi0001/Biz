@@ -49,9 +49,9 @@ const ModernOverviewCards = ({ data, loading }) => {
       trend: 'up'
     },
     {
-      title: 'Today COGS',
-      value: formatNaira(todayCOGS),
-      change: 'Cost of Goods Sold (COGS) for today',
+      title: 'Profit From Sales',
+      value: formatNaira(data?.revenue?.today_profit_from_sales || data?.revenue?.today_profit_from_sales === 0 ? data.revenue.today_profit_from_sales : 0),
+      change: 'Profit from sales for today',
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',

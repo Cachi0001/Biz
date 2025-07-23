@@ -100,6 +100,7 @@ def create_sale():
                 product_result = get_supabase().table("products").select("cost_price").eq("id", item_data["product_id"]).single().execute()
                 if product_result.data and product_result.data.get("cost_price") is not None:
                     cost_price = float(product_result.data["cost_price"])
+            # Correct COGS calculation: COGS = cost_price * quantity sold
             item_cogs = quantity * cost_price
             total_cogs += item_cogs
             
@@ -153,7 +154,7 @@ def create_sale():
             "date": datetime.utcnow().date().isoformat(),
             "created_at": datetime.now().isoformat(),
             "total_cogs": total_cogs,
-            "gross_profit": total_amount - total_cogs
+            "profit_from_sales": total_amount - total_cogs
         }
         
         if sale_data["commission_rate"] > 0:

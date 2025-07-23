@@ -84,29 +84,32 @@ def get_overview():
         }
         
         # Get total revenue from sales (ensure data consistency)
-        sales_result = supabase.table('sales').select('total_amount, date, gross_profit, total_cogs').eq('owner_id', user_id).execute()
+        sales_result = supabase.table('sales').select('total_amount, date, profit_from_sales, total_cogs').eq('owner_id', user_id).execute()
         if sales_result.data:
             total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
-            total_gross_profit = sum(float(sale.get('gross_profit', 0)) for sale in sales_result.data)
+            total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
             overview["revenue"]["total"] = total_revenue
-            overview["revenue"]["gross_profit"] = total_gross_profit
+            overview["revenue"]["profit_from_sales"] = total_profit_from_sales
 
             # Calculate this month's revenue
             this_month_revenue = 0
-            this_month_gross_profit = 0
+            this_month_profit_from_sales = 0
             today_cogs = 0
+            today_profit_from_sales = 0
             today_str = now.strftime('%Y-%m-%d')
             for sale in sales_result.data:
                 sale_date = parse_supabase_datetime(sale.get('date'))
                 if sale_date and sale_date >= current_month_start:
                     this_month_revenue += float(sale.get('total_amount', 0))
-                    this_month_gross_profit += float(sale.get('gross_profit', 0))
-                # Calculate today's COGS
+                    this_month_profit_from_sales += float(sale.get('profit_from_sales', 0))
+                # Calculate today's COGS and profit_from_sales
                 if sale_date and sale_date.strftime('%Y-%m-%d') == today_str:
                     today_cogs += float(sale.get('total_cogs', 0))
+                    today_profit_from_sales += float(sale.get('profit_from_sales', 0))
             overview["revenue"]["this_month"] = this_month_revenue
-            overview["revenue"]["this_month_gross_profit"] = this_month_gross_profit
+            overview["revenue"]["this_month_profit_from_sales"] = this_month_profit_from_sales
             overview["revenue"]["today_cogs"] = today_cogs
+            overview["revenue"]["today_profit_from_sales"] = today_profit_from_sales
         
         # Get outstanding revenue from invoices - fix calculation
         invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', user_id).execute()
@@ -586,13 +589,13 @@ def get_financials():
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         # Revenue & COGS (all-time & this month)
-        sales = supabase.table('sales').select('total_amount, total_cogs, gross_profit, date').eq('owner_id', user_id).execute().data or []
+        sales = supabase.table('sales').select('total_amount, total_cogs, profit_from_sales, date').eq('owner_id', user_id).execute().data or []
         revenue = sum(float(s.get('total_amount', 0)) for s in sales)
         cogs = sum(float(s.get('total_cogs', 0)) for s in sales)
-        gross_profit = revenue - cogs
+        profit_from_sales = revenue - cogs
         revenue_month = sum(float(s.get('total_amount', 0)) for s in sales if parse_supabase_datetime(s.get('date')) and parse_supabase_datetime(s.get('date')) >= month_start)
         cogs_month = sum(float(s.get('total_cogs', 0)) for s in sales if parse_supabase_datetime(s.get('date')) and parse_supabase_datetime(s.get('date')) >= month_start)
-        gross_profit_month = revenue_month - cogs_month
+        profit_from_sales_month = revenue_month - cogs_month
 
         # Expenses (all-time & this month, by category)
         expenses = supabase.table('expenses').select('amount, category, sub_category, date').eq('owner_id', user_id).execute().data or []
@@ -605,8 +608,8 @@ def get_financials():
             expense_by_category[cat] += float(e.get('amount', 0))
 
         # Net profit
-        net_profit = gross_profit - total_expenses
-        net_profit_month = gross_profit_month - total_expenses_month
+        net_profit = profit_from_sales - total_expenses
+        net_profit_month = profit_from_sales_month - total_expenses_month
 
         # Cash flow (money in/out, net)
         transactions = supabase.table('transactions').select('type, amount, date').eq('owner_id', user_id).execute().data or []
@@ -628,7 +631,7 @@ def get_financials():
             data={
                 "revenue": {"total": revenue, "this_month": revenue_month},
                 "cogs": {"total": cogs, "this_month": cogs_month},
-                "gross_profit": {"total": gross_profit, "this_month": gross_profit_month},
+                "profit_from_sales": {"total": profit_from_sales, "this_month": profit_from_sales_month},
                 "expenses": {"total": total_expenses, "this_month": total_expenses_month, "by_category": expense_by_category},
                 "net_profit": {"total": net_profit, "this_month": net_profit_month},
                 "cash_flow": {"money_in": money_in, "money_out": money_out, "net": net_cash_flow},

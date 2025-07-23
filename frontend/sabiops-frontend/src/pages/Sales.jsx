@@ -683,7 +683,7 @@ const Sales = () => {
                               <div className="pt-1 flex justify-between items-center">
                                 <span className="text-sm text-blue-700 font-medium">Profit:</span>
                                 <span className="text-base font-bold text-blue-700">
-                                  {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
+                                  {sale.profit_from_sales !== undefined ? formatNaira(sale.profit_from_sales) : '-'}
                                 </span>
                               </div>
                             </div>
@@ -755,7 +755,7 @@ const Sales = () => {
                               </TableCell>
                               <TableCell className="px-6 py-4 text-right">
                                 <span className="font-medium text-blue-700">
-                                  {sale.gross_profit !== undefined ? formatNaira(sale.gross_profit) : '-'}
+                                  {sale.profit_from_sales !== undefined ? formatNaira(sale.profit_from_sales) : '-'}
                                 </span>
                               </TableCell>
                             </TableRow>
