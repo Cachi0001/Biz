@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { invoiceApi } from '../services/enhancedApiClient';
+import { invoiceApi, productApi, authApi as customerApi } from '../services/enhancedApiClient';
 import { formatNaira, formatDate, formatDateTime } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
@@ -57,7 +57,7 @@ const Invoices = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await invoiceApi.getCustomers();
+      const response = await customerApi.getCustomers();
       
       let customersData = [];
       
@@ -80,7 +80,7 @@ const Invoices = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await invoiceApi.getProducts();
+      const response = await productApi.getProducts();
       
       let productsData = [];
       
