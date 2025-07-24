@@ -110,7 +110,20 @@ def get_invoices():
             query = query.eq("customer_id", customer_id)
         
         invoices = query.order("created_at", desc=True).execute()
-        
+
+        # Mark invoices as overdue on-the-fly if due_date has passed and not paid/cancelled/overdue
+        now = datetime.now()
+        for inv in invoices.data:
+            due_date = inv.get("due_date")
+            status = inv.get("status")
+            if due_date and status not in ["paid", "overdue", "cancelled"]:
+                try:
+                    due_dt = datetime.fromisoformat(due_date)
+                    if due_dt < now:
+                        inv["status"] = "overdue"
+                except Exception:
+                    pass
+
         return success_response(
             data={
                 "invoices": invoices.data
@@ -429,6 +442,18 @@ def update_invoice_status(invoice_id):
             # Create transaction record for the payment
             updated_invoice = {**invoice, **update_data}
             transaction_created = create_transaction_for_invoice(updated_invoice)
+            
+            # Deduct inventory for each product in the invoice when marked as paid
+            for item in invoice.get("items", []):
+                product_id = item.get("product_id")
+                quantity = float(item.get("quantity", 0))
+                if product_id and quantity > 0:
+                    product_result = supabase.table("products").select("*").eq("id", product_id).single().execute()
+                    if product_result.data:
+                        current_quantity = product_result.data["quantity"]
+                        new_quantity = max(0, current_quantity - quantity)
+                        supabase.table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
+                        # Optionally, trigger low stock notification here
             
             if transaction_created:
                 # Notify user of successful payment

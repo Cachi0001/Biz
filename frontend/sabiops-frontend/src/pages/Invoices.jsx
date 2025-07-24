@@ -316,7 +316,7 @@ const Invoices = () => {
   const handleStatusChange = async (invoiceId, newStatus) => {
     try {
       setLoading(true);
-      await invoiceApi.updateInvoice(invoiceId, { status: newStatus });
+      await invoiceApi.updateInvoiceStatus(invoiceId, { status: newStatus });
       showSuccessToast('Invoice status updated successfully!');
       fetchInvoices();
     } catch (error) {
