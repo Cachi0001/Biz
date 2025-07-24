@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.services.supabase_service import supabase
+from src.services.supabase_service import supabase_instance
 import logging
 
 search_bp = Blueprint('search', __name__)
@@ -30,7 +30,7 @@ def global_search():
         
         # Search customers
         logging.debug(f"Searching customers for query: {query}")
-        customers_response = supabase.table('customers').select('*').or_(
+        customers_response = supabase_instance.client.table('customers').select('*').or_(
             f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
         logging.debug(f"Customers search response: {customers_response.data}")
@@ -38,7 +38,7 @@ def global_search():
         
         # Search products
         logging.debug(f"Searching products for query: {query}")
-        products_response = supabase.table('products').select('*').or_(
+        products_response = supabase_instance.client.table('products').select('*').or_(
             f'name.ilike.%{query}%,description.ilike.%{query}%,sku.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).eq('active', True).limit(limit).execute()
         logging.debug(f"Products search response: {products_response.data}")
@@ -46,7 +46,7 @@ def global_search():
         
         # Search invoices
         logging.debug(f"Searching invoices for query: {query}")
-        invoices_response = supabase.table('invoices').select('*').or_(
+        invoices_response = supabase_instance.client.table('invoices').select('*').or_(
             f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
         logging.debug(f"Invoices search response: {invoices_response.data}")
@@ -54,7 +54,7 @@ def global_search():
         
         # Search transactions
         logging.debug(f"Searching transactions for query: {query}")
-        transactions_response = supabase.table('transactions').select('*').or_(
+        transactions_response = supabase_instance.client.table('transactions').select('*').or_(
             f'description.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
         logging.debug(f"Transactions search response: {transactions_response.data}")
@@ -62,7 +62,7 @@ def global_search():
         
         # Search expenses
         logging.debug(f"Searching expenses for query: {query}")
-        expenses_response = supabase.table('expenses').select('*').or_(
+        expenses_response = supabase_instance.client.table('expenses').select('*').or_(
             f'description.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
         logging.debug(f"Expenses search response: {expenses_response.data}")
