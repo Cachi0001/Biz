@@ -145,10 +145,7 @@ def list_routes():
         output.append(f"{rule} [{methods}]")
     return '\n'.join(output), 200, {'Content-Type': 'text/plain'}
 
-# Global OPTIONS handler for all routes (for Vercel compatibility)
-@app.route('/<path:path>', methods=['OPTIONS'])
-def options_handler(path):
-    return '', 204
+
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
