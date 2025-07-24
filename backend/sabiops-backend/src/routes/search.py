@@ -29,38 +29,43 @@ def global_search():
             }), 200
         
         # Search customers
+        logging.debug(f"Searching customers for query: {query}")
         customers_response = supabase.table('customers').select('*').or_(
             f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
-        
+        logging.debug(f"Customers search response: {customers_response.data}")
         customers = customers_response.data if customers_response.data else []
         
         # Search products
+        logging.debug(f"Searching products for query: {query}")
         products_response = supabase.table('products').select('*').or_(
             f'name.ilike.%{query}%,description.ilike.%{query}%,sku.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).eq('active', True).limit(limit).execute()
-        
+        logging.debug(f"Products search response: {products_response.data}")
         products = products_response.data if products_response.data else []
         
         # Search invoices
+        logging.debug(f"Searching invoices for query: {query}")
         invoices_response = supabase.table('invoices').select('*').or_(
             f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
-        
+        logging.debug(f"Invoices search response: {invoices_response.data}")
         invoices = invoices_response.data if invoices_response.data else []
         
         # Search transactions
+        logging.debug(f"Searching transactions for query: {query}")
         transactions_response = supabase.table('transactions').select('*').or_(
             f'description.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
-        
+        logging.debug(f"Transactions search response: {transactions_response.data}")
         transactions = transactions_response.data if transactions_response.data else []
         
         # Search expenses
+        logging.debug(f"Searching expenses for query: {query}")
         expenses_response = supabase.table('expenses').select('*').or_(
             f'description.ilike.%{query}%,category.ilike.%{query}%'
         ).eq('owner_id', current_user_id).limit(limit).execute()
-        
+        logging.debug(f"Expenses search response: {expenses_response.data}")
         expenses = expenses_response.data if expenses_response.data else []
         
         return jsonify({

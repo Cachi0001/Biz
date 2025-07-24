@@ -116,13 +116,14 @@ const Expenses = () => {
         throw new Error(firstError); // Re-throw to be caught by the form
       }
       
-      await enhancedCreateExpense(validation.formattedData);
+      await createExpense(validation.formattedData);
+      showSuccessToast('Expense added successfully');
       setShowAddDialog(false);
       fetchExpenses();
     } catch (error) {
       console.error('Error adding expense:', error);
-      // The enhanced API client will show the toast, so we just re-throw
-      throw error;
+      handleApiErrorWithToast(error, 'Failed to add expense');
+      throw error; // Re-throw to be caught by the form
     }
   };
 

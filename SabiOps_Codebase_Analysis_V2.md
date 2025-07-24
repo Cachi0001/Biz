@@ -72,6 +72,7 @@ The frontend has a modern and solid architecture, with a significant amount of U
 -   **API Integration**: A well-organized API service layer (`services/api.js`, `enhancedApiClient.js`) handles all communication with the backend, including interceptors for authentication tokens and error handling.
 -   **Performance Optimizations**: The codebase shows a clear focus on performance, with utilities for debouncing, memoization, API call optimization, and data preloading (`utils/performanceOptimizations.js`, `services/optimizedApiService.js`).
 -   **Testing**: The frontend includes both E2E tests (`tests/e2e`) and component-level tests, indicating a mature development process.
+-   **Expense Management**: Expense creation and associated toast notifications (success/error) are now functional.
 
 ---
 
