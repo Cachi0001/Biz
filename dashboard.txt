@@ -48,6 +48,8 @@ All constraints and inheritance logic are included. Use this as the definitive r
   - No advanced analytics
   - No export/download features
   - No push notifications
+  - 10 sales record daily
+  - 10 product creating
 - **Dashboard Rendering:** Limited cards, basic charts, upgrade prompts
 
 ### Silver Weekly Plan (₦1,400)
@@ -91,7 +93,7 @@ All constraints and inheritance logic are included. Use this as the definitive r
   - Only Owners can access team management, subscription upgrade, and referrals dashboard sections
   - Only Owners can create/deactivate team, upgrade plan, or request withdrawals
   - Only Owners can see advanced upgrade suggestions and manage subscription
-  - **Free plan limits: 5 invoices/expenses monthly**
+  - **Free plan limits: 5 invoices/expenses monthly, 10 sales , 10 product recording daily**
   - **Trial period: 7 days for weekly plan with crown indicator**
 
 ## Admin
@@ -133,69 +135,7 @@ All constraints and inheritance logic are included. Use this as the definitive r
   - Cannot create team, upgrade plan, or manage products/expenses
   - **If owner is on free plan: Limited to 5 invoices/expenses monthly**
 
----
 
-# 3. Dashboard Endpoints (Backend, All Roles)
-
-**All dashboard endpoints are filtered and rendered by user role.**
-
-**All API endpoints are called using the backend base URL: https://sabiops-backend.vercel.app**
-
-## Common Endpoints (All roles, but data filtered by role)
-- **GET https://sabiops-backend.vercel.app/api/dashboard/overview**
-  - Returns: revenue, customers, products, invoices (see below)
-- **GET https://sabiops-backend.vercel.app/api/dashboard/financials**
-  - Returns: revenue, cogs, gross/net profit, expenses, cash flow, inventory, low stock, top products/expenses
-- **GET https://sabiops-backend.vercel.app/api/dashboard/revenue-chart**
-  - Returns: 12-month revenue trend
-- **GET https://sabiops-backend.vercel.app/api/dashboard/top-customers**
-  - Returns: top customers by revenue
-- **GET https://sabiops-backend.vercel.app/api/dashboard/top-products**
-  - Returns: top products by sales
-- **GET https://sabiops-backend.vercel.app/api/sales/daily-report**
-  - Returns: daily sales, payment methods, top products
-- **GET https://sabiops-backend.vercel.app/api/sales/analytics**
-  - Returns: sales summary, daily revenue, top customers, payment methods
-- **GET https://sabiops-backend.vercel.app/api/expense/stats**
-  - Returns: total/average expenses, breakdown by category/month
-- **GET https://sabiops-backend.vercel.app/api/invoice/stats**
-  - Returns: invoice counts, paid/overdue, outstanding amount
-- **GET https://sabiops-backend.vercel.app/api/payment/stats**
-  - Returns: payment counts, revenue, fees, recent payments
-- **GET https://sabiops-backend.vercel.app/api/notifications/**
-  - Returns: notifications, unread count
-- **GET https://sabiops-backend.vercel.app/api/activities** (if implemented)
-  - Returns: recent activities (sales, invoices, payments, etc.)
-- **GET https://sabiops-backend.vercel.app/api/sync/status** (if implemented)
-  - Returns: offline/sync status
-
-## Owner-Only Endpoints (for dashboard sections)
-- **GET https://sabiops-backend.vercel.app/api/team** (team management)
-- **GET https://sabiops-backend.vercel.app/api/referrals** (referral earnings)
-- **POST https://sabiops-backend.vercel.app/api/withdrawal/request** (referral withdrawal)
-- **GET https://sabiops-backend.vercel.app/api/subscription/plans** (subscription info)
-- **POST https://sabiops-backend.vercel.app/api/subscription/upgrade** (upgrade plan)
-- **GET https://sabiops-backend.vercel.app/api/upgrade/suggestions** (intelligent upgrade path)
-
-## Subscription & Billing Endpoints
-- **GET https://sabiops-backend.vercel.app/api/subscription/status** - Get current subscription status
-- **GET https://sabiops-backend.vercel.app/api/subscription/usage** - Get usage limits and current usage
-- **POST https://sabiops-backend.vercel.app/api/subscription/upgrade** - Upgrade subscription
-- **GET https://sabiops-backend.vercel.app/api/subscription/trial-status** - Get trial status and remaining days
-- **POST https://sabiops-backend.vercel.app/api/paystack/initialize** - Initialize Paystack payment
-- **POST https://sabiops-backend.vercel.app/api/paystack/verify** - Verify Paystack payment
-
-## Export/Download Endpoints (Role-based access)
-- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=pdf** (Owner/Admin - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=excel** (Owner/Admin - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/dashboard/export?format=csv** (Owner/Admin - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/sales/export?format=pdf** (All roles - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/sales/export?format=png** (All roles - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/customers/export?format=excel** (Owner/Admin - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/products/export?format=excel** (Owner/Admin - paid plans only)
-- **GET https://sabiops-backend.vercel.app/api/invoices/export?format=pdf** (All roles - paid plans only)
-
----
 
 # 4. Dashboard UI Sections (by Role & Subscription)
 
@@ -289,7 +229,8 @@ All constraints and inheritance logic are included. Use this as the definitive r
 - **Inventory Value:** value, low_stock (Owner/Admin - paid plans)
 - **Top Expenses:** category, amount (Owner/Admin - paid plans)
 - **Low Stock Alerts:** name, quantity (Owner/Admin - paid plans)
-- **Top Products:** name, quantity (Owner/Admin - paid plans)
+- **Top Products:**(products with high sales) name, quantity (Owner/Admin - paid plans)
+- **Low Products:**(Products with low sales)
 - **Customers:** total, new_this_month
 - **Invoices:** overdue, monthly_count (limited to 5 for free plan)
 - **Sales:** total_sales, total_amount, total_quantity (Salesperson)
