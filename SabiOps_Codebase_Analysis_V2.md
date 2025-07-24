@@ -83,8 +83,14 @@ While the application is well-developed, there are areas that appear incomplete 
 
 -   **Business Logic Gaps**: While API routes exist, the business logic within them may not fully implement all constraints from the PRD. For example:
     -   **Subscription Limits**: The code for enforcing plan limits (e.g., 5 invoices on the free plan) is not apparent in the provided route files. This logic needs to be implemented and tested across all relevant endpoints (invoices, expenses, etc.).
-    -   **Pro-rata Upgrades**: The logic for pro-rata subscription upgrade calculations is mentioned in the PRD but does not appear to be implemented in the `subscription.py` or `payment.py` routes.
+-   **Pro-rata Upgrades**: The logic for pro-rata subscription upgrade calculations is mentioned in the PRD but does not appear to be implemented in the `subscription.py` or `payment.py` routes.
 -   **Data Consistency**: The `data_integrity.py` service is a great start, but the logic for automatically running these checks (e.g., after a sale) needs to be integrated into the primary business logic routes.
+
+-   **Dashboard Functionalities**:
+    -   **Global Header Search Bar**: The global header search bar for the dashboard is now functional on both desktop and mobile.
+    -   **Admin Dashboard & Role Rendering**: The Admin dashboard is not fully implemented, and the role-based rendering for dashboards is not working as expected. The ability for an owner to create team members is crucial for testing role-based rendering, and this functionality is currently missing.
+-   **Team Management Setup**: The team creation logic is not working, preventing owners from adding new team members and testing role-based dashboard rendering. Additionally, when an owner creates a new team member, the `email_confirmed` field for that user should be automatically set to `true` to enable immediate login, which is currently not happening.
+-   **Push Notifications**: The Firebase push notification system is experiencing issues and is not working with the notification bell.
 
 ### 2. Frontend (`sabiops-frontend`)
 

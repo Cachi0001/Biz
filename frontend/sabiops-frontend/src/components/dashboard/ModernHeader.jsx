@@ -341,17 +341,28 @@ const ModernHeader = () => {
                 <div className="space-y-4">
                   {/* Search Bar - Only for paid plans */}
                   {user?.subscription_plan !== 'free' && (
-                    <div className="w-full">
+                    <div className="w-full relative">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
                         <input
                           type="search"
                           placeholder="Search..."
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setSearchOpen(!!e.target.value);
+                          }}
+                          onFocus={() => setSearchOpen(true)}
+                          onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                           className="w-full bg-green-600/50 text-white pl-10 pr-4 py-2 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300"
                         />
                       </div>
+                      <SearchDropdown
+                        isOpen={searchOpen}
+                        onClose={() => setSearchOpen(false)}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                      />
                     </div>
                   )}
                   
@@ -461,21 +472,7 @@ const ModernHeader = () => {
 
 
 
-        {/* Mobile Search - Only for paid plans */}
-        {user?.subscription_plan !== 'free' && (
-          <div className="md:hidden mt-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
-              <input
-                type="search"
-                placeholder="Search customers, products, invoices..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
-              />
-            </div>
-          </div>
-        )}
+        
       </div>
     </div>
   );
