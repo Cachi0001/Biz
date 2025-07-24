@@ -61,6 +61,11 @@ apiClient.interceptors.request.use(
 // Response interceptor for automatic toast handling
 apiClient.interceptors.response.use(
   (response) => {
+    // Allow suppressing the automatic toast handling on a per-request basis
+    if (response.config?.suppressToast) {
+      return response;
+    }
+
     // Check for backend toast payload in response data
     const responseData = response.data;
     

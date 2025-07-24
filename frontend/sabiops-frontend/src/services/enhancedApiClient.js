@@ -305,7 +305,7 @@ export const invoiceApi = {
   async createInvoice(invoiceData) {
     return await withLoadingToast(
       async () => {
-        const response = await post('/invoices/', invoiceData);
+        const response = await post('/invoices/', invoiceData, { suppressToast: true });
         toastService.success('Invoice created successfully!');
         return response.data;
       },
@@ -316,7 +316,7 @@ export const invoiceApi = {
   async updateInvoice(invoiceId, invoiceData) {
     return await withLoadingToast(
       async () => {
-        const response = await put(`/invoices/${invoiceId}`, invoiceData);
+        const response = await put(`/invoices/${invoiceId}`, invoiceData, { suppressToast: true });
         toastService.success('Invoice updated successfully!');
         return response.data;
       },
@@ -327,7 +327,7 @@ export const invoiceApi = {
   async deleteInvoice(invoiceId) {
     return await withLoadingToast(
       async () => {
-        const response = await del(`/invoices/${invoiceId}`);
+        const response = await del(`/invoices/${invoiceId}`, { suppressToast: true });
         toastService.success('Invoice deleted successfully!');
         return response.data;
       },
@@ -338,7 +338,7 @@ export const invoiceApi = {
   async updateInvoiceStatus(invoiceId, statusData) {
     return await withLoadingToast(
       async () => {
-        const response = await put(`/invoices/${invoiceId}/status`, statusData);
+        const response = await put(`/invoices/${invoiceId}/status`, statusData, { suppressToast: true });
         toastService.success('Invoice status updated successfully!');
         return response.data;
       },
@@ -349,7 +349,7 @@ export const invoiceApi = {
   async sendInvoice(invoiceId) {
     return await withLoadingToast(
       async () => {
-        const response = await post(`/invoices/${invoiceId}/send`);
+        const response = await post(`/invoices/${invoiceId}/send`, { suppressToast: true });
         toastService.success('Invoice sent successfully!');
         return response.data;
       },

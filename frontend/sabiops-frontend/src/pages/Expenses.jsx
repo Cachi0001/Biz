@@ -15,6 +15,7 @@ import ExpenseCard from '../components/expenses/ExpenseCard';
 import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
 import { EXPENSE_CATEGORIES } from '../constants/categories';
+import { validateExpenseData } from '../utils/expenseValidator';
 import MobileDateInput from '../components/ui/MobileDateInput';
 
 const Expenses = () => {
@@ -115,14 +116,13 @@ const Expenses = () => {
         throw new Error(firstError); // Re-throw to be caught by the form
       }
       
-      await createExpense(validation.formattedData);
-      showSuccessToast('Expense added successfully');
+      await enhancedCreateExpense(validation.formattedData);
       setShowAddDialog(false);
       fetchExpenses();
     } catch (error) {
       console.error('Error adding expense:', error);
-      handleApiErrorWithToast(error, 'Failed to add expense');
-      throw error; // Re-throw to be caught by the form
+      // The enhanced API client will show the toast, so we just re-throw
+      throw error;
     }
   };
 
