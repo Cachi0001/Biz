@@ -255,3 +255,6 @@ class SupabaseService:
         """Send both in-app and push notification to a user"""
         self.send_notification(user_id, title, message, type)
         self.send_push_notification(user_id, title, message, type)
+
+# Instantiate the SupabaseService class to make it importable
+supabase_instance = SupabaseService()
