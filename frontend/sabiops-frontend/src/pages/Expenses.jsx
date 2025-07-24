@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { getExpenses, getExpenseCategories, createExpense, updateExpense, deleteExpense } from "../services/api";
 import { formatNaira } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast } from '../utils/errorHandling';
+import { useToast } from '../components/ToastProvider';
 import ExpenseForm from '../components/forms/ExpenseForm';
 import ExpenseCard from '../components/expenses/ExpenseCard';
 import BackButton from '../components/ui/BackButton';
@@ -32,6 +33,8 @@ const Expenses = () => {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [viewingExpense, setViewingExpense] = useState(null);
+
+  const { success, error: toastError } = useToast();
 
   // Fetch data on component mount
   useEffect(() => {
@@ -112,17 +115,17 @@ const Expenses = () => {
         // Show the first validation error
         const firstErrorKey = Object.keys(validation.errors)[0];
         const firstError = validation.errors[firstErrorKey];
-        handleApiErrorWithToast(new Error(firstError));
+        toastError(firstError);
         throw new Error(firstError); // Re-throw to be caught by the form
       }
       
       await createExpense(validation.formattedData);
-      showSuccessToast('Expense added successfully');
+      success('Expense added successfully');
       setShowAddDialog(false);
       fetchExpenses();
     } catch (error) {
       console.error('Error adding expense:', error);
-      handleApiErrorWithToast(error, 'Failed to add expense');
+      toastError('Failed to add expense');
       throw error; // Re-throw to be caught by the form
     }
   };
@@ -152,18 +155,18 @@ const Expenses = () => {
         // Show the first validation error
         const firstErrorKey = Object.keys(validation.errors)[0];
         const firstError = validation.errors[firstErrorKey];
-        handleApiErrorWithToast(new Error(firstError));
+        toastError(firstError);
         throw new Error(firstError); // Re-throw to be caught by the form
       }
       
       await updateExpense(editingExpense.id, validation.formattedData);
-      showSuccessToast('Expense updated successfully');
+      success('Expense updated successfully');
       setShowEditDialog(false);
       setEditingExpense(null);
       fetchExpenses();
     } catch (error) {
       console.error('Error updating expense:', error);
-      handleApiErrorWithToast(error, 'Failed to update expense');
+      toastError('Failed to update expense');
       throw error; // Re-throw to be caught by the form
     }
   };
@@ -177,11 +180,11 @@ const Expenses = () => {
     try {
       setLoading(true);
       await deleteExpense(expenseId);
-      showSuccessToast('Expense deleted successfully');
+      success('Expense deleted successfully');
       fetchExpenses();
     } catch (error) {
       console.error('Error deleting expense:', error);
-      handleApiErrorWithToast(error, 'Failed to delete expense');
+      toastError('Failed to delete expense');
     } finally {
       setLoading(false);
     }
@@ -255,7 +258,7 @@ const Expenses = () => {
         csvRows.push(row.join(','));
       });
 
-      const csvContent = csvRows.join('\\n');
+      const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -266,10 +269,10 @@ const Expenses = () => {
       link.click();
       document.body.removeChild(link);
       
-      showSuccessToast('Expenses report downloaded successfully!');
+      success('Expenses report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);
-      handleApiErrorWithToast(error, 'Failed to download report');
+      toastError('Failed to download report');
     }
   };
 

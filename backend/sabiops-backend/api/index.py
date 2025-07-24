@@ -28,6 +28,7 @@ from routes.team import team_bp
 from routes.payment import payment_bp
 from routes.dashboard import dashboard_bp
 from routes.notifications import notifications_bp
+from routes.search import search_bp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -160,6 +161,7 @@ app.register_blueprint(team_bp, url_prefix='/team')
 app.register_blueprint(payment_bp, url_prefix='/payments')
 app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 app.register_blueprint(notifications_bp, url_prefix='/notifications')
+app.register_blueprint(search_bp, url_prefix='/search')
 
 # Vercel expects the Flask app to be exported as 'app'.
 # Remove the '__main__' block for serverless compatibility.

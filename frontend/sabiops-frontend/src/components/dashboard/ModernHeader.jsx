@@ -241,7 +241,7 @@ const ModernHeader = () => {
           )}
 
           {/* Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center flex-wrap justify-end gap-2">
             {/* Analytics & Transactions for Desktop - Paid Plans */}
             <div className="hidden md:flex items-center space-x-2">
               <Button
