@@ -5,7 +5,7 @@ import logging
 
 search_bp = Blueprint('search', __name__)
 
-@search_bp.route('/search', methods=['GET'])
+@search_bp.route('/', methods=['GET'])
 @jwt_required()
 def global_search():
     """
