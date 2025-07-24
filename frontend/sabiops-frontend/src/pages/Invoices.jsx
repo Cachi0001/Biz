@@ -225,10 +225,8 @@ const Invoices = () => {
       
       if (isEdit && editingInvoice) {
         await invoiceApi.updateInvoice(editingInvoice.id, dataToSave);
-        showSuccessToast('Invoice updated successfully');
       } else {
         await invoiceApi.createInvoice(dataToSave);
-        showSuccessToast('Invoice created successfully');
       }
       
       // Close dialogs and reset state
@@ -317,7 +315,6 @@ const Invoices = () => {
     try {
       setLoading(true);
       await invoiceApi.updateInvoiceStatus(invoiceId, { status: newStatus });
-      showSuccessToast('Invoice status updated successfully!');
       fetchInvoices();
     } catch (error) {
       handleApiErrorWithToast(error, 'Failed to update invoice status');
@@ -730,7 +727,6 @@ const Invoices = () => {
               customers={customers}
               products={products}
               onSuccess={() => {
-                showSuccessToast('Invoice created successfully!');
                 setShowAddDialog(false);
                 fetchInvoices();
               }}
@@ -755,7 +751,6 @@ const Invoices = () => {
               customers={customers}
               products={products}
               onSuccess={() => {
-                showSuccessToast('Invoice updated successfully!');
                 setShowEditDialog(false);
                 setEditingInvoice(null);
                 fetchInvoices();

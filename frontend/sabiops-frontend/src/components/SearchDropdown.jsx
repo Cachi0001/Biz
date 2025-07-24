@@ -16,7 +16,6 @@ const SearchDropdown = ({ isOpen, onClose, searchQuery, setSearchQuery }) => {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
-  // Debounced search
   useEffect(() => {
     if (!searchQuery.trim() || !isOpen) {
       setResults({

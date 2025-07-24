@@ -154,7 +154,6 @@ const Products = () => {
   const handleFormSuccess = (response) => {
     const isEditing = !!editingProduct;
     // Only show one toast
-    toastService.success(isEditing ? 'Product updated successfully!' : 'Product created successfully!');
     setShowAddDialog(false);
     setShowEditDialog(false);
     setEditingProduct(null);
