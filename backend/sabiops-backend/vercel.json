@@ -12,9 +12,18 @@
   "routes": [
     {
       "src": "/api/(.*)",
+      "methods": ["OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+      },
+      "continue": true,
+      "status": 204
+    },
+    {
+      "src": "/api/(.*)",
       "dest": "api/index.py"
     }
   ]
 }
-
-

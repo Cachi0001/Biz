@@ -1,1 +1,1 @@
-/vercel.hive.cell.api.containers.v1.ContainersService/Mount (<missing container-id>) hit non-200: 500 Internal Server Error
+127.0.0.1 - - [24/Jul/2025 18:09:44] "OPTIONS /api/search?q=invoices&limit=5 HTTP/1.1" 308 -
