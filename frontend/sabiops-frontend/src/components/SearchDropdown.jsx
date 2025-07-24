@@ -31,7 +31,9 @@ const SearchDropdown = ({ isOpen, onClose, searchQuery, setSearchQuery }) => {
     const timeoutId = setTimeout(async () => {
       setLoading(true);
       try {
+        console.log("SearchDropdown: Sending search query:", searchQuery);
         const response = await searchGlobal(searchQuery);
+        console.log("SearchDropdown: Search API response:", response);
         if (response.success) {
           setResults(response.data);
         }

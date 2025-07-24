@@ -336,6 +336,11 @@ const ModernHeader = () => {
               <SheetContent side="right" className="w-80 bg-green-500 border-green-400">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-white">Menu</h2>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="sm" className="text-white hover:bg-green-600">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </SheetClose>
                 </div>
                 
                 <div className="space-y-4">
