@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastProvider from './components/ToastProvider';
@@ -85,6 +86,7 @@ function App() {
         <AuthProvider>
           <NotificationProvider>
             <Router>
+              <Toaster position="top-right" richColors />
               <NotificationPrompt />
               <div className="min-h-screen bg-background">
                 <Routes>

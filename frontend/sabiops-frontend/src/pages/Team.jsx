@@ -274,16 +274,26 @@ const Team = () => {
 
     try {
       setLoading(true);
-      console.log('[TEAM] Submitting team member data:', formData);
-      
-      const memberData = {
+
+      const baseData = {
         full_name: formData.full_name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         role: formData.role,
-        ...(!editingMember && { password: formData.password })
       };
-      
+
+      // Conditionally add password to align with backend expectations
+      const memberData = { ...baseData };
+      if (editingMember) {
+        // For updates, only send password if it's being changed
+        if (formData.password) {
+          memberData.password = formData.password;
+        }
+      } else {
+        // For new members, password is required
+        memberData.password = formData.password;
+      }
+
       if (editingMember) {
         await updateTeamMember(editingMember.id, memberData);
         showSuccessToast('Team member updated successfully');
@@ -616,4 +626,3 @@ const Team = () => {
 };
 
 export default Team;
-

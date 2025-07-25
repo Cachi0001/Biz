@@ -11,8 +11,8 @@ CREATE TABLE public.activities (
   reference_table text,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT activities_pkey PRIMARY KEY (id),
-  CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT activities_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+  CONSTRAINT activities_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
+  CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.customers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -168,8 +168,8 @@ CREATE TABLE public.payments (
   phone character varying,
   customer_phone character varying,
   CONSTRAINT payments_pkey PRIMARY KEY (id),
-  CONSTRAINT payments_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
   CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id),
+  CONSTRAINT payments_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
   CONSTRAINT payments_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id)
 );
 CREATE TABLE public.products (
@@ -287,22 +287,10 @@ CREATE TABLE public.sales (
   tax_amount numeric DEFAULT 0,
   profit_from_sales numeric DEFAULT 0,
   CONSTRAINT sales_pkey PRIMARY KEY (id),
+  CONSTRAINT sales_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
   CONSTRAINT sales_salesperson_id_fkey FOREIGN KEY (salesperson_id) REFERENCES public.users(id),
   CONSTRAINT sales_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
-  CONSTRAINT sales_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
   CONSTRAINT sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
-);
-CREATE TABLE public.team (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  owner_id uuid,
-  team_member_id uuid,
-  role text DEFAULT 'Salesperson'::text CHECK (role = ANY (ARRAY['Admin'::text, 'Salesperson'::text])),
-  active boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT team_pkey PRIMARY KEY (id),
-  CONSTRAINT team_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id),
-  CONSTRAINT team_team_member_id_fkey FOREIGN KEY (team_member_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.transactions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
