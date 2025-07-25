@@ -4,6 +4,7 @@
  */
 
 import DebugLogger from './debugLogger';
+import { toast } from 'sonner';
 
 
 /**
@@ -390,23 +391,19 @@ export const safeArrayExtract = (data, key = null, fallback = []) => {
   }
 };
 
+import { toast } from 'sonner';
+
 /**
  * Shows success toast notification
  * @param {string} message - Success message to display
  */
 export const showToast = (message, type = 'success') => {
-  // Try to use react-hot-toast if available
-  if (typeof window !== 'undefined' && window.toast) {
-    if (type === 'success') {
-      window.toast.success(message);
-    } else if (type === 'error') {
-      window.toast.error(message);
-    } else {
-      window.toast(message);
-    }
+  if (type === 'success') {
+    toast.success(message);
+  } else if (type === 'error') {
+    toast.error(message);
   } else {
-    // Fallback to console
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    toast(message);
   }
 };
 
