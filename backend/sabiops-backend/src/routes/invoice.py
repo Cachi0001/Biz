@@ -97,7 +97,10 @@ def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
 def get_invoices():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
         query = get_supabase().table("invoices").select("*").eq("owner_id", owner_id)
@@ -140,7 +143,10 @@ def get_invoices():
 def get_invoice(invoice_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -182,7 +188,10 @@ def get_invoice(invoice_id):
 def create_invoice():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
         
@@ -285,7 +294,10 @@ def create_invoice():
 def update_invoice(invoice_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -384,7 +396,10 @@ def update_invoice(invoice_id):
 def delete_invoice(invoice_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -419,7 +434,10 @@ def delete_invoice(invoice_id):
 def update_invoice_status(invoice_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -508,7 +526,10 @@ def update_invoice_status(invoice_id):
 def send_invoice(invoice_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
@@ -635,7 +656,10 @@ def send_invoice(invoice_id):
 def get_invoice_stats():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
         all_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).execute()
@@ -672,7 +696,10 @@ def get_invoice_stats():
 def get_overdue_invoices():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
         today = date.today().isoformat()

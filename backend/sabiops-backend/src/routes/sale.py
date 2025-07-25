@@ -31,7 +31,10 @@ def error_response(error, message="Error", status_code=400):
 def get_sales():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
         query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
@@ -73,7 +76,10 @@ def get_sales():
 def create_sale():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
         
@@ -183,7 +189,10 @@ def create_sale():
 def get_sale(sale_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
@@ -204,7 +213,10 @@ def get_sale(sale_id):
 def update_sale(sale_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
@@ -236,7 +248,10 @@ def update_sale(sale_id):
 def get_daily_sales_report():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         report_date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
         
@@ -302,7 +317,10 @@ def get_daily_sales_report():
 def get_sales_analytics():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         period = request.args.get("period", "30")
         
@@ -376,7 +394,10 @@ def get_sales_analytics():
 def get_team_performance():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         period = request.args.get("period", "30")
         

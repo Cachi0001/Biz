@@ -57,8 +57,8 @@ def get_products():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
         if not supabase:
@@ -141,7 +141,10 @@ def get_product(product_id):
     try:
         supabase = get_supabase()
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         
         if not product.data:
@@ -256,8 +259,8 @@ def create_product():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
         
@@ -354,8 +357,8 @@ def update_product(product_id):
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         data = request.get_json()
         
         if not supabase:
@@ -503,8 +506,8 @@ def delete_product(product_id):
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -566,8 +569,8 @@ def get_categories():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -611,8 +614,8 @@ def get_low_stock_products():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -670,8 +673,8 @@ def update_stock(product_id):
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
 
         if user_role not in ["Owner", "Admin"]:
             return error_response("You are not authorized to update stock", status_code=403)
@@ -786,8 +789,8 @@ def bulk_update_products():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
 
         if user_role not in ["Owner", "Admin"]:
             return error_response("You are not authorized to bulk update products", status_code=403)
@@ -881,8 +884,8 @@ def get_stock_status():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         if not supabase:
             print("[ERROR] Supabase connection not available in get_stock_status")
             return error_response("Database connection not available", 500)
@@ -918,8 +921,8 @@ def get_inventory_summary():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -1022,8 +1025,8 @@ def get_products_for_dropdown():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -1111,8 +1114,8 @@ def get_products_with_stock():
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
-        except Exception as e:
-            return error_response(str(e), "User context error", status_code=403)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         if not supabase:
             return error_response("Database connection not available", status_code=500)
