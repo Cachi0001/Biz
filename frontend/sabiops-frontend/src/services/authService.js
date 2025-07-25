@@ -1,4 +1,4 @@
-import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken, verifyResetCode, resendVerificationEmail } from './api';
+import { login as apiLogin, register as apiRegister, requestPasswordReset, resetPassword, createTeamMember, getProfile, updateProfile, logout as apiLogout, getAuthToken, resendVerificationEmail } from './api';
 
 export const authService = {
   // User login
@@ -67,25 +67,6 @@ export const authService = {
     }
   },
 
-  // Verify reset code
-  async verifyResetCode(email, resetCode) {
-    try {
-      const response = await verifyResetCode({ email, reset_code: resetCode });
-      return response;
-    } catch (error) {
-      throw error.response?.data || { error: "Failed to verify reset code" };
-    }
-  },
-
-  // Reset password with code
-  async resetPassword(email, resetCode, newPassword) {
-    try {
-      const response = await resetPassword({ email, reset_code: resetCode, new_password: newPassword });
-      return response;
-    } catch (error) {
-      throw error.response?.data || { error: "Failed to reset password" };
-    }
-  },
 
   // Create team member (Owner/Admin only)
   async createTeamMember(memberData) {

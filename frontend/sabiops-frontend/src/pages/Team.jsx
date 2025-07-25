@@ -187,22 +187,20 @@ const Team = () => {
     try {
       setLoading(true);
       const response = await getTeamMembers();
-      console.log('[TEAM] Team members response:', response);
       
       // Handle different response formats
       if (response && Array.isArray(response)) {
         setTeamMembers(response);
-      } else if (response && response.team_members && Array.isArray(response.team_members)) {
-        setTeamMembers(response.team_members);
-      } else if (response && response.data && response.data.team_members && Array.isArray(response.data.team_members)) {
-        setTeamMembers(response.data.team_members);
+      } else if (response?.team_members) {
+        setTeamMembers(Array.isArray(response.team_members) ? response.team_members : []);
+      } else if (response?.data?.team_members) {
+        setTeamMembers(Array.isArray(response.data.team_members) ? response.data.team_members : []);
       } else {
         console.warn('[TEAM] Unexpected response structure:', response);
         setTeamMembers([]);
       }
     } catch (error) {
-      console.error('Failed to fetch team members:', error);
-      showErrorToast(getErrorMessage(error, 'Failed to load team members'));
+      handleApiErrorWithToast(error, 'Failed to load team members');
       setTeamMembers([]);
     } finally {
       setLoading(false);
@@ -217,28 +215,60 @@ const Team = () => {
     }));
   };
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const validatePhone = (phone) => {
+    // Basic phone validation - at least 10 digits
+    const re = /^[0-9]{10,}$/;
+    return re.test(phone.replace(/[^0-9]/g, ''));
+  };
+
+  const validateForm = () => {
+    if (!formData.full_name.trim()) {
+      showErrorToast('Full name is required');
+      return false;
+    }
+    
+    if (!formData.email.trim()) {
+      showErrorToast('Email is required');
+      return false;
+    }
+    
+    if (!validateEmail(formData.email)) {
+      showErrorToast('Please enter a valid email address');
+      return false;
+    }
+    
+    if (!formData.phone.trim()) {
+      showErrorToast('Phone number is required');
+      return false;
+    }
+    
+    if (!validatePhone(formData.phone)) {
+      showErrorToast('Please enter a valid phone number (at least 10 digits)');
+      return false;
+    }
+    
+    if (!editingMember && !formData.password.trim()) {
+      showErrorToast('Password is required for new team members');
+      return false;
+    }
+    
+    if (!editingMember && formData.password.length < 6) {
+      showErrorToast('Password must be at least 6 characters long');
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.full_name.trim()) {
-      showErrorToast('Full name is required');
-      return;
-    }
-    if (!formData.email.trim()) {
-      showErrorToast('Email is required');
-      return;
-    }
-    if (!formData.phone.trim()) {
-      showErrorToast('Phone number is required');
-      return;
-    }
-    if (!editingMember && !formData.password.trim()) {
-      showErrorToast('Password is required for new team members');
-      return;
-    }
-    if (!editingMember && formData.password.length < 6) {
-      showErrorToast('Password must be at least 6 characters long');
+    if (!validateForm()) {
       return;
     }
 
@@ -246,15 +276,21 @@ const Team = () => {
       setLoading(true);
       console.log('[TEAM] Submitting team member data:', formData);
       
+      const memberData = {
+        full_name: formData.full_name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        role: formData.role,
+        ...(!editingMember && { password: formData.password })
+      };
+      
       if (editingMember) {
-        const response = await updateTeamMember(editingMember.id, formData);
-        console.log('[TEAM] Update response:', response);
+        await updateTeamMember(editingMember.id, memberData);
         showSuccessToast('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
-        const response = await createTeamMember(formData);
-        console.log('[TEAM] Create response:', response);
+        await createTeamMember(memberData);
         showSuccessToast('Team member created successfully');
         setShowAddDialog(false);
       }
@@ -262,7 +298,6 @@ const Team = () => {
       resetForm();
       await fetchTeamMembers();
     } catch (error) {
-      console.error('Failed to save team member:', error);
       handleApiErrorWithToast(error, 'Failed to save team member');
     } finally {
       setLoading(false);

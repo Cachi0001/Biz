@@ -169,11 +169,6 @@ export async function requestPasswordReset(data) {
   return response.data;
 }
 
-export async function verifyResetCode(data) {
-  const response = await api.post('/auth/verify-reset-code', data);
-  return response.data;
-}
-
 export async function resetPassword(data) {
   // Only send { token, password } for the new JWT-based flow
   const response = await api.post('/auth/reset-password', {
