@@ -42,11 +42,11 @@ const ModernQuickActions = () => {
           description: 'Manage inventory'
         },
         {
-          icon: Users,
-          label: 'New Customer',
-          path: '/customers',
+          icon: Calculator,
+          label: 'Add Expense',
+          path: '/expenses',
           variant: 'primary',
-          description: 'Add customer'
+          description: 'Track expenses'
         }
       );
     }
@@ -73,11 +73,11 @@ const ModernQuickActions = () => {
     if (isSalesperson) {
       baseActions.push(
         {
-          icon: Users,
-          label: 'View Customers',
-          path: '/customers',
+          icon: Package,
+          label: 'Products',
+          path: '/products',
           variant: 'primary',
-          description: 'Customer list'
+          description: 'Manage inventory'
         }
       );
     }

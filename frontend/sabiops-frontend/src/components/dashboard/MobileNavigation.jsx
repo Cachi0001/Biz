@@ -25,14 +25,14 @@ const MobileNavigation = () => {
     // Core items based on role
     const coreItems = [
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
-      { icon: Users, label: 'Customers', path: '/customers' },
+      { icon: Users, label: 'Expense', path: '/expenses' },
       { icon: FileText, label: 'Invoices', path: '/invoices' },
       { icon: TrendingUp, label: 'Sales', path: '/sales' }, // Fixed path
     ];
 
     // Add Team as a core item for owners (positioned between Sales and Analytics)
     if (isOwner) {
-      coreItems.push({ icon: UserPlus, label: 'Team', path: '/team' });
+      coreItems.push({ icon: Package, label: 'Products', path: '/products' });
     }
 
     // If we already have 5 items, return them
