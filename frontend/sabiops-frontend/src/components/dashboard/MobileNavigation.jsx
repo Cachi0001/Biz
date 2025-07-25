@@ -22,13 +22,23 @@ const MobileNavigation = () => {
   const { user, isOwner, isAdmin } = useAuth();
   
   const getNavigationItems = () => {
-    // Always show these core items
+    // Core items based on role
     const coreItems = [
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
       { icon: Users, label: 'Customers', path: '/customers' },
       { icon: FileText, label: 'Invoices', path: '/invoices' },
       { icon: TrendingUp, label: 'Sales', path: '/sales' }, // Fixed path
     ];
+
+    // Add Team as a core item for owners (positioned between Sales and Analytics)
+    if (isOwner) {
+      coreItems.push({ icon: UserPlus, label: 'Team', path: '/team' });
+    }
+
+    // If we already have 5 items, return them
+    if (coreItems.length >= 5) {
+      return coreItems;
+    }
 
     // Add the 5th item based on current page or role
     let fifthItem;
@@ -38,8 +48,6 @@ const MobileNavigation = () => {
       fifthItem = { icon: Package, label: 'Products', path: '/products' };
     } else if (location.pathname.includes('/expenses')) {
       fifthItem = { icon: Receipt, label: 'Expenses', path: '/expenses' };
-    } else if (location.pathname.includes('/team') && isOwner) {
-      fifthItem = { icon: UserPlus, label: 'Team', path: '/team' };
     } else if (location.pathname.includes('/transactions')) {
       fifthItem = { icon: CreditCard, label: 'Money', path: '/transactions' };
     } else if (location.pathname.includes('/analytics')) {

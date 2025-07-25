@@ -1209,3 +1209,127 @@ CREATE TABLE public.users (
     "return_type": "void"
   }
 ]
+-- Function to update feature usage
+CREATE OR REPLACE FUNCTION update_feature_usage()
+RETURNS TRIGGER AS $$
+DECLARE
+    user_subscription_plan text;
+    user_period_type text;
+    period_start_date timestamp with time zone;
+    period_end_date timestamp with time zone;
+    feature_name text;
+BEGIN
+    -- Determine the feature type based on the table
+    IF TG_TABLE_NAME = 'sales' THEN
+        feature_name := 'sales';
+    ELSIF TG_TABLE_NAME = 'products' THEN
+        feature_name := 'products';
+    ELSIF TG_TABLE_NAME = 'expenses' THEN
+        feature_name := 'expenses';
+    ELSIF TG_TABLE_NAME = 'invoices' THEN
+        feature_name := 'invoices';
+    ELSE
+        RETURN NEW;
+    END IF;
+
+    -- Get user subscription details
+    SELECT subscription_plan, subscription_period_type 
+    INTO user_subscription_plan, user_period_type
+    FROM users 
+    WHERE id = NEW.owner_id;
+
+    -- Calculate period boundaries
+    IF user_period_type = 'weekly' THEN
+        period_start_date := date_trunc('week', now());
+        period_end_date := period_start_date + interval '1 week';
+    ELSIF user_period_type = 'yearly' THEN
+        period_start_date := date_trunc('year', now());
+        period_end_date := period_start_date + interval '1 year';
+    ELSE -- monthly (default)
+        period_start_date := date_trunc('month', now());
+        period_end_date := period_start_date + interval '1 month';
+    END IF;
+
+    -- Insert or update usage record
+    INSERT INTO feature_usage (user_id, feature_type, period_start, period_end, current_count, limit_count)
+    SELECT 
+        NEW.owner_id,
+        feature_name,
+        period_start_date,
+        period_end_date,
+        1,
+        COALESCE(spl.limit_count, 999999) -- Default to high limit if not found
+    FROM subscription_plan_limits spl
+    WHERE spl.plan_name = user_subscription_plan 
+    AND spl.feature_type = feature_name 
+    AND spl.period_type = user_period_type
+    ON CONFLICT (user_id, feature_type, period_start, period_end)
+    DO UPDATE SET 
+        current_count = feature_usage.current_count + 1,
+        last_updated = now();
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers for each table
+DROP TRIGGER IF EXISTS sales_usage_trigger ON sales;
+CREATE TRIGGER sales_usage_trigger
+    AFTER INSERT ON sales
+    FOR EACH ROW
+    EXECUTE FUNCTION update_feature_usage();
+
+DROP TRIGGER IF EXISTS products_usage_trigger ON products;
+CREATE TRIGGER products_usage_trigger
+    AFTER INSERT ON products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_feature_usage();
+
+DROP TRIGGER IF EXISTS expenses_usage_trigger ON expenses;
+CREATE TRIGGER expenses_usage_trigger
+    AFTER INSERT ON expenses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_feature_usage();
+
+DROP TRIGGER IF EXISTS invoices_usage_trigger ON invoices;
+CREATE TRIGGER invoices_usage_trigger
+    AFTER INSERT ON invoices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_feature_usage();
+    CREATE TABLE IF NOT EXISTS subscription_plan_limits (
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    plan_name text NOT NULL,
+    feature_type text NOT NULL CHECK (feature_type = ANY (ARRAY['sales'::text, 'products'::text, 'expenses'::text, 'invoices'::text])),
+    period_type text NOT NULL CHECK (period_type = ANY (ARRAY['weekly'::text, 'monthly'::text, 'yearly'::text])),
+    limit_count integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT subscription_plan_limits_pkey PRIMARY KEY (id),
+    CONSTRAINT subscription_plan_limits_unique UNIQUE (plan_name, feature_type, period_type)
+);
+
+-- Insert the proposed limits
+INSERT INTO subscription_plan_limits (plan_name, feature_type, period_type, limit_count) VALUES
+-- Free Plan
+('free', 'sales', 'monthly', 50),
+('free', 'products', 'monthly', 20),
+('free', 'expenses', 'monthly', 20),
+('free', 'invoices', 'monthly', 5), -- Keep existing invoice limit for backward compatibility
+
+-- Weekly Plan
+('weekly', 'sales', 'weekly', 250),
+('weekly', 'products', 'weekly', 100),
+('weekly', 'expenses', 'weekly', 100),
+('weekly', 'invoices', 'weekly', 100),
+
+-- Monthly Plan
+('monthly', 'sales', 'monthly', 1500),
+('monthly', 'products', 'monthly', 500),
+('monthly', 'expenses', 'monthly', 500),
+('monthly', 'invoices', 'monthly', 450),
+
+-- Yearly Plan
+('yearly', 'sales', 'yearly', 18000),
+('yearly', 'products', 'yearly', 2000),
+('yearly', 'expenses', 'yearly', 2000),
+('yearly', 'invoices', 'yearly', 6000);
