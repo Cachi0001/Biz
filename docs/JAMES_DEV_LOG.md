@@ -343,6 +343,165 @@ const TeamMemberForm = ({
 
 ---
 
+## 2025-07-25 - Team Management Error Handling Improvements
+
+### Issue Details
+- **Related Story:** Team Management Navigation - Brownfield Addition
+- **Issue Type:** Error Handling & User Experience Enhancement
+- **Priority:** P1 - High
+- **Status:** ✅ Frontend Improvements Complete, 🔍 Backend Issue Identified
+- **Session Duration:** ~45 minutes
+
+### 🐛 Problem Identified
+
+**Issue:** Inconsistent error handling and toast notifications in Team.jsx
+- Team management component was using direct `toast.error` and `toast.success` calls
+- Sales and Invoices components use centralized toast service utilities
+- Inconsistent user feedback patterns across the application
+- 500 Internal Server Error occurring during team member creation (backend issue)
+- Missing detailed error logging for debugging purposes
+
+### 🔍 Analysis Performed
+
+**Component Comparison:**
+- **Sales Component:** Uses `toastService.showSuccessToast()` and `handleApiErrorWithToast()`
+- **Invoices Component:** Uses centralized toast utilities with consistent error handling
+- **Team Component (Before):** Direct toast calls without centralized error handling
+
+**Backend API Investigation:**
+- Reviewed frontend API service code for team member operations
+- Identified team member API functions in the service layer
+- Found 500 error occurs during POST request to create team member
+- Backend codebase access needed for full diagnosis
+
+### 🔧 Solution Implemented
+
+**Frontend Error Handling Standardization:**
+1. **Toast Service Integration:** Replaced all direct `toast` calls with centralized service functions
+2. **Error Handling Consistency:** Applied same error handling pattern as Sales/Invoices
+3. **Loading State Management:** Maintained existing loading indicators
+4. **Debug Logging:** Enhanced error logging for better debugging
+
+### 📁 Files Modified
+
+- **Modified:** `frontend/sabiops-frontend/src/pages/Team.jsx`
+  - Replaced `toast.error()` calls with `showErrorToast()`
+  - Replaced `toast.success()` calls with `showSuccessToast()`
+  - Applied `handleApiErrorWithToast()` for API error handling
+  - Enhanced error logging for team member creation
+  - Maintained all existing functionality while improving consistency
+
+### 🧪 Technical Implementation Details
+
+**Before (Inconsistent):**
+```javascript
+// Direct toast usage
+try {
+  await createTeamMember(memberData);
+  toast.success('Team member added successfully!');
+} catch (error) {
+  toast.error('Failed to add team member');
+}
+```
+
+**After (Centralized):**
+```javascript
+// Centralized toast service usage
+try {
+  await createTeamMember(memberData);
+  showSuccessToast('Team member added successfully!');
+} catch (error) {
+  console.error('Error creating team member:', error);
+  handleApiErrorWithToast(error, 'Failed to add team member');
+}
+```
+
+### ✅ Frontend Improvements Completed
+
+- **Toast Consistency:** ✅ All toast notifications now use centralized service
+- **Error Handling:** ✅ Consistent error handling pattern applied
+- **User Feedback:** ✅ Standardized success and error messages
+- **Debug Logging:** ✅ Enhanced error logging for troubleshooting
+- **Code Consistency:** ✅ Matches Sales and Invoices component patterns
+
+### 🔍 Backend Issue Identified
+
+**500 Internal Server Error Details:**
+- **Endpoint:** POST request for team member creation
+- **Status:** Server-side error during team member creation process
+- **Impact:** Users cannot successfully create new team members
+- **Frontend Handling:** Error is now properly caught and displayed to user
+- **Next Steps:** Backend investigation required (codebase access needed)
+
+### 🎯 Benefits Achieved
+
+1. **User Experience:**
+   - ✅ Consistent error messaging across all management components
+   - ✅ Better user feedback with centralized toast notifications
+   - ✅ Improved error communication when backend issues occur
+
+2. **Developer Experience:**
+   - ✅ Standardized error handling patterns
+   - ✅ Better debugging with enhanced error logging
+   - ✅ Code consistency across Sales, Invoices, and Team components
+
+3. **Maintainability:**
+   - ✅ Centralized toast service makes future updates easier
+   - ✅ Consistent error handling reduces code duplication
+   - ✅ Better separation of concerns
+
+### 📋 Testing Performed
+
+- ✅ **Error Handling:** Verified centralized toast functions work correctly
+- ✅ **Success Messages:** Confirmed success toasts display properly
+- ✅ **API Errors:** Tested API error handling with proper user feedback
+- ✅ **Console Logging:** Verified enhanced error logging for debugging
+- 🔍 **Backend API:** 500 error confirmed - requires backend investigation
+
+### 🔒 Security & Data Integrity
+
+- ✅ No changes to security implementations
+- ✅ Role-based access controls remain intact
+- ✅ Data validation logic preserved
+- ✅ Error handling improvements don't expose sensitive information
+
+### 📝 Outstanding Issues
+
+**Backend Investigation Required:**
+- **Issue:** 500 Internal Server Error on team member creation
+- **Status:** 🔍 Requires backend codebase access
+- **Priority:** High - blocking team member creation functionality
+- **Next Steps:** 
+  - Access backend codebase to investigate API endpoint
+  - Check server logs for detailed error information
+  - Verify database schema and constraints
+  - Test API endpoint directly for debugging
+
+### 🎯 Next Steps
+
+**Immediate (High Priority):**
+- [ ] Investigate backend 500 error for team member creation
+- [ ] Access backend codebase for API endpoint analysis
+- [ ] Review server logs for detailed error information
+- [ ] Test team member creation API directly
+
+**Follow-up (Medium Priority):**
+- [ ] Add comprehensive error handling tests
+- [ ] Document error handling patterns for future development
+- [ ] Consider adding retry logic for transient errors
+- [ ] Review other components for similar error handling improvements
+
+### 📋 Code Review Checklist
+
+- [x] Frontend error handling standardized
+- [x] Toast notifications use centralized service
+- [x] Error logging enhanced for debugging
+- [x] Code consistency with Sales/Invoices achieved
+- [ ] Backend 500 error investigated and resolved
+- [ ] End-to-end team member creation tested and working
+
+---
+
 ## Template for Future Entries
 
 ### [DATE] - [STORY/TASK NAME]

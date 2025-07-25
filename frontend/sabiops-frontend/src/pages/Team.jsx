@@ -37,8 +37,6 @@ import {
   showErrorToast,
   safeArray
 } from '../utils/errorHandling';
-import { toastService } from '../services/toastService';
-import { getErrorMessage } from '../services/api';
 
 // Stable form component outside main component to prevent re-renders and input focus loss
 const TeamMemberForm = ({ 
@@ -265,9 +263,7 @@ const Team = () => {
       await fetchTeamMembers();
     } catch (error) {
       console.error('Failed to save team member:', error);
-      const errorMessage = getErrorMessage(error, 'Failed to save team member');
-      showErrorToast(errorMessage);
-      setError(errorMessage);
+      handleApiErrorWithToast(error, 'Failed to save team member');
     } finally {
       setLoading(false);
     }
@@ -308,9 +304,7 @@ const Team = () => {
         await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to delete team member:', error);
-        const errorMessage = getErrorMessage(error, 'Failed to remove team member');
-        showErrorToast(errorMessage);
-        setError(errorMessage);
+        handleApiErrorWithToast(error, 'Failed to remove team member');
       } finally {
         setLoading(false);
       }
@@ -327,9 +321,7 @@ const Team = () => {
         await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to activate team member:', error);
-        const errorMessage = getErrorMessage(error, 'Failed to activate team member');
-        showErrorToast(errorMessage);
-        setError(errorMessage);
+        handleApiErrorWithToast(error, 'Failed to activate team member');
       } finally {
         setLoading(false);
       }
@@ -352,9 +344,7 @@ const Team = () => {
         showSuccessToast('Password reset successfully');
       } catch (error) {
         console.error('Failed to reset password:', error);
-        const errorMessage = getErrorMessage(error, 'Failed to reset password');
-        showErrorToast(errorMessage);
-        setError(errorMessage);
+        handleApiErrorWithToast(error, 'Failed to reset password');
       } finally {
         setLoading(false);
       }
@@ -571,9 +561,9 @@ const Team = () => {
         <Dialog open={!!tempPassword} onOpenChange={() => setTempPassword('')}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Temporary Password</DialogTitle>
+              <DialogTitle>Password</DialogTitle>
               <DialogDescription>
-                Please share this temporary password with the team member. They should change it upon first login.
+                Please share this password with the team member. They should use it to login.
               </DialogDescription>
             </DialogHeader>
             <div className="p-4 bg-muted rounded-lg">

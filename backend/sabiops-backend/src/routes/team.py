@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 import uuid
+import traceback
+import logging
 
 team_bp = Blueprint("team", __name__)
 
@@ -114,10 +116,32 @@ def create_team_member():
             "referral_code": data.get("referral_code")
         }
 
-        result = supabase.table("users").insert(team_member_data).execute()
+        # Log the data we're trying to insert for debugging
+        print(f"[DEBUG] Attempting to insert team member data: {team_member_data}")
+        print(f"[DEBUG] Owner data: {owner_result.data}")
+        
+        try:
+            result = supabase.table("users").insert(team_member_data).execute()
+            print(f"[DEBUG] Insert result: {result}")
+        except Exception as insert_error:
+            print(f"[ERROR] Failed to insert into users table: {str(insert_error)}")
+            print(f"[ERROR] Full traceback: {traceback.format_exc()}")
+            
+            # Log detailed error information
+            if hasattr(insert_error, 'response'):
+                print(f"[ERROR] Response status: {getattr(insert_error.response, 'status_code', 'N/A')}")
+                print(f"[ERROR] Response text: {getattr(insert_error.response, 'text', 'N/A')}")
+            
+            return error_response(
+                f"Database insertion failed: {str(insert_error)}", 
+                message="Failed to create team member - database error", 
+                status_code=500
+            )
 
         if result.data:
             team_member = result.data[0]
+            print(f"[DEBUG] Successfully inserted team member: {team_member['id']}")
+            
             team_data = {
                 "id": str(uuid.uuid4()),
                 "owner_id": owner_id,
@@ -127,7 +151,19 @@ def create_team_member():
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
-            supabase.table("team").insert(team_data).execute()
+            
+            try:
+                team_result = supabase.table("team").insert(team_data).execute()
+                print(f"[DEBUG] Team table insert result: {team_result}")
+            except Exception as team_error:
+                print(f"[ERROR] Failed to insert into team table: {str(team_error)}")
+                print(f"[ERROR] Team table traceback: {traceback.format_exc()}")
+                # Note: We might want to rollback the users table insert here
+                return error_response(
+                    f"Team relationship creation failed: {str(team_error)}", 
+                    message="Failed to create team relationship", 
+                    status_code=500
+                )
 
             return success_response(
                 message="Team member created successfully",
@@ -142,6 +178,14 @@ def create_team_member():
                     }
                 },
                 status_code=201
+            )
+        else:
+            print(f"[ERROR] No data returned from users table insert")
+            print(f"[DEBUG] Full result object: {result}")
+            return error_response(
+                "No data returned from database insertion", 
+                message="Failed to create team member - no data returned", 
+                status_code=500
             )
 
     except Exception as e:
