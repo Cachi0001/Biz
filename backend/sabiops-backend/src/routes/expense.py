@@ -119,7 +119,10 @@ def validate_expense_data(data):
 def get_expenses():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         
         # Build query with filters
@@ -221,7 +224,10 @@ def get_expenses():
 def create_expense():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         data = request.get_json()
         
@@ -276,7 +282,10 @@ def create_expense():
 def get_expense(expense_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
@@ -297,7 +306,10 @@ def get_expense(expense_id):
 def update_expense(expense_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         data = request.get_json()
         
@@ -380,7 +392,10 @@ def update_expense(expense_id):
 def delete_expense(expense_id):
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         
         # Check if expense exists
@@ -411,6 +426,13 @@ def delete_expense(expense_id):
 @jwt_required()
 def get_expense_categories():
     try:
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
+        supabase = get_supabase()
+        
         # Return Nigerian SME specific expense categories with subcategories
         nigerian_categories = get_nigerian_expense_categories()
         
@@ -439,7 +461,10 @@ def get_expense_categories():
 def get_expense_stats():
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         
         start_date = request.args.get("start_date")
@@ -493,7 +518,10 @@ def get_daily_expense_report():
     """Get daily expense report"""
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         
         target_date = request.args.get("date", datetime.now().date().isoformat())
@@ -562,7 +590,10 @@ def get_expense_summary():
     """Get comprehensive expense summary with various metrics"""
     try:
         user_id = get_jwt_identity()
-        owner_id, user_role = get_user_context(user_id)
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except Exception as e:
+            return error_response(str(e), "User context error", status_code=403)
         supabase = get_supabase()
         
         # Get all expenses
