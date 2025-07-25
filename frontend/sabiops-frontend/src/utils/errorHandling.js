@@ -391,8 +391,6 @@ export const safeArrayExtract = (data, key = null, fallback = []) => {
   }
 };
 
-import { toast } from 'sonner';
-
 /**
  * Shows success toast notification
  * @param {string} message - Success message to display

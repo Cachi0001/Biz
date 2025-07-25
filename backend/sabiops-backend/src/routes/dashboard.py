@@ -5,6 +5,7 @@ Provides overview statistics and analytics data
 
 from flask import Blueprint, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.utils.user_context import get_user_context
 from datetime import datetime, timedelta
 import pytz
 import uuid
@@ -64,6 +65,7 @@ def get_overview():
     """Get dashboard overview statistics"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -84,7 +86,7 @@ def get_overview():
         }
         
         # Get total revenue from sales (ensure data consistency)
-        sales_result = supabase.table('sales').select('total_amount, date, profit_from_sales, total_cogs').eq('owner_id', user_id).execute()
+        sales_result = supabase.table('sales').select('total_amount, date, profit_from_sales, total_cogs').eq('owner_id', owner_id).execute()
         if sales_result.data:
             total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
             total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
@@ -148,7 +150,7 @@ def get_overview():
             overview["revenue"]["daily_profit_reset_time"] = today_start.isoformat()
         
         # Get outstanding revenue from invoices - fix calculation
-        invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', user_id).execute()
+        invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', owner_id).execute()
         if invoices_result.data:
             outstanding = 0
             overdue_count = 0
@@ -169,7 +171,7 @@ def get_overview():
         # This ensures outstanding calculation works even without invoice system
         if overview["revenue"]["outstanding"] == 0:
             # Check for any pending payments or credit sales
-            payments_result = supabase.table('payments').select('amount, status').eq('owner_id', user_id).execute()
+            payments_result = supabase.table('payments').select('amount, status').eq('owner_id', owner_id).execute()
             if payments_result.data:
                 pending_payments = sum(
                     float(payment.get('amount', 0))
@@ -179,7 +181,7 @@ def get_overview():
                 overview["revenue"]["outstanding"] = pending_payments
         
         # Get customer statistics
-        customers_result = supabase.table('customers').select('id, created_at').eq('owner_id', user_id).execute()
+        customers_result = supabase.table('customers').select('id, created_at').eq('owner_id', owner_id).execute()
         if customers_result.data:
             overview["customers"]["total"] = len(customers_result.data)
             
@@ -192,7 +194,7 @@ def get_overview():
             overview["customers"]["new_this_month"] = new_this_month
         
         # Get product statistics
-        products_result = supabase.table('products').select('id, quantity, low_stock_threshold').eq('owner_id', user_id).execute()
+        products_result = supabase.table('products').select('id, quantity, low_stock_threshold').eq('owner_id', owner_id).execute()
         if products_result.data:
             overview["products"]["total"] = len(products_result.data)
             
@@ -206,7 +208,7 @@ def get_overview():
             overview["products"]["low_stock"] = low_stock_count
         
         # Get expense statistics (ensure data consistency)
-        expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', user_id).execute()
+        expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', owner_id).execute()
         if expenses_result.data:
             total_expenses = sum(float(expense.get('amount', 0)) for expense in expenses_result.data)
             overview["expenses"]["total"] = total_expenses
@@ -231,6 +233,7 @@ def get_revenue_chart():
     """Get revenue chart data for the last 12 months"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -244,7 +247,7 @@ def get_revenue_chart():
         twelve_months_ago = now.replace(day=1) - timedelta(days=365)
         
         # Get sales data for the last 12 months
-        sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', user_id).gte('date', twelve_months_ago.isoformat()).execute()
+        sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()
         
         # Initialize chart data for 12 months
         chart_data = []
@@ -281,13 +284,14 @@ def get_top_customers():
     """Get top customers by revenue"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
             return error_response("Database connection not available", 500)
         
         # Get customers with their sales data
-        customers_result = supabase.table('customers').select('*').eq('owner_id', user_id).execute()
+        customers_result = supabase.table('customers').select('*').eq('owner_id', owner_id).execute()
         
         if not customers_result.data:
             return success_response("Top customers fetched successfully", [])
@@ -295,7 +299,7 @@ def get_top_customers():
         # Calculate revenue for each customer
         top_customers = []
         for customer in customers_result.data:
-            customer_sales = supabase.table('sales').select('total_amount').eq('owner_id', user_id).eq('customer_name', customer.get('name')).execute()
+            customer_sales = supabase.table('sales').select('total_amount').eq('owner_id', owner_id).eq('customer_name', customer.get('name')).execute()
             
             total_revenue = 0
             invoice_count = 0
@@ -327,13 +331,14 @@ def get_top_products():
     """Get top products by sales"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
             return error_response("Database connection not available", 500)
         
         # Get products with their sales data
-        products_result = supabase.table('products').select('*').eq('owner_id', user_id).execute()
+        products_result = supabase.table('products').select('*').eq('owner_id', owner_id).execute()
         
         if not products_result.data:
             return success_response("Top products fetched successfully", [])
@@ -341,7 +346,7 @@ def get_top_products():
         # Calculate sales for each product
         top_products = []
         for product in products_result.data:
-            product_sales = supabase.table('sales').select('quantity, total_amount').eq('owner_id', user_id).eq('product_name', product.get('name')).execute()
+            product_sales = supabase.table('sales').select('quantity, total_amount').eq('owner_id', owner_id).eq('product_name', product.get('name')).execute()
             
             total_quantity = 0
             total_revenue = 0
@@ -373,6 +378,7 @@ def get_accurate_metrics():
     """Get accurate dashboard metrics using data consistency service"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -397,6 +403,7 @@ def validate_data_consistency():
     """Validate data consistency and return any issues found"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -425,6 +432,7 @@ def fix_data_inconsistencies():
     """Fix identified data inconsistencies"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -459,6 +467,7 @@ def ensure_complete_data_consistency():
     """Ensure complete data consistency across all business operations"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -485,6 +494,7 @@ def sync_all_business_data():
     """Synchronize all business data for consistency - comprehensive data integration"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -613,6 +623,7 @@ def get_profit_calculations():
     """Get profit calculations with date filtering for sales page"""
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         
         if not supabase:
@@ -628,7 +639,7 @@ def get_profit_calculations():
         end_date = request.args.get('end_date')
         
         # Build query for sales with profit data
-        query = supabase.table('sales').select('total_amount, profit_from_sales, total_cogs, date, quantity, product_name').eq('owner_id', user_id)
+        query = supabase.table('sales').select('total_amount, profit_from_sales, total_cogs, date, quantity, product_name').eq('owner_id', owner_id)
         
         # Apply date filters if provided
         if start_date:
@@ -740,6 +751,7 @@ def get_financials():
     """
     try:
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
         if not supabase:
             return error_response("Database connection not available", 500)
@@ -748,7 +760,7 @@ def get_financials():
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         # Revenue & COGS (all-time & this month)
-        sales = supabase.table('sales').select('total_amount, total_cogs, profit_from_sales, date').eq('owner_id', user_id).execute().data or []
+        sales = supabase.table('sales').select('total_amount, total_cogs, profit_from_sales, date').eq('owner_id', owner_id).execute().data or []
         revenue = sum(float(s.get('total_amount', 0)) for s in sales)
         cogs = sum(float(s.get('total_cogs', 0)) for s in sales)
         profit_from_sales = revenue - cogs
@@ -757,7 +769,7 @@ def get_financials():
         profit_from_sales_month = revenue_month - cogs_month
 
         # Expenses (all-time & this month, by category)
-        expenses = supabase.table('expenses').select('amount, category, sub_category, date').eq('owner_id', user_id).execute().data or []
+        expenses = supabase.table('expenses').select('amount, category, sub_category, date').eq('owner_id', owner_id).execute().data or []
         total_expenses = sum(float(e.get('amount', 0)) for e in expenses)
         total_expenses_month = sum(float(e.get('amount', 0)) for e in expenses if parse_supabase_datetime(e.get('date')) and parse_supabase_datetime(e.get('date')) >= month_start)
         expense_by_category = {}
@@ -771,13 +783,13 @@ def get_financials():
         net_profit_month = profit_from_sales_month - total_expenses_month
 
         # Cash flow (money in/out, net)
-        transactions = supabase.table('transactions').select('type, amount, date').eq('owner_id', user_id).execute().data or []
+        transactions = supabase.table('transactions').select('type, amount, date').eq('owner_id', owner_id).execute().data or []
         money_in = sum(float(t.get('amount', 0)) for t in transactions if t.get('type') == 'money_in')
         money_out = sum(float(t.get('amount', 0)) for t in transactions if t.get('type') == 'money_out')
         net_cash_flow = money_in - money_out
 
         # Inventory value (stock * cost_price)
-        products = supabase.table('products').select('quantity, cost_price, name').eq('owner_id', user_id).execute().data or []
+        products = supabase.table('products').select('quantity, cost_price, name').eq('owner_id', owner_id).execute().data or []
         inventory_value = sum(float(p.get('quantity', 0)) * float(p.get('cost_price', 0)) for p in products)
         low_stock = [p for p in products if int(p.get('quantity', 0)) <= int(p.get('low_stock_threshold', 0))]
         top_products = sorted(products, key=lambda p: float(p.get('quantity', 0)), reverse=True)[:5]

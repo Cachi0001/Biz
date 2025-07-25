@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.utils.user_context import get_user_context
 from datetime import datetime, date, timedelta
 import uuid
 from reportlab.lib.pagesizes import letter
@@ -95,8 +96,9 @@ def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
 @jwt_required()
 def get_invoices():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         query = get_supabase().table("invoices").select("*").eq("owner_id", owner_id)
         
@@ -137,8 +139,9 @@ def get_invoices():
 @jwt_required()
 def get_invoice(invoice_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         invoice = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
@@ -178,8 +181,9 @@ def get_invoice(invoice_id):
 @jwt_required()
 def create_invoice():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         data = request.get_json()
         
         # Validate required fields
@@ -280,8 +284,9 @@ def create_invoice():
 @jwt_required()
 def update_invoice(invoice_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
@@ -378,8 +383,9 @@ def update_invoice(invoice_id):
 @jwt_required()
 def delete_invoice(invoice_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         invoice = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice.data:
@@ -412,8 +418,9 @@ def delete_invoice(invoice_id):
 @jwt_required()
 def update_invoice_status(invoice_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
@@ -500,8 +507,9 @@ def update_invoice_status(invoice_id):
 @jwt_required()
 def send_invoice(invoice_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         invoice_result = get_supabase().table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
         
         if not invoice_result.data:
@@ -626,8 +634,9 @@ def send_invoice(invoice_id):
 @jwt_required()
 def get_invoice_stats():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         all_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).execute()
         all_invoices = all_invoices_result.data
@@ -662,8 +671,9 @@ def get_invoice_stats():
 @jwt_required()
 def get_overdue_invoices():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         today = date.today().isoformat()
         

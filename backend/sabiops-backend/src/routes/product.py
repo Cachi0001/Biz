@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import uuid
 import logging
 from src.services.supabase_service import SupabaseService
+from src.utils.user_context import get_user_context
 
 product_bp = Blueprint("product", __name__)
 logger = logging.getLogger(__name__)
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 def get_supabase():
     """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
+
+
 
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
@@ -52,7 +55,8 @@ def get_business_categories():
 def get_products():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -128,12 +132,13 @@ def get_products():
         logger.error(f"Error fetching products: {str(e)}")
         return error_response("Failed to fetch products", status_code=500)
 
-@product_bp.route("/<product_id>", methods=["GET"])
+@product_bp.route("/<string:product_id>", methods=["GET"])
 @jwt_required()
 def get_product(product_id):
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         product = get_supabase().table("products").select("*").eq("id", product_id).eq("owner_id", owner_id).single().execute()
         
         if not product.data:
@@ -246,7 +251,8 @@ def validate_product_data(data, is_update=False):
 def create_product():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         data = request.get_json()
         
         if not supabase:
@@ -334,12 +340,13 @@ def create_product():
         logger.error(f"Error creating product: {str(e)}")
         return error_response("Failed to create product", status_code=500)
 
-@product_bp.route("/<product_id>", methods=["PUT"])
+@product_bp.route("/<string:product_id>", methods=["PUT"])
 @jwt_required()
 def update_product(product_id):
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         data = request.get_json()
         
         if not supabase:
@@ -479,12 +486,13 @@ def update_product(product_id):
             }
         }), 500
 
-@product_bp.route("/<product_id>", methods=["DELETE"])
+@product_bp.route("/<string:product_id>", methods=["DELETE"])
 @jwt_required()
 def delete_product(product_id):
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -543,7 +551,8 @@ def delete_product(product_id):
 def get_categories():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -584,7 +593,8 @@ def get_categories():
 def get_low_stock_products():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -639,7 +649,11 @@ def update_stock(product_id):
     """Update product stock quantity with proper validation and notifications"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+
+        if user_role not in ["Owner", "Admin"]:
+            return error_response("You are not authorized to update stock", status_code=403)
         data = request.get_json()
         
         if not supabase:
@@ -748,7 +762,11 @@ def bulk_update_products():
     """Bulk update multiple products"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+
+        if user_role not in ["Owner", "Admin"]:
+            return error_response("You are not authorized to bulk update products", status_code=403)
         data = request.get_json()
         
         if not supabase:
@@ -836,7 +854,8 @@ def bulk_update_products():
 def get_stock_status():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         if not supabase:
             print("[ERROR] Supabase connection not available in get_stock_status")
             return error_response("Database connection not available", 500)
@@ -869,7 +888,8 @@ def get_inventory_summary():
     """Get comprehensive inventory summary and statistics"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -969,7 +989,8 @@ def get_products_for_dropdown():
     """Get products formatted for dropdown with stock quantities - for sales recording"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)
@@ -1055,7 +1076,8 @@ def get_products_for_dropdown():
 def get_products_with_stock():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         if not supabase:
             return error_response("Database connection not available", status_code=500)
         products_result = supabase.table("products").select("*").eq("owner_id", owner_id).execute()

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.utils.user_context import get_user_context
 from datetime import datetime, date, timedelta
 import uuid
 import logging
@@ -117,8 +118,9 @@ def validate_expense_data(data):
 @jwt_required()
 def get_expenses():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         # Build query with filters
         query = supabase.table("expenses").select("*").eq("owner_id", owner_id)
@@ -218,8 +220,9 @@ def get_expenses():
 @jwt_required()
 def create_expense():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         data = request.get_json()
         
         logging.info(f"[EXPENSE CREATE] Owner ID: {owner_id}, Data received: {data}")
@@ -272,8 +275,9 @@ def create_expense():
 @jwt_required()
 def get_expense(expense_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         expense = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
         
         if not expense.data:
@@ -292,8 +296,9 @@ def get_expense(expense_id):
 @jwt_required()
 def update_expense(expense_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         data = request.get_json()
         
         # Check if expense exists
@@ -374,8 +379,9 @@ def update_expense(expense_id):
 @jwt_required()
 def delete_expense(expense_id):
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         # Check if expense exists
         expense_result = supabase.table("expenses").select("*").eq("id", expense_id).eq("owner_id", owner_id).single().execute()
@@ -432,8 +438,9 @@ def get_expense_categories():
 @jwt_required()
 def get_expense_stats():
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -485,8 +492,9 @@ def get_expense_stats():
 def get_daily_expense_report():
     """Get daily expense report"""
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         target_date = request.args.get("date", datetime.now().date().isoformat())
         
@@ -553,8 +561,9 @@ def get_daily_expense_report():
 def get_expense_summary():
     """Get comprehensive expense summary with various metrics"""
     try:
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
         
         # Get all expenses
         expenses_result = supabase.table("expenses").select("*").eq("owner_id", owner_id).execute()

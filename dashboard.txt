@@ -78,7 +78,7 @@ All constraints and inheritance logic are included. Use this as the definitive r
 - **Can upgrade subscription plans**
 - **Dashboard is rendered with:**
   - All metrics (revenue, COGS, gross/net profit, expenses, cash flow, inventory, top products/expenses, low stock)
-  - All charts (revenue trend, top products, sales analytics)
+  - All charts (revenue trend, top products, sales analytics etc)
   - All quick actions (add customer, add product, new invoice, view payments, etc.)
   - All notifications and push notifications (low stock, payment, etc.)
   - **Subscription status and trial indicator (crown if on trial/weekly)**

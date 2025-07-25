@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.utils.user_context import get_user_context
 from datetime import datetime, date, timedelta
 import uuid
 from collections import defaultdict
@@ -29,10 +30,11 @@ def error_response(error, message="Error", status_code=400):
 @jwt_required()
 def get_sales():
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
         
-        query = get_supabase().table("sales").select("*").eq("owner_id", user_id)
+        query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -70,8 +72,9 @@ def get_sales():
 @jwt_required()
 def create_sale():
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
         data = request.get_json()
         
         required_fields = ["payment_method", "sale_items"]
@@ -138,7 +141,7 @@ def create_sale():
         
         sale_data = {
             "id": str(uuid.uuid4()),
-            "owner_id": user_id,
+            "owner_id": owner_id,
             "customer_id": data.get("customer_id"),
             "salesperson_id": data.get("salesperson_id", user_id),
             "payment_method": data["payment_method"],
@@ -179,9 +182,10 @@ def create_sale():
 @jwt_required()
 def get_sale(sale_id):
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
-        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", user_id).single().execute()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -199,9 +203,10 @@ def get_sale(sale_id):
 @jwt_required()
 def update_sale(sale_id):
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
-        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", user_id).single().execute()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
+        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
         if not sale.data:
             return error_response("Sale not found", status_code=404)
@@ -230,13 +235,14 @@ def update_sale(sale_id):
 @jwt_required()
 def get_daily_sales_report():
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
         report_date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
         
         report_date = datetime.strptime(report_date_str, "%Y-%m-%d").date()
         
-        sales_result = get_supabase().table("sales").select("*").eq("owner_id", user_id).gte("date", report_date.isoformat()).lte("date", (report_date + timedelta(days=1)).isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("owner_id", owner_id).gte("date", report_date.isoformat()).lte("date", (report_date + timedelta(days=1)).isoformat()).execute()
         sales = sales_result.data
         
         total_sales = len(sales)
@@ -295,14 +301,15 @@ def get_daily_sales_report():
 @jwt_required()
 def get_sales_analytics():
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
         period = request.args.get("period", "30")
         
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=int(period))
         
-        sales_result = get_supabase().table("sales").select("*").eq("owner_id", user_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).execute()
+        sales_result = get_supabase().table("sales").select("*").eq("owner_id", owner_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).execute()
         sales = sales_result.data
         
         total_revenue = sum(float(sale["net_amount"]) for sale in sales)
@@ -368,15 +375,16 @@ def get_sales_analytics():
 @jwt_required()
 def get_team_performance():
     try:
-        supabase = get_supabase()
         user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        supabase = get_supabase()
         period = request.args.get("period", "30")
         
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=int(period))
         
-        team_members_result = get_supabase().table("salespeople").select("salesperson_user_id").eq("user_id", user_id).execute()
-        team_member_ids = [member["salesperson_user_id"] for member in team_members_result.data] + [user_id]
+        team_members_result = get_supabase().table("users").select("id").eq("owner_id", owner_id).execute()
+        team_member_ids = [member["id"] for member in team_members_result.data] + [owner_id]
         
         sales_result = get_supabase().table("sales").select("*").in_("salesperson_id", team_member_ids).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).execute()
         sales = sales_result.data
