@@ -25,7 +25,7 @@ const MobileNavigation = () => {
     // Core items based on role
     const coreItems = [
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
-      { icon: Users, label: 'Expense', path: '/expenses' },
+      { icon: Users, label: 'Customers', path: '/customers' },
       { icon: FileText, label: 'Invoices', path: '/invoices' },
       { icon: TrendingUp, label: 'Sales', path: '/sales' }, // Fixed path
     ];
