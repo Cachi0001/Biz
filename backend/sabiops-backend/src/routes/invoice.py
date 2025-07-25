@@ -272,21 +272,14 @@ def create_invoice():
         if not result.data:
             return error_response("Failed to create invoice", status_code=500)
 
-        # Success response with toast notification data
-        return jsonify({
-            "success": True,
-            "message": "Invoice created successfully",
-            "data": {
-                "invoice": result.data[0]
-            },
-            "toast": {
-                "type": "success",
-                "message": f"Invoice {invoice_number} created successfully!",
-                "timeout": 3000
-            }
-        }), 201
-        
+        return success_response(
+            data={"invoice": result.data[0]},
+            message=f"Invoice {invoice_number} created successfully!",
+            status_code=201
+        )
+
     except Exception as e:
+        current_app.logger.error(f"Error creating invoice: {e}", exc_info=True)
         return error_response(str(e), "Failed to create invoice", status_code=500)
 
 @invoice_bp.route("/<invoice_id>", methods=["PUT"])

@@ -346,7 +346,8 @@ def create_product():
         )
         
     except Exception as e:
-        logger.error(f"Error creating product: {str(e)}")
+        current_app.logger.error(f"Error creating product: {e}", exc_info=True)
+        return error_response(str(e), "Failed to create product", status_code=500)
         return error_response("Failed to create product", status_code=500)
 
 @product_bp.route("/<string:product_id>", methods=["PUT"])

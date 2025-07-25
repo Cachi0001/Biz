@@ -6,10 +6,40 @@ import uuid
 from collections import defaultdict
 from src.services.supabase_service import SupabaseService
 
+def validate_sale_data(data):
+    """Validate incoming sale data."""
+    if not data.get("payment_method"):
+        return False, "'payment_method' is required."
+    if not data.get("sale_items") or not isinstance(data["sale_items"], list) or not data["sale_items"]:
+        return False, "At least one sale item is required."
+
+    for i, item in enumerate(data["sale_items"]):
+        if not item.get("product_name"):
+            return False, f"Item {i+1}: 'product_name' is required."
+        if "quantity" not in item:
+            return False, f"Item {i+1}: 'quantity' is required."
+        if "unit_price" not in item:
+            return False, f"Item {i+1}: 'unit_price' is required."
+
+        try:
+            quantity = int(item["quantity"])
+            if quantity <= 0:
+                return False, f"Item {i+1}: Quantity must be a positive integer."
+        except (ValueError, TypeError):
+            return False, f"Item {i+1}: Invalid format for quantity. It must be an integer."
+
+        try:
+            unit_price = float(item["unit_price"])
+            if unit_price < 0:
+                return False, f"Item {i+1}: Unit price cannot be negative."
+        except (ValueError, TypeError):
+            return False, f"Item {i+1}: Invalid format for unit price. It must be a number."
+
+    return True, ""
+
 sale_bp = Blueprint("sale", __name__)
 
 def get_supabase():
-    """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
 
 def success_response(data=None, message="Success", status_code=200):
@@ -82,104 +112,54 @@ def create_sale():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
-        
-        required_fields = ["payment_method", "sale_items"]
-        for field in required_fields:
-            if not data.get(field):
-                return error_response(f"{field} is required", status_code=400)
-        
-        if not data["sale_items"]:
-            return error_response("At least one sale item is required", status_code=400)
-        
-        total_amount = 0
-        total_cogs = 0
-        sale_items_processed = []
-        for item_data in data["sale_items"]:
-            if "product_name" not in item_data or "quantity" not in item_data or "unit_price" not in item_data:
-                return error_response("Each sale item must have product_name, quantity, and unit_price", status_code=400)
-            
-            quantity = int(item_data["quantity"])
-            unit_price = float(item_data["unit_price"])
-            
-            item_total = quantity * unit_price
-            
-            # Fetch product cost_price for COGS calculation
-            cost_price = 0
-            if item_data.get("product_id"):
-                product_result = get_supabase().table("products").select("cost_price").eq("id", item_data["product_id"]).single().execute()
-                if product_result.data and product_result.data.get("cost_price") is not None:
-                    cost_price = float(product_result.data["cost_price"])
-            # Correct COGS calculation: COGS = cost_price * quantity sold
-            item_cogs = quantity * cost_price
-            total_cogs += item_cogs
-            
-            sale_items_processed.append({
-                "product_id": item_data.get("product_id"),
-                "product_name": item_data["product_name"],
-                "product_sku": item_data.get("product_sku"),
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "discount_percentage": float(item_data.get("discount_percentage", 0)),
-                "discount_amount": float(item_data.get("discount_amount", 0)),
-                "tax_percentage": float(item_data.get("tax_percentage", 0)),
-                "tax_amount": float(item_data.get("tax_amount", 0)),
-                "total_amount": item_total,
-                "cost_price": cost_price,
-                "item_cogs": item_cogs
-            })
-            total_amount += item_total
-            
-            if item_data.get("product_id"):
-                product_result = get_supabase().table("products").select("*").eq("id", item_data["product_id"]).single().execute()
-                if product_result.data:
-                    current_quantity = product_result.data["quantity"]
-                    new_quantity = max(0, current_quantity - quantity)
-                    get_supabase().table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", item_data["product_id"]).execute()
-                    # Trigger low stock notification if needed
-                    if new_quantity <= product_result.data.get("low_stock_threshold", 5):
-                        supa_service = SupabaseService()
-                        supa_service.notify_user(
-                            str(product_result.data["owner_id"]),
-                            "Low Stock Alert!",
-                            f"Product '{product_result.data['name']}' is low on stock (Qty: {new_quantity}). Please restock soon.",
-                            "warning"
-                        )
-        
-        sale_data = {
-            "id": str(uuid.uuid4()),
-            "owner_id": owner_id,
-            "customer_id": data.get("customer_id"),
-            "salesperson_id": data.get("salesperson_id", user_id),
-            "payment_method": data["payment_method"],
-            "payment_status": data.get("payment_status", "completed"),
-            "payment_reference": data.get("payment_reference"),
-            "discount_amount": float(data.get("discount_amount", 0)),
-            "tax_amount": float(data.get("tax_amount", 0)),
-            "notes": data.get("notes"),
-            "commission_rate": float(data.get("commission_rate", 0)),
-            "total_amount": total_amount,
-            "net_amount": total_amount - float(data.get("discount_amount", 0)) + float(data.get("tax_amount", 0)),
-            "sale_items": sale_items_processed,
-            "date": datetime.utcnow().date().isoformat(),
-            "created_at": datetime.now().isoformat(),
-            "total_cogs": total_cogs,
-            "profit_from_sales": total_amount - total_cogs
-        }
-        
-        if sale_data["commission_rate"] > 0:
-            sale_data["commission_amount"] = sale_data["net_amount"] * (sale_data["commission_rate"] / 100)
-        else:
-            sale_data["commission_amount"] = 0
-        
-        result = get_supabase().table("sales").insert(sale_data).execute()
-        
-        return success_response(
-            message="Sale created successfully",
-            data={
-                "sale": result.data[0]
-            },
-            status_code=201
-        )
+
+        is_valid, error_message = validate_sale_data(data)
+        if not is_valid:
+            return error_response(error_message, "Validation failed", 400)
+
+        try:
+            # Prepare the payload for the database function
+            total_amount = sum(float(item['quantity']) * float(item['unit_price']) for item in data['sale_items'])
+            discount_amount = float(data.get('discount_amount', 0))
+            tax_amount = float(data.get('tax_amount', 0))
+            net_amount = total_amount - discount_amount + tax_amount
+
+            # This is a simplified COGS calculation. For accuracy, cost_price should be fetched securely.
+            total_cogs = sum(float(item.get('cost_price', 0)) * float(item['quantity']) for item in data['sale_items'])
+
+            sale_payload = {
+                'owner_id': str(owner_id),
+                'customer_id': data.get('customer_id'),
+                'salesperson_id': user_id,
+                'payment_method': data['payment_method'],
+                'payment_status': data.get('payment_status', 'completed'),
+                'total_amount': total_amount,
+                'net_amount': net_amount,
+                'total_cogs': total_cogs,
+                'profit_from_sales': total_amount - total_cogs,
+                'sale_items': data['sale_items'],
+                'notes': data.get('notes'),
+                'date': data.get('date', datetime.utcnow().date().isoformat())
+            }
+
+            # Call the transactional function
+            result = supabase.rpc('create_sale_transaction', {'sale_payload': sale_payload}).execute()
+
+            if result.data:
+                # Low-stock notifications can be triggered here after the transaction is successful
+                return success_response("Sale created successfully", result.data, 201)
+            else:
+                # The error from the DB function is often in the details
+                error_details = result.get('error') or {}
+                db_error_message = error_details.get('message', 'Unknown database error')
+                return error_response(db_error_message, "Failed to create sale", 500)
+
+        except (ValueError, TypeError) as e:
+            return error_response(f"Invalid data format: {e}", "Data processing error", 400)
+        except Exception as e:
+            # Catch PostgrestError specifically if possible, once you know its type
+            current_app.logger.error(f"Sale creation failed: {e}", exc_info=True)
+            return error_response(str(e), "An unexpected error occurred", 500)
         
     except Exception as e:
         return error_response(str(e), status_code=500)

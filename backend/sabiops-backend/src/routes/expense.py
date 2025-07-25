@@ -12,6 +12,27 @@ def get_supabase():
     """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
 
+def validate_expense_data(data):
+    """Validate incoming expense data."""
+    required_fields = ["category", "amount", "date"]
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return False, f"'{field}' is required and cannot be empty."
+
+    try:
+        amount = float(data["amount"])
+        if amount <= 0:
+            return False, "Expense amount must be a positive number."
+    except (ValueError, TypeError):
+        return False, "Invalid format for amount. It must be a number."
+
+    try:
+        datetime.fromisoformat(data["date"].replace('Z', '+00:00'))
+    except (ValueError, TypeError):
+        return False, "Invalid date format. Please use ISO 8601 format (e.g., YYYY-MM-DDTHH:MM:SSZ)."
+
+    return True, ""
+
 def success_response(data=None, message="Success", status_code=200):
     return jsonify({
         "success": True,
