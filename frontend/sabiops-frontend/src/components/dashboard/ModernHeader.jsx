@@ -16,12 +16,13 @@ import {
   BarChart3,
   History,
   Crown,
-  Bed
+  Bed,
+  UserPlus
 } from 'lucide-react';
 import SearchDropdown from '../SearchDropdown';
 
 const ModernHeader = () => {
-  const { user, logout, subscription, role } = useAuth();
+  const { user, logout, subscription, role, isOwner } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -271,6 +272,20 @@ const ModernHeader = () => {
                 <span className="hidden sm:inline text-xs">Transactions</span>
                 {user?.subscription_plan === 'free' && <Crown className="h-3 w-3 text-yellow-400 ml-1" />}
               </Button>
+              
+              {/* Team Management - Owner only */}
+              {isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/team')}
+                  className="text-white hover:text-green-100 hover:bg-green-600 flex items-center gap-1"
+                  title="Team Management"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">Team</span>
+                </Button>
+              )}
             </div>
 
             {/* Social Links - Hidden on mobile */}
@@ -397,6 +412,18 @@ const ModernHeader = () => {
                       Transaction History
                       {user?.subscription_plan === 'free' && <Crown className="h-3 w-3 text-yellow-400 ml-auto" />}
                     </Button>
+                    
+                    {/* Team Management - Owner only */}
+                    {isOwner && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => navigate('/team')}
+                        className="w-full justify-start text-white hover:text-green-100 hover:bg-green-600"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Team Management
+                      </Button>
+                    )}
                   </div>
                   
                   {/* Social Links */}

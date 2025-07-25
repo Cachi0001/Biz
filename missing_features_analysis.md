@@ -14,6 +14,7 @@ Based on the provided PRD and the user's input, the following features are ident
 
 ## 3. Team Management
 *   **PRD Context:** Section 4.1 (User Management & Authentication) details how "Owners can create team member accounts (Admins and Salespeople)" and "Role-based access: Only owners can create/deactivate team members and upgrade subscriptions." Section 7.1 (UI/UX Requirements - Pages) lists "Team: Manage Admins/Salespersons (owner-only)".
+Owners can CRUD for all other roles and they can only login once the owner have created them(roles that are not owners) they can signup or recieve a reset password as long as there role != owner
 *   **Current Status:** User explicitly stated this is a missing feature.
 *   **Impact:** Owners cannot effectively manage their team members and control access based on roles.
 

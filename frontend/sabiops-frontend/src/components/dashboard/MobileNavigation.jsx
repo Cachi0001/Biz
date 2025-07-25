@@ -38,7 +38,7 @@ const MobileNavigation = () => {
       fifthItem = { icon: Package, label: 'Products', path: '/products' };
     } else if (location.pathname.includes('/expenses')) {
       fifthItem = { icon: Receipt, label: 'Expenses', path: '/expenses' };
-    } else if (location.pathname.includes('/team')) {
+    } else if (location.pathname.includes('/team') && isOwner) {
       fifthItem = { icon: UserPlus, label: 'Team', path: '/team' };
     } else if (location.pathname.includes('/transactions')) {
       fifthItem = { icon: CreditCard, label: 'Money', path: '/transactions' };
@@ -64,6 +64,12 @@ const MobileNavigation = () => {
     // Check if analytics is locked for free plan
     if (path === '/analytics' && user?.subscription_status === 'trial') {
       alert('Upgrade to access advanced analytics');
+      return;
+    }
+    
+    // Check if team management is restricted to Owner only
+    if (path === '/team' && !isOwner) {
+      alert('Team management is only available to business owners');
       return;
     }
     
