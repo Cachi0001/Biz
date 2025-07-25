@@ -347,7 +347,7 @@ const ModernHeader = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-80 bg-green-500 border-green-400">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 px-4">
                   <h2 className="text-lg font-semibold text-white">Menu</h2>
                   <SheetClose asChild>
                     <Button variant="ghost" size="sm" className="text-white hover:bg-green-600">
@@ -356,23 +356,33 @@ const ModernHeader = () => {
                   </SheetClose>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 px-4">
                   {/* Notifications - Mobile */}
                   <div className="space-y-2">
                     <h3 className="text-sm font-medium text-green-100">Notifications</h3>
-                    <div className="w-full relative">
-                      <NotificationBell />
-                      {showNotifications && (
-                        <NotificationCenter
-                          notifications={notifications}
-                          unreadCount={unreadCount}
-                          loading={loading}
-                          onMarkAsRead={handleMarkAsRead}
-                          onMarkAllAsRead={handleMarkAllAsRead}
-                          onClose={() => setShowNotifications(false)}
-                        />
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="w-full justify-start text-white hover:text-green-100 hover:bg-green-600"
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Notifications
+                      {unreadCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">
+                          {unreadCount}
+                        </span>
                       )}
-                    </div>
+                    </Button>
+                    {showNotifications && (
+                      <NotificationCenter
+                        notifications={notifications}
+                        unreadCount={unreadCount}
+                        loading={loading}
+                        onMarkAsRead={handleMarkAsRead}
+                        onMarkAllAsRead={handleMarkAllAsRead}
+                        onClose={() => setShowNotifications(false)}
+                      />
+                    )}
                   </div>
 
                   
@@ -451,7 +461,7 @@ const ModernHeader = () => {
                   </div>
                   
                   {/* User Info */}
-                  <div className="pt-2 border-t border-green-400">
+                  <div className="pt-2 border-t border-green-400 px-4">
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-white">{user?.full_name}</p>
                       <p className="text-xs text-green-200">{role}</p>

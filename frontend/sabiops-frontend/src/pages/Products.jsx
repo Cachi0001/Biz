@@ -295,7 +295,7 @@ const Products = () => {
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={handleGlobalSearch}
-                      className="pl-10 h-12 text-base touch-manipulation"
+                      className="pl-10 h-12 text-base touch-manipulation md:text-sm"
                     />
                   </div>
                 </div>

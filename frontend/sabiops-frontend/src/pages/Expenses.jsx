@@ -369,7 +369,7 @@ const Expenses = () => {
                       placeholder="Search by description, vendor..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500"
+                      className="pl-10 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 md:text-xs"
                     />
                   </div>
                 </div>
