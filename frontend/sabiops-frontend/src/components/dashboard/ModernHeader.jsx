@@ -214,8 +214,9 @@ const ModernHeader = () => {
             </div>
           </div>
 
-          {/* Search Bar - Always visible in header */}
-            <div className="flex-1 max-w-md mx-6 relative">
+          {/* Search Bar - Hidden on mobile for free plan */}
+          {user?.subscription_plan !== 'free' && (
+            <div className="hidden md:flex flex-1 max-w-md mx-6 relative">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
                 <input
@@ -238,6 +239,7 @@ const ModernHeader = () => {
                 />
               </div>
             </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center flex-wrap justify-end gap-2">
@@ -324,20 +326,10 @@ const ModernHeader = () => {
               </Button>
             </div>
 
-                  {/* Notifications - Mobile */}
-                  <div className="w-full relative">
-                    <NotificationBell />
-                    {showNotifications && (
-                      <NotificationCenter
-                        notifications={notifications}
-                        unreadCount={unreadCount}
-                        loading={loading}
-                        onMarkAsRead={handleMarkAsRead}
-                        onMarkAllAsRead={handleMarkAllAsRead}
-                        onClose={() => setShowNotifications(false)}
-                      />
-                    )}
-                  </div>
+            {/* Notifications - Enhanced NotificationBell */}
+            <div className="relative">
+              <NotificationBell />
+            </div>
 
             {/* Trial Indicator */}
             {user?.subscription_status === 'trial' && (
@@ -367,6 +359,23 @@ const ModernHeader = () => {
                 </div>
                 
                 <div className="space-y-4">
+                  {/* Notifications - Mobile */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-green-100">Notifications</h3>
+                    <div className="w-full relative">
+                      <NotificationBell />
+                      {showNotifications && (
+                        <NotificationCenter
+                          notifications={notifications}
+                          unreadCount={unreadCount}
+                          loading={loading}
+                          onMarkAsRead={handleMarkAsRead}
+                          onMarkAllAsRead={handleMarkAllAsRead}
+                          onClose={() => setShowNotifications(false)}
+                        />
+                      )}
+                    </div>
+                  </div>
 
                   
                   {/* Reports & Analytics for Mobile */}
