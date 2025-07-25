@@ -151,6 +151,7 @@ if (path === '/team' && !isOwner) {
 
 1. **Navigation Order**
    - **Issue:** Story specifies Team should be between "Sales" and "Analytics"
+   - **Issue:** The global search bar shouldn't be on the         hamburger menu for mobile it should be on the top of the (header)screen and you should move the notification body and bell to replace the search bar in the mobile menu(this change is only for mobile)
    - **Current Implementation:** Shows as 5th item in mobile nav
    - **Status:** 🔍 Need to verify this matches intended position
    - **Action Required:** Confirm with requirements or adjust positioning

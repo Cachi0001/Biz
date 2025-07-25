@@ -37,7 +37,7 @@ import {
   showErrorToast,
   safeArray
 } from '../utils/errorHandling';
-import { toast } from 'react-hot-toast';
+import { toastService } from '../services/toastService';
 import { getErrorMessage } from '../services/api';
 
 // Stable form component outside main component to prevent re-renders and input focus loss

@@ -84,13 +84,13 @@ const ModernQuickActions = () => {
 
     // Add common actions
     baseActions.push(
-      {
-        icon: CreditCard,
-        label: 'Payments',
-        path: '/payments',
-        variant: 'primary',
-        description: 'Payment history'
-      },
+      // {
+      //   icon: CreditCard,
+      //   label: 'Payments',
+      //   path: '/payments',
+      //   variant: 'primary',
+      //   description: 'Payment history'
+      // },
       {
         icon: Settings,
         label: 'Settings',
