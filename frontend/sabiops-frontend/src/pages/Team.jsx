@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Plus, Search, Edit, Trash2, Users, Eye, EyeOff, UserCheck, UserX, RotateCcw } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -31,8 +31,137 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, activateTeamMember, resetTeamMemberPassword } from "../services/api";
+import {
+  handleApiErrorWithToast,
+  showSuccessToast,
+  showErrorToast,
+  safeArray
+} from '../utils/errorHandling';
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '../services/api';
+
+// Stable form component outside main component to prevent re-renders and input focus loss
+const TeamMemberForm = ({ 
+  formData, 
+  editingMember, 
+  showPassword, 
+  error, 
+  loading, 
+  onInputChange, 
+  onSubmit, 
+  onCancel, 
+  onTogglePassword 
+}) => (
+  <form onSubmit={onSubmit} className="space-y-4">
+    {error && (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )}
+
+    <div className="space-y-2">
+      <Label htmlFor="full_name">Full Name *</Label>
+      <Input
+        id="full_name"
+        name="full_name"
+        value={formData.full_name}
+        onChange={onInputChange}
+        placeholder="Enter full name"
+        required
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={onInputChange}
+          placeholder="Enter email address"
+          required
+          disabled={editingMember} // Email cannot be changed
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="role">Role *</Label>
+        <Select 
+          value={formData.role} 
+          onValueChange={(value) => onInputChange({ target: { name: 'role', value } })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Salesperson">Salesperson</SelectItem>
+            <SelectItem value="Admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone Number *</Label>
+        <Input
+          id="phone"
+          name="phone"
+          value={formData.phone}
+          onChange={onInputChange}
+          placeholder="Enter phone number"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">
+          {editingMember ? 'New Password (leave blank to keep current)' : 'Password *'}
+        </Label>
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={onInputChange}
+            placeholder={editingMember ? "Enter new password" : "Enter password"}
+            required={!editingMember}
+            minLength={6}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={onTogglePassword}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <div className="flex justify-end space-x-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onCancel}
+      >
+        Cancel
+      </Button>
+      <Button type="submit" disabled={loading}>
+        {loading ? 'Saving...' : editingMember ? 'Update Team Member' : 'Add Team Member'}
+      </Button>
+    </div>
+  </form>
+);
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -238,121 +367,16 @@ const Team = () => {
     (member.phone || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const TeamMemberForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+  // Stable handler functions for the form
+  const handleFormCancel = () => {
+    setShowAddDialog(false);
+    setShowEditDialog(false);
+    resetForm();
+  };
 
-      <div className="space-y-2">
-        <Label htmlFor="full_name">Full Name *</Label>
-        <Input
-          id="full_name"
-          name="full_name"
-          value={formData.full_name}
-          onChange={handleInputChange}
-          placeholder="Enter full name"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder="Enter email address"
-            required
-            disabled={editingMember} // Email cannot be changed
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="role">Role *</Label>
-          <Select 
-            value={formData.role} 
-            onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Salesperson">Salesperson</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number *</Label>
-          <Input
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
-            placeholder="Enter phone number"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="password">
-            {editingMember ? 'New Password (leave blank to keep current)' : 'Password *'}
-          </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder={editingMember ? "Enter new password" : "Enter password"}
-              required={!editingMember}
-              minLength={6}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setShowAddDialog(false);
-            setShowEditDialog(false);
-            resetForm();
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : editingMember ? 'Update Team Member' : 'Add Team Member'}
-        </Button>
-      </div>
-    </form>
-  );
+  const handleTogglePassword = () => {
+    setShowPassword(!showPassword);
+  };
 
   if (loading && teamMembers.length === 0) {
     return (
@@ -390,7 +414,17 @@ const Team = () => {
                 Create a new salesperson account for your team
               </DialogDescription>
             </DialogHeader>
-            <TeamMemberForm />
+            <TeamMemberForm 
+              formData={formData}
+              editingMember={editingMember}
+              showPassword={showPassword}
+              error={error}
+              loading={loading}
+              onInputChange={handleInputChange}
+              onSubmit={handleSubmit}
+              onCancel={handleFormCancel}
+              onTogglePassword={handleTogglePassword}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -518,7 +552,17 @@ const Team = () => {
               Update team member information
             </DialogDescription>
           </DialogHeader>
-          <TeamMemberForm />
+          <TeamMemberForm 
+            formData={formData}
+            editingMember={editingMember}
+            showPassword={showPassword}
+            error={error}
+            loading={loading}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmit}
+            onCancel={handleFormCancel}
+            onTogglePassword={handleTogglePassword}
+          />
         </DialogContent>
       </Dialog>
 

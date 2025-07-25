@@ -41,7 +41,7 @@ const navigation = [
 1. **Team navigation item appears for Owner role only**
    - When Owner is logged in, "Team" menu item visible in sidebar
    - Team item positioned between "Sales" and "Analytics"
-   - Uses UserGroup icon from lucide-react
+   - Uses UserPlus icon from lucide-react (UserGroup not available)
 
 2. **Team navigation item hidden for other roles**
    - Admin users do not see "Team" in navigation
