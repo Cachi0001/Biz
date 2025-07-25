@@ -255,3 +255,62 @@ const Dashboard = () => {
                 </section>
               )}
             </div>
+          </div>
+
+          {/* Bottom Upgrade Section for Free Plan or Expiring Subscription */}
+         {(subscription?.plan === 'free' || shouldShowUpgradePrompt) && (
+           <section className="w-full mt-6">
+             <div className="bg-gradient-to-r from-green-500 via-orange-500 to-red-500 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl text-white overflow-hidden relative border-2 border-green-300">
+               <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white bg-opacity-20 rounded-full -mr-12 sm:-mr-16 -mt-12 sm:-mt-16" />
+               <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-24 sm:h-24 bg-white bg-opacity-20 rounded-full -ml-8 sm:-ml-12 -mb-8 sm:-mb-12" />
+               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-40 sm:h-40 bg-white bg-opacity-10 rounded-full" />
+               <div className="relative">
+                 <div className="text-center">
+                   <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 text-shadow">
+                     🚀 {subscription?.plan === 'free' ? 'Unlock Full Features' : 'Your Subscription is About to Expire!'}
+                   </h3>
+                   <p className="text-green-100 mb-4 font-medium text-sm sm:text-base">
+                     {subscription?.plan === 'free'
+                       ? `You've used ${currentUsage?.invoices || 3} of 5 invoices this month`
+                       : `You have only ${subscription?.trial_days_left} day(s) left. Renew now to avoid interruption!`}
+                   </p>
+             <button
+                     className="bg-white text-green-600 hover:bg-green-50 active:bg-green-100 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 border-2 border-green-600 text-sm sm:text-base touch-manipulation"
+                     onClick={handleUpgrade}
+             >
+                     {subscription?.plan === 'free' ? 'Upgrade Now 🎯' : 'Renew Subscription'}
+             </button>
+           </div>
+         </div>
+       </div>
+           </section>
+         )}
+
+          {/* Refresh Status */}
+          <footer className="text-center py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
+              <div className="flex items-center space-x-1">
+                <Clock className="h-3 w-3" />
+                <span>Auto-refreshes every 30 seconds</span>
+              </div>
+              {lastRefresh && (
+                <div className="flex items-center space-x-1">
+                  <span className="hidden sm:inline">•</span>
+                  <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+      </div>
+              )}
+            </div>
+          </footer>
+      </div>
+      </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+    </DashboardLayout>
+  );
+};
+
+export default Dashboard;
