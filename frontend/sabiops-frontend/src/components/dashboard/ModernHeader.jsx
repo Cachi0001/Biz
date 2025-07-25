@@ -214,32 +214,30 @@ const ModernHeader = () => {
             </div>
           </div>
 
-          {/* Search Bar - Hidden on mobile for free plan */}
-          {user?.subscription_plan !== 'free' && (
-            <div className="hidden md:flex flex-1 max-w-md mx-6 relative">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
-                <input
-                  type="search"
-                  placeholder="Search customers, products, invoices..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSearchOpen(!!e.target.value);
-                  }}
-                  onFocus={() => setSearchOpen(!!searchQuery)}
-                  onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
-                  className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
-                />
-                <SearchDropdown
-                  isOpen={searchOpen}
-                  onClose={() => setSearchOpen(false)}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                />
-              </div>
+          {/* Search Bar - Always visible in header */}
+          <div className="flex-1 max-w-md mx-6 relative">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
+              <input
+                type="search"
+                placeholder="Search customers, products, invoices..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchOpen(!!e.target.value);
+                }}
+                onFocus={() => setSearchOpen(!!searchQuery)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
+              />
+              <SearchDropdown
+                isOpen={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
             </div>
-          )}
+          </div>
 
           {/* Actions */}
           <div className="flex items-center flex-wrap justify-end gap-2">
@@ -359,28 +357,21 @@ const ModernHeader = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Search Bar - Mobile */}
+                  {/* Notifications - Mobile */}
                   <div className="space-y-2">
-                    <div className="relative w-full">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
-                      <input
-                        type="search"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          setSearchOpen(!!e.target.value);
-                        }}
-                        onFocus={() => setSearchOpen(!!searchQuery)}
-                        onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
-                        className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
-                      />
-                      <SearchDropdown
-                        isOpen={searchOpen}
-                        onClose={() => setSearchOpen(false)}
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                      />
+                    <h3 className="text-sm font-medium text-green-100">Notifications</h3>
+                    <div className="w-full relative">
+                      <NotificationBell />
+                      {showNotifications && (
+                        <NotificationCenter
+                          notifications={notifications}
+                          unreadCount={unreadCount}
+                          loading={loading}
+                          onMarkAsRead={handleMarkAsRead}
+                          onMarkAllAsRead={handleMarkAllAsRead}
+                          onClose={() => setShowNotifications(false)}
+                        />
+                      )}
                     </div>
                   </div>
 
