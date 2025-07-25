@@ -25,7 +25,6 @@ def sync_inventory():
         fixed_count = 0
         details = {}
         
-        # Get all products for the owner
         products_response = supabase.table('products').select('*').eq('owner_id', owner_id).execute()
         products = products_response.data
         
@@ -33,12 +32,9 @@ def sync_inventory():
             product_id = product['id']
             current_quantity = product['quantity'] or 0
             
-            # Calculate total sold quantity
             sales_response = supabase.table('sales').select('quantity').eq('product_id', product_id).execute()
             total_sold = sum(sale['quantity'] or 0 for sale in sales_response.data)
             
-            # Calculate expected current quantity (assuming we track initial stock)
-            # For now, we'll just ensure quantity is not negative
             if current_quantity < 0:
                 issues_found += 1
                 # Set to 0 if negative
@@ -81,12 +77,10 @@ def check_transaction_integrity():
         fixed_count = 0
         details = {}
         
-        # Check sales without transactions
         sales_response = supabase.table('sales').select('*').eq('owner_id', owner_id).execute()
         sales = sales_response.data
         
         for sale in sales:
-            # Check if transaction exists for this sale
             transaction_response = supabase.table('transactions').select('id').eq('reference_id', sale['id']).eq('reference_type', 'sale').execute()
             
             if not transaction_response.data:
