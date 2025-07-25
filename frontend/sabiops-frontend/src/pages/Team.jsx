@@ -204,7 +204,7 @@ const Team = () => {
       }
     } catch (error) {
       console.error('Failed to fetch team members:', error);
-      toast.error(getErrorMessage(error, 'Failed to load team members'));
+      showErrorToast(getErrorMessage(error, 'Failed to load team members'));
       setTeamMembers([]);
     } finally {
       setLoading(false);
@@ -224,23 +224,23 @@ const Team = () => {
     
     // Validation
     if (!formData.full_name.trim()) {
-      toast.error('Full name is required');
+      showErrorToast('Full name is required');
       return;
     }
     if (!formData.email.trim()) {
-      toast.error('Email is required');
+      showErrorToast('Email is required');
       return;
     }
     if (!formData.phone.trim()) {
-      toast.error('Phone number is required');
+      showErrorToast('Phone number is required');
       return;
     }
     if (!editingMember && !formData.password.trim()) {
-      toast.error('Password is required for new team members');
+      showErrorToast('Password is required for new team members');
       return;
     }
     if (!editingMember && formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      showErrorToast('Password must be at least 6 characters long');
       return;
     }
 
@@ -251,13 +251,13 @@ const Team = () => {
       if (editingMember) {
         const response = await updateTeamMember(editingMember.id, formData);
         console.log('[TEAM] Update response:', response);
-        toast.success('Team member updated successfully');
+        showSuccessToast('Team member updated successfully');
         setShowEditDialog(false);
         setEditingMember(null);
       } else {
         const response = await createTeamMember(formData);
         console.log('[TEAM] Create response:', response);
-        toast.success('Team member created successfully');
+        showSuccessToast('Team member created successfully');
         setShowAddDialog(false);
       }
       
@@ -266,7 +266,7 @@ const Team = () => {
     } catch (error) {
       console.error('Failed to save team member:', error);
       const errorMessage = getErrorMessage(error, 'Failed to save team member');
-      toast.error(errorMessage);
+      showErrorToast(errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -304,12 +304,12 @@ const Team = () => {
         setLoading(true);
         const response = await deleteTeamMember(memberId);
         console.log('[TEAM] Delete response:', response);
-        toast.success('Team member removed successfully');
+        showSuccessToast('Team member removed successfully');
         await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to delete team member:', error);
         const errorMessage = getErrorMessage(error, 'Failed to remove team member');
-        toast.error(errorMessage);
+        showErrorToast(errorMessage);
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -323,12 +323,12 @@ const Team = () => {
         setLoading(true);
         const response = await activateTeamMember(memberId);
         console.log('[TEAM] Activate response:', response);
-        toast.success('Team member activated successfully');
+        showSuccessToast('Team member activated successfully');
         await fetchTeamMembers();
       } catch (error) {
         console.error('Failed to activate team member:', error);
         const errorMessage = getErrorMessage(error, 'Failed to activate team member');
-        toast.error(errorMessage);
+        showErrorToast(errorMessage);
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -349,11 +349,11 @@ const Team = () => {
           setTempPassword(response.temporary_password);
         }
         
-        toast.success('Password reset successfully');
+        showSuccessToast('Password reset successfully');
       } catch (error) {
         console.error('Failed to reset password:', error);
         const errorMessage = getErrorMessage(error, 'Failed to reset password');
-        toast.error(errorMessage);
+        showErrorToast(errorMessage);
         setError(errorMessage);
       } finally {
         setLoading(false);
