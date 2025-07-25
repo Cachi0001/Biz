@@ -194,6 +194,7 @@ def create_invoice():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
+        data['owner_id'] = owner_id
         
         # Validate required fields
         if not data.get("customer_id"):

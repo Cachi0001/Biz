@@ -263,6 +263,7 @@ def create_product():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
+        data['owner_id'] = owner_id
         
         if not supabase:
             return error_response("Database connection not available", status_code=500)

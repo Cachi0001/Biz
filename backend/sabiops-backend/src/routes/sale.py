@@ -112,6 +112,7 @@ def create_sale():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
+        data['owner_id'] = owner_id
 
         is_valid, error_message = validate_sale_data(data)
         if not is_valid:

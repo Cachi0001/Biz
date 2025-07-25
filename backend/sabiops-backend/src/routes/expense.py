@@ -251,6 +251,7 @@ def create_expense():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         data = request.get_json()
+        data['owner_id'] = owner_id
         
         logging.info(f"[EXPENSE CREATE] Owner ID: {owner_id}, Data received: {data}")
         
