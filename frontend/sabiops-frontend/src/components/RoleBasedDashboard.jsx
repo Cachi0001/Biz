@@ -70,25 +70,25 @@ const RoleBasedDashboard = () => {
 
   if (loading) {
     return (
-      <div className=\"flex items-center justify-center min-h-screen\">
-        <div className=\"animate-spin rounded-full h-32 w-32 border-b-2 border-green-600\"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   return (
-    <div className=\"min-h-screen bg-green-50 p-4 md:p-6\">
+    <div className="min-h-screen bg-green-50 p-4 md:p-6">
       {/* Header Section */}
-      <div className=\"mb-6\">
-        <div className=\"flex items-center justify-between mb-4\">
-          <div className=\"flex items-center space-x-3\">
-            <h1 className=\"text-2xl md:text-3xl font-bold text-green-900\">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-green-900">
               Welcome back, {user?.full_name}
             </h1>
             {showCrown && (
-              <div className=\"flex items-center space-x-2 bg-yellow-100 px-3 py-1 rounded-full\">
-                <Crown className=\"w-5 h-5 text-yellow-600\" />
-                <span className=\"text-sm font-medium text-yellow-800\">
+              <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-1 rounded-full">
+                <Crown className="w-5 h-5 text-yellow-600" />
+                <span className="text-sm font-medium text-yellow-800">
                   Trial: {trialDaysLeft} days left
                 </span>
               </div>
@@ -96,20 +96,20 @@ const RoleBasedDashboard = () => {
           </div>
           
           {/* Social Links */}
-          <div className=\"flex items-center space-x-2\">
+          <div className="flex items-center space-x-2">
             <Button
-              variant=\"ghost\"
-              size=\"sm\"
+              variant="ghost"
+              size="sm"
               onClick={() => window.open('https://x.com/Caleb0533', '_blank')}
-              className=\"text-blue-600 hover:text-blue-700\"
+              className="text-blue-600 hover:text-blue-700"
             >
               Follow CEO
             </Button>
             <Button
-              variant=\"ghost\"
-              size=\"sm\"
+              variant="ghost"
+              size="sm"
               onClick={() => window.open('https://wa.me/2348158025887', '_blank')}
-              className=\"text-green-600 hover:text-green-700\"
+              className="text-green-600 hover:text-green-700"
             >
               Contact Support
             </Button>
@@ -117,27 +117,27 @@ const RoleBasedDashboard = () => {
         </div>
 
         {/* Role Badge */}
-        <div className=\"flex items-center space-x-2 mb-4\">
-          <Badge variant=\"outline\" className=\"bg-green-100 text-green-800 border-green-300\">
+        <div className="flex items-center space-x-2 mb-4">
+          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
             {user?.role}
           </Badge>
-          <Badge variant=\"outline\" className=\"bg-blue-100 text-blue-800 border-blue-300\">
+          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
             {user?.subscription_plan?.charAt(0).toUpperCase() + user?.subscription_plan?.slice(1)} Plan
           </Badge>
         </div>
 
         {/* Upgrade Prompts */}
         {showUpgradePrompts && (
-          <Alert className=\"mb-4 border-orange-200 bg-orange-50\">
-            <AlertTriangle className=\"h-4 w-4 text-orange-600\" />
-            <AlertDescription className=\"text-orange-800\">
+          <Alert className="mb-4 border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
               {isFreePlan 
-                ? \"You're on the free plan. Upgrade to unlock unlimited features!\"
-                : \"You're approaching your plan limits. Consider upgrading for unlimited access.\"
+                ? "You're on the free plan. Upgrade to unlock unlimited features!"
+                : "You're approaching your plan limits. Consider upgrading for unlimited access."
               }
               <Button 
-                variant=\"link\" 
-                className=\"ml-2 text-orange-600 hover:text-orange-700 p-0\"
+                variant="link" 
+                className="ml-2 text-orange-600 hover:text-orange-700 p-0"
                 onClick={() => navigate('/pricing')}
               >
                 Upgrade Now
@@ -154,15 +154,15 @@ const RoleBasedDashboard = () => {
 
       {/* Recent Notifications */}
       {notifications.length > 0 && (
-        <Card className=\"mt-6 border-green-200\">
+        <Card className="mt-6 border-green-200">
           <CardHeader>
-            <CardTitle className=\"flex items-center text-green-900\">
-              <Bell className=\"w-5 h-5 mr-2\" />
+            <CardTitle className="flex items-center text-green-900">
+              <Bell className="w-5 h-5 mr-2" />
               Recent Notifications
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className=\"space-y-2\">
+            <div className="space-y-2">
               {notifications.slice(0, 5).map((notification) => (
                 <div 
                   key={notification.id}
@@ -172,12 +172,12 @@ const RoleBasedDashboard = () => {
                       : 'bg-green-50 border-green-200'
                   }`}
                 >
-                  <div className=\"flex items-start justify-between\">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <p className=\"font-medium text-gray-900\">{notification.title}</p>
-                      <p className=\"text-sm text-gray-600\">{notification.message}</p>
+                      <p className="font-medium text-gray-900">{notification.title}</p>
+                      <p className="text-sm text-gray-600">{notification.message}</p>
                     </div>
-                    <span className=\"text-xs text-gray-500\">
+                    <span className="text-xs text-gray-500">
                       {new Date(notification.created_at).toLocaleDateString()}
                     </span>
                   </div>
@@ -196,71 +196,71 @@ const OwnerDashboard = ({ data }) => {
   const navigate = useNavigate();
   
   return (
-    <div className=\"space-y-6\">
+    <div className="space-y-6">
       {/* Financial Overview Cards */}
-      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4\">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title=\"Total Revenue\"
+          title="Total Revenue"
           value={`₦${data?.revenue?.total?.toLocaleString() || '0'}`}
-          change=\"+12% from last month\"
-          icon={<TrendingUp className=\"w-6 h-6 text-green-600\" />}
-          bgColor=\"bg-green-50\"
-          borderColor=\"border-green-200\"
+          change="+12% from last month"
+          icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+          bgColor="bg-green-50"
+          borderColor="border-green-200"
         />
         
         <MetricCard
-          title=\"Net Profit\"
+          title="Net Profit"
           value={`₦${data?.net_profit?.total?.toLocaleString() || '0'}`}
-          change=\"+8% from last month\"
-          icon={<DollarSign className=\"w-6 h-6 text-blue-600\" />}
-          bgColor=\"bg-blue-50\"
-          borderColor=\"border-blue-200\"
+          change="+8% from last month"
+          icon={<DollarSign className="w-6 h-6 text-blue-600" />}
+          bgColor="bg-blue-50"
+          borderColor="border-blue-200"
         />
         
         <MetricCard
-          title=\"Total Customers\"
+          title="Total Customers"
           value={data?.customers?.total || '0'}
           change={`+${data?.customers?.new_this_month || 0} this month`}
-          icon={<Users className=\"w-6 h-6 text-purple-600\" />}
-          bgColor=\"bg-purple-50\"
-          borderColor=\"border-purple-200\"
+          icon={<Users className="w-6 h-6 text-purple-600" />}
+          bgColor="bg-purple-50"
+          borderColor="border-purple-200"
         />
         
         <MetricCard
-          title=\"Products\"
+          title="Products"
           value={data?.products?.total || '0'}
           change={`${data?.low_stock?.length || 0} low stock`}
-          icon={<Package className=\"w-6 h-6 text-orange-600\" />}
-          bgColor=\"bg-orange-50\"
-          borderColor=\"border-orange-200\"
+          icon={<Package className="w-6 h-6 text-orange-600" />}
+          bgColor="bg-orange-50"
+          borderColor="border-orange-200"
         />
       </div>
 
       {/* Quick Actions */}
-      <Card className=\"border-green-200\">
+      <Card className="border-green-200">
         <CardHeader>
-          <CardTitle className=\"text-green-900\">Quick Actions</CardTitle>
+          <CardTitle className="text-green-900">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className=\"grid grid-cols-2 md:grid-cols-4 gap-4\">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <QuickActionButton
-              title=\"New Invoice\"
-              icon={<FileText className=\"w-5 h-5\" />}
+              title="New Invoice"
+              icon={<FileText className="w-5 h-5" />}
               onClick={() => navigate('/invoices/new')}
             />
             <QuickActionButton
-              title=\"Add Customer\"
-              icon={<Users className=\"w-5 h-5\" />}
+              title="Add Customer"
+              icon={<Users className="w-5 h-5" />}
               onClick={() => navigate('/customers/new')}
             />
             <QuickActionButton
-              title=\"Add Product\"
-              icon={<Package className=\"w-5 h-5\" />}
+              title="Add Product"
+              icon={<Package className="w-5 h-5" />}
               onClick={() => navigate('/products/new')}
             />
             <QuickActionButton
-              title=\"View Analytics\"
-              icon={<TrendingUp className=\"w-5 h-5\" />}
+              title="View Analytics"
+              icon={<TrendingUp className="w-5 h-5" />}
               onClick={() => navigate('/analytics')}
             />
           </div>
@@ -268,22 +268,22 @@ const OwnerDashboard = ({ data }) => {
       </Card>
 
       {/* Owner-specific sections */}
-      <div className=\"grid grid-cols-1 lg:grid-cols-2 gap-6\">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team Management */}
-        <Card className=\"border-green-200\">
+        <Card className="border-green-200">
           <CardHeader>
-            <CardTitle className=\"text-green-900\">Team Management</CardTitle>
+            <CardTitle className="text-green-900">Team Management</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className=\"space-y-2\">
-              <p className=\"text-sm text-gray-600\">
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
                 Active team members: {data?.team?.active_count || 0}
               </p>
               <Button 
-                variant=\"outline\" 
-                size=\"sm\"
+                variant="outline" 
+                size="sm"
                 onClick={() => navigate('/team')}
-                className=\"border-green-300 text-green-700 hover:bg-green-50\"
+                className="border-green-300 text-green-700 hover:bg-green-50"
               >
                 Manage Team
               </Button>
@@ -292,23 +292,23 @@ const OwnerDashboard = ({ data }) => {
         </Card>
 
         {/* Referral Earnings */}
-        <Card className=\"border-green-200\">
+        <Card className="border-green-200">
           <CardHeader>
-            <CardTitle className=\"text-green-900\">Referral Earnings</CardTitle>
+            <CardTitle className="text-green-900">Referral Earnings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className=\"space-y-2\">
-              <p className=\"text-lg font-semibold text-green-700\">
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-green-700">
                 ₦{data?.referral_earnings?.total_earnings?.toLocaleString() || '0'}
               </p>
-              <p className=\"text-sm text-gray-600\">
+              <p className="text-sm text-gray-600">
                 Available for withdrawal: ₦{data?.referral_earnings?.available_for_withdrawal?.toLocaleString() || '0'}
               </p>
               <Button 
-                variant=\"outline\" 
-                size=\"sm\"
+                variant="outline" 
+                size="sm"
                 onClick={() => navigate('/referrals')}
-                className=\"border-green-300 text-green-700 hover:bg-green-50\"
+                className="border-green-300 text-green-700 hover:bg-green-50"
               >
                 View Referrals
               </Button>
@@ -325,57 +325,57 @@ const AdminDashboard = ({ data }) => {
   const navigate = useNavigate();
   
   return (
-    <div className=\"space-y-6\">
+    <div className="space-y-6">
       {/* Operational Metrics */}
-      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
-          title=\"Monthly Revenue\"
+          title="Monthly Revenue"
           value={`₦${data?.revenue?.this_month?.toLocaleString() || '0'}`}
-          change=\"Operational view\"
-          icon={<TrendingUp className=\"w-6 h-6 text-green-600\" />}
-          bgColor=\"bg-green-50\"
-          borderColor=\"border-green-200\"
+          change="Operational view"
+          icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+          bgColor="bg-green-50"
+          borderColor="border-green-200"
         />
         
         <MetricCard
-          title=\"Total Expenses\"
+          title="Total Expenses"
           value={`₦${data?.expenses?.this_month?.toLocaleString() || '0'}`}
-          change=\"This month\"
-          icon={<DollarSign className=\"w-6 h-6 text-red-600\" />}
-          bgColor=\"bg-red-50\"
-          borderColor=\"border-red-200\"
+          change="This month"
+          icon={<DollarSign className="w-6 h-6 text-red-600" />}
+          bgColor="bg-red-50"
+          borderColor="border-red-200"
         />
         
         <MetricCard
-          title=\"Inventory Value\"
+          title="Inventory Value"
           value={`₦${data?.inventory_value?.toLocaleString() || '0'}`}
           change={`${data?.low_stock?.length || 0} items low`}
-          icon={<Package className=\"w-6 h-6 text-orange-600\" />}
-          bgColor=\"bg-orange-50\"
-          borderColor=\"border-orange-200\"
+          icon={<Package className="w-6 h-6 text-orange-600" />}
+          bgColor="bg-orange-50"
+          borderColor="border-orange-200"
         />
       </div>
 
       {/* Admin Quick Actions */}
-      <Card className=\"border-green-200\">
+      <Card className="border-green-200">
         <CardHeader>
-          <CardTitle className=\"text-green-900\">Operations</CardTitle>
+          <CardTitle className="text-green-900">Operations</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className=\"grid grid-cols-2 md:grid-cols-3 gap-4\">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <QuickActionButton
-              title=\"Manage Products\"
-              icon={<Package className=\"w-5 h-5\" />}
+              title="Manage Products"
+              icon={<Package className="w-5 h-5" />}
               onClick={() => navigate('/products')}
             />
             <QuickActionButton
-              title=\"View Customers\"
-              icon={<Users className=\"w-5 h-5\" />}
+              title="View Customers"
+              icon={<Users className="w-5 h-5" />}
               onClick={() => navigate('/customers')}
             />
             <QuickActionButton
-              title=\"Sales Reports\"
-              icon={<TrendingUp className=\"w-5 h-5\" />}
+              title="Sales Reports"
+              icon={<TrendingUp className="w-5 h-5" />}
               onClick={() => navigate('/sales')}
             />
           </div>
@@ -390,52 +390,52 @@ const SalespersonDashboard = ({ data }) => {
   const navigate = useNavigate();
   
   return (
-    <div className=\"space-y-6\">
+    <div className="space-y-6">
       {/* Sales Metrics */}
-      <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4\">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard
-          title=\"My Sales Today\"
+          title="My Sales Today"
           value={`₦${data?.sales?.today?.toLocaleString() || '0'}`}
-          change=\"Today's performance\"
-          icon={<TrendingUp className=\"w-6 h-6 text-green-600\" />}
-          bgColor=\"bg-green-50\"
-          borderColor=\"border-green-200\"
+          change="Today's performance"
+          icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+          bgColor="bg-green-50"
+          borderColor="border-green-200"
         />
         
         <MetricCard
-          title=\"Total Sales\"
+          title="Total Sales"
           value={`₦${data?.sales?.total?.toLocaleString() || '0'}`}
-          change=\"All time\"
-          icon={<DollarSign className=\"w-6 h-6 text-blue-600\" />}
-          bgColor=\"bg-blue-50\"
-          borderColor=\"border-blue-200\"
+          change="All time"
+          icon={<DollarSign className="w-6 h-6 text-blue-600" />}
+          bgColor="bg-blue-50"
+          borderColor="border-blue-200"
         />
         
         <MetricCard
-          title=\"Customers Served\"
+          title="Customers Served"
           value={data?.customers?.served || '0'}
-          change=\"This month\"
-          icon={<Users className=\"w-6 h-6 text-purple-600\" />}
-          bgColor=\"bg-purple-50\"
-          borderColor=\"border-purple-200\"
+          change="This month"
+          icon={<Users className="w-6 h-6 text-purple-600" />}
+          bgColor="bg-purple-50"
+          borderColor="border-purple-200"
         />
       </div>
 
       {/* Sales Actions */}
-      <Card className=\"border-green-200\">
+      <Card className="border-green-200">
         <CardHeader>
-          <CardTitle className=\"text-green-900\">Sales Actions</CardTitle>
+          <CardTitle className="text-green-900">Sales Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className=\"grid grid-cols-2 gap-4\">
+          <div className="grid grid-cols-2 gap-4">
             <QuickActionButton
-              title=\"Create Invoice\"
-              icon={<FileText className=\"w-5 h-5\" />}
+              title="Create Invoice"
+              icon={<FileText className="w-5 h-5" />}
               onClick={() => navigate('/invoices/new')}
             />
             <QuickActionButton
-              title=\"View Customers\"
-              icon={<Users className=\"w-5 h-5\" />}
+              title="View Customers"
+              icon={<Users className="w-5 h-5" />}
               onClick={() => navigate('/customers')}
             />
           </div>
@@ -448,14 +448,14 @@ const SalespersonDashboard = ({ data }) => {
 // Utility Components
 const MetricCard = ({ title, value, change, icon, bgColor, borderColor }) => (
   <Card className={`${bgColor} ${borderColor} border`}>
-    <CardContent className=\"p-4\">
-      <div className=\"flex items-center justify-between\">
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
         <div>
-          <p className=\"text-sm font-medium text-gray-600\">{title}</p>
-          <p className=\"text-2xl font-bold text-gray-900\">{value}</p>
-          <p className=\"text-xs text-gray-500\">{change}</p>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-xs text-gray-500">{change}</p>
         </div>
-        <div className=\"flex-shrink-0\">
+        <div className="flex-shrink-0">
           {icon}
         </div>
       </div>
@@ -465,14 +465,13 @@ const MetricCard = ({ title, value, change, icon, bgColor, borderColor }) => (
 
 const QuickActionButton = ({ title, icon, onClick }) => (
   <Button
-    variant=\"outline\"
-    className=\"h-auto p-4 flex flex-col items-center space-y-2 border-green-300 text-green-700 hover:bg-green-50\"
+    variant="outline"
+    className="h-auto p-4 flex flex-col items-center space-y-2 border-green-300 text-green-700 hover:bg-green-50"
     onClick={onClick}
   >
     {icon}
-    <span className=\"text-sm\">{title}</span>
+    <span className="text-sm">{title}</span>
   </Button>
 );
 
 export default RoleBasedDashboard;
-
