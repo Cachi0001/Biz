@@ -172,12 +172,12 @@ export const SalesForm = ({
                     <SelectItem value="error" disabled>
                       {productsError}
                     </SelectItem>
-                  ) : products.length === 0 ? (
+                  ) : !Array.isArray(products) || products.length === 0 ? (
                     <SelectItem value="none" disabled>
                       No products available
                     </SelectItem>
                   ) : (
-                    products.map((product) => {
+                    (Array.isArray(products) ? products : []).map((product) => {
                       const quantity = parseInt(product.quantity) || 0;
                       const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
                       const isOutOfStock = quantity === 0;
