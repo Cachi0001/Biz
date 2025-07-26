@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { getInvoices, getExpenses, getSales, getPayments } from "../services/api";
+import { getTransactions, getInvoices, getExpenses, getSales, getPayments } from "../services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,8 @@ const Transactions = () => {
     paymentMethod: 'all'
   });
 
+  const [selectedTeamMember, setSelectedTeamMember] = useState('all');
+
   useEffect(() => {
     fetchTransactions();
   }, []);
@@ -57,89 +59,84 @@ const Transactions = () => {
     applyFilters();
   }, [transactions, filters]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
+      const params = {
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        type: filters.type === 'all' ? undefined : filters.type,
+        category: filters.category === 'all' ? undefined : filters.category,
+        paymentMethod: filters.paymentMethod === 'all' ? undefined : filters.paymentMethod,
+      };
+
+      // Add team member filter if selected and user has permission
+      if ((user?.role === 'Owner' || user?.role === 'Admin') && selectedTeamMember !== 'all') {
+        params.team_member_id = selectedTeamMember;
+      }
+
+      // Filter out undefined values
+      Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+      // Fetch transactions using the new endpoint
+      const response = await getTransactions(params);
       
-      // Fetch data from multiple sources
-      const [invoicesRes, expensesRes, salesRes, paymentsRes] = await Promise.all([
-        getInvoices().catch(() => ({ invoices: [] })),
-        getExpenses().catch(() => ({ expenses: [] })),
-        getSales().catch(() => ({ sales: [] })),
-        getPayments().catch(() => ({ payments: [] }))
-      ]);
-
-      // Combine all transactions
-      const allTransactions = [
-        // Money In - Sales/Invoices
-        ...(salesRes.sales || []).map(sale => ({
-          id: `sale-${sale.id}`,
-          type: 'money_in',
-          category: 'Sales',
-          description: `Sale to ${sale.customer?.name || 'Walk-in Customer'}`,
-          amount: sale.total_amount,
-          date: sale.created_at,
-          paymentMethod: sale.payment_method || 'Cash',
-          reference: sale.id,
-          icon: TrendingUp,
-          color: 'text-green-600'
-        })),
-        
-        // Money In - Invoice Payments
-        ...(invoicesRes.invoices || [])
-          .filter(invoice => invoice.status === 'paid')
-          .map(invoice => ({
-            id: `invoice-${invoice.id}`,
-            type: 'money_in',
-            category: 'Invoice Payment',
-            description: `Payment for Invoice #${invoice.invoice_number}`,
-            amount: invoice.total,
-            date: invoice.updated_at,
-            paymentMethod: 'Bank Transfer',
-            reference: invoice.invoice_number,
-            icon: FileText,
-            color: 'text-green-600'
-          })),
-
-        // Money Out - Expenses
-        ...(expensesRes.expenses || []).map(expense => ({
-          id: `expense-${expense.id}`,
-          type: 'money_out',
-          category: expense.category || 'Business Expense',
-          description: expense.description,
-          amount: expense.amount,
-          date: expense.date || expense.created_at,
-          paymentMethod: 'Cash',
-          reference: expense.id,
-          icon: Receipt,
-          color: 'text-red-600'
-        })),
-
-        // Money Out - Referral Withdrawals
-        ...(user?.total_withdrawn > 0 ? [{
-          id: 'referral-withdrawal',
-          type: 'money_out',
-          category: 'Referral Withdrawal',
-          description: 'Referral earnings withdrawal',
-          amount: user.total_withdrawn,
-          date: new Date().toISOString(),
-          paymentMethod: 'Bank Transfer',
-          reference: 'REF-WITHDRAWAL',
-          icon: Users,
-          color: 'text-red-600'
-        }] : [])
-      ];
+      // The API should return an array of transactions with a type field
+      const allTransactions = response.data || [];
 
       // Sort by date (newest first)
-      allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-      
+      allTransactions.sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+
       setTransactions(allTransactions);
-      calculateSummary(allTransactions);
+      setFilteredTransactions(allTransactions);
+      updateSummary(allTransactions);
       
     } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+      console.error('Error fetching transactions:', error);
+      // Fallback to individual API calls if the new endpoint fails
+      await fetchTransactionsFallback();
     } finally {
       setLoading(false);
+    }
+  }, [filters, selectedTeamMember, user?.role]);
+
+  const fetchTransactionsFallback = async () => {
+    try {
+      const [invoices, expenses, sales, payments] = await Promise.all([
+        getInvoices(),
+        getExpenses(),
+        getSales(),
+        getPayments()
+      ]);
+
+      // Process and combine all transactions
+      const allTransactions = [
+        ...(invoices.data || []).map(t => ({ ...t, type: 'invoice' })),
+        ...(expenses.data || []).map(t => ({ ...t, type: 'expense' })),
+        ...(sales.data || []).map(t => ({ ...t, type: 'sale' })),
+        ...(payments.data || []).map(t => ({ ...t, type: 'payment' }))
+      ];
+
+      // Apply team member filter if selected
+      let filtered = allTransactions;
+      if ((user?.role === 'Owner' || user?.role === 'Admin') && selectedTeamMember !== 'all') {
+        filtered = allTransactions.filter(t => 
+          t.user_id === selectedTeamMember || 
+          (t.salesperson_id === selectedTeamMember) ||
+          (t.created_by === selectedTeamMember)
+        );
+      }
+
+      // Sort by date (newest first)
+      filtered.sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+
+      setTransactions(filtered);
+      setFilteredTransactions(filtered);
+      updateSummary(filtered);
+      
+    } catch (error) {
+      console.error('Error in fallback transaction fetch:', error);
+      throw error;
     }
   };
 
@@ -187,7 +184,7 @@ const Transactions = () => {
     }
 
     setFilteredTransactions(filtered);
-    calculateSummary(filtered);
+    updateSummary(filtered);
   };
 
   const formatCurrency = (amount) => {
@@ -233,6 +230,23 @@ const Transactions = () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  };
+
+  const updateSummary = (transactionList) => {
+    const moneyIn = transactionList
+      .filter(t => t.type === 'money_in')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    
+    const moneyOut = transactionList
+      .filter(t => t.type === 'money_out')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    setSummary({
+      totalMoneyIn: moneyIn,
+      totalMoneyOut: moneyOut,
+      netFlow: moneyIn - moneyOut,
+      transactionCount: transactionList.length
+    });
   };
 
   if (loading) {
@@ -497,4 +511,3 @@ const Transactions = () => {
 };
 
 export default Transactions;
-
