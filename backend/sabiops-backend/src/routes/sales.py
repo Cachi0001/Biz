@@ -161,26 +161,11 @@ def create_sale():
         data = request.get_json()
         
         # Enhanced validation for required fields with better error messages
-        required_fields = ["customer_id", "items"]
-        for field in required_fields:
-            if not data.get(field):
-                field_name = field.replace("_", " ").title()
-                return jsonify({
-                    "success": False,
-                    "message": f"{field_name} is required",
-                    "field": field,
-                    "toast": {
-                        "type": "error",
-                        "message": f"{field_name} is required",
-                        "timeout": 3000
-                    }
-                }), 400
-        
-        # Validate items is a non-empty array
-        if not isinstance(data.get("items"), list) or len(data["items"]) == 0:
+        if not data.get("items") or not isinstance(data.get("items"), list) or len(data["items"]) == 0:
             return jsonify({
                 "success": False,
                 "message": "At least one item is required",
+                "field": "items",
                 "toast": {
                     "type": "error",
                     "message": "Please add at least one item to the sale",
@@ -188,30 +173,38 @@ def create_sale():
                 }
             }), 400
         
-        # Check if customer exists
-        try:
-            customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
-            if not customer.data:
+        # Check if customer exists if provided
+        customer_id = data.get("customer_id")
+        customer_name = "Walk-in Customer"
+        
+        if customer_id:
+            try:
+                customer = supabase.table("customers").select("*").eq("id", customer_id).eq("owner_id", owner_id).execute()
+                if customer.data:
+                    customer_name = customer.data[0].get("name", "Walk-in Customer")
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": "Customer not found",
+                        "field": "customer_id",
+                        "toast": {
+                            "type": "error",
+                            "message": "The selected customer was not found",
+                            "timeout": 4000
+                        }
+                    }), 404
+            except Exception as e:
+                current_app.logger.error(f"Error fetching customer: {str(e)}")
                 return jsonify({
                     "success": False,
-                    "message": "Customer not found",
+                    "message": "Error validating customer information",
+                    "field": "customer_id",
                     "toast": {
                         "type": "error",
-                        "message": "The selected customer was not found",
-                        "timeout": 4000
+                        "message": "Error validating customer information",
+                        "timeout": 3000
                     }
-                }), 404
-        except Exception as e:
-            current_app.logger.error(f"Error fetching customer: {str(e)}")
-            return jsonify({
-                "success": False,
-                "message": "Error validating customer",
-                "toast": {
-                    "type": "error",
-                    "message": "Error validating customer information",
-                    "timeout": 3000
-                }
-            }), 500
+                }), 500
         
         # Process and validate items
         processed_items = []
@@ -231,7 +224,7 @@ def create_sale():
                     }
                 }), 400
                 
-            if not item.get("quantity") or float(item["quantity"]) <= 0:
+            if not item.get("quantity") or float(item.get("quantity", 0)) <= 0:
                 return jsonify({
                     "success": False,
                     "message": f"Invalid quantity for item {index}",
@@ -243,7 +236,7 @@ def create_sale():
                     }
                 }), 400
                 
-            if not item.get("unit_price") or float(item["unit_price"]) < 0:
+            if not item.get("unit_price") or float(item.get("unit_price", 0)) < 0:
                 return jsonify({
                     "success": False,
                     "message": f"Invalid unit price for item {index}",
@@ -259,7 +252,6 @@ def create_sale():
             unit_price = float(item["unit_price"])
             item_total = quantity * unit_price
             
-            # Check product stock if product_id is provided
             try:
                 product = supabase.table("products")\
                     .select("name, stock_quantity, track_inventory")\
@@ -316,8 +308,8 @@ def create_sale():
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
             "user_id": user_id,  # Track which user created the sale
-            "customer_id": data["customer_id"],
-            "customer_name": customer.data.get("name", ""),
+            "customer_id": customer_id,  # This can be None
+            "customer_name": customer_name,
             "sale_number": f"SALE-{datetime.utcnow().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
             "subtotal": subtotal,
             "tax_amount": tax_amount,
@@ -368,7 +360,7 @@ def create_sale():
                     "date": datetime.utcnow().isoformat(),
                     "reference_id": sale_id,
                     "reference_type": "sale",
-                    "description": f"Sale to {customer.data.get('name', 'customer')}",
+                    "description": f"Sale to {customer_name}",
                     "payment_method": data.get("payment_method", "cash"),
                     "status": "completed",
                     "created_at": datetime.utcnow().isoformat()
