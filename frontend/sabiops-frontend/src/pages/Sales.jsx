@@ -55,6 +55,65 @@ const Sales = () => {
   // Usage tracking
   const { checkUsageLimit, isLimitReached } = useUsageTracking();
 
+  // Fetch products data
+  const fetchProductsData = useCallback(async () => {
+    try {
+      setProductsLoading(true);
+      const response = await getProductsWithStock();
+      
+      // Handle different response formats
+      let productsData = [];
+      if (Array.isArray(response)) {
+        productsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        productsData = response.data;
+      } else if (response && response.products && Array.isArray(response.products)) {
+        productsData = response.products;
+      } else if (response && response.data && response.data.products && Array.isArray(response.data.products)) {
+        productsData = response.data.products;
+      } else {
+        console.warn('Unexpected products data format:', response);
+        productsData = [];
+      }
+      
+      setProducts(productsData);
+      setProductsError(null);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProductsError('Failed to load products. Please try again.');
+      setProducts([]); // Ensure products is set to empty array on error
+    } finally {
+      setProductsLoading(false);
+    }
+  }, []);
+
+  // Fetch customers data
+  const fetchCustomersData = useCallback(async () => {
+    try {
+      const response = await getCustomers();
+      
+      // Handle different response formats
+      let customersData = [];
+      if (Array.isArray(response)) {
+        customersData = response;
+      } else if (response && Array.isArray(response.data)) {
+        customersData = response.data;
+      } else if (response && response.customers && Array.isArray(response.customers)) {
+        customersData = response.customers;
+      } else if (response && response.data && response.data.customers && Array.isArray(response.data.customers)) {
+        customersData = response.data.customers;
+      } else {
+        console.warn('Unexpected customers data format:', response);
+        customersData = [];
+      }
+      
+      setCustomers(customersData);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      setCustomers([]); // Ensure customers is set to empty array on error
+    }
+  }, []);
+
   // Fetch sales data
   const fetchSales = useCallback(async () => {
     try {
@@ -150,31 +209,7 @@ const Sales = () => {
     };
   };
 
-  // Fetch products with stock
-  const fetchProductsData = useCallback(async () => {
-    try {
-      setProductsLoading(true);
-      setProductsError(null);
-      const productsData = await getProductsWithStock();
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProductsError('Failed to load products. Please try again.');
-    } finally {
-      setProductsLoading(false);
-    }
-  }, []);
 
-  // Fetch customers
-  const fetchCustomersData = useCallback(async () => {
-    try {
-      const customersData = await getCustomers();
-      setCustomers(customersData);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      toastService.error('Failed to load customers');
-    }
-  }, []);
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -295,6 +330,11 @@ const Sales = () => {
     fetchSales();
     fetchProductsData();
     fetchCustomersData();
+    
+    // Cleanup function to avoid memory leaks
+    return () => {
+      // Any cleanup if needed
+    };
   }, [fetchSales, fetchProductsData, fetchCustomersData]);
 
   return (

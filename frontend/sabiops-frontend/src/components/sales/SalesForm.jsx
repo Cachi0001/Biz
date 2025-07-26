@@ -130,11 +130,17 @@ export const SalesForm = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="walkin">Walk-in Customer</SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
+                  {Array.isArray(customers) && customers.length > 0 ? (
+                    customers.map((customer) => (
+                      <SelectItem key={customer?.id || ''} value={customer?.id || ''}>
+                        {customer?.name || 'Unknown Customer'}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No customers available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
