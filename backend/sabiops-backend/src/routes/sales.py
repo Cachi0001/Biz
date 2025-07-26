@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
 import logging
-from ..utils.auth_utils import get_user_context
+from src.utils.user_context import get_user_context
 
 sales_bp = Blueprint("sales", __name__)
 
