@@ -161,52 +161,90 @@ const Sales = () => {
 
   // Calculate sales statistics
   const calculateSalesStats = (salesData) => {
-    // Ensure salesData is an array
-    const safeSalesData = Array.isArray(salesData) ? salesData : [];
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Safely filter monthly sales
-    const monthlySales = safeSalesData.filter(sale => {
-      try {
-        const saleDate = sale?.date || sale?.created_at;
-        return saleDate && new Date(saleDate).toISOString().split('T')[0].startsWith(today.substring(0, 7));
-      } catch (e) {
-        console.warn('Error processing sale date:', e);
-        return false;
+    try {
+      // Ensure salesData is an array and handle various input types
+      let safeSalesData = [];
+      
+      if (Array.isArray(salesData)) {
+        safeSalesData = [...salesData]; // Create a new array to avoid mutation
+      } else if (salesData && typeof salesData === 'object' && salesData !== null) {
+        // Handle case where salesData might be an object with data
+        if (Array.isArray(salesData.data)) {
+          safeSalesData = [...salesData.data];
+        } else if (Array.isArray(salesData.sales)) {
+          safeSalesData = [...salesData.sales];
+        } else if (salesData.data && Array.isArray(salesData.data.sales)) {
+          safeSalesData = [...salesData.data.sales];
+        }
       }
-    });
+      
+      // Ensure we have a valid date
+      const today = new Date().toISOString().split('T')[0];
+      const currentMonth = today.substring(0, 7); // YYYY-MM
 
-    // Helper function to safely calculate sum
-    const safeSum = (data, key) => {
-      if (!Array.isArray(data)) return 0;
-      return data.reduce((sum, item) => {
-        const value = parseFloat(item?.[key] || 0);
-        return sum + (isNaN(value) ? 0 : value);
-      }, 0);
-    };
+      // Safely filter monthly sales
+      const monthlySales = safeSalesData.filter(sale => {
+        try {
+          if (!sale) return false;
+          const saleDate = sale.date || sale.created_at;
+          if (!saleDate) return false;
+          
+          const dateStr = new Date(saleDate).toISOString().split('T')[0];
+          return dateStr.startsWith(currentMonth);
+        } catch (e) {
+          console.warn('Error processing sale date:', e, sale);
+          return false;
+        }
+      });
 
-    // Calculate today's sales
-    const todaySales = safeSalesData.filter(sale => {
-      try {
-        const saleDate = sale?.date || sale?.created_at;
-        return saleDate && new Date(saleDate).toISOString().split('T')[0] === today;
-      } catch (e) {
-        return false;
-      }
-    });
+      // Helper function to safely calculate sum
+      const safeSum = (data, key) => {
+        if (!Array.isArray(data)) return 0;
+        return data.reduce((sum, item) => {
+          if (!item) return sum;
+          const value = parseFloat(item[key] || 0);
+          return sum + (isNaN(value) ? 0 : value);
+        }, 0);
+      };
 
-    const totalSales = safeSum(safeSalesData, 'total_amount');
-    const totalQuantity = safeSum(safeSalesData, 'quantity');
-    const monthlyProfit = safeSum(monthlySales, 'profit_from_sales');
+      // Calculate today's sales
+      const todaySales = safeSalesData.filter(sale => {
+        try {
+          if (!sale) return false;
+          const saleDate = sale.date || sale.created_at;
+          if (!saleDate) return false;
+          
+          const dateStr = new Date(saleDate).toISOString().split('T')[0];
+          return dateStr === today;
+        } catch (e) {
+          return false;
+        }
+      });
 
-    return {
-      total_sales: totalSales,
-      total_transactions: safeSalesData.length,
-      today_sales: safeSum(todaySales, 'total_amount'),
-      average_sale: safeSalesData.length > 0 ? totalSales / safeSalesData.length : 0,
-      total_quantity: totalQuantity,
-      profit_from_sales_monthly: monthlyProfit
-    };
+      const totalSales = safeSum(safeSalesData, 'total_amount');
+      const totalQuantity = safeSum(safeSalesData, 'quantity');
+      const monthlyProfit = safeSum(monthlySales, 'profit_from_sales');
+
+      return {
+        total_sales: totalSales,
+        total_transactions: safeSalesData.length,
+        today_sales: safeSum(todaySales, 'total_amount'),
+        average_sale: safeSalesData.length > 0 ? totalSales / safeSalesData.length : 0,
+        total_quantity: totalQuantity,
+        profit_from_sales_monthly: monthlyProfit
+      };
+    } catch (error) {
+      console.error('Error in calculateSalesStats:', error);
+      // Return default values in case of error
+      return {
+        total_sales: 0,
+        total_transactions: 0,
+        today_sales: 0,
+        average_sale: 0,
+        total_quantity: 0,
+        profit_from_sales_monthly: 0
+      };
+    }
   };
 
 
