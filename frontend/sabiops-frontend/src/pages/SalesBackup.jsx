@@ -22,7 +22,7 @@ import MobileDateInput from '@/components/ui/MobileDateInput';
 import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 
-const Sales = () => {
+const SalesBackup = () => {
   const [sales, setSales] = useState([]);
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -1126,5 +1126,5 @@ const Sales = () => {
   );
 };
 
-export default Sales;
+export default SalesBackup;
 

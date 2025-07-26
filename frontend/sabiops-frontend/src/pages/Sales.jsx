@@ -19,7 +19,7 @@ import {
 import { getSales, getProductsWithStock, getCustomers, createSale } from "@/services/api";
 import { enhancedCreateSale } from "@/services/enhancedApi";
 
-const SalesRefactored = () => {
+const Sales = () => {
   // State management
   const [sales, setSales] = useState([]);
   const [products, setProducts] = useState([]);
@@ -385,4 +385,4 @@ const SalesRefactored = () => {
   );
 };
 
-export default SalesRefactored;
+export default Sales;
