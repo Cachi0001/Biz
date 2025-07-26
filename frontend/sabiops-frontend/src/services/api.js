@@ -929,7 +929,52 @@ export async function downloadSalesReport(params, format) {
   }
 }
 
-
+// Transaction Management
+export async function getTransactions(params = {}) {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params.dateFrom) queryParams.append('start_date', params.dateFrom);
+    if (params.dateTo) queryParams.append('end_date', params.dateTo);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.category && params.category !== 'all') {
+      queryParams.append('category', params.category);
+    }
+    if (params.paymentMethod && params.paymentMethod !== 'all') {
+      queryParams.append('payment_method', params.paymentMethod);
+    }
+    if (params.team_member_id) {
+      queryParams.append('team_member_id', params.team_member_id);
+    }
+    
+    const response = await api.get(`/transactions?${queryParams.toString()}`);
+    
+    // Format the response to match the expected structure
+    const formattedData = (response.data || []).map(transaction => ({
+      id: transaction.id,
+      date: transaction.date || transaction.created_at,
+      created_at: transaction.created_at,
+      updated_at: transaction.updated_at,
+      type: transaction.type === 'income' ? 'money_in' : 'money_out',
+      amount: parseFloat(transaction.amount || 0),
+      description: transaction.description || '',
+      status: transaction.status || 'completed',
+      payment_method: transaction.payment_method || 'other',
+      reference_id: transaction.reference_id,
+      reference_type: transaction.reference_type,
+      user_id: transaction.user_id,
+      salesperson_id: transaction.salesperson_id,
+      created_by: transaction.created_by,
+      ...transaction
+    }));
+    
+    return { data: formattedData };
+    
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    throw error;
+  }
+}
 
 // IndexedDB utility for offline queue
 const DB_NAME = 'sabiops-offline-db';
@@ -1046,5 +1091,3 @@ export const get = api.get;
 export const post = api.post;
 export const put = api.put;
 export const del = api.delete;
-
-

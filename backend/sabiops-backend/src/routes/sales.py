@@ -130,112 +130,289 @@ def get_sales():
 @jwt_required()
 def create_sale():
     try:
+        user_id = get_jwt_identity()
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        
+        # Get user's role and owner_id
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Authorization error. Please log in again.",
+                    "timeout": 3000
+                }
+            }), 403
+            
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
+        # Enhanced validation for required fields with better error messages
+        required_fields = ["customer_id", "items"]
         for field in required_fields:
             if not data.get(field):
+                field_name = field.replace("_", " ").title()
                 return jsonify({
                     "success": False,
-                    "message": f"{field} is required",
+                    "message": f"{field_name} is required",
+                    "field": field,
                     "toast": {
                         "type": "error",
-                        "message": f"{field} is required",
+                        "message": f"{field_name} is required",
                         "timeout": 3000
                     }
                 }), 400
         
-        # Validate numeric fields
+        # Validate items is a non-empty array
+        if not isinstance(data.get("items"), list) or len(data["items"]) == 0:
+            return jsonify({
+                "success": False,
+                "message": "At least one item is required",
+                "toast": {
+                    "type": "error",
+                    "message": "Please add at least one item to the sale",
+                    "timeout": 3000
+                }
+            }), 400
+        
+        # Check if customer exists
         try:
-            quantity = int(data["quantity"])
-            unit_price = float(data["unit_price"])
-            total_amount = float(data["total_amount"])
-            
-            if quantity <= 0:
+            customer = supabase.table("customers").select("*").eq("id", data["customer_id"]).eq("owner_id", owner_id).single().execute()
+            if not customer.data:
                 return jsonify({
                     "success": False,
-                    "message": "Quantity must be greater than 0",
+                    "message": "Customer not found",
                     "toast": {
                         "type": "error",
-                        "message": "Quantity must be greater than 0",
+                        "message": "The selected customer was not found",
                         "timeout": 3000
                     }
-                }), 400
-            if unit_price < 0:
+                }), 404
+        except Exception as e:
+            current_app.logger.error(f"Error fetching customer: {str(e)}")
+            return jsonify({
+                "success": False,
+                "message": "Error validating customer",
+                "toast": {
+                    "type": "error",
+                    "message": "Error validating customer information",
+                    "timeout": 3000
+                }
+            }), 500
+        
+        # Process and validate items
+        processed_items = []
+        subtotal = 0
+        
+        for index, item in enumerate(data["items"], 1):
+            # Validate required item fields
+            if not item.get("product_id"):
                 return jsonify({
                     "success": False,
-                    "message": "Unit price cannot be negative",
+                    "message": f"Product is required for item {index}",
+                    "field": f"items.{index-1}.product_id",
                     "toast": {
                         "type": "error",
-                        "message": "Unit price cannot be negative",
-                        "timeout": 3000
-                    }
-                }), 400
-            if total_amount < 0:
-                return jsonify({
-                    "success": False,
-                    "message": "Total amount cannot be negative",
-                    "toast": {
-                        "type": "error",
-                        "message": "Total amount cannot be negative",
+                        "message": f"Please select a product for item {index}",
                         "timeout": 3000
                     }
                 }), 400
                 
-        except (ValueError, TypeError):
-            return jsonify({
-                "success": False,
-                "message": "Invalid numeric values provided",
-                "toast": {
-                    "type": "error",
-                    "message": "Invalid numeric values provided",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Use business operations manager for data consistency
-        from src.utils.business_operations import BusinessOperationsManager
-        business_ops = BusinessOperationsManager(supabase)
-        
-        # Process the complete sale transaction with automatic inventory updates and transaction creation
-        success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
-        
-        if not success:
-            return jsonify({
-                "success": False,
-                "message": error_message,
-                "toast": {
-                    "type": "error",
-                    "message": error_message,
-                    "timeout": 3000
-                }
-            }), 400
-        
-        return jsonify({
-            "success": True,
-            "message": "Sale created successfully with inventory update",
-            "data": {
-                "sale": sale_record
-            },
-            "toast": {
-                "type": "success",
-                "message": "Sale created successfully.",
-                "timeout": 3000
+            if not item.get("quantity") or float(item["quantity"]) <= 0:
+                return jsonify({
+                    "success": False,
+                    "message": f"Invalid quantity for item {index}",
+                    "field": f"items.{index-1}.quantity",
+                    "toast": {
+                        "type": "error",
+                        "message": f"Please enter a valid quantity for item {index}",
+                        "timeout": 3000
+                    }
+                }), 400
+                
+            if not item.get("unit_price") or float(item["unit_price"]) < 0:
+                return jsonify({
+                    "success": False,
+                    "message": f"Invalid unit price for item {index}",
+                    "field": f"items.{index-1}.unit_price",
+                    "toast": {
+                        "type": "error",
+                        "message": f"Please enter a valid unit price for item {index}",
+                        "timeout": 3000
+                    }
+                }), 400
+            
+            quantity = float(item["quantity"])
+            unit_price = float(item["unit_price"])
+            item_total = quantity * unit_price
+            
+            # Check product stock if product_id is provided
+            try:
+                product = supabase.table("products")\
+                    .select("name, stock_quantity, track_inventory")\
+                    .eq("id", item["product_id"])\
+                    .eq("owner_id", owner_id)\
+                    .single()\
+                    .execute()
+                    
+                if product.data:
+                    if product.data.get("track_inventory", False):
+                        available_stock = product.data.get("stock_quantity", 0)
+                        if quantity > available_stock:
+                            return jsonify({
+                                "success": False,
+                                "message": f"Insufficient stock for {product.data.get('name')}",
+                                "toast": {
+                                    "type": "error",
+                                    "message": f"Not enough stock available for {product.data.get('name')}. Available: {available_stock}",
+                                    "timeout": 4000
+                                }
+                            }), 400
+            except Exception as e:
+                current_app.logger.error(f"Error checking product stock: {str(e)}")
+                return jsonify({
+                    "success": False,
+                    "message": "Error validating product information",
+                    "toast": {
+                        "type": "error",
+                        "message": "Error validating product information",
+                        "timeout": 3000
+                    }
+                }), 500
+            
+            processed_item = {
+                "product_id": item["product_id"],
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "total": item_total
             }
-        }), 201
+            
+            if "description" in item:
+                processed_item["description"] = item["description"]
+            
+            processed_items.append(processed_item)
+            subtotal += item_total
         
+        # Calculate tax and total
+        tax_amount = float(data.get("tax_amount", 0))
+        discount_amount = float(data.get("discount_amount", 0))
+        total_amount = subtotal + tax_amount - discount_amount
+        
+        # Prepare sale data
+        sale_data = {
+            "id": str(uuid.uuid4()),
+            "owner_id": owner_id,
+            "user_id": user_id,  # Track which user created the sale
+            "customer_id": data["customer_id"],
+            "customer_name": customer.data.get("name", ""),
+            "sale_number": f"SALE-{datetime.utcnow().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
+            "subtotal": subtotal,
+            "tax_amount": tax_amount,
+            "discount_amount": discount_amount,
+            "total_amount": total_amount,
+            "status": "completed",
+            "payment_method": data.get("payment_method", "cash"),
+            "notes": data.get("notes", ""),
+            "sale_date": data.get("sale_date") or datetime.utcnow().isoformat(),
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        # Use a transaction to ensure data consistency
+        try:
+            with supabase.rpc('begin').execute():
+                # Create the sale
+                sale_result = supabase.table("sales").insert(sale_data).execute()
+                
+                if not sale_result.data:
+                    raise Exception("Failed to create sale record")
+                
+                sale_id = sale_result.data[0]["id"]
+                
+                # Create sale items
+                for item in processed_items:
+                    item["sale_id"] = sale_id
+                    item["id"] = str(uuid.uuid4())
+                    
+                    # Update product quantities if tracking inventory
+                    if item.get("product_id"):
+                        supabase.rpc('decrement_product_stock', {
+                            'product_id': item["product_id"],
+                            'amount': item["quantity"]
+                        }).execute()
+                
+                # Insert all sale items
+                items_result = supabase.table("sale_items").insert(processed_items).execute()
+                if not items_result.data:
+                    raise Exception("Failed to add sale items")
+                
+                # Create a transaction record
+                transaction_data = {
+                    "id": str(uuid.uuid4()),
+                    "owner_id": owner_id,
+                    "type": "sale",
+                    "amount": total_amount,
+                    "date": datetime.utcnow().isoformat(),
+                    "reference_id": sale_id,
+                    "reference_type": "sale",
+                    "description": f"Sale to {customer.data.get('name', 'customer')}",
+                    "payment_method": data.get("payment_method", "cash"),
+                    "status": "completed",
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                
+                transaction_result = supabase.table("transactions").insert(transaction_data).execute()
+                if not transaction_result.data:
+                    raise Exception("Failed to create transaction record")
+                
+                # Commit the transaction
+                supabase.rpc('commit').execute()
+                
+                # Get the complete sale with items
+                complete_sale = supabase.table("sales")\
+                    .select("*, sale_items(*, products(name, sku, barcode))")\
+                    .eq("id", sale_id)\
+                    .single()\
+                    .execute()
+                
+                return jsonify({
+                    "success": True,
+                    "message": "Sale recorded successfully",
+                    "data": {
+                        "sale": complete_sale.data
+                    },
+                    "toast": {
+                        "type": "success",
+                        "message": "Sale recorded successfully!",
+                        "timeout": 3000
+                    }
+                }), 201
+                
+        except Exception as e:
+            # Rollback on error
+            supabase.rpc('rollback').execute()
+            current_app.logger.error(f"Error processing sale: {str(e)}", exc_info=True)
+            return jsonify({
+                "success": False,
+                "message": "Failed to process sale",
+                "error": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "An error occurred while processing the sale. Please try again.",
+                    "timeout": 4000
+                }
+            }), 500
+            
     except Exception as e:
-        logging.error(f"Error creating sale: {str(e)}")
+        current_app.logger.error(f"Unexpected error in create_sale: {str(e)}", exc_info=True)
         return jsonify({
             "success": False,
-            "message": "Failed to create sale",
-            "error": str(e),
+            "message": "An unexpected error occurred",
             "toast": {
                 "type": "error",
-                "message": "An unexpected error occurred while creating the sale.",
+                "message": "An unexpected error occurred. Please try again later.",
                 "timeout": 4000
             }
         }), 500

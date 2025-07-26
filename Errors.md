@@ -30,3 +30,5 @@ And also there has been issues for other roles in recording sales as they get a 
     }
 }
 The toast error message is not showing the correct error scenario or giving the correct error message example when the customer wasn't selected while the user (admin) tried to create invoice instead of getting customer required error message he got item 1 true
+
+ALso when i try to input the quantity of a product on the sale card i noticed that while typing the toast notification for validating the quantity start popping up while still on the process of the typing this is wrong the validation should happen in a way that once the system sees that the stock quantity of a sale that is about to be recorded is should disable the button for recording sale and show the toast message and not while the user is still typing the quantity

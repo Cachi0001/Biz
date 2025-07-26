@@ -32,14 +32,7 @@ export interface ProductDropdownProps {
   className?: string;
 }
 
-/**
- * Reusable ProductDropdown component that encapsulates dropdown logic and label formatting
- * 
- * Features:
- * - Displays product name, price, and quantity
- * - Shows low stock color indicators when enabled
- * - Fully accessible with proper ARIA attributes
- */
+
 export const ProductDropdown: React.FC<ProductDropdownProps> = ({
   selectedProduct,
   products = [],
