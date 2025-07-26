@@ -88,7 +88,6 @@ def create_app():
         print(f"[DEBUG] Running in development mode without Supabase")
         logger.info("Running in development mode without Supabase")
 
-    # Mock database for development/testing
     if not supabase:
         app.config['MOCK_DB'] = {
             'users': [],

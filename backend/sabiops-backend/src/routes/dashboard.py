@@ -1,9 +1,5 @@
-"""
-Dashboard routes for SabiOps backend
-Provides overview statistics and analytics data
-"""
 
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.utils.user_context import get_user_context
 from datetime import datetime, timedelta
@@ -59,10 +55,35 @@ def parse_supabase_datetime(datetime_str):
         print(f"Error parsing datetime '{datetime_str}': {e}")
         return None
 
+def get_team_members(supabase, owner_id, user_role, user_id):
+    """Get list of team member IDs for role-based filtering"""
+    if user_role == 'Owner':
+        # Owner can see all team members
+        result = supabase.table('users')\
+            .select('id, full_name, email, role')\
+            .or_(f'owner_id.eq.{owner_id},id.eq.{owner_id}')\
+            .execute()
+    elif user_role == 'Admin':
+        # Admin can see themselves and their sales team
+        result = supabase.table('users')\
+            .select('id, full_name, email, role')\
+            .or_(f'owner_id.eq.{owner_id},id.eq.{user_id}')\
+            .execute()
+    else:
+        # Salesperson can only see themselves
+        user = supabase.table('users')\
+            .select('id, full_name, email, role')\
+            .eq('id', user_id)\
+            .single()\
+            .execute()
+        return [user.data] if user.data else []
+    
+    return result.data if result.data else []
+
 @dashboard_bp.route('/overview', methods=['GET'])
 @jwt_required()
 def get_overview():
-    """Get dashboard overview statistics"""
+    """Get dashboard overview statistics with role-based filtering"""
     try:
         user_id = get_jwt_identity()
         owner_id, user_role = get_user_context(user_id)
@@ -70,6 +91,19 @@ def get_overview():
         
         if not supabase:
             return error_response("Database connection not available", 500)
+        
+        # Get team members for role-based filtering
+        team_members = get_team_members(supabase, owner_id, user_role, user_id)
+        team_member_ids = [str(member['id']) for member in team_members]
+        
+        # Get filter parameters
+        team_member_id = request.args.get('team_member_id')
+        
+        # If specific team member is requested, validate access
+        if team_member_id and team_member_id != 'all':
+            if team_member_id not in team_member_ids:
+                return error_response("Unauthorized access to this team member", 403)
+            team_member_ids = [team_member_id]
         
         # Get current date in UTC
         utc = pytz.UTC
@@ -82,150 +116,115 @@ def get_overview():
             "customers": {"total": 0, "new_this_month": 0},
             "products": {"total": 0, "low_stock": 0},
             "invoices": {"overdue": 0},
-            "expenses": {"total": 0, "this_month": 0}
+            "expenses": {"total": 0, "this_month": 0},
+            "team_members": team_members,
+            "current_user_role": user_role
         }
         
-        # Get total revenue from sales (ensure data consistency)
-        sales_result = supabase.table('sales').select('total_amount, date, profit_from_sales, total_cogs').eq('owner_id', owner_id).execute()
+        # Get sales data with role-based filtering
+        sales_query = supabase.table('sales')\
+            .select('id, total_amount, date, status, salesperson_id')\
+            .eq('owner_id', owner_id)
+        
+        # Apply role-based filtering
+        if user_role != 'Owner':
+            sales_query = sales_query.in_('salesperson_id', team_member_ids)
+            
+        sales_result = sales_query.execute()
+        
+        # Calculate revenue metrics
         if sales_result.data:
-            total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
-            total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
-            overview["revenue"]["total"] = total_revenue
-            overview["revenue"]["profit_from_sales"] = total_profit_from_sales
-
-            # Calculate time periods for proper profit aggregation
-            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-            yesterday_start = (today_start - timedelta(days=1))
-            yesterday_end = (yesterday_start.replace(hour=23, minute=59, second=59, microsecond=999999))
+            overview["revenue"]["total"] = sum(
+                float(sale.get('total_amount', 0)) 
+                for sale in sales_result.data
+            )
             
-            # Initialize period calculations
-            this_month_revenue = 0
-            this_month_profit_from_sales = 0
-            today_revenue = 0
-            today_profit_from_sales = 0
-            today_cogs = 0
-            yesterday_profit_from_sales = 0
-            
-            # Process each sale for accurate period calculations
-            for sale in sales_result.data:
-                sale_date = parse_supabase_datetime(sale.get('date'))
-                if not sale_date:
-                    continue
-                    
-                sale_amount = float(sale.get('total_amount', 0))
-                sale_profit = float(sale.get('profit_from_sales', 0))
-                sale_cogs = float(sale.get('total_cogs', 0))
-                
-                # This month calculations
-                if sale_date >= current_month_start:
-                    this_month_revenue += sale_amount
-                    this_month_profit_from_sales += sale_profit
-                
-                # Today's calculations (daily profit that resets at midnight)
-                if today_start <= sale_date <= today_end:
-                    today_revenue += sale_amount
-                    today_profit_from_sales += sale_profit
-                    today_cogs += sale_cogs
-                
-                # Yesterday's profit for comparison
-                if yesterday_start <= sale_date <= yesterday_end:
-                    yesterday_profit_from_sales += sale_profit
-            
-            # Calculate daily profit growth
-            daily_profit_growth = 0
-            if yesterday_profit_from_sales > 0:
-                daily_profit_growth = ((today_profit_from_sales - yesterday_profit_from_sales) / yesterday_profit_from_sales) * 100
-            elif today_profit_from_sales > 0:
-                daily_profit_growth = 100  # 100% growth if yesterday was 0 but today has profit
-            
-            # Update overview with calculated values
-            overview["revenue"]["this_month"] = this_month_revenue
-            overview["revenue"]["this_month_profit_from_sales"] = this_month_profit_from_sales
-            overview["revenue"]["today_revenue"] = today_revenue
-            overview["revenue"]["today_profit_from_sales"] = today_profit_from_sales
-            overview["revenue"]["today_cogs"] = today_cogs
-            overview["revenue"]["yesterday_profit_from_sales"] = yesterday_profit_from_sales
-            overview["revenue"]["daily_profit_growth"] = round(daily_profit_growth, 2)
-            overview["revenue"]["daily_profit_reset_time"] = today_start.isoformat()
+            # This month's revenue
+            overview["revenue"]["this_month"] = sum(
+                float(sale.get('total_amount', 0))
+                for sale in sales_result.data
+                if parse_supabase_datetime(sale.get('date')) and \
+                   parse_supabase_datetime(sale.get('date')) >= current_month_start
+            )
         
-        # Get outstanding revenue from invoices - fix calculation
-        invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', owner_id).execute()
-        if invoices_result.data:
-            outstanding = 0
-            overdue_count = 0
-            for invoice in invoices_result.data:
-                # Consider unpaid invoices as outstanding
-                if invoice.get('status') in ['sent', 'pending', 'draft'] and not invoice.get('paid_date'):
-                    outstanding += float(invoice.get('total_amount', 0))
-                    
-                    # Check if overdue (unpaid and past due date)
-                    due_date = parse_supabase_datetime(invoice.get('due_date'))
-                    if due_date and due_date < now and not invoice.get('paid_date'):
-                        overdue_count += 1
+        # Get customer data with role-based filtering
+        customers_query = supabase.table('customers')\
+            .select('id, created_at, salesperson_id')\
+            .eq('owner_id', owner_id)
             
-            overview["revenue"]["outstanding"] = outstanding
-            overview["invoices"]["overdue"] = overdue_count
+        if user_role != 'Owner':
+            customers_query = customers_query.in_('salesperson_id', team_member_ids)
+            
+        customers_result = customers_query.execute()
         
-        # If no invoices data, also check for outstanding amounts from sales (credit sales)
-        # This ensures outstanding calculation works even without invoice system
-        if overview["revenue"]["outstanding"] == 0:
-            # Check for any pending payments or credit sales
-            payments_result = supabase.table('payments').select('amount, status').eq('owner_id', owner_id).execute()
-            if payments_result.data:
-                pending_payments = sum(
-                    float(payment.get('amount', 0))
-                    for payment in payments_result.data
-                    if payment.get('status') in ['pending', 'processing']
-                )
-                overview["revenue"]["outstanding"] = pending_payments
-        
-        # Get customer statistics
-        customers_result = supabase.table('customers').select('id, created_at').eq('owner_id', owner_id).execute()
         if customers_result.data:
             overview["customers"]["total"] = len(customers_result.data)
             
-            # Count new customers this month
-            new_this_month = 0
-            for customer in customers_result.data:
-                created_date = parse_supabase_datetime(customer.get('created_at'))
-                if created_date and created_date >= current_month_start:
-                    new_this_month += 1
-            overview["customers"]["new_this_month"] = new_this_month
+            # New customers this month
+            overview["customers"]["new_this_month"] = len([
+                c for c in customers_result.data
+                if parse_supabase_datetime(c.get('created_at')) and \
+                   parse_supabase_datetime(c.get('created_at')) >= current_month_start
+            ])
         
-        # Get product statistics
-        products_result = supabase.table('products').select('id, quantity, low_stock_threshold').eq('owner_id', owner_id).execute()
+        # Get product data (all roles can see products)
+        products_result = supabase.table('products')\
+            .select('id, stock_quantity, low_stock_threshold')\
+            .eq('owner_id', owner_id)\
+            .execute()
+            
         if products_result.data:
             overview["products"]["total"] = len(products_result.data)
-            
-            # Count low stock products
-            low_stock_count = 0
-            for product in products_result.data:
-                quantity = int(product.get('quantity', 0))
-                threshold = int(product.get('low_stock_threshold', 0))
-                if quantity <= threshold:
-                    low_stock_count += 1
-            overview["products"]["low_stock"] = low_stock_count
+            overview["products"]["low_stock"] = len([
+                p for p in products_result.data
+                if p.get('stock_quantity', 0) <= p.get('low_stock_threshold', 5)
+            ])
         
-        # Get expense statistics (ensure data consistency)
-        expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', owner_id).execute()
-        if expenses_result.data:
-            total_expenses = sum(float(expense.get('amount', 0)) for expense in expenses_result.data)
-            overview["expenses"]["total"] = total_expenses
+        # Get invoice data with role-based filtering
+        invoices_query = supabase.table('invoices')\
+            .select('id, due_date, status, salesperson_id')\
+            .eq('owner_id', owner_id)\
+            .eq('status', 'unpaid')\
+            .lte('due_date', now.isoformat())
             
-            # Calculate this month's expenses
-            this_month_expenses = 0
-            for expense in expenses_result.data:
-                expense_date = parse_supabase_datetime(expense.get('date'))
-                if expense_date and expense_date >= current_month_start:
-                    this_month_expenses += float(expense.get('amount', 0))
-            overview["expenses"]["this_month"] = this_month_expenses
+        if user_role != 'Owner':
+            invoices_query = invoices_query.in_('salesperson_id', team_member_ids)
+            
+        invoices_result = invoices_query.execute()
         
-        return success_response("Dashboard overview fetched successfully", overview)
+        if invoices_result.data:
+            overview["invoices"]["overdue"] = len(invoices_result.data)
+        
+        # Get expense data (owners and admins only)
+        if user_role in ['Owner', 'Admin']:
+            expenses_query = supabase.table('expenses')\
+                .select('amount, date')\
+                .eq('owner_id', owner_id)
+                
+            if user_role == 'Admin':
+                expenses_query = expenses_query.in_('user_id', team_member_ids)
+                
+            expenses_result = expenses_query.execute()
+            
+            if expenses_result.data:
+                overview["expenses"]["total"] = sum(
+                    float(expense.get('amount', 0)) 
+                    for expense in expenses_result.data
+                )
+                
+                # This month's expenses
+                overview["expenses"]["this_month"] = sum(
+                    float(expense.get('amount', 0))
+                    for expense in expenses_result.data
+                    if parse_supabase_datetime(expense.get('date')) and \
+                       parse_supabase_datetime(expense.get('date')) >= current_month_start
+                )
+        
+        return success_response(data=overview)
         
     except Exception as e:
-        current_app.logger.error(f"Error fetching dashboard overview: {str(e)}")
-        return error_response("Failed to fetch dashboard overview", 500)
+        current_app.logger.error(f"Error in get_overview: {str(e)}", exc_info=True)
+        return error_response("Failed to fetch dashboard data", 500)
 
 @dashboard_bp.route('/revenue-chart', methods=['GET'])
 @jwt_required()
@@ -815,4 +814,3 @@ def get_financials():
     except Exception as e:
         current_app.logger.error(f"Error fetching financials: {str(e)}")
         return error_response("Failed to fetch financials", 500)
-

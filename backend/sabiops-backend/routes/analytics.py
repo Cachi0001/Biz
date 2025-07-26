@@ -126,7 +126,7 @@ def customer_analytics():
         
         # Date range
         end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=90)  # Last 3 months
+        start_date = end_date - timedelta(days=90)  
         
         analytics_data = {
             'customer_summary': get_customer_summary(owner_id, start_date, end_date),
