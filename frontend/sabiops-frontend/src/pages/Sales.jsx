@@ -59,7 +59,23 @@ const Sales = () => {
   const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
-      const salesData = await getSales();
+      const response = await getSales();
+      
+      // Handle different response formats
+      let salesData = [];
+      if (Array.isArray(response)) {
+        salesData = response;
+      } else if (response && Array.isArray(response.data)) {
+        salesData = response.data;
+      } else if (response && response.sales && Array.isArray(response.sales)) {
+        salesData = response.sales;
+      } else if (response && response.data && response.data.sales && Array.isArray(response.data.sales)) {
+        salesData = response.data.sales;
+      } else {
+        console.warn('Unexpected sales data format:', response);
+        salesData = [];
+      }
+      
       setSales(salesData);
       
       // Calculate sales stats
@@ -70,6 +86,15 @@ const Sales = () => {
     } catch (error) {
       console.error('Error fetching sales:', error);
       setError('Failed to load sales data. Please try again.');
+      setSales([]); // Ensure sales is set to empty array on error
+      setSalesStats({
+        total_sales: 0,
+        total_transactions: 0,
+        today_sales: 0,
+        average_sale: 0,
+        total_quantity: 0,
+        profit_from_sales_monthly: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -77,25 +102,51 @@ const Sales = () => {
 
   // Calculate sales statistics
   const calculateSalesStats = (salesData) => {
+    // Ensure salesData is an array
+    const safeSalesData = Array.isArray(salesData) ? salesData : [];
     const today = new Date().toISOString().split('T')[0];
-    const monthlySales = salesData.filter(sale => {
-      const saleDate = new Date(sale.date || sale.created_at).toISOString().split('T')[0];
-      return saleDate.startsWith(today.substring(0, 7)); // Current month
+    
+    // Safely filter monthly sales
+    const monthlySales = safeSalesData.filter(sale => {
+      try {
+        const saleDate = sale?.date || sale?.created_at;
+        return saleDate && new Date(saleDate).toISOString().split('T')[0].startsWith(today.substring(0, 7));
+      } catch (e) {
+        console.warn('Error processing sale date:', e);
+        return false;
+      }
     });
 
+    // Helper function to safely calculate sum
+    const safeSum = (data, key) => {
+      if (!Array.isArray(data)) return 0;
+      return data.reduce((sum, item) => {
+        const value = parseFloat(item?.[key] || 0);
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+    };
+
+    // Calculate today's sales
+    const todaySales = safeSalesData.filter(sale => {
+      try {
+        const saleDate = sale?.date || sale?.created_at;
+        return saleDate && new Date(saleDate).toISOString().split('T')[0] === today;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const totalSales = safeSum(safeSalesData, 'total_amount');
+    const totalQuantity = safeSum(safeSalesData, 'quantity');
+    const monthlyProfit = safeSum(monthlySales, 'profit_from_sales');
+
     return {
-      total_sales: salesData.reduce((sum, sale) => sum + (sale.total_amount || 0), 0),
-      total_transactions: salesData.length,
-      today_sales: salesData
-        .filter(sale => (sale.date || sale.created_at).startsWith(today))
-        .reduce((sum, sale) => sum + (sale.total_amount || 0), 0),
-      average_sale: salesData.length > 0 
-        ? salesData.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) / salesData.length 
-        : 0,
-      total_quantity: salesData.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0),
-      profit_from_sales_monthly: monthlySales.reduce(
-        (sum, sale) => sum + (sale.profit_from_sales || 0), 0
-      )
+      total_sales: totalSales,
+      total_transactions: safeSalesData.length,
+      today_sales: safeSum(todaySales, 'total_amount'),
+      average_sale: safeSalesData.length > 0 ? totalSales / safeSalesData.length : 0,
+      total_quantity: totalQuantity,
+      profit_from_sales_monthly: monthlyProfit
     };
   };
 
