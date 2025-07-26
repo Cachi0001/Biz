@@ -9,6 +9,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.colors import HexColor
 import io
 from src.services.supabase_service import SupabaseService
+from src.routes.create_sale_from_invoice import create_sale_from_invoice
 
 invoice_bp = Blueprint("invoice", __name__)
 
@@ -462,17 +463,8 @@ def update_invoice_status(invoice_id):
             updated_invoice = {**invoice, **update_data}
             transaction_created = create_transaction_for_invoice(updated_invoice)
             
-            # Deduct inventory for each product in the invoice when marked as paid
-            for item in invoice.get("items", []):
-                product_id = item.get("product_id")
-                quantity = float(item.get("quantity", 0))
-                if product_id and quantity > 0:
-                    product_result = supabase.table("products").select("*").eq("id", product_id).single().execute()
-                    if product_result.data:
-                        current_quantity = product_result.data["quantity"]
-                        new_quantity = max(0, current_quantity - quantity)
-                        supabase.table("products").update({"quantity": new_quantity, "updated_at": datetime.now().isoformat()}).eq("id", product_id).execute()
-                        # Optionally, trigger low stock notification here
+            # Create sale from invoice
+            create_sale_from_invoice(invoice)
             
             if transaction_created:
                 # Notify user of successful payment
@@ -734,6 +726,3 @@ def get_overdue_invoices():
         
     except Exception as e:
         return error_response(str(e), status_code=500)
-
-
-

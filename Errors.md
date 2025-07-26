@@ -1,17 +1,1 @@
-
-﻿
-{"error":"{'code': '42P01', 'details': None, 'hint': None, 'message': 'relation \"subscription_plan_limits\" does not exist'}","message":"Failed to create product","success":false}
-{
-    "message": "Transaction processing error: {'code': '42P01', 'details': None, 'hint': None, 'message': 'relation \"subscription_plan_limits\" does not exist'}",
-    "success": false,
-    "toast": {
-        "message": "Transaction processing error: {'code': '42P01', 'details': None, 'hint': None, 'message': 'relation \"subscription_plan_limits\" does not exist'}",
-        "timeout": 3000,
-        "type": "error"
-    }
-}
-{
-    "error": "Invalid category. Must be one of: Inventory/Stock, Rent, Utilities, Transportation, Marketing, Staff Salaries, Equipment, Professional Services, Insurance, Taxes, Bank Charges, Other",
-    "message": "Error",
-    "success": false
-}
+{"error":"{'code': '22P02', 'details': None, 'hint': None, 'message': 'invalid input syntax for type integer: \"13.0\"'}","message":"Failed to update invoice status","success":false,"toast":{"message":"Failed to update invoice status","timeout":4000,"type":"error"}}
