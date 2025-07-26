@@ -1,103 +1,217 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from supabase import create_client
+import os
+from datetime import datetime
 import logging
+
+supabase = create_client(
+    os.getenv('SUPABASE_URL'),
+    os.getenv('SUPABASE_SERVICE_KEY')
+)
 
 search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
-def get_supabase():
-    """Get Supabase client from Flask app config"""
-    return current_app.config['SUPABASE']
-
-def success_response(data=None, message="Success", status_code=200):
-    return jsonify({
-        "success": True,
-        "data": data,
-        "message": message
-    }), status_code
-
-def error_response(error, message="Error", status_code=400):
-    logger.error(f"[SEARCH API ERROR] Status: {status_code}, Message: {message}, Error: {error}")
-    return jsonify({
-        "success": False,
-        "error": str(error),
-        "message": message
-    }), status_code
-
-@search_bp.route('', methods=['GET'])
+@search_bp.route('/api/search', methods=['GET'])
 @jwt_required()
 def global_search():
-    """
-    Global search across customers, products, invoices, transactions, and expenses
-    """
     try:
-        supabase = get_supabase()
-        current_user_id = get_jwt_identity()
+        user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
-        limit = int(request.args.get('limit', 5))
+        search_type = request.args.get('type', 'all')
+        limit = int(request.args.get('limit', 10))
         
         if not query:
-            return success_response(
-                data={
-                    'customers': [],
-                    'products': [],
-                    'invoices': [],
-                    'transactions': [],
-                    'expenses': []
-                }
-            )
+            return jsonify({'error': 'Search query is required'}), 400
+        
+        if len(query) < 2:
+            return jsonify({'error': 'Search query must be at least 2 characters'}), 400
+        
+        # Get user role for filtering
+        user_response = supabase.table('users').select('role, owner_id').eq('id', user_id).single().execute()
+        if not user_response.data:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user_role = user_response.data['role']
+        owner_id = user_response.data['owner_id'] or user_id
+        
+        results = {}
         
         # Search customers
-        logger.debug(f"Searching customers for query: {query}")
-        customers_response = supabase.table('customers').select('*').or_(
-            f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%'
-        ).eq('owner_id', current_user_id).limit(limit).execute()
-        logger.debug(f"Customers search response: {customers_response.data}")
-        customers = customers_response.data if customers_response.data else []
+        if search_type in ['all', 'customers']:
+            results['customers'] = search_customers(query, owner_id, user_role, limit)
         
         # Search products
-        logger.debug(f"Searching products for query: {query}")
-        products_response = supabase.table('products').select('*').or_(
-            f'name.ilike.%{query}%,description.ilike.%{query}%,sku.ilike.%{query}%,category.ilike.%{query}%'
-        ).eq('owner_id', current_user_id).eq('active', True).limit(limit).execute()
-        logger.debug(f"Products search response: {products_response.data}")
-        products = products_response.data if products_response.data else []
+        if search_type in ['all', 'products']:
+            results['products'] = search_products(query, owner_id, user_role, limit)
         
         # Search invoices
-        logger.debug(f"Searching invoices for query: {query}")
-        invoices_response = supabase.table('invoices').select('*').or_(
-            f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
-        ).eq('owner_id', current_user_id).limit(limit).execute()
-        logger.debug(f"Invoices search response: {invoices_response.data}")
-        invoices = invoices_response.data if invoices_response.data else []
+        if search_type in ['all', 'invoices']:
+            results['invoices'] = search_invoices(query, owner_id, user_role, limit)
         
-        # Search transactions
-        logger.debug(f"Searching transactions for query: {query}")
-        transactions_response = supabase.table('transactions').select('*').or_(
-            f'description.ilike.%{query}%,category.ilike.%{query}%'
-        ).eq('owner_id', current_user_id).limit(limit).execute()
-        logger.debug(f"Transactions search response: {transactions_response.data}")
-        transactions = transactions_response.data if transactions_response.data else []
+        # Search expenses (owners and admins only)
+        if search_type in ['all', 'expenses'] and user_role in ['owner', 'admin']:
+            results['expenses'] = search_expenses(query, owner_id, user_role, limit)
         
-        # Search expenses
-        logger.debug(f"Searching expenses for query: {query}")
-        expenses_response = supabase.table('expenses').select('*').or_(
-            f'description.ilike.%{query}%,category.ilike.%{query}%'
-        ).eq('owner_id', current_user_id).limit(limit).execute()
-        logger.debug(f"Expenses search response: {expenses_response.data}")
-        expenses = expenses_response.data if expenses_response.data else []
+        # Log search activity
+        log_search_activity(user_id, query, search_type, len(results))
         
-        return success_response(
-            data={
-                'customers': customers,
-                'products': products,
-                'invoices': invoices,
-                'transactions': transactions,
-                'expenses': expenses
-            }
-        )
+        return jsonify({
+            'success': True,
+            'query': query,
+            'results': results,
+            'total_results': sum(len(v) for v in results.values())
+        })
         
     except Exception as e:
-        logger.error(f"Global search error: {str(e)}")
-        return error_response("Failed to perform search", status_code=500)
+        logger.error(f"Search error: {str(e)}")
+        return jsonify({'error': 'Search failed'}), 500
+
+def search_customers(query, owner_id, user_role, limit):
+    """Search customers with role-based filtering"""
+    try:
+        # Build search query with OR conditions using the 'or_' filter
+        search_condition = f'%{query}%'
+        response = supabase.table('customers')\
+            .select('id, name, email, phone, address, created_at')\
+            .eq('owner_id', owner_id)\
+            .or_(f"name.ilike.{search_condition},email.ilike.{search_condition},phone.ilike.{search_condition},address.ilike.{search_condition}")\
+            .limit(limit)\
+            .execute()
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Customer search error: {str(e)}")
+        return []
+
+def search_products(query, owner_id, user_role, limit):
+    """Search products with role-based filtering"""
+    try:
+        # Build search query with OR conditions using the 'or_' filter
+        search_condition = f'%{query}%'
+        response = supabase.table('products')\
+            .select('id, name, description, sku, price, quantity, category, created_at')\
+            .eq('owner_id', owner_id)\
+            .or_(f"name.ilike.{search_condition},description.ilike.{search_condition},sku.ilike.{search_condition}")\
+            .limit(limit)\
+            .execute()
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Product search error: {str(e)}")
+        return []
+
+def search_invoices(query, owner_id, user_role, limit):
+    """Search invoices with role-based filtering"""
+    try:
+        # Build search query with OR conditions using the 'or_' filter
+        search_condition = f'%{query}%'
+        response = supabase.table('invoices')\
+            .select('id, invoice_number, customer:customer_id(id, name), total_amount, status, due_date, created_at')\
+            .eq('owner_id', owner_id)\
+            .or_(f"invoice_number.ilike.{search_condition},customer.name.ilike.{search_condition},status.ilike.{search_condition}")\
+            .limit(limit)\
+            .execute()
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Invoice search error: {str(e)}")
+        return []
+
+def search_expenses(query, owner_id, user_role, limit):
+    """Search expenses (owners and admins only)"""
+    try:
+        # Build search query with OR conditions using the 'or_' filter
+        search_condition = f'%{query}%'
+        response = supabase.table('expenses')\
+            .select('id, description, amount, category, date, payment_method, created_at')\
+            .eq('owner_id', owner_id)\
+            .or_(f"description.ilike.{search_condition},category.ilike.{search_condition},payment_method.ilike.{search_condition},amount.cast(text).ilike.{search_condition}")\
+            .limit(limit)\
+            .execute()
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Expense search error: {str(e)}")
+        return []
+
+def log_search_activity(user_id, query, search_type, result_count):
+    """Log search activity for analytics"""
+    try:
+        supabase.table('search_logs').insert({
+            'user_id': user_id,
+            'query': query,
+            'search_type': search_type,
+            'result_count': result_count,
+            'created_at': datetime.utcnow().isoformat()
+        }).execute()
+    except Exception as e:
+        logger.error(f"Search logging error: {str(e)}")
+
+@search_bp.route('/api/search/suggestions', methods=['GET'])
+@jwt_required()
+def search_suggestions():
+    """Get search suggestions based on user's data"""
+    try:
+        user_id = get_jwt_identity()
+        query = request.args.get('q', '').strip()
+        
+        if len(query) < 2:
+            return jsonify({'suggestions': []})
+        
+        # Get user's owner_id
+        user_response = supabase.table('users').select('owner_id').eq('id', user_id).single().execute()
+        owner_id = user_response.data['owner_id'] or user_id
+        
+        suggestions = []
+        
+        # Get customer name suggestions
+        customer_response = supabase.table('customers').select('name').eq('owner_id', owner_id).ilike('name', f'%{query}%').limit(5).execute()
+        for customer in customer_response.data or []:
+            suggestions.append({
+                'text': customer['name'],
+                'type': 'customer',
+                'category': 'Customers'
+            })
+        
+        # Get product name suggestions
+        product_response = supabase.table('products').select('name').eq('owner_id', owner_id).ilike('name', f'%{query}%').limit(5).execute()
+        for product in product_response.data or []:
+            suggestions.append({
+                'text': product['name'],
+                'type': 'product',
+                'category': 'Products'
+            })
+        
+        return jsonify({'suggestions': suggestions[:10]})
+        
+    except Exception as e:
+        logger.error(f"Search suggestions error: {str(e)}")
+        return jsonify({'suggestions': []})
+
+@search_bp.route('/api/search/recent', methods=['GET'])
+@jwt_required()
+def recent_searches():
+    """Get user's recent searches"""
+    try:
+        user_id = get_jwt_identity()
+        
+        response = supabase.table('search_logs').select(
+            'query, search_type, created_at'
+        ).eq('user_id', user_id).order('created_at', desc=True).limit(10).execute()
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        recent = []
+        for search in response.data or []:
+            if search['query'] not in seen:
+                seen.add(search['query'])
+                recent.append(search)
+        
+        return jsonify({'recent_searches': recent[:5]})
+        
+    except Exception as e:
+        logger.error(f"Recent searches error: {str(e)}")
+        return jsonify({'recent_searches': []})
 

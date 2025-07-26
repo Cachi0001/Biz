@@ -43,15 +43,10 @@ export const validateSaleData = (saleData) => {
     errors.payment_method = 'Invalid payment method';
   }
   
-  // Format data for API
+  // Format data for API with items array
   const formattedData = {
-    product_id: saleData.product_id,
     customer_id: saleData.customer_id || null,
     customer_name: saleData.customer_name || 'Walk-in Customer',
-    customer_email: saleData.customer_email || null,
-    quantity: parseInt(saleData.quantity) || 1,
-    unit_price: parseFloat(saleData.unit_price) || 0,
-    total_amount: parseFloat(saleData.total_amount) || 0,
     payment_method: saleData.payment_method || 'cash',
     payment_status: saleData.payment_method === 'pending' ? 'pending' : 'completed',
     currency: 'NGN',
@@ -59,7 +54,13 @@ export const validateSaleData = (saleData) => {
     salesperson_id: saleData.salesperson_id || null,
     notes: saleData.notes || null,
     discount_amount: parseFloat(saleData.discount_amount) || 0,
-    tax_amount: parseFloat(saleData.tax_amount) || 0
+    tax_amount: parseFloat(saleData.tax_amount) || 0,
+    items: [{
+      product_id: saleData.product_id,
+      quantity: parseInt(saleData.quantity) || 1,
+      unit_price: parseFloat(saleData.unit_price) || 0,
+      total_amount: parseFloat(saleData.total_amount) || 0
+    }]
   };
   
   return {
