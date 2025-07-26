@@ -3,11 +3,11 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
 import logging
+from ..utils.auth_utils import get_user_context
 
 sales_bp = Blueprint("sales", __name__)
 
 def get_supabase():
-    """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
 
 def success_response(data=None, message="Success", status_code=200):
@@ -33,7 +33,6 @@ def get_sales():
         if not supabase:
             print("[ERROR] Supabase connection not available in get_sales")
             return error_response("Database connection not available", 500)
-        # Build query with filters
         query = supabase.table("sales").select("*").eq("owner_id", owner_id)
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -133,13 +132,25 @@ def create_sale():
         user_id = get_jwt_identity()
         supabase = get_supabase()
         
+        if not supabase:
+            return jsonify({
+                "success": False,
+                "message": "Database connection not available",
+                "toast": {
+                    "type": "error",
+                    "message": "Database connection error. Please try again.",
+                    "timeout": 4000
+                }
+            }), 500
+        
         # Get user's role and owner_id
         try:
             owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
+        except Exception as e:
+            current_app.logger.error(f"Error getting user context: {str(e)}")
             return jsonify({
                 "success": False,
-                "message": str(e),
+                "message": str(e) or "Authorization error",
                 "toast": {
                     "type": "error",
                     "message": "Authorization error. Please log in again.",
@@ -187,7 +198,7 @@ def create_sale():
                     "toast": {
                         "type": "error",
                         "message": "The selected customer was not found",
-                        "timeout": 3000
+                        "timeout": 4000
                     }
                 }), 404
         except Exception as e:
