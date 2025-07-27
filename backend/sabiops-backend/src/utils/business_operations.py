@@ -330,33 +330,71 @@ class BusinessOperationsManager:
                     profit_from_sales_aggregated += item_profit_from_sales
 
                     # Debug: Check normalized_data type before using it
-                    logger.debug(f"normalized_data type: {type(normalized_data)}, content: {normalized_data}")
+                    logger.error(f"DEBUG: normalized_data type: {type(normalized_data)}, content: {normalized_data}")
                     
                     # Ensure normalized_data is a dictionary
                     if not isinstance(normalized_data, dict):
                         logger.error(f"normalized_data is not a dictionary: {type(normalized_data)} - {normalized_data}")
                         return False, f"Internal error: normalized data is not in expected format", None
                     
-                    # Prepare RPC parameters with validation
-                    rpc_params = {
-                        "p_owner_id": owner_id,
-                        "p_product_id": product_id,
-                        "p_quantity": quantity,
-                        "p_unit_price": unit_price,
-                        "p_total_amount": item_total_amount,
-                        "p_total_cogs": item_total_cogs,
-                        "p_salesperson_id": owner_id,
-                        "p_customer_id": normalized_data.get("customer_id"),
-                        "p_customer_name": normalized_data.get("customer_name"),
-                        "p_payment_method": normalized_data.get("payment_method", "cash"),
-                        "p_product_name": product.get("name"),
-                        "p_notes": normalized_data.get("notes"),
-                        "p_date": normalized_data.get("date"),
-                        "p_discount_amount": normalized_data.get("discount_amount", 0),
-                        "p_tax_amount": normalized_data.get("tax_amount", 0),
-                        "p_currency": normalized_data.get("currency", "NGN"),
-                        "p_payment_status": normalized_data.get("payment_status", "completed")
-                    }
+                    # Debug: Check product type
+                    logger.error(f"DEBUG: product type: {type(product)}, content: {product}")
+                    
+                    # Ensure product is a dictionary
+                    if not isinstance(product, dict):
+                        logger.error(f"Product data is not a dictionary: {type(product)} - {product}")
+                        return False, f"Invalid product data format received from database", None
+                    
+                    # Prepare RPC parameters with validation - step by step to catch the error
+                    try:
+                        logger.error(f"DEBUG: Creating RPC params step by step")
+                        
+                        rpc_params = {}
+                        rpc_params["p_owner_id"] = owner_id
+                        rpc_params["p_product_id"] = product_id
+                        rpc_params["p_quantity"] = quantity
+                        rpc_params["p_unit_price"] = unit_price
+                        rpc_params["p_total_amount"] = item_total_amount
+                        rpc_params["p_total_cogs"] = item_total_cogs
+                        rpc_params["p_salesperson_id"] = owner_id
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('customer_id')")
+                        rpc_params["p_customer_id"] = normalized_data.get("customer_id")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('customer_name')")
+                        rpc_params["p_customer_name"] = normalized_data.get("customer_name")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('payment_method')")
+                        rpc_params["p_payment_method"] = normalized_data.get("payment_method", "cash")
+                        
+                        logger.error(f"DEBUG: About to access product.get('name')")
+                        rpc_params["p_product_name"] = product.get("name")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('notes')")
+                        rpc_params["p_notes"] = normalized_data.get("notes")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('date')")
+                        rpc_params["p_date"] = normalized_data.get("date")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('discount_amount')")
+                        rpc_params["p_discount_amount"] = normalized_data.get("discount_amount", 0)
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('tax_amount')")
+                        rpc_params["p_tax_amount"] = normalized_data.get("tax_amount", 0)
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('currency')")
+                        rpc_params["p_currency"] = normalized_data.get("currency", "NGN")
+                        
+                        logger.error(f"DEBUG: About to access normalized_data.get('payment_status')")
+                        rpc_params["p_payment_status"] = normalized_data.get("payment_status", "completed")
+                        
+                        logger.error(f"DEBUG: RPC params created successfully: {rpc_params}")
+                        
+                    except Exception as param_error:
+                        logger.error(f"ERROR creating RPC parameters: {str(param_error)}")
+                        logger.error(f"normalized_data at error: {normalized_data}")
+                        logger.error(f"product at error: {product}")
+                        return False, f"Error preparing transaction parameters: {str(param_error)}", None
                     
                     logger.debug(f"Calling create_sale_transaction RPC for item {item_index}")
                     
