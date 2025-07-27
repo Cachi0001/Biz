@@ -1,8 +1,3 @@
-"""
-Business Operations Utility
-Handles automatic inventory updates, transaction creation, and data consistency
-"""
-
 import logging
 import json
 from datetime import datetime
@@ -18,19 +13,6 @@ class BusinessOperationsManager:
         self.supabase = supabase_client
     
     def _normalize_sale_data(self, sale_data: Dict) -> Dict:
-        """
-        Normalize sale data to expected format with sale_items array
-        Handles both single-item and multi-item sale formats
-        
-        Args:
-            sale_data: Raw sale data from frontend
-            
-        Returns:
-            Normalized data with sale_items array
-            
-        Raises:
-            ValueError: If data format is invalid
-        """
         try:
             # Log incoming data for debugging
             logger.debug(f"Normalizing sale data: {type(sale_data)} - Keys: {list(sale_data.keys()) if isinstance(sale_data, dict) else 'Not a dict'}")
@@ -138,77 +120,223 @@ class BusinessOperationsManager:
                 logger.error(f"No sale items found after normalization - Data: {normalized_data}")
                 return False, "No sale items provided", None
 
-            # Process each item in the sale
-            for item in sale_items:
-                product_id = item.get("product_id")
-                quantity = int(item.get("quantity", 0))
-                unit_price = float(item.get("unit_price", 0))
+            # Process each item in the sale with enhanced error handling
+            processed_items = []
+            last_sale_id = None
+            
+            logger.info(f"Processing {len(sale_items)} sale items for owner {owner_id}")
+            
+            for item_index, item in enumerate(sale_items):
+                try:
+                    # Validate item data with detailed logging
+                    product_id = item.get("product_id")
+                    if not product_id:
+                        logger.error(f"Missing product_id in sale item {item_index}: {item}")
+                        return False, f"Missing product ID in sale item {item_index + 1}", None
+                    
+                    # Validate and convert numeric values
+                    try:
+                        quantity = int(item.get("quantity", 0))
+                        unit_price = float(item.get("unit_price", 0))
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"Invalid numeric values in sale item {item_index}: {item} - Error: {str(e)}")
+                        return False, f"Invalid numeric values in sale item {item_index + 1}: {str(e)}", None
+                    
+                    # Business logic validation
+                    if quantity <= 0:
+                        logger.error(f"Invalid quantity in sale item {item_index}: {quantity}")
+                        return False, f"Quantity must be greater than 0 in sale item {item_index + 1}", None
+                    
+                    if unit_price < 0:
+                        logger.error(f"Invalid unit price in sale item {item_index}: {unit_price}")
+                        return False, f"Unit price cannot be negative in sale item {item_index + 1}", None
+
+                    # Fetch product details with error handling
+                    logger.debug(f"Fetching product details for {product_id}")
+                    try:
+                        product_result = self.supabase.table("products").select("name, cost_price").eq("id", product_id).single().execute()
+                        if product_result.error:
+                            logger.error(f"Database error fetching product {product_id}: {product_result.error}")
+                            return False, f"Database error: {product_result.error.message}", None
+                        
+                        if not product_result.data:
+                            logger.error(f"Product not found: {product_id}")
+                            return False, f"Product with ID {product_id} not found", None
+                        
+                        product = product_result.data
+                        logger.debug(f"Product found: {product.get('name', 'Unknown')} - Cost: {product.get('cost_price', 0)}")
+                        
+                    except Exception as db_error:
+                        logger.error(f"Exception fetching product {product_id}: {str(db_error)}")
+                        return False, f"Failed to fetch product details: {str(db_error)}", None
+
+                    # Calculate financial metrics
+                    cost_price = float(product.get("cost_price", 0))
+                    item_total_amount = quantity * unit_price
+                    item_total_cogs = quantity * cost_price
+                    item_profit_from_sales = item_total_amount - item_total_cogs
+
+                    # Update aggregated totals
+                    total_amount_aggregated += item_total_amount
+                    total_cogs_aggregated += item_total_cogs
+                    profit_from_sales_aggregated += item_profit_from_sales
+
+                    # Prepare RPC parameters with validation
+                    rpc_params = {
+                        "p_owner_id": owner_id,
+                        "p_product_id": product_id,
+                        "p_quantity": quantity,
+                        "p_unit_price": unit_price,
+                        "p_total_amount": item_total_amount,
+                        "p_total_cogs": item_total_cogs,
+                        "p_salesperson_id": owner_id,
+                        "p_customer_id": normalized_data.get("customer_id"),
+                        "p_customer_name": normalized_data.get("customer_name"),
+                        "p_payment_method": normalized_data.get("payment_method", "cash"),
+                        "p_product_name": product.get("name"),
+                        "p_notes": normalized_data.get("notes"),
+                        "p_date": normalized_data.get("date"),
+                        "p_discount_amount": normalized_data.get("discount_amount", 0),
+                        "p_tax_amount": normalized_data.get("tax_amount", 0),
+                        "p_currency": normalized_data.get("currency", "NGN"),
+                        "p_payment_status": normalized_data.get("payment_status", "completed")
+                    }
+                    
+                    logger.debug(f"Calling create_sale_transaction RPC for item {item_index}")
+                    
+                    # Call the RPC with enhanced error handling
+                    try:
+                        result = self.supabase.rpc('create_sale_transaction', rpc_params).execute()
+                        
+                        if result.error:
+                            logger.error(f"RPC error for item {item_index}: {result.error}")
+                            return False, f"Database transaction failed: {result.error.message}", None
+                        
+                        if not result.data:
+                            logger.error(f"RPC returned no data for item {item_index}")
+                            return False, "Failed to create sale transaction - no ID returned", None
+                        
+                        last_sale_id = result.data
+                        processed_items.append({
+                            "item_index": item_index,
+                            "product_id": product_id,
+                            "sale_id": last_sale_id,
+                            "amount": item_total_amount
+                        })
+                        
+                        logger.info(f"Successfully processed sale item {item_index}: Product {product_id}, Amount {item_total_amount}")
+                        
+                    except Exception as rpc_error:
+                        logger.error(f"Exception during RPC call for item {item_index}: {str(rpc_error)}")
+                        return False, f"Transaction processing failed: {str(rpc_error)}", None
+                        
+                except Exception as item_error:
+                    logger.error(f"Error processing sale item {item_index}: {str(item_error)} - Item data: {item}")
+                    return False, f"Error processing sale item {item_index + 1}: {str(item_error)}", None
+
+            # Validate that at least one item was processed successfully
+            if not processed_items or not last_sale_id:
+                logger.error(f"No items were processed successfully - Processed: {len(processed_items)}")
+                return False, "No sale items were processed successfully", None
+            
+            logger.info(f"Successfully processed {len(processed_items)} sale items. Total amount: {total_amount_aggregated}")
+            
+            # Fetch the last created sale record for return
+            try:
+                logger.debug(f"Fetching sale record for ID: {last_sale_id}")
+                sale_record_result = self.supabase.table('sales').select('*').eq('id', last_sale_id).single().execute()
                 
-                if not product_id or quantity <= 0 or unit_price < 0:
-                    return False, "Invalid product details in sale items", None
-
-                product_result = self.supabase.table("products").select("name, cost_price").eq("id", product_id).single().execute()
-                if not product_result.data:
-                    return False, f"Product with ID {product_id} not found", None
-                product = product_result.data
-
-                cost_price = float(product.get("cost_price", 0))
-                item_total_amount = quantity * unit_price
-                item_total_cogs = quantity * cost_price
-                item_profit_from_sales = item_total_amount - item_total_cogs
-
-                total_amount_aggregated += item_total_amount
-                total_cogs_aggregated += item_total_cogs
-                profit_from_sales_aggregated += item_profit_from_sales
-
-                # Call the RPC for each item
-                result = self.supabase.rpc('create_sale_transaction', {
-                    "p_owner_id": owner_id,
-                    "p_product_id": product_id,
-                    "p_quantity": quantity,
-                    "p_unit_price": unit_price,
-                    "p_total_amount": item_total_amount,
-                    "p_total_cogs": item_total_cogs,
-                    "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
-                    "p_customer_id": normalized_data.get("customer_id"),
-                    "p_customer_name": normalized_data.get("customer_name"),
-                    "p_payment_method": normalized_data.get("payment_method", "cash"),
-                    "p_product_name": product.get("name"),
-                    "p_notes": normalized_data.get("notes"),
-                    "p_date": normalized_data.get("date"),
-                    "p_discount_amount": normalized_data.get("discount_amount", 0),
-                    "p_tax_amount": normalized_data.get("tax_amount", 0),
-                    "p_currency": normalized_data.get("currency", "NGN"),
-                    "p_payment_status": normalized_data.get("payment_status", "completed")
-                }).execute()
-
-                if result.error:
-                    raise Exception(result.error.message)
-
-            # After processing all items, fetch the last created sale record or a summary
-            # For simplicity, we'll return a summary of the aggregated totals
-            # If you need individual sale records for each item, you'd collect new_sale_id from each RPC call
-            
-            # The function returns the new sale_id. We can use that to fetch the created sale record.
-            new_sale_id = result.data
-            if not new_sale_id:
-                 return False, "Failed to create sale, no ID returned", None
-
-            sale_record_result = self.supabase.table('sales').select('*').eq('id', new_sale_id).single().execute()
-            
-            if sale_record_result.error:
-                raise Exception(sale_record_result.error.message)
-
-            return True, None, sale_record_result.data
+                if sale_record_result.error:
+                    logger.error(f"Error fetching created sale record: {sale_record_result.error}")
+                    # Don't fail the entire transaction for this - sale was created successfully
+                    logger.warning("Sale was created but couldn't fetch record for response")
+                    return True, None, {
+                        "id": last_sale_id,
+                        "total_amount": total_amount_aggregated,
+                        "total_cogs": total_cogs_aggregated,
+                        "profit_from_sales": profit_from_sales_aggregated,
+                        "items_processed": len(processed_items)
+                    }
+                
+                if not sale_record_result.data:
+                    logger.warning(f"Sale record not found after creation: {last_sale_id}")
+                    return True, None, {
+                        "id": last_sale_id,
+                        "total_amount": total_amount_aggregated,
+                        "total_cogs": total_cogs_aggregated,
+                        "profit_from_sales": profit_from_sales_aggregated,
+                        "items_processed": len(processed_items)
+                    }
+                
+                # Enhance the returned record with processing summary
+                sale_record = sale_record_result.data
+                sale_record["processing_summary"] = {
+                    "items_processed": len(processed_items),
+                    "total_amount_aggregated": total_amount_aggregated,
+                    "total_cogs_aggregated": total_cogs_aggregated,
+                    "profit_from_sales_aggregated": profit_from_sales_aggregated
+                }
+                
+                logger.info(f"Sale transaction completed successfully: {last_sale_id}")
+                return True, None, sale_record
+                
+            except Exception as fetch_error:
+                logger.error(f"Exception fetching sale record: {str(fetch_error)}")
+                # Sale was created successfully, just return summary
+                return True, None, {
+                    "id": last_sale_id,
+                    "total_amount": total_amount_aggregated,
+                    "total_cogs": total_cogs_aggregated,
+                    "profit_from_sales": profit_from_sales_aggregated,
+                    "items_processed": len(processed_items),
+                    "note": "Sale created successfully but couldn't fetch full record"
+                }
 
         except Exception as e:
-            logger.error(f"Error processing sale transaction: {str(e)}")
+            # Enhanced error logging with context
+            error_context = {
+                "owner_id": owner_id,
+                "original_data_type": type(sale_data).__name__,
+                "normalized_data_available": 'normalized_data' in locals(),
+                "items_count": len(sale_items) if 'sale_items' in locals() else 0,
+                "processed_items": len(processed_items) if 'processed_items' in locals() else 0
+            }
+            
+            logger.error(f"Critical error processing sale transaction: {str(e)}")
+            logger.error(f"Error context: {error_context}")
+            
+            # Log stack trace for debugging
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            
+            # Determine error type and provide appropriate message
             error_message = str(e)
+            error_code = "TRANSACTION_ERROR"
+            
+            if "JSON" in str(e).upper():
+                error_code = "JSON_PARSE_ERROR"
+                error_message = "Invalid data format - please check your request"
+            elif "PRODUCT" in str(e).upper() and "NOT FOUND" in str(e).upper():
+                error_code = "PRODUCT_NOT_FOUND"
+                error_message = "One or more products could not be found"
+            elif "INSUFFICIENT" in str(e).upper() or "STOCK" in str(e).upper():
+                error_code = "INSUFFICIENT_STOCK"
+                error_message = "Insufficient inventory for this transaction"
+            elif "DATABASE" in str(e).upper() or "CONNECTION" in str(e).upper():
+                error_code = "DATABASE_ERROR"
+                error_message = "Database connection issue - please try again"
+            elif "VALIDATION" in str(e).upper():
+                error_code = "VALIDATION_ERROR"
+                error_message = str(e)  # Keep original validation message
+            
+            # Try to extract more specific error message if available
             try:
                 if isinstance(e, Exception) and hasattr(e, 'message'):
                     error_message = e.message
             except:
                 pass
+            
+            logger.error(f"Returning error - Code: {error_code}, Message: {error_message}")
             return False, f"Transaction processing error: {error_message}", None
     
     def process_expense_transaction(self, expense_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
