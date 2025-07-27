@@ -525,8 +525,31 @@ export async function getSales(params = {}) {
 }
 
 export async function createSale(saleData) {
-  const response = await api.post('/sales/', saleData);
-  return response.data;
+  try {
+    console.log('[DEBUG] createSale request data:', JSON.stringify(saleData, null, 2));
+    const response = await api.post('/sales/', saleData);
+    console.log('[DEBUG] createSale response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('[ERROR] createSale failed:', error);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      
+      // If we have a 400 error with a message, throw that message
+      if (error.response.data && error.response.data.message) {
+        throw new Error(error.response.data.message);
+      }
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      throw new Error('No response received from server. Please check your connection.');
+    } else {
+      console.error('Error message:', error.message);
+      throw error;
+    }
+    throw error;
+  }
 }
 
 // Payment Management

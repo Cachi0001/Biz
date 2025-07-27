@@ -300,21 +300,26 @@ const Sales = () => {
     }
   };
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
 
     try {
+      console.log('[DEBUG] Form data before validation:', formData);
+      
       // Import the validator dynamically to avoid circular dependencies
       const { validateSaleData } = await import('../utils/salesValidator');
       
       // Validate the sale data
       const validation = validateSaleData(formData);
+      console.log('[DEBUG] Validation result:', validation);
       
       if (!validation.isValid) {
         // Show the first validation error
         const firstError = Object.values(validation.errors)[0];
+        console.error('[ERROR] Validation failed:', validation.errors);
         setError(firstError);
         setSubmitting(false);
         return;
@@ -332,6 +337,9 @@ const Sales = () => {
         }
       }
 
+      // Log the data before sending to API
+      console.log('[DEBUG] Data being sent to API:', JSON.stringify(validation.formattedData, null, 2));
+      
       // Use the formatted data from the validator
       await createSale(validation.formattedData);
       
