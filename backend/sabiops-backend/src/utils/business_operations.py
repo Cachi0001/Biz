@@ -303,6 +303,15 @@ class BusinessOperationsManager:
                             return False, f"Product with ID {product_id} not found", None
                         
                         product = product_result.data
+                        
+                        # Debug: Check product type
+                        logger.debug(f"Product data type: {type(product)}, content: {product}")
+                        
+                        # Ensure product is a dictionary
+                        if not isinstance(product, dict):
+                            logger.error(f"Product data is not a dictionary: {type(product)} - {product}")
+                            return False, f"Invalid product data format received from database", None
+                        
                         logger.debug(f"Product found: {product.get('name', 'Unknown')} - Cost: {product.get('cost_price', 0)}")
                         
                     except Exception as db_error:
@@ -320,6 +329,14 @@ class BusinessOperationsManager:
                     total_cogs_aggregated += item_total_cogs
                     profit_from_sales_aggregated += item_profit_from_sales
 
+                    # Debug: Check normalized_data type before using it
+                    logger.debug(f"normalized_data type: {type(normalized_data)}, content: {normalized_data}")
+                    
+                    # Ensure normalized_data is a dictionary
+                    if not isinstance(normalized_data, dict):
+                        logger.error(f"normalized_data is not a dictionary: {type(normalized_data)} - {normalized_data}")
+                        return False, f"Internal error: normalized data is not in expected format", None
+                    
                     # Prepare RPC parameters with validation
                     rpc_params = {
                         "p_owner_id": owner_id,
