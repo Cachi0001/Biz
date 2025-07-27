@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
 import logging
+import json
 from src.utils.user_context import get_user_context
 
 sales_bp = Blueprint("sales", __name__)
@@ -215,6 +216,14 @@ def create_sale():
         from src.utils.business_operations import BusinessOperationsManager
         business_ops = BusinessOperationsManager(supabase)
         
+        # Ensure data is a dictionary before passing to business_ops
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                logging.error(f"Failed to decode JSON string data: {data}")
+                return error_response("Invalid JSON format in request body.", "Validation failed", 400)
+
         # Process the complete sale transaction with automatic inventory updates and transaction creation
         success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
         
