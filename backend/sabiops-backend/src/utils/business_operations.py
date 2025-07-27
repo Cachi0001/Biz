@@ -1,16 +1,122 @@
 import logging
 import json
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 import uuid
+import traceback
+from enum import Enum
 
+# Configure logger with structured format
 logger = logging.getLogger(__name__)
+
+class TransactionErrorCode(Enum):
+    """Enumeration of transaction error codes for better error categorization"""
+    JSON_PARSE_ERROR = "JSON_PARSE_ERROR"
+    DATA_VALIDATION_ERROR = "DATA_VALIDATION_ERROR"
+    PRODUCT_NOT_FOUND = "PRODUCT_NOT_FOUND"
+    INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK"
+    DATABASE_ERROR = "DATABASE_ERROR"
+    RPC_ERROR = "RPC_ERROR"
+    BUSINESS_LOGIC_ERROR = "BUSINESS_LOGIC_ERROR"
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
+
+class TransactionError(Exception):
+    """Custom exception for transaction processing errors"""
+    def __init__(self, message: str, error_code: TransactionErrorCode, context: Dict[str, Any] = None):
+        self.message = message
+        self.error_code = error_code
+        self.context = context or {}
+        super().__init__(self.message)
+
+class ErrorHandler:
+    """Centralized error handling for transaction processing"""
+    
+    @staticmethod
+    def log_error(error: Exception, context: Dict[str, Any] = None, level: str = "error"):
+        """Log error with structured context information"""
+        error_info = {
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "context": context or {},
+            "timestamp": datetime.now().isoformat(),
+            "stack_trace": traceback.format_exc()
+        }
+        
+        if level == "error":
+            logger.error(f"Transaction Error: {json.dumps(error_info, indent=2)}")
+        elif level == "warning":
+            logger.warning(f"Transaction Warning: {json.dumps(error_info, indent=2)}")
+        else:
+            logger.info(f"Transaction Info: {json.dumps(error_info, indent=2)}")
+    
+    @staticmethod
+    def categorize_error(error: Exception) -> TransactionErrorCode:
+        """Categorize error based on error message and type"""
+        error_str = str(error).upper()
+        
+        if "JSON" in error_str or "DECODE" in error_str:
+            return TransactionErrorCode.JSON_PARSE_ERROR
+        elif "PRODUCT" in error_str and ("NOT FOUND" in error_str or "MISSING" in error_str):
+            return TransactionErrorCode.PRODUCT_NOT_FOUND
+        elif "INSUFFICIENT" in error_str or "STOCK" in error_str:
+            return TransactionErrorCode.INSUFFICIENT_STOCK
+        elif "DATABASE" in error_str or "CONNECTION" in error_str or "SUPABASE" in error_str:
+            return TransactionErrorCode.DATABASE_ERROR
+        elif "RPC" in error_str or "FUNCTION" in error_str:
+            return TransactionErrorCode.RPC_ERROR
+        elif "VALIDATION" in error_str or "INVALID" in error_str:
+            return TransactionErrorCode.DATA_VALIDATION_ERROR
+        else:
+            return TransactionErrorCode.UNKNOWN_ERROR
+    
+    @staticmethod
+    def get_user_friendly_message(error_code: TransactionErrorCode, original_message: str = "") -> str:
+        """Get user-friendly error message based on error code"""
+        messages = {
+            TransactionErrorCode.JSON_PARSE_ERROR: "Invalid data format. Please check your request and try again.",
+            TransactionErrorCode.DATA_VALIDATION_ERROR: f"Data validation failed: {original_message}",
+            TransactionErrorCode.PRODUCT_NOT_FOUND: "One or more products could not be found. Please verify product information.",
+            TransactionErrorCode.INSUFFICIENT_STOCK: "Insufficient inventory for this transaction. Please check stock levels.",
+            TransactionErrorCode.DATABASE_ERROR: "Database connection issue. Please try again in a moment.",
+            TransactionErrorCode.RPC_ERROR: "Transaction processing failed. Please try again.",
+            TransactionErrorCode.BUSINESS_LOGIC_ERROR: f"Business rule violation: {original_message}",
+            TransactionErrorCode.UNKNOWN_ERROR: "An unexpected error occurred. Please contact support if this persists."
+        }
+        return messages.get(error_code, original_message)
 
 class BusinessOperationsManager:
     """Manages business operations with automatic data consistency"""
     
     def __init__(self, supabase_client):
         self.supabase = supabase_client
+    
+    def _create_error_response(self, error: Exception, context: Dict[str, Any] = None) -> Tuple[bool, str, None]:
+        """Create standardized error response with proper categorization"""
+        error_code = ErrorHandler.categorize_error(error)
+        user_message = ErrorHandler.get_user_friendly_message(error_code, str(error))
+        
+        # Log the error with context
+        ErrorHandler.log_error(error, context)
+        
+        return False, f"Transaction processing error: {user_message}", None
+    
+    def _log_transaction_start(self, operation: str, context: Dict[str, Any]):
+        """Log transaction start with context"""
+        logger.info(f"Starting {operation} - Context: {json.dumps(context, default=str)}")
+    
+    def _log_transaction_success(self, operation: str, result_summary: Dict[str, Any]):
+        """Log successful transaction completion"""
+        logger.info(f"Successfully completed {operation} - Summary: {json.dumps(result_summary, default=str)}")
+    
+    def _validate_owner_id(self, owner_id: str) -> bool:
+        """Validate owner ID format"""
+        if not owner_id or not isinstance(owner_id, str):
+            return False
+        try:
+            uuid.UUID(owner_id)
+            return True
+        except ValueError:
+            return False
     
     def _normalize_sale_data(self, sale_data: Dict) -> Dict:
         try:
@@ -73,7 +179,15 @@ class BusinessOperationsManager:
             return normalized_data
             
         except Exception as e:
-            logger.error(f"Error normalizing sale data: {str(e)} - Data: {sale_data}")
+            # Use structured error logging
+            error_context = {
+                "method": "_normalize_sale_data",
+                "data_type": type(sale_data).__name__,
+                "data_keys": list(sale_data.keys()) if isinstance(sale_data, dict) else None,
+                "data_size": len(str(sale_data))
+            }
+            
+            ErrorHandler.log_error(e, error_context)
             raise ValueError(f"Data normalization failed: {str(e)}")
     
     def process_sale_transaction(self, sale_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
@@ -88,18 +202,32 @@ class BusinessOperationsManager:
         Returns:
             Tuple of (success, error_message, sale_record)
         """
+        # Log transaction start
+        self._log_transaction_start("process_sale_transaction", {
+            "owner_id": owner_id,
+            "data_type": type(sale_data).__name__,
+            "data_size": len(str(sale_data))
+        })
+        
+        # Validate owner ID
+        if not self._validate_owner_id(owner_id):
+            error = ValueError(f"Invalid owner ID format: {owner_id}")
+            return self._create_error_response(error, {"owner_id": owner_id})
+        
         # Handle string data (JSON parsing)
         if isinstance(sale_data, str):
             try:
                 sale_data = json.loads(sale_data)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to decode JSON string in process_sale_transaction: {sale_data}")
-                return False, "Invalid JSON format for sale data", None
+                logger.debug("Successfully parsed JSON string data")
+            except json.JSONDecodeError as e:
+                error_context = {"raw_data": sale_data[:200], "owner_id": owner_id}
+                return self._create_error_response(e, error_context)
         
         # Validate data type
         if not isinstance(sale_data, dict):
-            logger.error(f"process_sale_transaction received non-dictionary data: {type(sale_data)}, content: {sale_data}")
-            return False, "Invalid sale data format. Expected a dictionary.", None
+            error = ValueError(f"Invalid sale data format. Expected dictionary, got {type(sale_data)}")
+            error_context = {"data_type": type(sale_data).__name__, "owner_id": owner_id}
+            return self._create_error_response(error, error_context)
         
         try:
             # Normalize sale data to expected format
@@ -274,51 +402,25 @@ class BusinessOperationsManager:
                 }
 
         except Exception as e:
-            # Enhanced error logging with context
+            # Enhanced error logging with context using new error handling system
             error_context = {
                 "owner_id": owner_id,
                 "original_data_type": type(sale_data).__name__,
                 "normalized_data_available": 'normalized_data' in locals(),
                 "items_count": len(sale_items) if 'sale_items' in locals() else 0,
-                "processed_items": len(processed_items) if 'processed_items' in locals() else 0
+                "processed_items": len(processed_items) if 'processed_items' in locals() else 0,
+                "method": "process_sale_transaction"
             }
             
-            logger.error(f"Critical error processing sale transaction: {str(e)}")
-            logger.error(f"Error context: {error_context}")
+            # Use centralized error handling
+            ErrorHandler.log_error(e, error_context)
             
-            # Log stack trace for debugging
-            import traceback
-            logger.error(f"Stack trace: {traceback.format_exc()}")
+            # Categorize error and get user-friendly message
+            error_code = ErrorHandler.categorize_error(e)
+            user_message = ErrorHandler.get_user_friendly_message(error_code, str(e))
             
-            # Determine error type and provide appropriate message
-            error_message = str(e)
-            error_code = "TRANSACTION_ERROR"
-            
-            if "JSON" in str(e).upper():
-                error_code = "JSON_PARSE_ERROR"
-                error_message = "Invalid data format - please check your request"
-            elif "PRODUCT" in str(e).upper() and "NOT FOUND" in str(e).upper():
-                error_code = "PRODUCT_NOT_FOUND"
-                error_message = "One or more products could not be found"
-            elif "INSUFFICIENT" in str(e).upper() or "STOCK" in str(e).upper():
-                error_code = "INSUFFICIENT_STOCK"
-                error_message = "Insufficient inventory for this transaction"
-            elif "DATABASE" in str(e).upper() or "CONNECTION" in str(e).upper():
-                error_code = "DATABASE_ERROR"
-                error_message = "Database connection issue - please try again"
-            elif "VALIDATION" in str(e).upper():
-                error_code = "VALIDATION_ERROR"
-                error_message = str(e)  # Keep original validation message
-            
-            # Try to extract more specific error message if available
-            try:
-                if isinstance(e, Exception) and hasattr(e, 'message'):
-                    error_message = e.message
-            except:
-                pass
-            
-            logger.error(f"Returning error - Code: {error_code}, Message: {error_message}")
-            return False, f"Transaction processing error: {error_message}", None
+            logger.error(f"Returning categorized error - Code: {error_code.value}, Message: {user_message}")
+            return False, f"Transaction processing error: {user_message}", None
     
     def process_expense_transaction(self, expense_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
         """
