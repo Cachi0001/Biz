@@ -155,9 +155,6 @@ class BusinessOperationsManager:
                     logger.debug(f"Fetching product details for {product_id}")
                     try:
                         product_result = self.supabase.table("products").select("name, cost_price").eq("id", product_id).single().execute()
-                        if product_result.error:
-                            logger.error(f"Database error fetching product {product_id}: {product_result.error}")
-                            return False, f"Database error: {product_result.error.message}", None
                         
                         if not product_result.data:
                             logger.error(f"Product not found: {product_id}")
@@ -208,10 +205,6 @@ class BusinessOperationsManager:
                     try:
                         result = self.supabase.rpc('create_sale_transaction', rpc_params).execute()
                         
-                        if result.error:
-                            logger.error(f"RPC error for item {item_index}: {result.error}")
-                            return False, f"Database transaction failed: {result.error.message}", None
-                        
                         if not result.data:
                             logger.error(f"RPC returned no data for item {item_index}")
                             return False, "Failed to create sale transaction - no ID returned", None
@@ -245,18 +238,6 @@ class BusinessOperationsManager:
             try:
                 logger.debug(f"Fetching sale record for ID: {last_sale_id}")
                 sale_record_result = self.supabase.table('sales').select('*').eq('id', last_sale_id).single().execute()
-                
-                if sale_record_result.error:
-                    logger.error(f"Error fetching created sale record: {sale_record_result.error}")
-                    # Don't fail the entire transaction for this - sale was created successfully
-                    logger.warning("Sale was created but couldn't fetch record for response")
-                    return True, None, {
-                        "id": last_sale_id,
-                        "total_amount": total_amount_aggregated,
-                        "total_cogs": total_cogs_aggregated,
-                        "profit_from_sales": profit_from_sales_aggregated,
-                        "items_processed": len(processed_items)
-                    }
                 
                 if not sale_record_result.data:
                     logger.warning(f"Sale record not found after creation: {last_sale_id}")
