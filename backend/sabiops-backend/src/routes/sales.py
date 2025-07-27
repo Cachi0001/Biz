@@ -149,8 +149,8 @@ def create_sale():
         if not isinstance(data, dict):
             logging.error(f"Received non-dictionary data in create_sale: {data}")
             return error_response("Invalid request data format. Expected JSON.", "Validation failed", 400)
-        
-        # Validate required fields
+
+        # Process the complete sale transaction with automatic inventory updates and transaction creation
         required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
         for field in required_fields:
             if not data.get(field):

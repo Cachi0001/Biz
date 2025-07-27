@@ -30,34 +30,66 @@ class BusinessOperationsManager:
             return False, "Invalid sale data format. Expected a dictionary.", None
             
         try:
-            product_result = self.supabase.table("products").select("name, cost_price").eq("id", sale_data["product_id"]).single().execute()
-            if not product_result.data:
-                return False, "Product not found", None
-            product = product_result.data
+            # Initialize aggregated totals
+            total_amount_aggregated = 0.0
+            total_cogs_aggregated = 0.0
+            profit_from_sales_aggregated = 0.0
+            
+            sale_items = sale_data.get('sale_items', [])
+            if not sale_items:
+                return False, "No sale items provided", None
 
-            quantity = int(sale_data["quantity"])
-            unit_price = float(sale_data["unit_price"])
-            total_amount = float(sale_data["total_amount"])
-            cost_price = float(product.get("cost_price", 0))
-            total_cogs = quantity * cost_price
+            # Process each item in the sale
+            for item in sale_items:
+                product_id = item.get("product_id")
+                quantity = int(item.get("quantity", 0))
+                unit_price = float(item.get("unit_price", 0))
+                
+                if not product_id or quantity <= 0 or unit_price < 0:
+                    return False, "Invalid product details in sale items", None
 
-            result = self.supabase.rpc('create_sale_transaction', {
-                "p_owner_id": owner_id,
-                "p_product_id": sale_data["product_id"],
-                "p_quantity": quantity,
-                "p_unit_price": unit_price,
-                "p_total_amount": total_amount,
-                "p_total_cogs": total_cogs,
-                "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
-                "p_customer_id": sale_data.get("customer_id"),
-                "p_customer_name": sale_data.get("customer_name"),
-                "p_payment_method": sale_data.get("payment_method", "cash"),
-                "p_product_name": product.get("name")
-            }).execute()
+                product_result = self.supabase.table("products").select("name, cost_price").eq("id", product_id).single().execute()
+                if not product_result.data:
+                    return False, f"Product with ID {product_id} not found", None
+                product = product_result.data
 
-            if result.error:
-                raise Exception(result.error.message)
+                cost_price = float(product.get("cost_price", 0))
+                item_total_amount = quantity * unit_price
+                item_total_cogs = quantity * cost_price
+                item_profit_from_sales = item_total_amount - item_total_cogs
 
+                total_amount_aggregated += item_total_amount
+                total_cogs_aggregated += item_total_cogs
+                profit_from_sales_aggregated += item_profit_from_sales
+
+                # Call the RPC for each item
+                result = self.supabase.rpc('create_sale_transaction', {
+                    "p_owner_id": owner_id,
+                    "p_product_id": product_id,
+                    "p_quantity": quantity,
+                    "p_unit_price": unit_price,
+                    "p_total_amount": item_total_amount,
+                    "p_total_cogs": item_total_cogs,
+                    "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
+                    "p_customer_id": sale_data.get("customer_id"),
+                    "p_customer_name": sale_data.get("customer_name"),
+                    "p_payment_method": sale_data.get("payment_method", "cash"),
+                    "p_product_name": product.get("name"),
+                    "p_notes": sale_data.get("notes"),
+                    "p_date": sale_data.get("date"),
+                    "p_discount_amount": sale_data.get("discount_amount", 0),
+                    "p_tax_amount": sale_data.get("tax_amount", 0),
+                    "p_currency": sale_data.get("currency", "NGN"),
+                    "p_payment_status": sale_data.get("payment_status", "completed")
+                }).execute()
+
+                if result.error:
+                    raise Exception(result.error.message)
+
+            # After processing all items, fetch the last created sale record or a summary
+            # For simplicity, we'll return a summary of the aggregated totals
+            # If you need individual sale records for each item, you'd collect new_sale_id from each RPC call
+            
             # The function returns the new sale_id. We can use that to fetch the created sale record.
             new_sale_id = result.data
             if not new_sale_id:
@@ -72,10 +104,8 @@ class BusinessOperationsManager:
 
         except Exception as e:
             logger.error(f"Error processing sale transaction: {str(e)}")
-            # The error from the DB function might be inside e.g. e.details
             error_message = str(e)
             try:
-                # Try to extract a more specific error from PostgREST error
                 if isinstance(e, Exception) and hasattr(e, 'message'):
                     error_message = e.message
             except:
