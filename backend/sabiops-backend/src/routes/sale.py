@@ -167,17 +167,31 @@ def create_sale():
             # Call the transactional function
             result = supabase.rpc('create_sale_transaction', {'sale_payload': sale_payload}).execute()
 
-            if result.data and not result.data.get('error'):
-                return success_response(
-                    data=result.data,
-                    message="Sale created successfully",
-                    status_code=201
-                )
+            # Log the raw response for debugging
+            current_app.logger.info(f"Database response: {result}")
+            
+            # Check if we have data and it's in the expected format
+            if hasattr(result, 'data') and isinstance(result.data, dict):
+                if result.data.get('success') is True:
+                    return success_response(
+                        data=result.data,
+                        message=result.data.get('message', 'Sale created successfully'),
+                        status_code=201
+                    )
+                else:
+                    error_message = result.data.get('message', 'Failed to create sale')
+                    current_app.logger.error(f"Database operation failed: {error_message}")
+                    return error_response(error_message, "Database operation failed", 400)
             else:
-                error_details = result.get('error') or result.data.get('error', {})
-                error_message = error_details.get('message', 'Failed to create sale')
-                current_app.logger.error(f"Database error: {error_details}")
-                return error_response(str(error_message), "Database operation failed", 500)
+                # Handle unexpected response format
+                error_msg = "Unexpected response from database"
+                if hasattr(result, 'error'):
+                    error_msg = str(result.error)
+                elif hasattr(result, 'data') and hasattr(result.data, 'message'):
+                    error_msg = str(result.data.message)
+                    
+                current_app.logger.error(f"Unexpected database response: {result}")
+                return error_response(error_msg, "Database operation failed", 500)
 
         except (ValueError, TypeError) as e:
             current_app.logger.error(f"Data processing error: {str(e)}", exc_info=True)
