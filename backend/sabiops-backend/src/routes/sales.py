@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 import uuid
 import logging
+from src.utils.user_context import get_user_context
 
 sales_bp = Blueprint("sales", __name__)
 
@@ -29,7 +30,12 @@ def error_response(error, message="Error", status_code=400):
 def get_sales():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+
         if not supabase:
             print("[ERROR] Supabase connection not available in get_sales")
             return error_response("Database connection not available", 500)
@@ -131,7 +137,12 @@ def get_sales():
 def create_sale():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+
         data = request.get_json()
         
         # Validate required fields
@@ -245,7 +256,11 @@ def create_sale():
 def get_sales_stats():
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -374,7 +389,11 @@ def get_sale_by_id(sale_id):
     """Get a specific sale by ID"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         sale_result = supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
@@ -414,7 +433,11 @@ def update_sale(sale_id):
     """Update a sale record"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         data = request.get_json()
         
         # Check if sale exists
@@ -496,7 +519,11 @@ def delete_sale(sale_id):
     """Delete a sale record and restore inventory using business operations manager"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         # Use business operations manager for data consistency
         from src.utils.business_operations import BusinessOperationsManager
@@ -522,7 +549,11 @@ def get_daily_sales_report():
     """Get daily sales report"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         target_date = request.args.get("date", datetime.now().date().isoformat())
         
@@ -608,7 +639,11 @@ def get_sales_summary():
     """Get comprehensive sales summary with various metrics"""
     try:
         supabase = get_supabase()
-        owner_id = get_jwt_identity()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
         
         # Get all sales
         sales_result = supabase.table("sales").select("*").eq("owner_id", owner_id).execute()
@@ -692,3 +727,34 @@ def get_sales_summary():
     except Exception as e:
         logging.error(f"Error generating sales summary: {str(e)}")
         return error_response(str(e), "Failed to generate sales summary", status_code=500)
+
+@sales_bp.route("/search", methods=["GET"])
+@jwt_required()
+def search_sales():
+    """Search sales by customer name, product name, or notes"""
+    try:
+        supabase = get_supabase()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        query_term = request.args.get("q")
+        if not query_term:
+            return error_response("Search term 'q' is required", status_code=400)
+        
+        # Search across multiple fields
+        search_result = supabase.table("sales").select("*").eq("owner_id", owner_id).or_(
+            f"customer_name.ilike.%{query_term}%",
+            f"product_name.ilike.%{query_term}%",
+            f"notes.ilike.%{query_term}%"
+        ).execute()
+        
+        return success_response(
+            data={"sales": search_result.data}
+        )
+        
+    except Exception as e:
+        logging.error(f"Error searching sales: {str(e)}")
+        return error_response(str(e), "Failed to search sales", status_code=500)

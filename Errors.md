@@ -1,8 +1,8 @@
 {
-    "message": "Transaction processing error: {'code': 'PGRST116', 'details': 'The result contains 0 rows', 'hint': None, 'message': 'JSON object requested, multiple (or no) rows returned'}",
+    "message": "Transaction processing error: unrecognized exception condition \"FOREIGN_KEY_VIOLATION\"",
     "success": false,
     "toast": {
-        "message": "Transaction processing error: {'code': 'PGRST116', 'details': 'The result contains 0 rows', 'hint': None, 'message': 'JSON object requested, multiple (or no) rows returned'}",
+        "message": "Transaction processing error: unrecognized exception condition \"FOREIGN_KEY_VIOLATION\"",
         "timeout": 3000,
         "type": "error"
     }
