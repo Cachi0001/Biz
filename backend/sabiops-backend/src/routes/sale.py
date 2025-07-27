@@ -30,7 +30,6 @@ def validate_sale_data(data):
         return False, error_msg
 
     for i, item in enumerate(data["sale_items"], 1):
-        # Required item fields
         required_item_fields = ["product_id", "product_name", "quantity", "unit_price", "cost_price"]
         for field in required_item_fields:
             if field not in item:

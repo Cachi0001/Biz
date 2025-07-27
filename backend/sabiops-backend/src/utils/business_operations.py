@@ -17,99 +17,61 @@ class BusinessOperationsManager:
         self.supabase = supabase_client
     
     def process_sale_transaction(self, sale_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
-        """
-        Process a complete sale transaction with inventory updates and transaction records
-        Returns: (success, error_message, sale_record)
-        """
+        
         try:
-            # Validate product and inventory
-            product_result = self.supabase.table("products").select("*").eq("id", sale_data["product_id"]).eq("owner_id", owner_id).single().execute()
-            
+            product_result = self.supabase.table("products").select("name, cost_price").eq("id", sale_data["product_id"]).single().execute()
             if not product_result.data:
                 return False, "Product not found", None
-            
             product = product_result.data
+
             quantity = int(sale_data["quantity"])
-            
-            if product["quantity"] < quantity:
-                return False, f"Insufficient stock. Available: {product['quantity']}, Requested: {quantity}", None
-            
-            # Calculate financial data
             unit_price = float(sale_data["unit_price"])
             total_amount = float(sale_data["total_amount"])
             cost_price = float(product.get("cost_price", 0))
             total_cogs = quantity * cost_price
-            profit_from_sales = total_amount - total_cogs
-            
-            # Get customer name if needed
-            customer_name = sale_data.get("customer_name", "Walk-in Customer")
-            if sale_data.get("customer_id") and not customer_name:
-                customer_result = self.supabase.table("customers").select("name").eq("id", sale_data["customer_id"]).eq("owner_id", owner_id).single().execute()
-                if customer_result.data:
-                    customer_name = customer_result.data["name"]
-            
-            # Create sale record
-            sale_id = str(uuid.uuid4())
-            sale_record = {
-                "id": sale_id,
-                "owner_id": owner_id,
-                "product_id": sale_data["product_id"],
-                "product_name": product["name"],
-                "customer_id": sale_data.get("customer_id"),
-                "customer_name": customer_name,
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "total_amount": total_amount,
-                "total_cogs": total_cogs,
-                "profit_from_sales": profit_from_sales,
-                "payment_method": sale_data.get("payment_method", "cash"),
-                "salesperson_id": sale_data.get("salesperson_id"),
-                "date": sale_data.get("date", datetime.now().isoformat()),
-                "created_at": datetime.now().isoformat()
+
+            params = {
+                "p_owner_id": owner_id,
+                "p_product_id": sale_data["product_id"],
+                "p_quantity": quantity,
+                "p_unit_price": unit_price,
+                "p_total_amount": total_amount,
+                "p_total_cogs": total_cogs,
+                "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
+                "p_customer_id": sale_data.get("customer_id"),
+                "p_customer_name": sale_data.get("customer_name"),
+                "p_payment_method": sale_data.get("payment_method", "cash"),
+                "p_product_name": product.get("name")
             }
+
+            result = self.supabase.rpc('create_sale_transaction', params).execute()
+
+            if result.error:
+                raise Exception(result.error.message)
+
+            # The function returns the new sale_id. We can use that to fetch the created sale record.
+            new_sale_id = result.data
+            if not new_sale_id:
+                 return False, "Failed to create sale, no ID returned", None
+
+            sale_record_result = self.supabase.table('sales').select('*').eq('id', new_sale_id).single().execute()
             
-            # Insert sale record
-            sale_result = self.supabase.table("sales").insert(sale_record).execute()
-            if not sale_result.data:
-                return False, "Failed to create sale record", None
-            
-            # Update inventory (automatic inventory reduction)
-            new_quantity = product["quantity"] - quantity
-            inventory_update = self.supabase.table("products").update({
-                "quantity": new_quantity,
-                "updated_at": datetime.now().isoformat()
-            }).eq("id", sale_data["product_id"]).execute()
-            
-            if not inventory_update.data:
-                # Rollback sale if inventory update fails
-                self.supabase.table("sales").delete().eq("id", sale_id).execute()
-                return False, "Failed to update inventory", None
-            
-            # Create transaction record (sales-to-transaction integration)
-            transaction_success = self._create_transaction_record({
-                "id": str(uuid.uuid4()),
-                "owner_id": owner_id,
-                "type": "income",
-                "category": "Sales",
-                "amount": total_amount,
-                "description": f"Sale of {quantity}x {product['name']} to {customer_name}",
-                "reference_id": sale_id,
-                "reference_type": "sale",
-                "payment_method": sale_data.get("payment_method", "cash"),
-                "date": sale_data.get("date", datetime.now().isoformat()),
-                "created_at": datetime.now().isoformat()
-            })
-            
-            if not transaction_success:
-                logger.warning(f"Transaction record creation failed for sale {sale_id}")
-                # Don't rollback sale for transaction failure, just log warning
-            
-            logger.info(f"Sale transaction processed successfully: {sale_id}")
-            return True, None, sale_result.data[0]
-            
+            if sale_record_result.error:
+                raise Exception(sale_record_result.error.message)
+
+            return True, None, sale_record_result.data
+
         except Exception as e:
             logger.error(f"Error processing sale transaction: {str(e)}")
-            return False, f"Transaction processing error: {str(e)}", None
+            # The error from the DB function might be inside e.g. e.details
+            error_message = str(e)
+            try:
+                # Try to extract a more specific error from PostgREST error
+                if isinstance(e, Exception) and hasattr(e, 'message'):
+                    error_message = e.message
+            except:
+                pass
+            return False, f"Transaction processing error: {error_message}", None
     
     def process_expense_transaction(self, expense_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
         """
