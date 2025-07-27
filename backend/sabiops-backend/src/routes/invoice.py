@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.utils.user_context import get_user_context
+from src.utils.invoice_status_manager import InvoiceStatusManager
+from src.utils.transaction_service import TransactionService
+from src.utils.invoice_inventory_manager import InvoiceInventoryManager
 from datetime import datetime, date, timedelta
 import uuid
 from reportlab.lib.pagesizes import letter
@@ -433,75 +436,46 @@ def update_invoice_status(invoice_id):
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
+        
         supabase = get_supabase()
-        invoice_result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
-        
-        if not invoice_result.data:
-            return error_response("Invoice not found", status_code=404)
-        
-        invoice = invoice_result.data
         data = request.get_json()
         new_status = data.get("status")
         
-        if new_status not in ["draft", "sent", "paid", "overdue", "cancelled"]:
-            return error_response("Invalid status", status_code=400)
+        # Use InvoiceStatusManager for proper status management
+        status_manager = InvoiceStatusManager(supabase)
+        result = status_manager.update_status(invoice_id, new_status, owner_id)
         
-        # Prevent changing from paid status
-        if invoice["status"] == "paid" and new_status != "paid":
-            return error_response("Cannot change status of paid invoice", status_code=400)
+        if not result["success"]:
+            return error_response(result["message"], status_code=400)
         
-        update_data = {"status": new_status, "updated_at": datetime.now().isoformat()}
-        transaction_created = None
-
-        if new_status == "sent" and not invoice.get("sent_at"):
-            update_data["sent_at"] = datetime.now().isoformat()
-        elif new_status == "paid" and invoice["status"] != "paid":
-            # Mark as paid and create transaction
-            update_data["paid_date"] = datetime.now().isoformat()
-            
-            # Create transaction record for the payment
-            updated_invoice = {**invoice, **update_data}
-            transaction_created = create_transaction_for_invoice(updated_invoice)
-            
-            # Create sale from invoice
-            create_sale_from_invoice(invoice)
-            
-            if transaction_created:
-                # Notify user of successful payment
-                try:
-                    supa_service = SupabaseService()
-                    currency = invoice.get("currency", "NGN")
-                    currency_symbols = {
-                        'NGN': '₦', 'USD': '$', 'EUR': '€', 'GBP': '£', 
-                        'ZAR': 'R', 'GHS': '₵', 'KES': 'KSh'
-                    }
-                    symbol = currency_symbols.get(currency, '₦')
-                    amount_str = f"{symbol} {invoice['total_amount']:,.2f}" if currency == 'KES' else f"{symbol}{invoice['total_amount']:,.2f}"
-                    
-                    supa_service.notify_user(
-                        str(owner_id),
-                        "Invoice Paid!",
-                        f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid.",
-                        "success"
-                    )
-                except:
-                    pass  # Don't fail if notification fails
-        
-        result = supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
-        
-        if not result.data:
-            return error_response("Failed to update invoice status", status_code=500)
-        
-        response_data = {
-            "invoice": result.data[0]
-        }
-        
-        if transaction_created:
-            response_data["transaction"] = transaction_created
+        # Handle notifications for paid invoices
+        if new_status == "paid":
+            try:
+                invoice = result["data"]
+                supa_service = SupabaseService()
+                currency = invoice.get("currency", "NGN")
+                currency_symbols = {
+                    'NGN': '₦', 'USD': '$', 'EUR': '€', 'GBP': '£', 
+                    'ZAR': 'R', 'GHS': '₵', 'KES': 'KSh'
+                }
+                symbol = currency_symbols.get(currency, '₦')
+                amount_str = f"{symbol} {invoice['total_amount']:,.2f}" if currency == 'KES' else f"{symbol}{invoice['total_amount']:,.2f}"
+                
+                supa_service.notify_user(
+                    str(owner_id),
+                    "Invoice Paid!",
+                    f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid.",
+                    "success"
+                )
+                
+                # Create sale from invoice
+                create_sale_from_invoice(invoice)
+            except Exception as e:
+                current_app.logger.warning(f"Error sending notification or creating sale: {str(e)}")
         
         return success_response(
-            message="Invoice status updated successfully",
-            data=response_data
+            message=result["message"],
+            data={"invoice": result["data"]}
         )
         
     except Exception as e:

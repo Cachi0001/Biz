@@ -19,20 +19,17 @@ import {
   Bed,
   UserPlus
 } from 'lucide-react';
-import SearchDropdown from '../SearchDropdown';
+import GlobalSearchBar from '../search/GlobalSearchBar';
 
 const ModernHeader = () => {
   const { user, logout, subscription, role, isOwner } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   // Initialize Firebase and load notifications
   useEffect(() => {
@@ -214,29 +211,12 @@ const ModernHeader = () => {
             </div>
           </div>
 
-          {/* Search Bar - Always visible in header */}
-          <div className="flex-1 max-w-md mx-6 relative">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-200" />
-              <input
-                type="search"
-                placeholder="Search customers, products, invoices..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSearchOpen(!!e.target.value);
-                }}
-                onFocus={() => setSearchOpen(!!searchQuery)}
-                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
-                className="w-full bg-green-600/50 text-white pl-10 pr-4 py-3 rounded-lg border border-green-400/30 placeholder:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-300 text-base touch-manipulation"
-              />
-              <SearchDropdown
-                isOpen={searchOpen}
-                onClose={() => setSearchOpen(false)}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-              />
-            </div>
+          {/* Global Search Bar - Always visible in header */}
+          <div className="flex-1 max-w-md mx-6">
+            <GlobalSearchBar 
+              className="w-full"
+              placeholder="Search customers, products, invoices..."
+            />
           </div>
 
           {/* Actions */}

@@ -34,6 +34,7 @@ import Transactions from './pages/Transactions';
 import EmailVerified from './pages/email-verified';
 import ResetPassword from './pages/reset-password';
 import SubscriptionUpgrade from './pages/SubscriptionUpgrade';
+import SearchResultsPage from './pages/SearchResults';
 
 import './App.css';
 import './styles/mobile.css';
@@ -116,6 +117,7 @@ function App() {
                 <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
                 <Route path="/subscription-upgrade" element={<ProtectedRoute><SubscriptionUpgrade /></ProtectedRoute>} />
                 <Route path="/pricing" element={<ProtectedRoute><SubscriptionUpgrade /></ProtectedRoute>} />
+                <Route path="/search" element={<ProtectedRoute><SearchResultsPage /></ProtectedRoute>} />
                 
                 {/* 404 fallback */}
                 <Route path="*" element={
