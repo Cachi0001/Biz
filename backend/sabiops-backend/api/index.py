@@ -39,6 +39,9 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-chang
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Handle trailing slashes consistently to avoid redirects that break CORS
+app.url_map.strict_slashes = False
+
 CORS(
     app,
     origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],

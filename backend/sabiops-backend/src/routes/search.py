@@ -17,12 +17,12 @@ except Exception as e:
 search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
-@search_bp.route('/test', methods=['GET'])
+@search_bp.route('/test', methods=['GET'], strict_slashes=False)
 def search_test():
     """Test endpoint to verify search blueprint is working"""
     return jsonify({'message': 'Search blueprint is working', 'status': 'ok'})
 
-@search_bp.route('/', methods=['GET', 'OPTIONS'])
+@search_bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def global_search():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
@@ -172,7 +172,7 @@ def log_search_activity(user_id, query, search_type, result_count):
     except Exception as e:
         logger.error(f"Search logging error: {str(e)}")
 
-@search_bp.route('/suggestions', methods=['GET', 'OPTIONS'])
+@search_bp.route('/suggestions', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def search_suggestions():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
@@ -222,7 +222,7 @@ def search_suggestions():
         logger.error(f"Search suggestions error: {str(e)}")
         return jsonify({'suggestions': []})
 
-@search_bp.route('/recent', methods=['GET', 'OPTIONS'])
+@search_bp.route('/recent', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def recent_searches():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
