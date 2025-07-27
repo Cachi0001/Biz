@@ -5,18 +5,40 @@ import os
 from datetime import datetime
 import logging
 
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_SERVICE_KEY')
-)
+try:
+    supabase = create_client(
+        os.getenv('SUPABASE_URL'),
+        os.getenv('SUPABASE_SERVICE_KEY')
+    )
+except Exception as e:
+    logging.error(f"Failed to initialize Supabase client in search route: {e}")
+    supabase = None
 
 search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
-@search_bp.route('/', methods=['GET'])
-@jwt_required()
+@search_bp.route('/test', methods=['GET'])
+def search_test():
+    """Test endpoint to verify search blueprint is working"""
+    return jsonify({'message': 'Search blueprint is working', 'status': 'ok'})
+
+@search_bp.route('/', methods=['GET', 'OPTIONS'])
 def global_search():
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    # Apply JWT requirement only for GET requests
     try:
+        from flask_jwt_extended import verify_jwt_in_request
+        verify_jwt_in_request()
+    except Exception as e:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        if not supabase:
+            return jsonify({'error': 'Database connection not available'}), 500
+            
         user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
         search_type = request.args.get('type', 'all')
@@ -71,12 +93,12 @@ def global_search():
 def search_customers(query, owner_id, user_role, limit):
     """Search customers with role-based filtering"""
     try:
-        # Build search query with OR conditions using the 'or_' filter
-        search_condition = f'%{query}%'
+        # Build search query with OR conditions using proper Supabase syntax
+        search_condition = f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%,address.ilike.%{query}%'
         response = supabase.table('customers')\
             .select('id, name, email, phone, address, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(f"name.ilike.{search_condition},email.ilike.{search_condition},phone.ilike.{search_condition},address.ilike.{search_condition}")\
+            .or_(search_condition)\
             .limit(limit)\
             .execute()
         return response.data or []
@@ -88,12 +110,12 @@ def search_customers(query, owner_id, user_role, limit):
 def search_products(query, owner_id, user_role, limit):
     """Search products with role-based filtering"""
     try:
-        # Build search query with OR conditions using the 'or_' filter
-        search_condition = f'%{query}%'
+        # Build search query with OR conditions using proper Supabase syntax
+        search_condition = f'name.ilike.%{query}%,description.ilike.%{query}%,sku.ilike.%{query}%'
         response = supabase.table('products')\
             .select('id, name, description, sku, price, quantity, category, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(f"name.ilike.{search_condition},description.ilike.{search_condition},sku.ilike.{search_condition}")\
+            .or_(search_condition)\
             .limit(limit)\
             .execute()
         return response.data or []
@@ -105,12 +127,12 @@ def search_products(query, owner_id, user_role, limit):
 def search_invoices(query, owner_id, user_role, limit):
     """Search invoices with role-based filtering"""
     try:
-        # Build search query with OR conditions using the 'or_' filter
-        search_condition = f'%{query}%'
+        # Build search query with OR conditions using proper Supabase syntax
+        search_condition = f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
         response = supabase.table('invoices')\
-            .select('id, invoice_number, customer:customer_id(id, name), total_amount, status, due_date, created_at')\
+            .select('id, invoice_number, customer_name, total_amount, status, due_date, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(f"invoice_number.ilike.{search_condition},customer.name.ilike.{search_condition},status.ilike.{search_condition}")\
+            .or_(search_condition)\
             .limit(limit)\
             .execute()
         return response.data or []
@@ -122,12 +144,12 @@ def search_invoices(query, owner_id, user_role, limit):
 def search_expenses(query, owner_id, user_role, limit):
     """Search expenses (owners and admins only)"""
     try:
-        # Build search query with OR conditions using the 'or_' filter
-        search_condition = f'%{query}%'
+        # Build search query with OR conditions using proper Supabase syntax
+        search_condition = f'description.ilike.%{query}%,category.ilike.%{query}%,payment_method.ilike.%{query}%'
         response = supabase.table('expenses')\
             .select('id, description, amount, category, date, payment_method, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(f"description.ilike.{search_condition},category.ilike.{search_condition},payment_method.ilike.{search_condition},amount.cast(text).ilike.{search_condition}")\
+            .or_(search_condition)\
             .limit(limit)\
             .execute()
         return response.data or []
@@ -137,8 +159,9 @@ def search_expenses(query, owner_id, user_role, limit):
         return []
 
 def log_search_activity(user_id, query, search_type, result_count):
-    """Log search activity for analytics"""
+    """Log search activity for analytics (optional - fails gracefully if table doesn't exist)"""
     try:
+        # Try to log search activity - fail gracefully if search_logs table doesn't exist
         supabase.table('search_logs').insert({
             'user_id': user_id,
             'query': query,
@@ -149,9 +172,18 @@ def log_search_activity(user_id, query, search_type, result_count):
     except Exception as e:
         logger.error(f"Search logging error: {str(e)}")
 
-@search_bp.route('/suggestions', methods=['GET'])
-@jwt_required()
+@search_bp.route('/suggestions', methods=['GET', 'OPTIONS'])
 def search_suggestions():
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    # Apply JWT requirement only for GET requests
+    try:
+        from flask_jwt_extended import verify_jwt_in_request
+        verify_jwt_in_request()
+    except Exception as e:
+        return jsonify({'error': 'Authentication required'}), 401
     """Get search suggestions based on user's data"""
     try:
         user_id = get_jwt_identity()
@@ -190,9 +222,18 @@ def search_suggestions():
         logger.error(f"Search suggestions error: {str(e)}")
         return jsonify({'suggestions': []})
 
-@search_bp.route('/recent', methods=['GET'])
-@jwt_required()
+@search_bp.route('/recent', methods=['GET', 'OPTIONS'])
 def recent_searches():
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    # Apply JWT requirement only for GET requests
+    try:
+        from flask_jwt_extended import verify_jwt_in_request
+        verify_jwt_in_request()
+    except Exception as e:
+        return jsonify({'error': 'Authentication required'}), 401
     """Get user's recent searches"""
     try:
         user_id = get_jwt_identity()
