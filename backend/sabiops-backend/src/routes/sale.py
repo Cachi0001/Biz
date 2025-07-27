@@ -65,41 +65,45 @@ def get_sales():
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
+            
         supabase = get_supabase()
         
-        query = get_supabase().table("sales").select("*").eq("owner_id", owner_id)
+        # Base query - show sales where user is owner or creator
+        query = supabase.table("sales").select("*").or_(f"owner_id.eq.{owner_id},created_by.eq.{user_id}")
         
+        # Add filters
         start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
-        payment_method = request.args.get("payment_method")
-        payment_status = request.args.get("payment_status")
-        salesperson_id = request.args.get("salesperson_id")
-        
         if start_date:
             query = query.gte("date", start_date)
         
+        end_date = request.args.get("end_date")
         if end_date:
             query = query.lte("date", end_date)
         
+        payment_method = request.args.get("payment_method")
         if payment_method:
             query = query.eq("payment_method", payment_method)
         
+        payment_status = request.args.get("payment_status")
         if payment_status:
             query = query.eq("payment_status", payment_status)
         
+        salesperson_id = request.args.get("salesperson_id")
         if salesperson_id:
             query = query.eq("salesperson_id", salesperson_id)
         
-        sales = query.order("created_at", desc=True).execute()
+        # Execute query
+        result = query.order("created_at", desc=True).execute()
         
         return success_response(
             data={
-                "sales": sales.data
+                "sales": result.data if hasattr(result, 'data') else []
             }
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        current_app.logger.error(f"Error in get_sales: {str(e)}", exc_info=True)
+        return error_response(str(e), "Failed to retrieve sales", 500)
 
 @sale_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -110,60 +114,82 @@ def create_sale():
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
+            
         supabase = get_supabase()
         data = request.get_json()
-        data['owner_id'] = owner_id
+        
+        # Validate required fields
+        if not data:
+            return error_response("No data provided", "Validation failed", 400)
 
+        # Ensure owner_id is set
+        data['owner_id'] = str(owner_id)
+        data['created_by'] = str(user_id)  # Track who created the sale
+
+        # Validate sale data
         is_valid, error_message = validate_sale_data(data)
         if not is_valid:
             return error_response(error_message, "Validation failed", 400)
 
         try:
-            # Prepare the payload for the database function
-            total_amount = sum(float(item['quantity']) * float(item['unit_price']) for item in data['sale_items'])
+            # Calculate totals
+            total_amount = sum(
+                float(item.get('quantity', 0)) * float(item.get('unit_price', 0)) 
+                for item in data.get('sale_items', [])
+            )
+            
             discount_amount = float(data.get('discount_amount', 0))
             tax_amount = float(data.get('tax_amount', 0))
             net_amount = total_amount - discount_amount + tax_amount
 
-            # This is a simplified COGS calculation. For accuracy, cost_price should be fetched securely.
-            total_cogs = sum(float(item.get('cost_price', 0)) * float(item['quantity']) for item in data['sale_items'])
-
+            # Prepare the payload for the database function
             sale_payload = {
                 'owner_id': str(owner_id),
-                'customer_id': data.get('customer_id'),
-                'salesperson_id': user_id,
-                'payment_method': data['payment_method'],
+                'created_by': str(user_id),
+                'customer_id': data.get('customer_id') if data.get('customer_id') else None,
+                'salesperson_id': str(user_id),
+                'payment_method': data.get('payment_method', 'cash'),
                 'payment_status': data.get('payment_status', 'completed'),
                 'total_amount': total_amount,
                 'net_amount': net_amount,
-                'total_cogs': total_cogs,
-                'profit_from_sales': total_amount - total_cogs,
+                'total_cogs': sum(
+                    float(item.get('cost_price', 0)) * float(item.get('quantity', 0)) 
+                    for item in data.get('sale_items', [])
+                ),
                 'sale_items': data['sale_items'],
                 'notes': data.get('notes'),
-                'date': data.get('date', datetime.utcnow().date().isoformat())
+                'date': data.get('date') or datetime.utcnow().date().isoformat()
             }
+
+            # Calculate profit
+            sale_payload['profit_from_sales'] = total_amount - sale_payload['total_cogs']
 
             # Call the transactional function
             result = supabase.rpc('create_sale_transaction', {'sale_payload': sale_payload}).execute()
 
-            if result.data:
-                # Low-stock notifications can be triggered here after the transaction is successful
-                return success_response("Sale created successfully", result.data, 201)
+            if result.data and not result.data.get('error'):
+                return success_response(
+                    data=result.data,
+                    message="Sale created successfully",
+                    status_code=201
+                )
             else:
-                # The error from the DB function is often in the details
-                error_details = result.get('error') or {}
-                db_error_message = error_details.get('message', 'Unknown database error')
-                return error_response(db_error_message, "Failed to create sale", 500)
+                error_details = result.get('error') or result.data.get('error', {})
+                error_message = error_details.get('message', 'Failed to create sale')
+                current_app.logger.error(f"Database error: {error_details}")
+                return error_response(str(error_message), "Database operation failed", 500)
 
         except (ValueError, TypeError) as e:
-            return error_response(f"Invalid data format: {e}", "Data processing error", 400)
+            current_app.logger.error(f"Data processing error: {str(e)}", exc_info=True)
+            return error_response(f"Invalid data format: {str(e)}", "Data processing error", 400)
+            
         except Exception as e:
-            # Catch PostgrestError specifically if possible, once you know its type
-            current_app.logger.error(f"Sale creation failed: {e}", exc_info=True)
+            current_app.logger.error(f"Unexpected error in create_sale: {str(e)}", exc_info=True)
             return error_response(str(e), "An unexpected error occurred", 500)
-        
+            
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        current_app.logger.error(f"Error in create_sale endpoint: {str(e)}", exc_info=True)
+        return error_response(str(e), "Internal server error", 500)
 
 @sale_bp.route("/<sale_id>", methods=["GET"])
 @jwt_required()
@@ -174,20 +200,29 @@ def get_sale(sale_id):
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
+            
         supabase = get_supabase()
-        sale = get_supabase().table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
         
-        if not sale.data:
-            return error_response("Sale not found", status_code=404)
-        
+        # Check if user has access to this sale
+        result = supabase.table("sales")\
+            .select("*")\
+            .eq("id", sale_id)\
+            .or_(f"owner_id.eq.{owner_id},created_by.eq.{user_id}")\
+            .single()\
+            .execute()
+            
+        if not result.data:
+            return error_response("Sale not found or access denied", status_code=404)
+            
         return success_response(
             data={
-                "sale": sale.data
+                "sale": result.data
             }
         )
         
     except Exception as e:
-        return error_response(str(e), status_code=500)
+        current_app.logger.error(f"Error in get_sale: {str(e)}", exc_info=True)
+        return error_response(str(e), "Failed to retrieve sale", 500)
 
 @sale_bp.route("/<sale_id>", methods=["PUT"])
 @jwt_required()

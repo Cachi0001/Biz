@@ -6,7 +6,7 @@
 /**
  * Validate sales data before sending to API
  * @param {Object} saleData - The sale data to validate
- * @returns {Object} - Object with isValid and errors properties
+ * @returns {Object} - Object with isValid, errors, and formattedData properties
  */
 export const validateSaleData = (saleData) => {
   const errors = {};
@@ -48,18 +48,23 @@ export const validateSaleData = (saleData) => {
     customer_id: saleData.customer_id || null,
     customer_name: saleData.customer_name || 'Walk-in Customer',
     payment_method: saleData.payment_method || 'cash',
-    payment_status: saleData.payment_method === 'pending' ? 'pending' : 'completed',
+    payment_status: saleData.payment_status || 'completed',
     currency: 'NGN',
     date: saleData.date || new Date().toISOString().split('T')[0],
     salesperson_id: saleData.salesperson_id || null,
-    notes: saleData.notes || null,
+    notes: saleData.notes || '',
     discount_amount: parseFloat(saleData.discount_amount) || 0,
-    tax_amount: parseFloat(saleData.tax_amount) || 0,
-    items: [{
+    total_amount: parseFloat(saleData.total_amount) || 0,
+    net_amount: parseFloat(saleData.net_amount) || 0,
+    total_cogs: parseFloat(saleData.total_cogs) || 0,
+    profit_from_sales: parseFloat(saleData.profit_from_sales) || 0,
+    sale_items: [{
       product_id: saleData.product_id,
+      product_name: saleData.product_name || 'Unknown Product',
       quantity: parseInt(saleData.quantity) || 1,
       unit_price: parseFloat(saleData.unit_price) || 0,
-      total_amount: parseFloat(saleData.total_amount) || 0
+      total_price: parseFloat(saleData.total_amount) || 0,
+      cost_price: parseFloat(saleData.cost_price) || 0
     }]
   };
   
