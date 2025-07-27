@@ -11,15 +11,19 @@ from datetime import datetime
 import logging
 
 # Initialize Supabase client
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_SERVICE_KEY')
-)
+try:
+    supabase = create_client(
+        os.getenv('SUPABASE_URL'),
+        os.getenv('SUPABASE_SERVICE_KEY')
+    )
+except Exception as e:
+    logging.error(f"Failed to initialize Supabase client in search route: {e}")
+    supabase = None
 
 search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
-@search_bp.route('/api/search', methods=['GET'])
+@search_bp.route('/', methods=['GET'])
 @jwt_required()
 def global_search():
     """
@@ -30,6 +34,9 @@ def global_search():
     - limit: number of results per category (default: 10)
     """
     try:
+        if not supabase:
+            return jsonify({'error': 'Database connection not available'}), 500
+            
         user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
         search_type = request.args.get('type', 'all')
@@ -89,13 +96,9 @@ def search_customers(query, owner_id, user_role, limit):
             'id, name, email, phone, address, created_at'
         ).eq('owner_id', owner_id)
         
-        # Add text search
-        search_query = search_query.or_(
-            f'name.ilike.%{query}%,'
-            f'email.ilike.%{query}%,'
-            f'phone.ilike.%{query}%,'
-            f'address.ilike.%{query}%'
-        )
+        # Add text search using proper Supabase syntax
+        search_condition = f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%,address.ilike.%{query}%'
+        search_query = search_query.or_(search_condition)
         
         response = search_query.limit(limit).execute()
         return response.data or []
@@ -108,14 +111,12 @@ def search_products(query, owner_id, user_role, limit):
     """Search products with role-based filtering"""
     try:
         search_query = supabase.table('products').select(
-            'id, name, description, price, stock, image_url, created_at'
+            'id, name, description, price, quantity, image_url, created_at'
         ).eq('owner_id', owner_id)
         
-        # Add text search
-        search_query = search_query.or_(
-            f'name.ilike.%{query}%,'
-            f'description.ilike.%{query}%'
-        )
+        # Add text search using proper Supabase syntax
+        search_condition = f'name.ilike.%{query}%,description.ilike.%{query}%'
+        search_query = search_query.or_(search_condition)
         
         response = search_query.limit(limit).execute()
         return response.data or []
@@ -135,12 +136,9 @@ def search_invoices(query, owner_id, user_role, limit):
         if user_role == 'salesperson':
             search_query = search_query.eq('created_by', owner_id)
         
-        # Add text search
-        search_query = search_query.or_(
-            f'invoice_number.ilike.%{query}%,'
-            f'customer_name.ilike.%{query}%,'
-            f'status.ilike.%{query}%'
-        )
+        # Add text search using proper Supabase syntax
+        search_condition = f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
+        search_query = search_query.or_(search_condition)
         
         response = search_query.limit(limit).execute()
         return response.data or []
@@ -156,11 +154,9 @@ def search_expenses(query, owner_id, user_role, limit):
             'id, description, amount, category, receipt_url, created_at'
         ).eq('owner_id', owner_id)
         
-        # Add text search
-        search_query = search_query.or_(
-            f'description.ilike.%{query}%,'
-            f'category.ilike.%{query}%'
-        )
+        # Add text search using proper Supabase syntax
+        search_condition = f'description.ilike.%{query}%,category.ilike.%{query}%'
+        search_query = search_query.or_(search_condition)
         
         response = search_query.limit(limit).execute()
         return response.data or []
@@ -170,8 +166,9 @@ def search_expenses(query, owner_id, user_role, limit):
         return []
 
 def log_search_activity(user_id, query, search_type, result_count):
-    """Log search activity for analytics"""
+    """Log search activity for analytics (optional - fails gracefully if table doesn't exist)"""
     try:
+        # Try to log search activity - fail gracefully if search_logs table doesn't exist
         supabase.table('search_logs').insert({
             'user_id': user_id,
             'query': query,
@@ -180,9 +177,10 @@ def log_search_activity(user_id, query, search_type, result_count):
             'created_at': datetime.utcnow().isoformat()
         }).execute()
     except Exception as e:
-        logger.error(f"Search logging error: {str(e)}")
+        # Don't log error for missing table - just skip logging
+        logger.debug(f"Search logging skipped (table may not exist): {str(e)}")
 
-@search_bp.route('/api/search/suggestions', methods=['GET'])
+@search_bp.route('/suggestions', methods=['GET'])
 @jwt_required()
 def search_suggestions():
     """Get search suggestions based on user's data"""
@@ -223,28 +221,33 @@ def search_suggestions():
         logger.error(f"Search suggestions error: {str(e)}")
         return jsonify({'suggestions': []})
 
-@search_bp.route('/api/search/recent', methods=['GET'])
+@search_bp.route('/recent', methods=['GET'])
 @jwt_required()
 def recent_searches():
     """Get user's recent searches"""
     try:
         user_id = get_jwt_identity()
         
-        response = supabase.table('search_logs').select(
-            'query, search_type, created_at'
-        ).eq('user_id', user_id).order('created_at', desc=True).limit(10).execute()
-        
-        # Remove duplicates while preserving order
-        seen = set()
-        recent = []
-        for search in response.data or []:
-            if search['query'] not in seen:
-                seen.add(search['query'])
-                recent.append(search)
-        
-        return jsonify({'recent_searches': recent[:5]})
+        # Try to get recent searches - fail gracefully if table doesn't exist
+        try:
+            response = supabase.table('search_logs').select(
+                'query, search_type, created_at'
+            ).eq('user_id', user_id).order('created_at', desc=True).limit(10).execute()
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            recent = []
+            for search in response.data or []:
+                if search['query'] not in seen:
+                    seen.add(search['query'])
+                    recent.append(search)
+            
+            return jsonify({'recent_searches': recent[:5]})
+        except:
+            # If search_logs table doesn't exist, return empty array
+            return jsonify({'recent_searches': []})
         
     except Exception as e:
-        logger.error(f"Recent searches error: {str(e)}")
+        logger.debug(f"Recent searches error: {str(e)}")
         return jsonify({'recent_searches': []})
 

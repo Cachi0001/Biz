@@ -13,7 +13,7 @@ supabase = create_client(
 search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
-@search_bp.route('/search', methods=['GET'])
+@search_bp.route('/', methods=['GET'])
 @jwt_required()
 def global_search():
     try:
@@ -149,7 +149,7 @@ def log_search_activity(user_id, query, search_type, result_count):
     except Exception as e:
         logger.error(f"Search logging error: {str(e)}")
 
-@search_bp.route('/search/suggestions', methods=['GET'])
+@search_bp.route('/suggestions', methods=['GET'])
 @jwt_required()
 def search_suggestions():
     """Get search suggestions based on user's data"""
@@ -190,7 +190,7 @@ def search_suggestions():
         logger.error(f"Search suggestions error: {str(e)}")
         return jsonify({'suggestions': []})
 
-@search_bp.route('/search/recent', methods=['GET'])
+@search_bp.route('/recent', methods=['GET'])
 @jwt_required()
 def recent_searches():
     """Get user's recent searches"""

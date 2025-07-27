@@ -1035,9 +1035,15 @@ export async function saveDeviceToken(token) {
 }
 
 // Global search functionality
-export async function searchGlobal(query, limit = 5) {
+export async function searchGlobal(query, options = {}) {
   try {
-    const response = await api.get(`/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    const params = new URLSearchParams({
+      q: query,
+      limit: options.limit || options || 5, // Handle both old (limit as second param) and new (options object) formats
+      ...(options.type && { type: options.type })
+    });
+    
+    const response = await api.get(`/search?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error("[ERROR] Global search failed:", error);

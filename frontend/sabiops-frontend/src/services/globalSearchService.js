@@ -51,7 +51,7 @@ class GlobalSearchService {
         ...options
       };
 
-      const response = await searchGlobal(sanitizedQuery, searchParams.limit);
+      const response = await searchGlobal(sanitizedQuery, searchParams);
       
       const formattedResults = this.formatResults(response);
       
