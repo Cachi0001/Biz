@@ -31,17 +31,19 @@ class BusinessOperationsManager:
             total_cogs = quantity * cost_price
 
             params = {
-                "p_owner_id": owner_id,
-                "p_product_id": sale_data["product_id"],
-                "p_quantity": quantity,
-                "p_unit_price": unit_price,
-                "p_total_amount": total_amount,
-                "p_total_cogs": total_cogs,
-                "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
-                "p_customer_id": sale_data.get("customer_id"),
-                "p_customer_name": sale_data.get("customer_name"),
-                "p_payment_method": sale_data.get("payment_method", "cash"),
-                "p_product_name": product.get("name")
+                "p_sale_payload": {
+                    "p_owner_id": owner_id,
+                    "p_product_id": sale_data["product_id"],
+                    "p_quantity": quantity,
+                    "p_unit_price": unit_price,
+                    "p_total_amount": total_amount,
+                    "p_total_cogs": total_cogs,
+                    "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
+                    "p_customer_id": sale_data.get("customer_id"),
+                    "p_customer_name": sale_data.get("customer_name"),
+                    "p_payment_method": sale_data.get("payment_method", "cash"),
+                    "p_product_name": product.get("name")
+                }
             }
 
             result = self.supabase.rpc('create_sale_transaction', params).execute()
