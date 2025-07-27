@@ -17,7 +17,96 @@ class BusinessOperationsManager:
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
+    def _normalize_sale_data(self, sale_data: Dict) -> Dict:
+        """
+        Normalize sale data to expected format with sale_items array
+        Handles both single-item and multi-item sale formats
+        
+        Args:
+            sale_data: Raw sale data from frontend
+            
+        Returns:
+            Normalized data with sale_items array
+            
+        Raises:
+            ValueError: If data format is invalid
+        """
+        try:
+            # Log incoming data for debugging
+            logger.debug(f"Normalizing sale data: {type(sale_data)} - Keys: {list(sale_data.keys()) if isinstance(sale_data, dict) else 'Not a dict'}")
+            
+            if not isinstance(sale_data, dict):
+                raise ValueError(f"Sale data must be a dictionary, got {type(sale_data)}")
+            
+            # Check if data is already in multi-item format
+            if 'sale_items' in sale_data and isinstance(sale_data['sale_items'], list):
+                logger.debug("Data already in multi-item format")
+                return sale_data
+            
+            # Convert single-item format to multi-item format
+            required_fields = ['product_id', 'quantity', 'unit_price']
+            missing_fields = [field for field in required_fields if field not in sale_data]
+            
+            if missing_fields:
+                raise ValueError(f"Missing required fields for single-item sale: {missing_fields}")
+            
+            # Validate data types
+            try:
+                quantity = int(sale_data['quantity'])
+                unit_price = float(sale_data['unit_price'])
+                total_amount = float(sale_data.get('total_amount', quantity * unit_price))
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Invalid numeric values in sale data: {str(e)}")
+            
+            if quantity <= 0:
+                raise ValueError("Quantity must be greater than 0")
+            if unit_price < 0:
+                raise ValueError("Unit price cannot be negative")
+            
+            # Create normalized format
+            normalized_data = {
+                'sale_items': [
+                    {
+                        'product_id': sale_data['product_id'],
+                        'quantity': quantity,
+                        'unit_price': unit_price,
+                        'total_amount': total_amount
+                    }
+                ],
+                'customer_id': sale_data.get('customer_id'),
+                'customer_name': sale_data.get('customer_name'),
+                'customer_email': sale_data.get('customer_email'),
+                'payment_method': sale_data.get('payment_method', 'cash'),
+                'payment_status': sale_data.get('payment_status', 'completed'),
+                'date': sale_data.get('date'),
+                'notes': sale_data.get('notes'),
+                'discount_amount': sale_data.get('discount_amount', 0),
+                'tax_amount': sale_data.get('tax_amount', 0),
+                'currency': sale_data.get('currency', 'NGN'),
+                'total_amount': total_amount,
+                'total_items': 1
+            }
+            
+            logger.debug(f"Successfully normalized single-item sale data")
+            return normalized_data
+            
+        except Exception as e:
+            logger.error(f"Error normalizing sale data: {str(e)} - Data: {sale_data}")
+            raise ValueError(f"Data normalization failed: {str(e)}")
+    
     def process_sale_transaction(self, sale_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
+        """
+        Process a complete sale transaction with automatic inventory updates and transaction creation
+        Handles both single-item and multi-item sale formats
+        
+        Args:
+            sale_data: Sale data in any supported format
+            owner_id: ID of the business owner
+            
+        Returns:
+            Tuple of (success, error_message, sale_record)
+        """
+        # Handle string data (JSON parsing)
         if isinstance(sale_data, str):
             try:
                 sale_data = json.loads(sale_data)
@@ -25,18 +114,28 @@ class BusinessOperationsManager:
                 logger.error(f"Failed to decode JSON string in process_sale_transaction: {sale_data}")
                 return False, "Invalid JSON format for sale data", None
         
+        # Validate data type
         if not isinstance(sale_data, dict):
             logger.error(f"process_sale_transaction received non-dictionary data: {type(sale_data)}, content: {sale_data}")
             return False, "Invalid sale data format. Expected a dictionary.", None
-            
+        
         try:
+            # Normalize sale data to expected format
+            try:
+                normalized_data = self._normalize_sale_data(sale_data)
+                logger.debug(f"Sale data normalized successfully for owner {owner_id}")
+            except ValueError as e:
+                logger.error(f"Data normalization failed: {str(e)} - Original data: {sale_data}")
+                return False, f"Data validation error: {str(e)}", None
+            
             # Initialize aggregated totals
             total_amount_aggregated = 0.0
             total_cogs_aggregated = 0.0
             profit_from_sales_aggregated = 0.0
             
-            sale_items = sale_data.get('sale_items', [])
+            sale_items = normalized_data.get('sale_items', [])
             if not sale_items:
+                logger.error(f"No sale items found after normalization - Data: {normalized_data}")
                 return False, "No sale items provided", None
 
             # Process each item in the sale
@@ -71,16 +170,16 @@ class BusinessOperationsManager:
                     "p_total_amount": item_total_amount,
                     "p_total_cogs": item_total_cogs,
                     "p_salesperson_id": owner_id, # Assuming the logged in user is the salesperson
-                    "p_customer_id": sale_data.get("customer_id"),
-                    "p_customer_name": sale_data.get("customer_name"),
-                    "p_payment_method": sale_data.get("payment_method", "cash"),
+                    "p_customer_id": normalized_data.get("customer_id"),
+                    "p_customer_name": normalized_data.get("customer_name"),
+                    "p_payment_method": normalized_data.get("payment_method", "cash"),
                     "p_product_name": product.get("name"),
-                    "p_notes": sale_data.get("notes"),
-                    "p_date": sale_data.get("date"),
-                    "p_discount_amount": sale_data.get("discount_amount", 0),
-                    "p_tax_amount": sale_data.get("tax_amount", 0),
-                    "p_currency": sale_data.get("currency", "NGN"),
-                    "p_payment_status": sale_data.get("payment_status", "completed")
+                    "p_notes": normalized_data.get("notes"),
+                    "p_date": normalized_data.get("date"),
+                    "p_discount_amount": normalized_data.get("discount_amount", 0),
+                    "p_tax_amount": normalized_data.get("tax_amount", 0),
+                    "p_currency": normalized_data.get("currency", "NGN"),
+                    "p_payment_status": normalized_data.get("payment_status", "completed")
                 }).execute()
 
                 if result.error:
