@@ -122,13 +122,19 @@ class BusinessOperationsManager:
         try:
             # Log incoming data for debugging
             logger.debug(f"Normalizing sale data: {type(sale_data)} - Keys: {list(sale_data.keys()) if isinstance(sale_data, dict) else 'Not a dict'}")
+            logger.debug(f"Full sale data content: {sale_data}")
             
             if not isinstance(sale_data, dict):
                 raise ValueError(f"Sale data must be a dictionary, got {type(sale_data)}")
             
             # Check if data is already in multi-item format
             if 'sale_items' in sale_data and isinstance(sale_data['sale_items'], list):
-                logger.debug("Data already in multi-item format")
+                logger.debug(f"Data already in multi-item format with {len(sale_data['sale_items'])} items")
+                # Validate that each item in sale_items is a dictionary
+                for i, item in enumerate(sale_data['sale_items']):
+                    if not isinstance(item, dict):
+                        logger.error(f"Sale item {i} is not a dictionary: {type(item)} - {item}")
+                        raise ValueError(f"Sale item {i} must be a dictionary, got {type(item).__name__}")
                 return sale_data
             
             # Convert single-item format to multi-item format
@@ -256,6 +262,14 @@ class BusinessOperationsManager:
             
             for item_index, item in enumerate(sale_items):
                 try:
+                    # Debug: Log item type and content
+                    logger.debug(f"Processing item {item_index}: type={type(item)}, content={item}")
+                    
+                    # Validate that item is a dictionary
+                    if not isinstance(item, dict):
+                        logger.error(f"Sale item {item_index} is not a dictionary: {type(item)} - {item}")
+                        return False, f"Invalid sale item format at position {item_index + 1}. Expected dictionary, got {type(item).__name__}", None
+                    
                     # Validate item data with detailed logging
                     product_id = item.get("product_id")
                     if not product_id:

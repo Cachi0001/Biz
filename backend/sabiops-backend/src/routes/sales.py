@@ -223,6 +223,84 @@ def create_sale():
             except json.JSONDecodeError:
                 logging.error(f"Failed to decode JSON string data: {data}")
                 return error_response("Invalid JSON format in request body.", "Validation failed", 400)
+        
+        # Pre-processing validation and data format consistency
+        try:
+            # Log the incoming data for debugging
+            logging.debug(f"Sales route received data: {type(data)} - {data}")
+            
+            # Ensure data is a dictionary
+            if not isinstance(data, dict):
+                logging.error(f"Sales route received non-dictionary data: {type(data)}")
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid request data format. Expected JSON object.",
+                    "toast": {
+                        "type": "error",
+                        "message": "Invalid request data format.",
+                        "timeout": 3000
+                    }
+                }), 400
+            
+            # Validate that required fields are present and not empty strings
+            required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
+            for field in required_fields:
+                if field not in data or data[field] is None or data[field] == "":
+                    logging.error(f"Missing or empty required field: {field}")
+                    return jsonify({
+                        "success": False,
+                        "message": f"Required field '{field}' is missing or empty",
+                        "toast": {
+                            "type": "error",
+                            "message": f"Required field '{field}' is missing or empty",
+                            "timeout": 3000
+                        }
+                    }), 400
+            
+            # Ensure numeric fields are properly formatted
+            try:
+                data["quantity"] = int(data["quantity"])
+                data["unit_price"] = float(data["unit_price"])
+                data["total_amount"] = float(data["total_amount"])
+                
+                # Optional numeric fields
+                if "discount_amount" in data and data["discount_amount"] is not None:
+                    data["discount_amount"] = float(data["discount_amount"])
+                if "tax_amount" in data and data["tax_amount"] is not None:
+                    data["tax_amount"] = float(data["tax_amount"])
+                    
+            except (ValueError, TypeError) as e:
+                logging.error(f"Error converting numeric fields: {str(e)}")
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid numeric values in request data",
+                    "toast": {
+                        "type": "error",
+                        "message": "Invalid numeric values provided",
+                        "timeout": 3000
+                    }
+                }), 400
+            
+            # Ensure string fields are properly formatted
+            string_fields = ["product_id", "customer_id", "customer_name", "payment_method", "notes"]
+            for field in string_fields:
+                if field in data and data[field] is not None and not isinstance(data[field], str):
+                    data[field] = str(data[field])
+            
+            logging.debug(f"Sales route processed data: {data}")
+            
+        except Exception as validation_error:
+            logging.error(f"Data validation error in sales route: {str(validation_error)}")
+            return jsonify({
+                "success": False,
+                "message": "Data validation failed",
+                "error": str(validation_error),
+                "toast": {
+                    "type": "error",
+                    "message": "Data validation failed. Please check your input.",
+                    "timeout": 3000
+                }
+            }), 400
 
         # Process the complete sale transaction with automatic inventory updates and transaction creation
         success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
