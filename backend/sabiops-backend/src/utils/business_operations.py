@@ -4,6 +4,7 @@ Handles automatic inventory updates, transaction creation, and data consistency
 """
 
 import logging
+import json
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 import uuid
@@ -17,7 +18,17 @@ class BusinessOperationsManager:
         self.supabase = supabase_client
     
     def process_sale_transaction(self, sale_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
-        logger.debug(f"process_sale_transaction received sale_data type: {type(sale_data)}, content: {sale_data}")
+        if isinstance(sale_data, str):
+            try:
+                sale_data = json.loads(sale_data)
+            except json.JSONDecodeError:
+                logger.error(f"Failed to decode JSON string in process_sale_transaction: {sale_data}")
+                return False, "Invalid JSON format for sale data", None
+        
+        if not isinstance(sale_data, dict):
+            logger.error(f"process_sale_transaction received non-dictionary data: {type(sale_data)}, content: {sale_data}")
+            return False, "Invalid sale data format. Expected a dictionary.", None
+            
         try:
             product_result = self.supabase.table("products").select("name, cost_price").eq("id", sale_data["product_id"]).single().execute()
             if not product_result.data:
