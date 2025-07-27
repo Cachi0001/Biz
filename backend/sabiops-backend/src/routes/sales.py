@@ -144,6 +144,10 @@ def create_sale():
             return error_response(str(e), "Authorization error", 403)
 
         data = request.get_json()
+
+        if not isinstance(data, dict):
+            logging.error(f"Received non-dictionary data in create_sale: {data}")
+            return error_response("Invalid request data format. Expected JSON.", "Validation failed", 400)
         
         # Validate required fields
         required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
