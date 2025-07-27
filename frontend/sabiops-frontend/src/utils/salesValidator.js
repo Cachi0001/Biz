@@ -45,6 +45,13 @@ export const validateSaleData = (saleData) => {
   
   // Format data for API with items array
   const formattedData = {
+    // Include product_id at the root level for backward compatibility
+    product_id: saleData.product_id,
+    product_name: saleData.product_name || 'Unknown Product',
+    quantity: parseInt(saleData.quantity) || 1,
+    unit_price: parseFloat(saleData.unit_price) || 0,
+    
+    // Customer and payment details
     customer_id: saleData.customer_id || null,
     customer_name: saleData.customer_name || 'Walk-in Customer',
     payment_method: saleData.payment_method || 'cash',
@@ -53,6 +60,8 @@ export const validateSaleData = (saleData) => {
     date: saleData.date || new Date().toISOString().split('T')[0],
     salesperson_id: saleData.salesperson_id || null,
     notes: saleData.notes || '',
+    
+    // Financial details
     discount_amount: parseFloat(saleData.discount_amount) || 0,
     total_amount: parseFloat(saleData.total_amount) || 0,
     net_amount: parseFloat(saleData.net_amount) || 0,
