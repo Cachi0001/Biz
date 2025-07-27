@@ -7,34 +7,91 @@ from collections import defaultdict
 from src.services.supabase_service import SupabaseService
 
 def validate_sale_data(data):
-    """Validate incoming sale data."""
-    if not data.get("payment_method"):
-        return False, "'payment_method' is required."
-    if not data.get("sale_items") or not isinstance(data["sale_items"], list) or not data["sale_items"]:
-        return False, "At least one sale item is required."
+    current_app.logger.info("Starting sale data validation")
+    
+    # Required top-level fields
+    required_fields = ["payment_method", "sale_items", "owner_id", "created_by"]
+    for field in required_fields:
+        if field not in data or data[field] is None:
+            error_msg = f"'{field}' is a required field"
+            current_app.logger.warning(f"Validation failed: {error_msg}")
+            return False, error_msg
+    
+    valid_payment_methods = ["cash", "card", "bank_transfer", "credit", "other"]
+    if data["payment_method"] not in valid_payment_methods:
+        error_msg = f"Invalid payment method. Must be one of: {', '.join(valid_payment_methods)}"
+        current_app.logger.warning(f"Validation failed: {error_msg}")
+        return False, error_msg
+    
+    # Sale items validation
+    if not isinstance(data["sale_items"], list) or not data["sale_items"]:
+        error_msg = "At least one sale item is required"
+        current_app.logger.warning(f"Validation failed: {error_msg}")
+        return False, error_msg
 
-    for i, item in enumerate(data["sale_items"]):
-        if not item.get("product_name"):
-            return False, f"Item {i+1}: 'product_name' is required."
-        if "quantity" not in item:
-            return False, f"Item {i+1}: 'quantity' is required."
-        if "unit_price" not in item:
-            return False, f"Item {i+1}: 'unit_price' is required."
-
+    for i, item in enumerate(data["sale_items"], 1):
+        # Required item fields
+        required_item_fields = ["product_id", "product_name", "quantity", "unit_price", "cost_price"]
+        for field in required_item_fields:
+            if field not in item:
+                error_msg = f"Item {i}: '{field}' is required"
+                current_app.logger.warning(f"Validation failed: {error_msg}")
+                return False, error_msg
+        
+        # Product ID validation
+        try:
+            product_id = str(item["product_id"])
+            if not product_id or len(product_id) != 36:  # Basic UUID validation
+                raise ValueError("Invalid product ID format")
+        except (ValueError, TypeError) as e:
+            error_msg = f"Item {i}: Invalid product ID format. Must be a valid UUID."
+            current_app.logger.warning(f"Validation failed: {error_msg}")
+            return False, error_msg
+        
+        # Quantity validation
         try:
             quantity = int(item["quantity"])
             if quantity <= 0:
-                return False, f"Item {i+1}: Quantity must be a positive integer."
+                error_msg = f"Item {i}: Quantity must be a positive integer"
+                current_app.logger.warning(f"Validation failed: {error_msg}")
+                return False, error_msg
+            if quantity > 10000:  # Reasonable upper limit
+                error_msg = f"Item {i}: Quantity exceeds maximum allowed (10,000)"
+                current_app.logger.warning(f"Validation failed: {error_msg}")
+                return False, error_msg
         except (ValueError, TypeError):
-            return False, f"Item {i+1}: Invalid format for quantity. It must be an integer."
-
+            error_msg = f"Item {i}: Quantity must be a valid integer"
+            current_app.logger.warning(f"Validation failed: {error_msg}")
+            return False, error_msg
+        
+        # Price validation
         try:
             unit_price = float(item["unit_price"])
-            if unit_price < 0:
-                return False, f"Item {i+1}: Unit price cannot be negative."
+            cost_price = float(item["cost_price"])
+            
+            if unit_price < 0 or cost_price < 0:
+                error_msg = f"Item {i}: Prices cannot be negative"
+                current_app.logger.warning(f"Validation failed: {error_msg}")
+                return False, error_msg
+                
+            if unit_price > 1000000:  # $1M upper limit
+                error_msg = f"Item {i}: Unit price exceeds maximum allowed"
+                current_app.logger.warning(f"Validation failed: {error_msg}")
+                return False, error_msg
+                
+            # Validate that selling price is not below cost (optional business rule)
+            if unit_price < cost_price:
+                current_app.logger.warning(
+                    f"Warning: Item {i} is being sold below cost. "
+                    f"Cost: {cost_price}, Selling price: {unit_price}"
+                )
+                
         except (ValueError, TypeError):
-            return False, f"Item {i+1}: Invalid format for unit price. It must be a number."
-
+            error_msg = f"Item {i}: Invalid price format. Must be a valid number"
+            current_app.logger.warning(f"Validation failed: {error_msg}")
+            return False, error_msg
+    
+    current_app.logger.info("Sale data validation successful")
     return True, ""
 
 sale_bp = Blueprint("sale", __name__)
@@ -108,39 +165,70 @@ def get_sales():
 @sale_bp.route("/", methods=["POST"])
 @jwt_required()
 def create_sale():
+    """
+    Create a new sale transaction.
+    
+    This endpoint handles the creation of a sale with all its items in a single transaction.
+    It validates the input data, calculates totals, and updates product stock levels.
+    """
+    current_app.logger.info("Starting sale creation process")
+    
     try:
+        # Authenticate and authorize user
         user_id = get_jwt_identity()
+        current_app.logger.debug(f"Authenticated user ID: {user_id}")
+        
         try:
             owner_id, user_role = get_user_context(user_id)
+            current_app.debug(f"User context - Owner ID: {owner_id}, Role: {user_role}")
         except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
+            current_app.logger.error(f"Authorization failed for user {user_id}: {str(e)}")
+            return error_response("Not authorized to perform this action", "Authorization error", 403)
             
-        supabase = get_supabase()
+        # Get request data
         data = request.get_json()
+        current_app.logger.debug(f"Received sale data: {data}")
         
-        # Validate required fields
+        # Basic input validation
         if not data:
+            current_app.logger.warning("No data provided in request")
             return error_response("No data provided", "Validation failed", 400)
 
-        # Ensure owner_id is set
+        # Set context data
         data['owner_id'] = str(owner_id)
-        data['created_by'] = str(user_id)  # Track who created the sale
-
+        data['created_by'] = str(user_id)
+        
         # Validate sale data
+        current_app.logger.info("Validating sale data")
         is_valid, error_message = validate_sale_data(data)
         if not is_valid:
+            current_app.logger.warning(f"Validation failed: {error_message}")
             return error_response(error_message, "Validation failed", 400)
 
         try:
-            # Calculate totals
+            # Calculate financials
+            current_app.logger.debug("Calculating sale totals")
+            sale_items = data.get('sale_items', [])
+            
+            # Calculate total amount from items
             total_amount = sum(
                 float(item.get('quantity', 0)) * float(item.get('unit_price', 0)) 
-                for item in data.get('sale_items', [])
+                for item in sale_items
             )
             
-            discount_amount = float(data.get('discount_amount', 0))
-            tax_amount = float(data.get('tax_amount', 0))
-            net_amount = total_amount - discount_amount + tax_amount
+            # Apply discounts and taxes
+            discount_amount = max(0, float(data.get('discount_amount', 0)))
+            tax_amount = max(0, float(data.get('tax_amount', 0)))
+            net_amount = max(0, total_amount - discount_amount + tax_amount)
+            
+            # Calculate total cost of goods sold
+            total_cogs = sum(
+                float(item.get('cost_price', 0)) * float(item.get('quantity', 0)) 
+                for item in sale_items
+            )
+            
+            # Calculate profit
+            profit = max(0, total_amount - total_cogs)
 
             # Prepare the payload for the database function
             sale_payload = {
@@ -151,47 +239,59 @@ def create_sale():
                 'payment_method': data.get('payment_method', 'cash'),
                 'payment_status': data.get('payment_status', 'completed'),
                 'total_amount': total_amount,
+                'discount_amount': discount_amount,
+                'tax_amount': tax_amount,
                 'net_amount': net_amount,
-                'total_cogs': sum(
-                    float(item.get('cost_price', 0)) * float(item.get('quantity', 0)) 
-                    for item in data.get('sale_items', [])
-                ),
-                'sale_items': data['sale_items'],
+                'total_cogs': total_cogs,
+                'profit_from_sales': profit,
+                'sale_items': sale_items,
                 'notes': data.get('notes'),
                 'date': data.get('date') or datetime.utcnow().date().isoformat()
             }
-
-            # Calculate profit
-            sale_payload['profit_from_sales'] = total_amount - sale_payload['total_cogs']
+            
+            current_app.logger.debug(f"Prepared sale payload: {sale_payload}")
 
             # Call the transactional function
-            result = supabase.rpc('create_sale_transaction', {'sale_payload': sale_payload}).execute()
-
-            # Log the raw response for debugging
-            current_app.logger.info(f"Database response: {result}")
+            supabase = get_supabase()
+            current_app.logger.info("Calling database transaction")
             
-            # Check if we have data and it's in the expected format
-            if hasattr(result, 'data') and isinstance(result.data, dict):
-                if result.data.get('success') is True:
-                    return success_response(
-                        data=result.data,
-                        message=result.data.get('message', 'Sale created successfully'),
-                        status_code=201
-                    )
-                else:
-                    error_message = result.data.get('message', 'Failed to create sale')
-                    current_app.logger.error(f"Database operation failed: {error_message}")
-                    return error_response(error_message, "Database operation failed", 400)
-            else:
+            try:
+                result = supabase.rpc('create_sale_transaction', {'sale_payload': sale_payload}).execute()
+                current_app.logger.debug(f"Database response: {result}")
+                
+                # Check for database errors
+                if hasattr(result, 'error') and result.error:
+                    error_msg = f"Database error: {result.error}"
+                    current_app.logger.error(error_msg)
+                    return error_response("Failed to process sale", "Database error", 500)
+                
+                # Process successful response
+                if hasattr(result, 'data') and isinstance(result.data, dict):
+                    if result.data.get('success') is True:
+                        sale_id = result.data.get('sale_id')
+                        current_app.logger.info(f"Successfully created sale with ID: {sale_id}")
+                        return success_response(
+                            data={
+                                'sale_id': sale_id,
+                                'amount': net_amount,
+                                'items': len(sale_items)
+                            },
+                            message="Sale completed successfully",
+                            status_code=201
+                        )
+                    else:
+                        error_message = result.data.get('message', 'Failed to create sale')
+                        current_app.logger.error(f"Sale creation failed: {error_message}")
+                        return error_response(error_message, "Sale processing failed", 400)
+                
                 # Handle unexpected response format
-                error_msg = "Unexpected response from database"
-                if hasattr(result, 'error'):
-                    error_msg = str(result.error)
-                elif hasattr(result, 'data') and hasattr(result.data, 'message'):
-                    error_msg = str(result.data.message)
-                    
-                current_app.logger.error(f"Unexpected database response: {result}")
-                return error_response(error_msg, "Database operation failed", 500)
+                error_msg = "Unexpected response format from database"
+                current_app.logger.error(f"{error_msg}: {result}")
+                return error_response("Failed to process sale", "System error", 500)
+                
+            except Exception as db_error:
+                current_app.logger.error(f"Database operation failed: {str(db_error)}", exc_info=True)
+                return error_response("Failed to process sale", "Database error", 500)
 
         except (ValueError, TypeError) as e:
             current_app.logger.error(f"Data processing error: {str(e)}", exc_info=True)
