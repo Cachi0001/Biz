@@ -17,7 +17,7 @@ class BusinessOperationsManager:
         self.supabase = supabase_client
     
     def process_sale_transaction(self, sale_data: Dict, owner_id: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
-        
+        logger.debug(f"process_sale_transaction received sale_data type: {type(sale_data)}, content: {sale_data}")
         try:
             product_result = self.supabase.table("products").select("name, cost_price").eq("id", sale_data["product_id"]).single().execute()
             if not product_result.data:
