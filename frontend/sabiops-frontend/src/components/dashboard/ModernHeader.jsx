@@ -345,7 +345,7 @@ const ModernHeader = () => {
                       onClick={() => setShowNotifications(!showNotifications)}
                       className="w-full justify-start text-white hover:text-green-100 hover:bg-green-600"
                     >
-                      <NotificationBell className="h-4 w-4 mr-2" />
+                      <NotificationBell asIcon={true} className="h-4 w-4 mr-2" />
                       Notifications
                       {unreadCount > 0 && (
                         <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">

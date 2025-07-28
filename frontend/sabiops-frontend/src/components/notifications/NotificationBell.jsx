@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '../../lib/utils/index.js';
 import notificationService from '../../services/notificationService';
 
-const NotificationBell = ({ className, showText = false }) => {
+const NotificationBell = ({ className, showText = false, asIcon = false }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +86,20 @@ const NotificationBell = ({ className, showText = false }) => {
       default: return 'border-gray-200 bg-gray-50';
     }
   };
+
+  // If used as icon only (for mobile menu), return just the icon
+  if (asIcon) {
+    return (
+      <div className="relative">
+        <Bell className={cn("h-4 w-4", className)} />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

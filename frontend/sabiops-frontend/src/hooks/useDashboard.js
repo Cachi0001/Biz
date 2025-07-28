@@ -185,9 +185,8 @@ export const useDashboard = () => {
       setDashboardData(combinedData);
       setLastRefresh(new Date());
       
-      if (!showLoadingState) {
-        showToast('success', 'Dashboard data refreshed with accurate metrics');
-      }
+      // Remove automatic success toast for background refreshes
+      // Only show toast for manual refreshes or initial loads if needed
 
       // Auto-sync data if inconsistencies are detected
       try {
