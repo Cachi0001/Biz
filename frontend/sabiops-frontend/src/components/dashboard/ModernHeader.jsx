@@ -17,7 +17,8 @@ import {
   History,
   Crown,
   Bed,
-  UserPlus
+  UserPlus,
+  X
 } from 'lucide-react';
 import GlobalSearchBar from '../search/GlobalSearchBar';
 
@@ -342,7 +343,10 @@ const ModernHeader = () => {
                     <h3 className="text-sm font-medium text-green-100">Notifications</h3>
                     <Button
                       variant="ghost"
-                      onClick={() => setShowNotifications(!showNotifications)}
+                      onClick={() => {
+                        console.log('Notification button clicked, current state:', showNotifications);
+                        setShowNotifications(!showNotifications);
+                      }}
                       className="w-full justify-start text-white hover:text-green-100 hover:bg-green-600"
                     >
                       <NotificationBell asIcon={true} unreadCount={unreadCount} className="h-4 w-4 mr-2" />
@@ -354,14 +358,45 @@ const ModernHeader = () => {
                       )}
                     </Button>
                     {showNotifications && (
-                      <NotificationCenter
-                        notifications={notifications}
-                        unreadCount={unreadCount}
-                        loading={loading}
-                        onMarkAsRead={handleMarkAsRead}
-                        onMarkAllAsRead={handleMarkAllAsRead}
-                        onClose={() => setShowNotifications(false)}
-                      />
+                      <div className="mt-2 bg-green-800 rounded-lg p-3 border border-green-600">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-green-100">Recent Notifications</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowNotifications(false)}
+                              className="h-6 w-6 p-0 text-green-100 hover:bg-green-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          {notifications.length > 0 ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {notifications.slice(0, 5).map((notification) => (
+                                <div key={notification.id} className="bg-green-700 rounded p-2 text-sm">
+                                  <div className="text-green-100 font-medium">{notification.title}</div>
+                                  <div className="text-green-200 text-xs mt-1">{notification.message}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-green-200 text-sm text-center py-4">
+                              No new notifications
+                            </div>
+                          )}
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowNotifications(false)}
+                            className="w-full text-green-100 hover:bg-green-700 text-xs"
+                          >
+                            View All Notifications
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
 

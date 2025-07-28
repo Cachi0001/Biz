@@ -24,7 +24,9 @@ import {
   Receipt,
   FileText,
   Users,
-  Package
+  Package,
+  Eye,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import MobileDateInput from '@/components/ui/MobileDateInput';
@@ -48,6 +50,9 @@ const Transactions = () => {
     category: 'all',
     paymentMethod: 'all'
   });
+
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [showTransactionDetail, setShowTransactionDetail] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -207,6 +212,16 @@ const Transactions = () => {
     return methods.filter(Boolean);
   };
 
+  const handleViewTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowTransactionDetail(true);
+  };
+
+  const closeTransactionDetail = () => {
+    setSelectedTransaction(null);
+    setShowTransactionDetail(false);
+  };
+
   const exportTransactions = () => {
     // Create CSV content
     const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Payment Method', 'Reference'];
@@ -265,7 +280,7 @@ const Transactions = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -333,7 +348,7 @@ const Transactions = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>From Date</Label>
               <MobileDateInput
@@ -431,6 +446,7 @@ const Transactions = () => {
                   <TableHead>Description</TableHead>
                   <TableHead>Payment Method</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -477,6 +493,16 @@ const Transactions = () => {
                       <TableCell className={`text-right font-medium ${transaction.color}`}>
                         {transaction.type === 'money_in' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTransaction(transaction)}
+                          className="h-8 w-8 p-0 hover:bg-blue-100"
+                        >
+                          <Eye className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -491,6 +517,93 @@ const Transactions = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Transaction Detail Modal */}
+      {showTransactionDetail && selectedTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Transaction Details</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeTransactionDetail}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {/* Transaction Type */}
+              <div className="flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  {React.createElement(selectedTransaction.icon, { className: `h-6 w-6 ${selectedTransaction.color}` })}
+                  <Badge variant={selectedTransaction.type === 'money_in' ? 'default' : 'destructive'} className="text-sm">
+                    {selectedTransaction.type === 'money_in' ? 'Money In' : 'Money Out'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div className="text-center py-4 bg-gray-50 rounded-lg">
+                <p className={`text-2xl font-bold ${selectedTransaction.color}`}>
+                  {selectedTransaction.type === 'money_in' ? '+' : '-'}{formatCurrency(selectedTransaction.amount)}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">Transaction Amount</p>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Description</p>
+                  <p className="text-gray-900">{selectedTransaction.description}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Category</p>
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-sm font-medium text-blue-700">
+                    {selectedTransaction.category}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Payment Method</p>
+                  <Badge variant="outline" className="mt-1">
+                    {selectedTransaction.paymentMethod}
+                  </Badge>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Reference</p>
+                  <p className="text-gray-900 font-mono text-sm">{selectedTransaction.reference}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Date & Time</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-900">{format(new Date(selectedTransaction.date), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm text-gray-500">{format(new Date(selectedTransaction.date), 'HH:mm')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t bg-gray-50">
+              <Button
+                onClick={closeTransactionDetail}
+                className="w-full"
+                variant="outline"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </DashboardLayout>
   );
