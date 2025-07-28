@@ -18,9 +18,41 @@ search_bp = Blueprint('search', __name__)
 logger = logging.getLogger(__name__)
 
 @search_bp.route('/test', methods=['GET'], strict_slashes=False)
+@jwt_required(optional=True)
 def search_test():
     """Test endpoint to verify search blueprint is working"""
-    return jsonify({'message': 'Search blueprint is working', 'status': 'ok'})
+    user_id = get_jwt_identity()
+    if not user_id:
+        return jsonify({'message': 'Search blueprint is working', 'status': 'ok', 'authenticated': False})
+    
+    try:
+        # Get user info
+        user_response = supabase.table('users').select('role, owner_id').eq('id', user_id).single().execute()
+        if not user_response.data:
+            return jsonify({'error': 'User not found'}), 404
+        
+        owner_id = user_response.data['owner_id'] or user_id
+        
+        # Count products and customers
+        products_count = len(supabase.table('products').select('id').eq('owner_id', owner_id).execute().data or [])
+        customers_count = len(supabase.table('customers').select('id').eq('owner_id', owner_id).execute().data or [])
+        
+        return jsonify({
+            'message': 'Search blueprint is working', 
+            'status': 'ok',
+            'authenticated': True,
+            'user_id': user_id,
+            'owner_id': owner_id,
+            'products_count': products_count,
+            'customers_count': customers_count
+        })
+    except Exception as e:
+        return jsonify({
+            'message': 'Search blueprint is working', 
+            'status': 'ok',
+            'authenticated': True,
+            'error': str(e)
+        })
 
 @search_bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required(optional=True)
@@ -54,6 +86,8 @@ def global_search():
         
         user_role = user_response.data['role']
         owner_id = user_response.data['owner_id'] or user_id
+        
+        logger.info(f"Search request - user_id: {user_id}, owner_id: {owner_id}, role: {user_role}, query: {query}")
         
         results = {}
         
@@ -91,13 +125,17 @@ def search_customers(query, owner_id, user_role, limit):
     """Search customers with role-based filtering"""
     try:
         # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'name.ilike.%{query}%,email.ilike.%{query}%,phone.ilike.%{query}%,address.ilike.%{query}%'
+        search_condition = f'name.ilike.*{query}*,email.ilike.*{query}*,phone.ilike.*{query}*,address.ilike.*{query}*'
+        logger.info(f"Searching customers with query: {query}, owner_id: {owner_id}, condition: {search_condition}")
+        
         response = supabase.table('customers')\
             .select('id, name, email, phone, address, created_at')\
             .eq('owner_id', owner_id)\
             .or_(search_condition)\
             .limit(limit)\
             .execute()
+        
+        logger.info(f"Customer search response: {len(response.data or [])} results")
         return response.data or []
         
     except Exception as e:
@@ -108,13 +146,17 @@ def search_products(query, owner_id, user_role, limit):
     """Search products with role-based filtering"""
     try:
         # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'name.ilike.%{query}%,description.ilike.%{query}%,sku.ilike.%{query}%'
+        search_condition = f'name.ilike.*{query}*,description.ilike.*{query}*,sku.ilike.*{query}*'
+        logger.info(f"Searching products with query: {query}, owner_id: {owner_id}, condition: {search_condition}")
+        
         response = supabase.table('products')\
             .select('id, name, description, sku, price, quantity, category, created_at')\
             .eq('owner_id', owner_id)\
             .or_(search_condition)\
             .limit(limit)\
             .execute()
+        
+        logger.info(f"Product search response: {len(response.data or [])} results")
         return response.data or []
         
     except Exception as e:
@@ -125,7 +167,7 @@ def search_invoices(query, owner_id, user_role, limit):
     """Search invoices with role-based filtering"""
     try:
         # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'invoice_number.ilike.%{query}%,customer_name.ilike.%{query}%,status.ilike.%{query}%'
+        search_condition = f'invoice_number.ilike.*{query}*,customer_name.ilike.*{query}*,status.ilike.*{query}*'
         response = supabase.table('invoices')\
             .select('id, invoice_number, customer_name, total_amount, status, due_date, created_at')\
             .eq('owner_id', owner_id)\
@@ -142,7 +184,7 @@ def search_expenses(query, owner_id, user_role, limit):
     """Search expenses (owners and admins only)"""
     try:
         # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'description.ilike.%{query}%,category.ilike.%{query}%,payment_method.ilike.%{query}%'
+        search_condition = f'description.ilike.*{query}*,category.ilike.*{query}*,payment_method.ilike.*{query}*'
         response = supabase.table('expenses')\
             .select('id, description, amount, category, date, payment_method, created_at')\
             .eq('owner_id', owner_id)\
