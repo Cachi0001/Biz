@@ -106,6 +106,14 @@ def global_search():
         if search_type in ['all', 'expenses'] and user_role in ['owner', 'admin']:
             results['expenses'] = search_expenses(query, owner_id, user_role, limit)
         
+        # Search sales (all roles)
+        if search_type in ['all', 'sales']:
+            results['sales'] = search_sales(query, owner_id, user_role, limit)
+        
+        # Search team members (owners only)
+        if search_type in ['all', 'team'] and user_role == 'owner':
+            results['team'] = search_team_members(query, owner_id, user_role, limit)
+        
         # Log search activity
         log_search_activity(user_id, query, search_type, len(results))
         
@@ -358,6 +366,124 @@ def search_expenses(query, owner_id, user_role, limit):
         
     except Exception as e:
         logger.error(f"Expense search error: {str(e)}")
+        return []
+
+def search_sales(query, owner_id, user_role, limit):
+    """Search sales with role-based filtering"""
+    try:
+        # Search sales using multiple queries
+        logger.info(f"Searching sales with query: {query}, owner_id: {owner_id}")
+        
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by product name
+        product_results = supabase.table('sales')\
+            .select('id, customer_name, product_name, quantity, unit_price, total_amount, payment_method, date, created_at')\
+            .eq('owner_id', owner_id)\
+            .ilike('product_name', search_pattern)\
+            .limit(limit)\
+            .execute()
+        
+        if product_results.data:
+            results.extend(product_results.data)
+        
+        # Search by customer name (if not already found)
+        if len(results) < limit:
+            customer_results = supabase.table('sales')\
+                .select('id, customer_name, product_name, quantity, unit_price, total_amount, payment_method, date, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('customer_name', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if customer_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in customer_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by payment method (if not already found)
+        if len(results) < limit:
+            payment_results = supabase.table('sales')\
+                .select('id, customer_name, product_name, quantity, unit_price, total_amount, payment_method, date, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('payment_method', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if payment_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in payment_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Sales search error: {str(e)}")
+        return []
+
+def search_team_members(query, owner_id, user_role, limit):
+    """Search team members (owners only)"""
+    try:
+        # Search team members using multiple queries
+        logger.info(f"Searching team members with query: {query}, owner_id: {owner_id}")
+        
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by full name
+        name_results = supabase.table('users')\
+            .select('id, full_name, email, phone, role, business_name, active, created_at')\
+            .eq('owner_id', owner_id)\
+            .ilike('full_name', search_pattern)\
+            .limit(limit)\
+            .execute()
+        
+        if name_results.data:
+            results.extend(name_results.data)
+        
+        # Search by email (if not already found)
+        if len(results) < limit:
+            email_results = supabase.table('users')\
+                .select('id, full_name, email, phone, role, business_name, active, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('email', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if email_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in email_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by role (if not already found)
+        if len(results) < limit:
+            role_results = supabase.table('users')\
+                .select('id, full_name, email, phone, role, business_name, active, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('role', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if role_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in role_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
+        return response.data or []
+        
+    except Exception as e:
+        logger.error(f"Team members search error: {str(e)}")
         return []
 
 def log_search_activity(user_id, query, search_type, result_count):

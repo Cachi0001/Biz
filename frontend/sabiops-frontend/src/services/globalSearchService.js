@@ -161,7 +161,9 @@ class GlobalSearchService {
           products: [],
           customers: [],
           invoices: [],
-          expenses: []
+          expenses: [],
+          sales: [],
+          team: []
         },
         total_results: 0
       };
