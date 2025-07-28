@@ -52,8 +52,8 @@ const SubscriptionStatus = ({
     );
   }
 
-  // Trial Period Display
-  if (isTrial && isOwner) {
+  // Trial Period Display - Only show when 3 days or less remaining
+  if (isTrial && isOwner && trialDaysLeft <= 3 && trialDaysLeft > 0) {
     const urgencyLevel = trialDaysLeft <= 1 ? 'critical' : trialDaysLeft <= 3 ? 'warning' : 'normal';
     const gradientClass = urgencyLevel === 'critical'
       ? 'from-red-100 to-red-200 border-red-300'

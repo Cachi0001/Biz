@@ -17,8 +17,7 @@ import {
   History,
   Crown,
   Bed,
-  UserPlus,
-  X
+  UserPlus
 } from 'lucide-react';
 import GlobalSearchBar from '../search/GlobalSearchBar';
 
@@ -31,6 +30,16 @@ const ModernHeader = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every minute for real-time subscription days calculation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Initialize Firebase and load notifications
   useEffect(() => {
@@ -310,12 +319,42 @@ const ModernHeader = () => {
               <NotificationBell />
             </div>
 
-            {/* Trial Indicator */}
-            {user?.subscription_status === 'trial' && (
+            {/* Subscription Indicator - Shows days remaining in current cycle */}
+            {user && (user?.subscription_status === 'trial' || (user?.subscription_plan && user?.subscription_plan !== 'free')) && (
               <div className="flex items-center space-x-1 bg-yellow-500 px-2 py-1 rounded-full">
                 <Crown className="h-3 w-3 text-yellow-900" />
                 <span className="text-xs font-medium text-yellow-900">
-                  {user?.trial_days_left || 0} days
+                  {(() => {
+                    // For trial users, show trial days left
+                    if (user?.subscription_status === 'trial') {
+                      return `${user?.trial_days_left || 0} days`;
+                    }
+                    
+                    // For paid users, calculate days remaining in current billing cycle
+                    if (user?.subscription_plan && user?.subscription_plan !== 'free') {
+                      const now = currentTime;
+                      const subscriptionStart = user?.subscription_start_date ? new Date(user.subscription_start_date) : now;
+                      
+                      // Calculate days in billing cycle based on plan
+                      let cycleDays = 30; // default monthly
+                      if (user.subscription_plan === 'silver_weekly' || user.subscription_plan === 'weekly') {
+                        cycleDays = 7;
+                      } else if (user.subscription_plan === 'yearly' || user.subscription_plan === 'silver_yearly') {
+                        cycleDays = 365;
+                      }
+                      
+                      // Calculate days since subscription started
+                      const daysSinceStart = Math.floor((now - subscriptionStart) / (1000 * 60 * 60 * 24));
+                      
+                      // Calculate days remaining in current cycle
+                      const daysInCurrentCycle = daysSinceStart % cycleDays;
+                      const daysRemaining = cycleDays - daysInCurrentCycle;
+                      
+                      return `${daysRemaining} days`;
+                    }
+                    
+                    return '0 days';
+                  })()}
                 </span>
               </div>
             )}
