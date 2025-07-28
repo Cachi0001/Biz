@@ -61,7 +61,6 @@ def global_search():
     if request.method == 'OPTIONS':
         return '', 200
     
-    # Check if user is authenticated for GET requests
     user_id = get_jwt_identity()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -124,16 +123,56 @@ def global_search():
 def search_customers(query, owner_id, user_role, limit):
     """Search customers with role-based filtering"""
     try:
-        # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'name.ilike.*{query}*,email.ilike.*{query}*,phone.ilike.*{query}*,address.ilike.*{query}*'
-        logger.info(f"Searching customers with query: {query}, owner_id: {owner_id}, condition: {search_condition}")
+        # Search customers using multiple queries since or_ might not be available
+        logger.info(f"Searching customers with query: {query}, owner_id: {owner_id}")
         
-        response = supabase.table('customers')\
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by name
+        name_results = supabase.table('customers')\
             .select('id, name, email, phone, address, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(search_condition)\
+            .ilike('name', search_pattern)\
             .limit(limit)\
             .execute()
+        
+        if name_results.data:
+            results.extend(name_results.data)
+        
+        # Search by email (if not already found by name)
+        if len(results) < limit:
+            email_results = supabase.table('customers')\
+                .select('id, name, email, phone, address, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('email', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if email_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in email_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by phone (if not already found)
+        if len(results) < limit:
+            phone_results = supabase.table('customers')\
+                .select('id, name, email, phone, address, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('phone', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if phone_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in phone_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
         
         logger.info(f"Customer search response: {len(response.data or [])} results")
         return response.data or []
@@ -145,16 +184,56 @@ def search_customers(query, owner_id, user_role, limit):
 def search_products(query, owner_id, user_role, limit):
     """Search products with role-based filtering"""
     try:
-        # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'name.ilike.*{query}*,description.ilike.*{query}*,sku.ilike.*{query}*'
-        logger.info(f"Searching products with query: {query}, owner_id: {owner_id}, condition: {search_condition}")
+        # Search products using multiple queries
+        logger.info(f"Searching products with query: {query}, owner_id: {owner_id}")
         
-        response = supabase.table('products')\
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by name
+        name_results = supabase.table('products')\
             .select('id, name, description, sku, price, quantity, category, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(search_condition)\
+            .ilike('name', search_pattern)\
             .limit(limit)\
             .execute()
+        
+        if name_results.data:
+            results.extend(name_results.data)
+        
+        # Search by description (if not already found by name)
+        if len(results) < limit:
+            desc_results = supabase.table('products')\
+                .select('id, name, description, sku, price, quantity, category, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('description', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if desc_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in desc_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by SKU (if not already found)
+        if len(results) < limit and query:  # Only search SKU if query is not empty
+            sku_results = supabase.table('products')\
+                .select('id, name, description, sku, price, quantity, category, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('sku', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if sku_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in sku_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
         
         logger.info(f"Product search response: {len(response.data or [])} results")
         return response.data or []
@@ -166,14 +245,56 @@ def search_products(query, owner_id, user_role, limit):
 def search_invoices(query, owner_id, user_role, limit):
     """Search invoices with role-based filtering"""
     try:
-        # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'invoice_number.ilike.*{query}*,customer_name.ilike.*{query}*,status.ilike.*{query}*'
-        response = supabase.table('invoices')\
+        # Search invoices using multiple queries
+        logger.info(f"Searching invoices with query: {query}, owner_id: {owner_id}")
+        
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by invoice number
+        invoice_results = supabase.table('invoices')\
             .select('id, invoice_number, customer_name, total_amount, status, due_date, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(search_condition)\
+            .ilike('invoice_number', search_pattern)\
             .limit(limit)\
             .execute()
+        
+        if invoice_results.data:
+            results.extend(invoice_results.data)
+        
+        # Search by customer name (if not already found)
+        if len(results) < limit:
+            customer_results = supabase.table('invoices')\
+                .select('id, invoice_number, customer_name, total_amount, status, due_date, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('customer_name', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if customer_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in customer_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by status (if not already found)
+        if len(results) < limit:
+            status_results = supabase.table('invoices')\
+                .select('id, invoice_number, customer_name, total_amount, status, due_date, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('status', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if status_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in status_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
         return response.data or []
         
     except Exception as e:
@@ -183,14 +304,56 @@ def search_invoices(query, owner_id, user_role, limit):
 def search_expenses(query, owner_id, user_role, limit):
     """Search expenses (owners and admins only)"""
     try:
-        # Build search query with OR conditions using proper Supabase syntax
-        search_condition = f'description.ilike.*{query}*,category.ilike.*{query}*,payment_method.ilike.*{query}*'
-        response = supabase.table('expenses')\
+        # Search expenses using multiple queries
+        logger.info(f"Searching expenses with query: {query}, owner_id: {owner_id}")
+        
+        results = []
+        search_pattern = f'%{query}%'
+        
+        # Search by description
+        desc_results = supabase.table('expenses')\
             .select('id, description, amount, category, date, payment_method, created_at')\
             .eq('owner_id', owner_id)\
-            .or_(search_condition)\
+            .ilike('description', search_pattern)\
             .limit(limit)\
             .execute()
+        
+        if desc_results.data:
+            results.extend(desc_results.data)
+        
+        # Search by category (if not already found)
+        if len(results) < limit:
+            category_results = supabase.table('expenses')\
+                .select('id, description, amount, category, date, payment_method, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('category', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if category_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in category_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        # Search by payment method (if not already found)
+        if len(results) < limit:
+            payment_results = supabase.table('expenses')\
+                .select('id, description, amount, category, date, payment_method, created_at')\
+                .eq('owner_id', owner_id)\
+                .ilike('payment_method', search_pattern)\
+                .limit(limit - len(results))\
+                .execute()
+            
+            if payment_results.data:
+                # Avoid duplicates
+                existing_ids = {r['id'] for r in results}
+                for result in payment_results.data:
+                    if result['id'] not in existing_ids:
+                        results.append(result)
+        
+        response = type('Response', (), {'data': results[:limit]})()  # Mock response object
         return response.data or []
         
     except Exception as e:
