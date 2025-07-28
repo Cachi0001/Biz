@@ -565,7 +565,7 @@ const Sales = () => {
                       placeholder="Search by customer name, product, or sale details..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 md:text-xs"
+                      className="pl-12 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 md:text-xs"
                     />
                   </div>
                 </div>

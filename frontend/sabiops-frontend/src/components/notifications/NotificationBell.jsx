@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '../../lib/utils/index.js';
 import notificationService from '../../services/notificationService';
 
-const NotificationBell = ({ className, showText = false, asIcon = false }) => {
+const NotificationBell = ({ className, showText = false, asIcon = false, unreadCount: externalUnreadCount }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -56,13 +56,13 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
     const now = new Date();
     const date = new Date(dateString);
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays}d ago`;
   };
@@ -87,14 +87,17 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
     }
   };
 
+  // Use external unread count if provided (for mobile menu), otherwise use internal state
+  const displayUnreadCount = externalUnreadCount !== undefined ? externalUnreadCount : unreadCount;
+
   // If used as icon only (for mobile menu), return just the icon
   if (asIcon) {
     return (
       <div className="relative">
         <Bell className={cn("h-4 w-4", className)} />
-        {unreadCount > 0 && (
+        {displayUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium animate-pulse">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {displayUnreadCount > 9 ? '9+' : displayUnreadCount}
           </span>
         )}
       </div>
@@ -115,16 +118,16 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
       >
         <Bell className="h-4 w-4" />
         {showText && <span className="ml-2">Notifications</span>}
-        {unreadCount > 0 && (
+        {displayUnreadCount > 0 && (
           <span className={cn(
             "absolute rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium animate-pulse",
             showText ? "-top-1 -right-1 h-5 w-5" : "-top-1 -right-1 h-5 w-5"
           )}>
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {displayUnreadCount > 9 ? '9+' : displayUnreadCount}
           </span>
         )}
         <span className="sr-only">
-          {unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
+          {displayUnreadCount > 0 ? `${displayUnreadCount} unread notifications` : 'Notifications'}
         </span>
       </Button>
 
@@ -132,11 +135,11 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
+          <div
+            className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Notification Panel */}
           <Card className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-hidden z-50 shadow-lg border">
             <CardHeader className="pb-3">
@@ -167,7 +170,7 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="p-0">
               <div className="max-h-80 overflow-y-auto">
                 {loading ? (
@@ -194,7 +197,7 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
                           <span className="text-lg flex-shrink-0 mt-0.5">
                             {getNotificationIcon(notification.type)}
                           </span>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1">
@@ -205,7 +208,7 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
                                   {notification.message}
                                 </p>
                               </div>
-                              
+
                               {!notification.read && (
                                 <Button
                                   variant="ghost"
@@ -218,12 +221,12 @@ const NotificationBell = ({ className, showText = false, asIcon = false }) => {
                                 </Button>
                               )}
                             </div>
-                            
+
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-xs text-gray-500">
                                 {formatTimeAgo(notification.created_at)}
                               </span>
-                              
+
                               {!notification.read && (
                                 <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                                   New

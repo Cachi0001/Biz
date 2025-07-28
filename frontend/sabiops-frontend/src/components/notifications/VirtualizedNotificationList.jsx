@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 const ITEM_HEIGHT = 80; // Approximate height of each notification item
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
 
-const VirtualizedNotificationList = ({ 
-  notifications, 
-  onNotificationClick, 
+const VirtualizedNotificationList = ({
+  notifications,
+  onNotificationClick,
   onMarkAsRead,
-  containerHeight = 350 
+  containerHeight = 350
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
   const scrollElementRef = useRef(null);
@@ -23,7 +23,7 @@ const VirtualizedNotificationList = ({
   const visibleRange = useMemo(() => {
     const containerTop = scrollTop;
     const containerBottom = scrollTop + containerHeight;
-    
+
     const startIndex = Math.max(0, Math.floor(containerTop / ITEM_HEIGHT) - BUFFER_SIZE);
     const endIndex = Math.min(
       notifications.length - 1,
@@ -52,7 +52,7 @@ const VirtualizedNotificationList = ({
       event.preventDefault();
       const currentIndex = notifications.findIndex(n => n.id === notification.id);
       const nextIndex = event.key === 'ArrowDown' ? currentIndex + 1 : currentIndex - 1;
-      
+
       if (nextIndex >= 0 && nextIndex < notifications.length) {
         const nextElement = scrollElementRef.current?.querySelector(
           `[data-notification-index="${nextIndex}"]`
@@ -62,19 +62,17 @@ const VirtualizedNotificationList = ({
     }
   }, [notifications, onNotificationClick]);
 
-  // Render notification item
   const renderNotificationItem = useCallback((notification, index) => {
     const actualIndex = visibleRange.startIndex + index;
-    
+
     return (
       <div
         key={notification.id}
         data-notification-index={actualIndex}
         role="listitem"
         tabIndex={0}
-        className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-200 ${
-          !notification.read ? `${notification.bgColor} border-l-4 ${notification.borderColor?.replace('border-', 'border-l-')}` : ''
-        }`}
+        className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-200 ${!notification.read ? `${notification.bgColor} border-l-4 ${notification.borderColor?.replace('border-', 'border-l-')}` : ''
+          }`}
         style={{
           position: 'absolute',
           top: actualIndex * ITEM_HEIGHT,
@@ -90,7 +88,7 @@ const VirtualizedNotificationList = ({
           <div className="text-base flex-shrink-0 mt-0.5" aria-hidden="true">
             {notification.icon}
           </div>
-          
+
           <div className="flex-1 min-w-0 h-full flex flex-col">
             <div className="flex items-start justify-between mb-1">
               <h4 className={`font-medium text-sm leading-tight ${notification.color} truncate`}>
@@ -98,24 +96,24 @@ const VirtualizedNotificationList = ({
               </h4>
               <div className="flex items-center gap-1 flex-shrink-0" aria-hidden="true">
                 {notification.urgencyLevel >= 4 && (
-                  <div 
+                  <div
                     className="w-1 h-1 bg-red-500 rounded-full"
                     title="Urgent notification"
                   ></div>
                 )}
                 {!notification.read && (
-                  <div 
+                  <div
                     className="w-2 h-2 bg-blue-500 rounded-full"
                     title="Unread notification"
                   ></div>
                 )}
               </div>
             </div>
-            
+
             <p className="text-sm text-gray-600 mb-2 leading-tight break-words line-clamp-2 flex-1">
               {notification.message}
             </p>
-            
+
             <div className="flex items-center justify-between mt-auto">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400">
@@ -125,7 +123,7 @@ const VirtualizedNotificationList = ({
                   {notification.category}
                 </span>
               </div>
-              
+
               {!notification.read && (
                 <Button
                   variant="ghost"
@@ -161,18 +159,18 @@ const VirtualizedNotificationList = ({
       {/* Total height container */}
       <div style={{ height: notifications.length * ITEM_HEIGHT, position: 'relative' }}>
         {/* Visible items */}
-        {visibleNotifications.map((notification, index) => 
+        {visibleNotifications.map((notification, index) =>
           renderNotificationItem(notification, index)
         )}
       </div>
-      
+
       {/* Loading indicator for large lists */}
       {notifications.length > 100 && (
         <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-white/80 px-2 py-1 rounded">
           {notifications.length} notifications
         </div>
       )}
-      
+
       {/* CSS for line clamping */}
       <style jsx>{`
         .line-clamp-2 {

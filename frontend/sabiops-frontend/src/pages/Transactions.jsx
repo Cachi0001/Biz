@@ -338,7 +338,7 @@ const Transactions = () => {
               <Label>From Date</Label>
               <MobileDateInput
                 value={filters.dateFrom}
-                onChange={(date) => setFilters({...filters, dateFrom: date})}
+                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
               />
             </div>
             
@@ -346,7 +346,7 @@ const Transactions = () => {
               <Label>To Date</Label>
               <MobileDateInput
                 value={filters.dateTo}
-                onChange={(date) => setFilters({...filters, dateTo: date})}
+                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
               />
             </div>
             

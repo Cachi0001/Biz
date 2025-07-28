@@ -344,7 +344,7 @@ const OptimizedCustomers = () => {
                   placeholder="Search customers by name, email, business, phone, or address..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 text-base touch-manipulation"
+                  className="pl-12 h-12 text-base touch-manipulation"
                 />
                 {searchLoading && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
