@@ -23,23 +23,20 @@ def search_test():
     return jsonify({'message': 'Search blueprint is working', 'status': 'ok'})
 
 @search_bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
+@jwt_required(optional=True)
 def global_search():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
         return '', 200
     
-    # Apply JWT requirement only for GET requests
-    try:
-        from flask_jwt_extended import verify_jwt_in_request
-        verify_jwt_in_request()
-    except Exception as e:
+    # Check if user is authenticated for GET requests
+    user_id = get_jwt_identity()
+    if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
     
     try:
         if not supabase:
             return jsonify({'error': 'Database connection not available'}), 500
-            
-        user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
         search_type = request.args.get('type', 'all')
         limit = int(request.args.get('limit', 10))
@@ -173,20 +170,19 @@ def log_search_activity(user_id, query, search_type, result_count):
         logger.error(f"Search logging error: {str(e)}")
 
 @search_bp.route('/suggestions', methods=['GET', 'OPTIONS'], strict_slashes=False)
+@jwt_required(optional=True)
 def search_suggestions():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
         return '', 200
     
-    # Apply JWT requirement only for GET requests
-    try:
-        from flask_jwt_extended import verify_jwt_in_request
-        verify_jwt_in_request()
-    except Exception as e:
+    # Check if user is authenticated for GET requests
+    user_id = get_jwt_identity()
+    if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
+    
     """Get search suggestions based on user's data"""
     try:
-        user_id = get_jwt_identity()
         query = request.args.get('q', '').strip()
         
         if len(query) < 2:
@@ -223,20 +219,19 @@ def search_suggestions():
         return jsonify({'suggestions': []})
 
 @search_bp.route('/recent', methods=['GET', 'OPTIONS'], strict_slashes=False)
+@jwt_required(optional=True)
 def recent_searches():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
         return '', 200
     
-    # Apply JWT requirement only for GET requests
-    try:
-        from flask_jwt_extended import verify_jwt_in_request
-        verify_jwt_in_request()
-    except Exception as e:
+    # Check if user is authenticated for GET requests
+    user_id = get_jwt_identity()
+    if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
+    
     """Get user's recent searches"""
     try:
-        user_id = get_jwt_identity()
         
         response = supabase.table('search_logs').select(
             'query, search_type, created_at'
