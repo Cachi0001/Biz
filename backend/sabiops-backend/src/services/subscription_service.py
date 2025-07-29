@@ -630,10 +630,13 @@ class SubscriptionService:
 
     # Usage Tracking Service Methods
     def get_accurate_usage_counts(self, user_id: str) -> Dict[str, Any]:
-        """Query database directly for accurate usage counts"""
+        """Query database directly for accurate usage counts (business-wide for all roles)"""
         try:
-            # Get current usage from feature_usage table
-            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
+            # Get the business owner ID to ensure we track usage business-wide
+            business_owner_id = self._get_business_owner_id(user_id)
+            
+            # Get current usage from feature_usage table (always use business owner's records)
+            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', business_owner_id).execute()
             
             usage_counts = {}
             for usage_record in usage_result.data:
@@ -645,7 +648,7 @@ class SubscriptionService:
                     'percentage_used': (usage_record['current_count'] / usage_record['limit_count'] * 100) if usage_record['limit_count'] > 0 else 0
                 }
             
-            # Also get actual counts from database tables for verification
+            # Get actual counts from database tables for verification (business-wide)
             actual_counts = self._get_actual_database_counts(user_id)
             
             # Compare and flag discrepancies
@@ -662,6 +665,7 @@ class SubscriptionService:
             
             return {
                 'user_id': user_id,
+                'business_owner_id': business_owner_id,
                 'usage_counts': usage_counts,
                 'actual_counts': actual_counts,
                 'discrepancies': discrepancies,
@@ -674,28 +678,31 @@ class SubscriptionService:
             raise
 
     def increment_usage_atomic(self, user_id: str, feature_type: str, amount: int = 1) -> Dict[str, Any]:
-        """Atomically increment usage with database transaction and retry logic"""
+        """Atomically increment usage with database transaction and retry logic (business-wide tracking)"""
         max_retries = 3
         retry_count = 0
+        
+        # Always use business owner ID for usage tracking
+        business_owner_id = self._get_business_owner_id(user_id)
         
         while retry_count < max_retries:
             try:
                 # Start transaction-like operation
                 current_time = datetime.now()
                 
-                # Get current usage record
+                # Get current usage record (always for business owner)
                 usage_result = self.supabase.table('feature_usage').select('*').eq(
-                    'user_id', user_id
+                    'user_id', business_owner_id
                 ).eq('feature_type', feature_type).single().execute()
                 
                 if not usage_result.data:
                     # Create new usage record if doesn't exist
-                    user_subscription = self.get_unified_subscription_status(user_id)
+                    user_subscription = self.get_unified_subscription_status(business_owner_id)
                     plan_config = user_subscription['plan_config']
                     limit_count = plan_config['features'].get(feature_type, 0)
                     
                     new_usage = {
-                        'user_id': user_id,
+                        'user_id': business_owner_id,
                         'feature_type': feature_type,
                         'current_count': amount,
                         'limit_count': limit_count,
@@ -714,7 +721,8 @@ class SubscriptionService:
                         'new_count': amount,
                         'limit': limit_count,
                         'remaining': max(0, limit_count - amount),
-                        'created_new_record': True
+                        'created_new_record': True,
+                        'business_owner_id': business_owner_id
                     }
                 
                 # Update existing record
@@ -726,7 +734,7 @@ class SubscriptionService:
                     'updated_at': current_time.isoformat(),
                     'last_synced_at': current_time.isoformat(),
                     'sync_status': 'synced'
-                }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                }).eq('user_id', business_owner_id).eq('feature_type', feature_type).execute()
                 
                 if update_result.data:
                     limit_count = usage_result.data['limit_count']
@@ -735,14 +743,15 @@ class SubscriptionService:
                         'new_count': new_count,
                         'limit': limit_count,
                         'remaining': max(0, limit_count - new_count),
-                        'incremented_by': amount
+                        'incremented_by': amount,
+                        'business_owner_id': business_owner_id
                     }
                 else:
                     raise Exception("Failed to update usage count")
                 
             except Exception as e:
                 retry_count += 1
-                logger.warning(f"Usage increment attempt {retry_count} failed for user {user_id}, feature {feature_type}: {str(e)}")
+                logger.warning(f"Usage increment attempt {retry_count} failed for user {user_id} (business owner: {business_owner_id}), feature {feature_type}: {str(e)}")
                 
                 if retry_count >= max_retries:
                     logger.error(f"Usage increment failed after {max_retries} attempts for user {user_id}, feature {feature_type}")
@@ -750,8 +759,8 @@ class SubscriptionService:
                     try:
                         self.supabase.table('feature_usage').update({
                             'sync_status': 'out_of_sync',
-                            'discrepancy_count': self.supabase.table('feature_usage').select('discrepancy_count').eq('user_id', user_id).eq('feature_type', feature_type).single().execute().data.get('discrepancy_count', 0) + 1
-                        }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                            'discrepancy_count': self.supabase.table('feature_usage').select('discrepancy_count').eq('user_id', business_owner_id).eq('feature_type', feature_type).single().execute().data.get('discrepancy_count', 0) + 1
+                        }).eq('user_id', business_owner_id).eq('feature_type', feature_type).execute()
                     except:
                         pass
                     
@@ -851,24 +860,35 @@ class SubscriptionService:
             raise
 
     def _get_actual_database_counts(self, user_id: str) -> Dict[str, int]:
-        """Get actual counts from database tables"""
+        """Get actual counts from database tables for business owner (includes all team member activities)"""
         try:
+            # Get the business owner ID (if user is team member, get their owner's ID)
+            business_owner_id = self._get_business_owner_id(user_id)
+            
             counts = {}
             
-            # Count invoices
-            invoice_result = self.supabase.table('invoices').select('id', count='exact').eq('user_id', user_id).execute()
+            # Count invoices for the entire business (owner + team members)
+            invoice_result = self.supabase.table('invoices').select('id', count='exact').or_(
+                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
+            ).execute()
             counts['invoices'] = invoice_result.count or 0
             
-            # Count expenses
-            expense_result = self.supabase.table('expenses').select('id', count='exact').eq('user_id', user_id).execute()
+            # Count expenses for the entire business
+            expense_result = self.supabase.table('expenses').select('id', count='exact').or_(
+                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
+            ).execute()
             counts['expenses'] = expense_result.count or 0
             
-            # Count sales
-            sales_result = self.supabase.table('sales').select('id', count='exact').eq('user_id', user_id).execute()
+            # Count sales for the entire business
+            sales_result = self.supabase.table('sales').select('id', count='exact').or_(
+                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
+            ).execute()
             counts['sales'] = sales_result.count or 0
             
-            # Count products
-            products_result = self.supabase.table('products').select('id', count='exact').eq('user_id', user_id).execute()
+            # Count products for the entire business
+            products_result = self.supabase.table('products').select('id', count='exact').or_(
+                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
+            ).execute()
             counts['products'] = products_result.count or 0
             
             return counts
@@ -876,6 +896,25 @@ class SubscriptionService:
         except Exception as e:
             logger.error(f"Error getting actual database counts for user {user_id}: {str(e)}")
             return {}
+
+    def _get_business_owner_id(self, user_id: str) -> str:
+        """Get the business owner ID for a user (returns user_id if they are the owner)"""
+        try:
+            user_result = self.supabase.table('users').select('owner_id, role').eq('id', user_id).single().execute()
+            
+            if not user_result.data:
+                return user_id
+            
+            # If user has owner_id, they are a team member - return the owner's ID
+            if user_result.data.get('owner_id'):
+                return user_result.data['owner_id']
+            
+            # If user has no owner_id, they are the owner themselves
+            return user_id
+            
+        except Exception as e:
+            logger.error(f"Error getting business owner ID for user {user_id}: {str(e)}")
+            return user_id
 
     # Pro-ration Calculation System
     def calculate_proration(self, user_id: str, current_plan: str, new_plan: str, 

@@ -33,7 +33,7 @@ def create_team_member():
         owner_id = get_jwt_identity()
         data = request.get_json()
 
-        owner_res = supabase.table("users").select("role, subscription_plan, subscription_status, trial_ends_at").eq("id", owner_id).single().execute()
+        owner_res = supabase.table("users").select("role, subscription_plan, subscription_status, trial_days_left, subscription_end_date").eq("id", owner_id).single().execute()
         if not owner_res.data or owner_res.data.get("role") != "Owner":
             return error_response("Forbidden", "Only owners can create team members.", 403)
 
@@ -58,9 +58,12 @@ def create_team_member():
             "email_confirmed": True,
             "email_confirmed_at": datetime.now().isoformat(),
             "active": True,
-            "subscription_plan": owner_res.data.get("subscription_plan"),
-            "subscription_status": owner_res.data.get("subscription_status"),
-            "trial_ends_at": owner_res.data.get("trial_ends_at"),
+            "subscription_plan": owner_res.data.get("subscription_plan", "free"),
+            "subscription_status": owner_res.data.get("subscription_status", "inactive"),
+            "trial_days_left": owner_res.data.get("trial_days_left", 0),
+            "subscription_end_date": owner_res.data.get("subscription_end_date"),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
         }
 
         inserted_user = supabase.table("users").insert(new_user_data).execute()
