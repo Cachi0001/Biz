@@ -162,22 +162,16 @@ class FirebaseService {
     try {
       console.log('FirebaseService: Storing token in backend...');
 
-      const response = await fetch('/api/notifications/register-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          fcm_token: token,
-          device_type: 'web',
-          user_agent: navigator.userAgent
-        })
+      // Import API service to use correct backend URL
+      const { post } = await import('./api.js');
+      
+      const response = await post('/notifications/register-token', {
+        fcm_token: token,
+        device_type: 'web',
+        user_agent: navigator.userAgent
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to store FCM token in backend');
-      }
+      // API service handles errors automatically
 
       console.log('FirebaseService: Token stored successfully');
 
@@ -336,24 +330,11 @@ class FirebaseService {
    */
   static async getNotifications(limit = 20, offset = 0) {
     try {
-      const response = await fetch(`/api/notifications?limit=${limit}&offset=${offset}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        // Return empty array if endpoint doesn't exist
-        return [];
-      }
-
-      const text = await response.text();
+      // Import API service to use correct backend URL
+      const { get } = await import('./api.js');
       
-      // Check if response is HTML (404 page) instead of JSON
-      if (text.startsWith('<!doctype') || text.startsWith('<!DOCTYPE')) {
-        console.warn('FirebaseService: Notifications endpoint not available yet');
-        return [];
+      const response = await get(`/notifications?limit=${limit}&offset=${offset}`);
+      const data = response.data || response;
       }
 
       const result = JSON.parse(text);
@@ -418,27 +399,11 @@ class FirebaseService {
    */
   static async getUnreadCount() {
     try {
-      const response = await fetch('/api/notifications/unread-count', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        // Return 0 for now if endpoint doesn't exist
-        return 0;
-      }
-
-      const text = await response.text();
+      // Import API service to use correct backend URL
+      const { get } = await import('./api.js');
       
-      // Check if response is HTML (404 page) instead of JSON
-      if (text.startsWith('<!doctype') || text.startsWith('<!DOCTYPE')) {
-        console.warn('FirebaseService: Notifications endpoint not available yet');
-        return 0;
-      }
-
-      const result = JSON.parse(text);
+      const response = await get('/notifications/unread-count');
+      const result = response.data || response;
       return result.count || 0;
 
     } catch (error) {

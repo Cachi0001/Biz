@@ -155,7 +155,7 @@ class BusinessEventMonitor {
    */
   async checkUsageLimits() {
     try {
-      const response = await get('/user/usage-status');
+      const response = await get('/subscription/usage-status');
       const usageData = response.data || response;
 
       if (usageData.limits) {

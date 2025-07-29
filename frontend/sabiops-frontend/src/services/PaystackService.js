@@ -3,6 +3,8 @@
  * Integrates with SabiOps backend for subscription management
  */
 
+import api from './api.js';
+
 class PaystackService {
   static PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
   
@@ -85,9 +87,6 @@ class PaystackService {
     try {
       console.log(`PaystackService: Verifying payment (attempt ${retryCount + 1}):`, reference);
 
-      // Import the API service to use the correct base URL
-      const { default: api } = await import('./api.js');
-      
       const response = await api.post('/subscription/verify-payment', {
         reference: reference,
         plan_id: planData.id,
@@ -159,9 +158,6 @@ class PaystackService {
     try {
       console.log('PaystackService: Updating subscription:', paymentData);
 
-      // Import the API service to use the correct base URL
-      const { default: api } = await import('./api.js');
-      
       const response = await api.post('/subscription/upgrade', {
         plan_id: paymentData.plan_id,
         payment_reference: paymentData.reference,
@@ -184,9 +180,6 @@ class PaystackService {
    */
   static async getSubscriptionStatus() {
     try {
-      // Import the API service to use the correct base URL
-      const { default: api } = await import('./api.js');
-      
       const response = await api.get('/subscription/status');
       const result = response.data;
       return result;
@@ -203,9 +196,6 @@ class PaystackService {
    */
   static async getUsageStatus() {
     try {
-      // Import the API service to use the correct base URL
-      const { default: api } = await import('./api.js');
-      
       const response = await api.get('/subscription/usage-status');
       const result = response.data;
       return result;
