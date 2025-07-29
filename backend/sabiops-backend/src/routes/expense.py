@@ -250,6 +250,21 @@ def create_expense():
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
+        
+        # Check usage limits for free plan users
+        user_result = supabase.table("users").select("subscription_plan,current_month_expenses").eq("id", owner_id).single().execute()
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
+            
+        user = user_result.data
+        if user['subscription_plan'] == 'free':
+            current_expenses = user.get('current_month_expenses', 0)
+            if current_expenses >= 20:  # Updated to match new limit
+                return error_response(
+                    "Monthly expense limit reached", 
+                    "Upgrade to create more expenses",
+                    status_code=402  # Payment Required
+                )
         data = request.get_json()
         data['owner_id'] = owner_id
         

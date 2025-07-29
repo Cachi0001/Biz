@@ -147,27 +147,31 @@ export const useUsageTracking = () => {
     const limits = {
       free: {
         invoices: 5,
-        expenses: 5,
+        expenses: 20,
+        sales: 50,
         customers: 50,
         products: 20
       },
       silver_weekly: {
         invoices: 100,
         expenses: 100,
+        sales: 250,
         customers: 500,
-        products: 200
+        products: 100
       },
       silver_monthly: {
-        invoices: 500,
+        invoices: 450,
         expenses: 500,
+        sales: 1500,
         customers: 2000,
-        products: 1000
+        products: 500
       },
       silver_yearly: {
         invoices: 6000,
-        expenses: 6000,
+        expenses: 2000,
+        sales: 18000,
         customers: 10000,
-        products: 5000
+        products: 2000
       }
     };
 

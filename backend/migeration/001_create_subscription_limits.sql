@@ -22,17 +22,21 @@ INSERT INTO public.subscription_plan_limits (plan_name, feature_type, period_typ
 ('free', 'expenses', 'monthly', 20),
 ('free', 'invoices', 'monthly', 5),
 
+
 -- Weekly Plan
+-- Should activate by default once a user registers
 ('weekly', 'sales', 'weekly', 250),
 ('weekly', 'products', 'weekly', 100),
 ('weekly', 'expenses', 'weekly', 100),
 ('weekly', 'invoices', 'weekly', 100),
+
 
 -- Monthly Plan
 ('monthly', 'sales', 'monthly', 1500),
 ('monthly', 'products', 'monthly', 500),
 ('monthly', 'expenses', 'monthly', 500),
 ('monthly', 'invoices', 'monthly', 450),
+
 
 -- Yearly Plan
 ('yearly', 'sales', 'yearly', 18000),

@@ -25,7 +25,9 @@ SUBSCRIPTION_PLANS = {
         'popular': False,
         'limits': {
             'invoices_per_month': 5,
-            'expenses_per_month': 5
+            'expenses_per_month': 20,
+            'sales_per_month': 50,
+            'products_per_month': 20
         }
     },
     'weekly': {
@@ -49,7 +51,9 @@ SUBSCRIPTION_PLANS = {
         'note': 'No referral earnings during trial',
         'limits': {
             'invoices_per_week': 100,
-            'expenses_per_week': 100
+            'expenses_per_week': 100,
+            'sales_per_week': 250,
+            'products_per_week': 100
         }
     },
     'monthly': {
@@ -70,7 +74,9 @@ SUBSCRIPTION_PLANS = {
         'popular': False,
         'limits': {
             'invoices_per_month': 450,
-            'expenses_per_month': 450
+            'expenses_per_month': 500,
+            'sales_per_month': 1500,
+            'products_per_month': 500
         }
     },
     'yearly': {
@@ -92,7 +98,9 @@ SUBSCRIPTION_PLANS = {
         'savings': '₦4,000 saved vs monthly',
         'limits': {
             'invoices_per_year': 6000,
-            'expenses_per_year': 6000
+            'expenses_per_year': 2000,
+            'sales_per_year': 18000,
+            'products_per_year': 2000
         }
     }
 }

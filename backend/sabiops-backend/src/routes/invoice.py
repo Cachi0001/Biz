@@ -197,6 +197,21 @@ def create_invoice():
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
+        
+        # Check usage limits for free plan users
+        user_result = supabase.table("users").select("subscription_plan,current_month_invoices").eq("id", owner_id).single().execute()
+        if not user_result.data:
+            return error_response("User not found", status_code=404)
+            
+        user = user_result.data
+        if user['subscription_plan'] == 'free':
+            current_invoices = user.get('current_month_invoices', 0)
+            if current_invoices >= 5:
+                return error_response(
+                    "Monthly invoice limit reached", 
+                    "Upgrade to create more invoices",
+                    status_code=402  # Payment Required
+                )
         data = request.get_json()
         data['owner_id'] = owner_id
         
