@@ -3,7 +3,7 @@
  * Integrates with SabiOps backend for subscription management
  */
 
-import api from './api.js';
+import api from './api';
 
 class PaystackService {
   static PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;

@@ -1077,3 +1077,5 @@ export const put = api.put;
 export const del = api.delete;
 
 
+// Export the axios instance as default
+export default api;

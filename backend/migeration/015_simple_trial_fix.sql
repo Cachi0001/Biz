@@ -1,38 +1,35 @@
--- Simple trial fix for existing users
--- Run this to quickly fix existing users who should be on trial
+-- Simple trial fix - Update existing users to have proper trial status
+-- This is a simplified version that avoids complex date operations
 
--- Update users to have proper trial status
+-- Step 1: Update users who should be on trial
 UPDATE public.users 
 SET 
     subscription_plan = 'weekly',
     subscription_status = 'trial',
     trial_days_left = 7,
-    subscription_start_date = NOW(),
-    subscription_end_date = NOW() + INTERVAL '7 days',
-    trial_ends_at = NOW() + INTERVAL '7 days'
+    subscription_start_date = created_at,
+    subscription_end_date = created_at + INTERVAL '7 days'
 WHERE 
     subscription_plan = 'free' 
     AND role = 'Owner'
-    AND created_at > NOW() - INTERVAL '30 days'; -- Users created in last 30 days
+    AND created_at > NOW() - INTERVAL '7 days';
 
--- Create basic usage records for users who don't have them
+-- Step 2: Create basic usage records for users who don't have them
+-- For weekly plan users (trial)
 INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
 SELECT 
     u.id,
     'invoices',
     0,
     100,
-    date_trunc('day', NOW()),
-    date_trunc('day', NOW()) + INTERVAL '7 days',
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '6 days',
     NOW(),
     NOW()
 FROM public.users u
-WHERE u.role = 'Owner' 
-    AND u.subscription_plan = 'weekly'
-    AND NOT EXISTS (
-        SELECT 1 FROM public.feature_usage f 
-        WHERE f.user_id = u.id AND f.feature_type = 'invoices'
-    );
+WHERE u.subscription_plan = 'weekly' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'invoices' AND user_id IS NOT NULL);
 
 INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
 SELECT 
@@ -40,17 +37,14 @@ SELECT
     'expenses',
     0,
     100,
-    date_trunc('day', NOW()),
-    date_trunc('day', NOW()) + INTERVAL '7 days',
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '6 days',
     NOW(),
     NOW()
 FROM public.users u
-WHERE u.role = 'Owner' 
-    AND u.subscription_plan = 'weekly'
-    AND NOT EXISTS (
-        SELECT 1 FROM public.feature_usage f 
-        WHERE f.user_id = u.id AND f.feature_type = 'expenses'
-    );
+WHERE u.subscription_plan = 'weekly' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'expenses' AND user_id IS NOT NULL);
 
 INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
 SELECT 
@@ -58,17 +52,14 @@ SELECT
     'sales',
     0,
     250,
-    date_trunc('day', NOW()),
-    date_trunc('day', NOW()) + INTERVAL '7 days',
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '6 days',
     NOW(),
     NOW()
 FROM public.users u
-WHERE u.role = 'Owner' 
-    AND u.subscription_plan = 'weekly'
-    AND NOT EXISTS (
-        SELECT 1 FROM public.feature_usage f 
-        WHERE f.user_id = u.id AND f.feature_type = 'sales'
-    );
+WHERE u.subscription_plan = 'weekly' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'sales' AND user_id IS NOT NULL);
 
 INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
 SELECT 
@@ -76,14 +67,72 @@ SELECT
     'products',
     0,
     100,
-    date_trunc('day', NOW()),
-    date_trunc('day', NOW()) + INTERVAL '7 days',
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '6 days',
     NOW(),
     NOW()
 FROM public.users u
-WHERE u.role = 'Owner' 
-    AND u.subscription_plan = 'weekly'
-    AND NOT EXISTS (
-        SELECT 1 FROM public.feature_usage f 
-        WHERE f.user_id = u.id AND f.feature_type = 'products'
-    );
+WHERE u.subscription_plan = 'weekly' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'products' AND user_id IS NOT NULL);
+
+-- Step 3: Create usage records for free plan users too
+INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
+SELECT 
+    u.id,
+    'invoices',
+    0,
+    5,
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '29 days',
+    NOW(),
+    NOW()
+FROM public.users u
+WHERE u.subscription_plan = 'free' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'invoices' AND user_id IS NOT NULL);
+
+INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
+SELECT 
+    u.id,
+    'expenses',
+    0,
+    20,
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '29 days',
+    NOW(),
+    NOW()
+FROM public.users u
+WHERE u.subscription_plan = 'free' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'expenses' AND user_id IS NOT NULL);
+
+INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
+SELECT 
+    u.id,
+    'sales',
+    0,
+    50,
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '29 days',
+    NOW(),
+    NOW()
+FROM public.users u
+WHERE u.subscription_plan = 'free' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'sales' AND user_id IS NOT NULL);
+
+INSERT INTO public.feature_usage (user_id, feature_type, current_count, limit_count, period_start, period_end, created_at, updated_at)
+SELECT 
+    u.id,
+    'products',
+    0,
+    20,
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '29 days',
+    NOW(),
+    NOW()
+FROM public.users u
+WHERE u.subscription_plan = 'free' 
+    AND u.role = 'Owner'
+    AND u.id NOT IN (SELECT user_id FROM public.feature_usage WHERE feature_type = 'products' AND user_id IS NOT NULL);
