@@ -5,6 +5,7 @@ import uuid
 import logging
 from src.services.supabase_service import SupabaseService
 from src.utils.user_context import get_user_context
+from src.utils.subscription_decorators import protected_product_creation, get_usage_status_for_response
 
 product_bp = Blueprint("product", __name__)
 logger = logging.getLogger(__name__)
@@ -254,6 +255,7 @@ def validate_product_data(data, is_update=False):
 
 @product_bp.route("/", methods=["POST"])
 @jwt_required()
+@protected_product_creation
 def create_product():
     try:
         user_id = get_jwt_identity()
@@ -338,10 +340,14 @@ def create_product():
             except Exception as e:
                 logger.warning(f"Failed to send low stock notification: {e}")
         
+        # Get updated usage status for response
+        usage_status = get_usage_status_for_response(user_id, 'products')
+        
         return success_response(
             message="Product created successfully",
             data={
-                "product": created_product
+                "product": created_product,
+                "usage_status": usage_status
             },
             status_code=201
         )

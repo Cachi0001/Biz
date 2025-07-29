@@ -26,6 +26,7 @@ from routes.sales import sales_bp
 from routes.expense import expense_bp
 from routes.team import team_bp
 from routes.payment import payment_bp
+from routes.subscription import subscription_bp
 from routes.dashboard import dashboard_bp
 from routes.notifications import notifications_bp
 from routes.search import search_bp
@@ -135,7 +136,8 @@ def api_info():
             'sales': '/sales/*',
             'expenses': '/expenses/*',
             'team': '/team/*',
-            'payments': '/payments/*'
+            'payments': '/payments/*',
+            'subscription': '/subscription/*'
         },
         'health': '/health'
     })
@@ -159,6 +161,7 @@ app.register_blueprint(sales_bp, url_prefix='/sales')
 app.register_blueprint(expense_bp, url_prefix='/expenses')
 app.register_blueprint(team_bp, url_prefix='/team')
 app.register_blueprint(payment_bp, url_prefix='/payments')
+app.register_blueprint(subscription_bp, url_prefix='/subscription')
 app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 app.register_blueprint(notifications_bp, url_prefix='/notifications')
 app.register_blueprint(search_bp, url_prefix='/search')

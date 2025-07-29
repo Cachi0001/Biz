@@ -4,6 +4,7 @@ from src.utils.user_context import get_user_context
 from src.utils.invoice_status_manager import InvoiceStatusManager
 from src.utils.transaction_service import TransactionService
 from src.utils.invoice_inventory_manager import InvoiceInventoryManager
+from src.utils.subscription_decorators import protected_invoice_creation, get_usage_status_for_response
 from datetime import datetime, date, timedelta
 import uuid
 from reportlab.lib.pagesizes import letter
@@ -189,6 +190,7 @@ def get_invoice(invoice_id):
 
 @invoice_bp.route("/", methods=["POST"])
 @jwt_required()
+@protected_invoice_creation
 def create_invoice():
     try:
         user_id = get_jwt_identity()
@@ -292,8 +294,14 @@ def create_invoice():
         if not result.data:
             return error_response("Failed to create invoice", status_code=500)
 
+        # Get updated usage status for response
+        usage_status = get_usage_status_for_response(user_id, 'invoices')
+        
         return success_response(
-            data={"invoice": result.data[0]},
+            data={
+                "invoice": result.data[0],
+                "usage_status": usage_status
+            },
             message=f"Invoice {invoice_number} created successfully!",
             status_code=201
         )

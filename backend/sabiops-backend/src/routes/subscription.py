@@ -1,208 +1,322 @@
-from flask import Blueprint, jsonify, request, current_app
+"""
+Subscription Routes
+Handles subscription-related API endpoints including payment verification and status checks
+"""
+
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.models.user import User, db
-from datetime import datetime, timedelta
+from datetime import datetime
+import logging
+
+from src.services.subscription_service import SubscriptionService
 from src.services.supabase_service import SupabaseService
 
-subscription_bp = Blueprint('subscription', __name__)
+logger = logging.getLogger(__name__)
 
-def get_supabase():
-    """Get Supabase client from Flask app config"""
-    return current_app.config['SUPABASE']
+subscription_bp = Blueprint("subscription", __name__)
 
-@subscription_bp.route('/status', methods=['GET'])
+def success_response(data=None, message="Success", status_code=200):
+    """Standard success response format"""
+    return jsonify({
+        "success": True,
+        "data": data,
+        "message": message
+    }), status_code
+
+def error_response(error, message="Error", status_code=400):
+    """Standard error response format"""
+    return jsonify({
+        "success": False,
+        "error": error,
+        "message": message
+    }), status_code
+
+@subscription_bp.route("/status", methods=["GET"])
 @jwt_required()
 def get_subscription_status():
-    """Get user subscription status"""
+    """Get current user's subscription status"""
     try:
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        subscription_service = SubscriptionService()
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        status = subscription_service.get_user_subscription_status(user_id)
         
-        if user.is_trial_active and user.trial_end_date:
-            days_left = (user.trial_end_date - datetime.utcnow().date()).days
-            if days_left == 1:
-                supa_service = SupabaseService()
-                supa_service.notify_user(
-                    str(user_id),
-                    "Trial Expiring Soon!",
-                    "Your free trial expires in 1 day. Upgrade now to keep your business running smoothly!",
-                    "warning"
-                )
-            elif days_left == 0:
-                supa_service = SupabaseService()
-                supa_service.notify_user(
-                    str(user_id),
-                    "Trial Expired!",
-                    "Your free trial has expired. Please upgrade your subscription to continue using SabiOps.",
-                    "error"
-                )
-        
-        subscription_data = {
-            'subscription_plan': user.subscription_plan,
-            'subscription_status': user.subscription_status,
-            'is_trial_active': user.is_trial_active,
-            'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
-            'subscription_start_date': user.subscription_start_date.isoformat() if user.subscription_start_date else None,
-            'subscription_end_date': user.subscription_end_date.isoformat() if user.subscription_end_date else None,
-            'trial_expired': user.is_trial_expired(),
-            'subscription_active': user.is_subscription_active()
-        }
-        
-        return jsonify(subscription_data), 200
+        return success_response(
+            data=status,
+            message="Subscription status retrieved successfully"
+        )
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting subscription status: {str(e)}")
+        return error_response(str(e), "Failed to get subscription status", 500)
 
-@subscription_bp.route('/plans', methods=['GET'])
-def get_subscription_plans():
-    """Get available subscription plans"""
+@subscription_bp.route("/verify-payment", methods=["POST"])
+@jwt_required()
+def verify_payment():
+    """Verify Paystack payment and upgrade subscription"""
     try:
-        plans = {
-            'free': {
-                'name': 'Free Plan',
-                'price': 0,
-                'currency': 'NGN',
-                'billing_cycle': 'monthly',
-                'features': {
-                    'invoices_per_month': 5,
-                    'expenses_per_month': 20,
-                    'sales_per_month': 50,
-                    'products_per_month': 20,
-                    'basic_reporting': True,
-                    'advanced_reporting': False,
-                    'team_management': False,
-                    'referral_rewards': 0
-                }
-            },
-            'weekly': {
-                'name': 'Silver Weekly',
-                'price': 1400,
-                'currency': 'NGN',
-                'billing_cycle': 'weekly',
-                'features': {
-                    'invoices_per_week': 100,
-                    'expenses_per_week': 100,
-                    'sales_per_week': 250,
-                    'products_per_week': 100,
-                    'unlimited_clients': True,
-                    'advanced_reporting': True,
-                    'sales_report_downloads': True,
-                    'team_management': True,
-                    'referral_rewards': 0
-                }
-            },
-            'monthly': {
-                'name': 'Silver Monthly',
-                'price': 4500,
-                'currency': 'NGN',
-                'billing_cycle': 'monthly',
-                'features': {
-                    'invoices_per_month': 450,
-                    'expenses_per_month': 500,
-                    'sales_per_month': 1500,
-                    'products_per_month': 500,
-                    'unlimited_clients': True,
-                    'advanced_reporting': True,
-                    'sales_report_downloads': True,
-                    'team_management': True,
-                    'referral_rewards': 500
-                }
-            },
-            'yearly': {
-                'name': 'Silver Yearly',
-                'price': 50000,
-                'currency': 'NGN',
-                'billing_cycle': 'yearly',
-                'features': {
-                    'invoices_per_year': 6000,
-                    'expenses_per_year': 2000,
-                    'sales_per_year': 18000,
-                    'products_per_year': 2000,
-                    'unlimited_clients': True,
-                    'advanced_reporting': True,
-                    'sales_report_downloads': True,
-                    'team_management': True,
-                    'priority_support': True,
-                    'referral_rewards': 5000
-                }
-            }
-        }
+        user_id = get_jwt_identity()
+        data = request.get_json()
         
-        return jsonify({'plans': plans}), 200
+        # Validate required fields
+        required_fields = ["reference", "plan_id"]
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", "Missing required field", 400)
         
+        reference = data["reference"]
+        plan_id = data["plan_id"]
+        
+        subscription_service = SubscriptionService()
+        
+        # Verify payment with Paystack
+        logger.info(f"Verifying payment {reference} for user {user_id}")
+        paystack_result = subscription_service.verify_paystack_payment(reference)
+        
+        if not paystack_result.get('success'):
+            return error_response(
+                paystack_result.get('error', 'Payment verification failed'),
+                "Payment verification failed",
+                400
+            )
+        
+        # Upgrade subscription
+        logger.info(f"Upgrading user {user_id} to plan {plan_id}")
+        upgrade_result = subscription_service.upgrade_subscription(
+            user_id, plan_id, reference, paystack_result
+        )
+        
+        # Notify user of successful upgrade
+        try:
+            supa_service = SupabaseService()
+            plan_name = upgrade_result['plan_config']['name']
+            supa_service.notify_user(
+                user_id,
+                "Subscription Upgraded!",
+                f"Your subscription has been upgraded to {plan_name}. Enjoy your new features!",
+                "success"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send upgrade notification: {str(e)}")
+        
+        return success_response(
+            data={
+                "subscription": upgrade_result['subscription'],
+                "plan_config": upgrade_result['plan_config'],
+                "usage_reset": upgrade_result['usage_reset'],
+                "paystack_data": {
+                    "reference": paystack_result['reference'],
+                    "amount": paystack_result['amount'],
+                    "channel": paystack_result['channel']
+                }
+            },
+            message=upgrade_result['message']
+        )
+        
+    except ValueError as e:
+        logger.error(f"Validation error in payment verification: {str(e)}")
+        return error_response(str(e), "Invalid request data", 400)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Payment verification failed: {str(e)}")
+        return error_response(str(e), "Payment verification failed", 500)
 
-@subscription_bp.route('/upgrade', methods=['POST'])
+@subscription_bp.route("/upgrade", methods=["POST"])
 @jwt_required()
 def upgrade_subscription():
-    """Upgrade user subscription"""
+    """Direct subscription upgrade endpoint (for manual upgrades)"""
     try:
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
         data = request.get_json()
-        plan = data.get('plan')
         
-        if plan not in ['weekly', 'monthly', 'yearly']:
-            return jsonify({'error': 'Invalid subscription plan'}), 400
+        required_fields = ["plan_id", "payment_reference"]
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f"{field} is required", "Missing required field", 400)
         
-        # Update user subscription
-        user.subscription_plan = plan
-        user.subscription_status = 'active'
-        user.subscription_start_date = datetime.utcnow()
-        user.is_trial_active = False
+        plan_id = data["plan_id"]
+        payment_reference = data["payment_reference"]
         
-        # Set subscription end date based on plan
-        if plan == 'weekly':
-            user.subscription_end_date = datetime.utcnow() + timedelta(weeks=1)
-        elif plan == 'monthly':
-            user.subscription_end_date = datetime.utcnow() + timedelta(days=30)
-        elif plan == 'yearly':
-            user.subscription_end_date = datetime.utcnow() + timedelta(days=365)
+        subscription_service = SubscriptionService()
         
-        db.session.commit()
+        # Create mock paystack data for manual upgrades
+        paystack_data = {
+            "reference": payment_reference,
+            "amount": data.get("amount", 0),
+            "channel": "manual",
+            "customer_email": data.get("customer_email", ""),
+            "paid_at": datetime.now().isoformat()
+        }
         
-        return jsonify({
-            'message': f'Successfully upgraded to {plan} plan',
-            'subscription': {
-                'plan': user.subscription_plan,
-                'status': user.subscription_status,
-                'start_date': user.subscription_start_date.isoformat(),
-                'end_date': user.subscription_end_date.isoformat()
-            }
-        }), 200
+        upgrade_result = subscription_service.upgrade_subscription(
+            user_id, plan_id, payment_reference, paystack_data
+        )
+        
+        return success_response(
+            data=upgrade_result,
+            message="Subscription upgraded successfully"
+        )
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Manual subscription upgrade failed: {str(e)}")
+        return error_response(str(e), "Subscription upgrade failed", 500)
 
-@subscription_bp.route('/cancel', methods=['POST'])
+@subscription_bp.route("/usage-status", methods=["GET"])
 @jwt_required()
-def cancel_subscription():
-    """Cancel user subscription"""
+def get_usage_status():
+    """Get current usage status for all features"""
     try:
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        supabase = current_app.config['SUPABASE']
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        # Get current usage from feature_usage table
+        usage_result = supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
         
-        # Cancel subscription but keep access until end date
-        user.subscription_status = 'cancelled'
-        db.session.commit()
+        # Get subscription status
+        subscription_service = SubscriptionService()
+        subscription_status = subscription_service.get_user_subscription_status(user_id)
         
-        return jsonify({
-            'message': 'Subscription cancelled successfully',
-            'access_until': user.subscription_end_date.isoformat() if user.subscription_end_date else None
-        }), 200
+        # Format usage data
+        current_usage = {}
+        for usage in usage_result.data:
+            feature_type = usage['feature_type']
+            current_usage[feature_type] = {
+                'current': usage['current_count'],
+                'limit': usage['limit_count'],
+                'percentage': round((usage['current_count'] / usage['limit_count']) * 100, 1) if usage['limit_count'] > 0 else 0,
+                'period_start': usage['period_start'],
+                'period_end': usage['period_end']
+            }
+        
+        # Ensure all feature types are present
+        plan_config = subscription_status['plan_config']
+        for feature_type, limit in plan_config['features'].items():
+            if feature_type not in current_usage:
+                current_usage[feature_type] = {
+                    'current': 0,
+                    'limit': limit,
+                    'percentage': 0,
+                    'period_start': None,
+                    'period_end': None
+                }
+        
+        return success_response(
+            data={
+                "current_usage": current_usage,
+                "subscription": {
+                    "plan": subscription_status['subscription_plan'],
+                    "status": subscription_status['subscription_status'],
+                    "days_remaining": subscription_status['remaining_days'],
+                    "is_trial": subscription_status['is_trial'],
+                    "is_active": subscription_status['is_active']
+                },
+                "plan_config": plan_config
+            },
+            message="Usage status retrieved successfully"
+        )
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting usage status: {str(e)}")
+        return error_response(str(e), "Failed to get usage status", 500)
+
+@subscription_bp.route("/activate-trial", methods=["POST"])
+@jwt_required()
+def activate_trial():
+    """Activate 7-day free trial for new users"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        # Check if user already has an active subscription or trial
+        current_status = subscription_service.get_user_subscription_status(user_id)
+        
+        if current_status['subscription_plan'] != 'free' or current_status['is_active']:
+            return error_response(
+                "User already has an active subscription or trial",
+                "Trial activation not allowed",
+                400
+            )
+        
+        result = subscription_service.activate_trial(user_id)
+        
+        return success_response(
+            data=result,
+            message="Free trial activated successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Trial activation failed: {str(e)}")
+        return error_response(str(e), "Trial activation failed", 500)
+
+@subscription_bp.route("/team-status/<team_member_id>", methods=["GET"])
+@jwt_required()
+def get_team_member_subscription_status(team_member_id):
+    """Get subscription status for team member (inherits from owner)"""
+    try:
+        current_user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        # Check if current user is authorized to view this team member's status
+        supabase = current_app.config['SUPABASE']
+        team_result = supabase.table('team').select('*').eq('member_id', team_member_id).single().execute()
+        
+        if not team_result.data:
+            return error_response("Team member not found", "Not found", 404)
+        
+        team_data = team_result.data
+        
+        # Only business owner or the team member themselves can view status
+        if current_user_id != team_data['business_owner_id'] and current_user_id != team_member_id:
+            return error_response("Unauthorized", "Access denied", 403)
+        
+        # Get owner's subscription status (team members inherit)
+        owner_status = subscription_service.get_user_subscription_status(team_data['business_owner_id'])
+        
+        # Add team member specific information
+        owner_status['is_team_member'] = True
+        owner_status['business_owner_id'] = team_data['business_owner_id']
+        owner_status['team_member_id'] = team_member_id
+        
+        return success_response(
+            data=owner_status,
+            message="Team member subscription status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting team member subscription status: {str(e)}")
+        return error_response(str(e), "Failed to get team member status", 500)
+
+@subscription_bp.route("/check-expired", methods=["POST"])
+def check_expired_subscriptions():
+    """Check and downgrade expired subscriptions (internal endpoint)"""
+    try:
+        # This endpoint should be called by a cron job or internal service
+        # Add authentication check for internal services if needed
+        
+        subscription_service = SubscriptionService()
+        count = subscription_service.check_and_update_expired_subscriptions()
+        
+        return success_response(
+            data={"expired_count": count},
+            message=f"Processed {count} expired subscriptions"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error checking expired subscriptions: {str(e)}")
+        return error_response(str(e), "Failed to check expired subscriptions", 500)
+
+@subscription_bp.route("/plans", methods=["GET"])
+def get_available_plans():
+    """Get all available subscription plans"""
+    try:
+        subscription_service = SubscriptionService()
+        
+        return success_response(
+            data={
+                "plans": subscription_service.PLAN_CONFIGS
+            },
+            message="Available plans retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting available plans: {str(e)}")
+        return error_response(str(e), "Failed to get available plans", 500)

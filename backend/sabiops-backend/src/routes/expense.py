@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.utils.user_context import get_user_context
+from src.utils.subscription_decorators import protected_expense_creation, get_usage_status_for_response
 from datetime import datetime, date, timedelta
 import uuid
 import logging
@@ -242,6 +243,7 @@ def get_expenses():
 
 @expense_bp.route("/", methods=["POST"])
 @jwt_required()
+@protected_expense_creation
 def create_expense():
     try:
         user_id = get_jwt_identity()
@@ -302,10 +304,14 @@ def create_expense():
         
         logging.info(f"[EXPENSE CREATE SUCCESS] Expense created with ID: {expense_record['id']}")
         
+        # Get updated usage status for response
+        usage_status = get_usage_status_for_response(user_id, 'expenses')
+        
         return success_response(
             message="Expense created successfully with automatic transaction record",
             data={
-                "expense": expense_record
+                "expense": expense_record,
+                "usage_status": usage_status
             },
             status_code=201
         )

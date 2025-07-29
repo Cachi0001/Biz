@@ -75,13 +75,17 @@ class PaystackService {
    * Verify payment with backend
    * @param {string} reference - Payment reference
    * @param {Object} planData - Plan information
+   * @param {number} retryCount - Current retry attempt
    * @returns {Promise<Object>} Verification result
    */
-  static async verifyPayment(reference, planData) {
-    try {
-      console.log('PaystackService: Verifying payment:', reference);
+  static async verifyPayment(reference, planData, retryCount = 0) {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
 
-      const response = await fetch('/api/payments/verify', {
+    try {
+      console.log(`PaystackService: Verifying payment (attempt ${retryCount + 1}):`, reference);
+
+      const response = await fetch('/api/subscription/verify-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,15 +94,62 @@ class PaystackService {
         body: JSON.stringify({
           reference: reference,
           plan_id: planData.id,
-          plan_name: planData.name,
           amount: planData.price
         })
       });
 
-      const result = await response.json();
+      // Handle different HTTP status codes
+      if (response.status === 405) {
+        throw new Error('Payment verification endpoint not available. Please try again or contact support.');
+      }
 
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('Access denied. Please check your permissions.');
+      }
+
+      if (response.status >= 500) {
+        // Server error - retry if we haven't exceeded max retries
+        if (retryCount < maxRetries) {
+          console.warn(`Server error (${response.status}), retrying in ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          return this.verifyPayment(reference, planData, retryCount + 1);
+        }
+        throw new Error('Server error. Please try again later.');
+      }
+
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(result.message || 'Payment verification failed');
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          // If JSON parsing fails, use the HTTP status message
+          console.warn('Failed to parse error response as JSON:', parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse JSON response
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
+
+      // Validate response structure
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response format from server.');
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || result.error || 'Payment verification failed');
       }
 
       console.log('PaystackService: Payment verified successfully:', result);
@@ -106,6 +157,14 @@ class PaystackService {
 
     } catch (error) {
       console.error('PaystackService: Payment verification failed:', error);
+      
+      // Retry on network errors if we haven't exceeded max retries
+      if ((error.name === 'TypeError' || error.message.includes('fetch')) && retryCount < maxRetries) {
+        console.warn(`Network error, retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return this.verifyPayment(reference, planData, retryCount + 1);
+      }
+      
       throw error;
     }
   }
@@ -128,17 +187,23 @@ class PaystackService {
         body: JSON.stringify({
           plan_id: paymentData.plan_id,
           payment_reference: paymentData.reference,
-          transaction_id: paymentData.transaction_id,
           amount: paymentData.amount
         })
       });
 
-      const result = await response.json();
-
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(result.message || 'Subscription update failed');
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.warn('Failed to parse error response as JSON:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
+      const result = await response.json();
       console.log('PaystackService: Subscription updated successfully:', result);
       return result;
 
@@ -161,16 +226,55 @@ class PaystackService {
         }
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch subscription status');
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.warn('Failed to parse error response as JSON:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
+      const result = await response.json();
       return result;
 
     } catch (error) {
       console.error('PaystackService: Failed to fetch subscription status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get usage status for all features
+   * @returns {Promise<Object>} Usage data
+   */
+  static async getUsageStatus() {
+    try {
+      const response = await fetch('/api/subscription/usage-status', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.warn('Failed to parse error response as JSON:', parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      return result;
+
+    } catch (error) {
+      console.error('PaystackService: Failed to fetch usage status:', error);
       throw error;
     }
   }
@@ -198,18 +302,11 @@ class PaystackService {
         },
         onSuccess: async (response) => {
           try {
-            // Verify payment
+            // Verify payment and upgrade subscription in one call
             const verificationResult = await this.verifyPayment(response.reference, planData);
-            
-            // Update subscription
-            const updateResult = await this.updateSubscription({
-              ...verificationResult,
-              plan_id: planData.id,
-              reference: response.reference
-            });
 
             if (onSuccess) {
-              onSuccess(updateResult);
+              onSuccess(verificationResult);
             }
 
           } catch (error) {

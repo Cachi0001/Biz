@@ -5,6 +5,7 @@ import uuid
 import logging
 import json
 from src.utils.user_context import get_user_context
+from src.utils.subscription_decorators import protected_sales_creation, get_usage_status_for_response
 
 sales_bp = Blueprint("sales", __name__)
 
@@ -135,6 +136,7 @@ def get_sales():
 
 @sales_bp.route("/", methods=["POST"])
 @jwt_required()
+@protected_sales_creation
 def create_sale():
     try:
         supabase = get_supabase()
@@ -316,11 +318,15 @@ def create_sale():
                 }
             }), 400
         
+        # Get updated usage status for response
+        usage_status = get_usage_status_for_response(user_id, 'sales')
+        
         return jsonify({
             "success": True,
             "message": "Sale created successfully with inventory update",
             "data": {
-                "sale": sale_record
+                "sale": sale_record,
+                "usage_status": usage_status
             },
             "toast": {
                 "type": "success",
