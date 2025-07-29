@@ -314,6 +314,83 @@ def check_expired_subscriptions():
         logger.error(f"Error checking expired subscriptions: {str(e)}")
         return error_response(str(e), "Failed to check expired subscriptions", 500)
 
+@subscription_bp.route("/unified-status", methods=["GET"])
+@jwt_required()
+def get_unified_subscription_status():
+    """Get unified subscription status - single source of truth"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        # Get unified status that resolves conflicts
+        status = subscription_service.get_unified_subscription_status(user_id)
+        
+        return success_response(
+            data=status,
+            message="Unified subscription status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting unified subscription status: {str(e)}")
+        return error_response(str(e), "Failed to get unified subscription status", 500)
+
+@subscription_bp.route("/accurate-usage", methods=["GET"])
+@jwt_required()
+def get_accurate_usage():
+    """Get accurate usage counts directly from database"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        usage_data = subscription_service.get_accurate_usage_counts(user_id)
+        
+        return success_response(
+            data=usage_data,
+            message="Accurate usage counts retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting accurate usage: {str(e)}")
+        return error_response(str(e), "Failed to get accurate usage", 500)
+
+@subscription_bp.route("/sync-usage", methods=["POST"])
+@jwt_required()
+def sync_usage_counts():
+    """Sync usage counts with database reality"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        sync_result = subscription_service.sync_usage_counts(user_id)
+        
+        return success_response(
+            data=sync_result,
+            message="Usage counts synchronized successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error syncing usage counts: {str(e)}")
+        return error_response(str(e), "Failed to sync usage counts", 500)
+
+@subscription_bp.route("/validate-consistency", methods=["GET"])
+@jwt_required()
+def validate_usage_consistency():
+    """Validate usage count consistency"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        validation_result = subscription_service.validate_usage_consistency(user_id)
+        
+        return success_response(
+            data=validation_result,
+            message="Usage consistency validation completed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error validating usage consistency: {str(e)}")
+        return error_response(str(e), "Failed to validate usage consistency", 500)
+
 @subscription_bp.route("/plans", methods=["GET"])
 def get_available_plans():
     """Get all available subscription plans"""

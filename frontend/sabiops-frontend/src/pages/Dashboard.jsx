@@ -4,7 +4,8 @@ import { ModernOverviewCards } from '../components/dashboard/ModernOverviewCards
 import { ModernQuickActions } from '../components/dashboard/ModernQuickActions';
 import { ModernRecentActivities } from '../components/dashboard/ModernRecentActivities';
 
-import { SubscriptionStatus } from '../components/subscription/SubscriptionStatus';
+import UnifiedSubscriptionStatus from '../components/subscription/UnifiedSubscriptionStatus';
+import AccurateUsageCards from '../components/dashboard/AccurateUsageCards';
 import { UpgradeModal } from '../components/subscription/UpgradeModal';
 import { ReferralSystem } from '../components/referrals/ReferralSystem';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
@@ -176,19 +177,9 @@ const Dashboard = () => {
             />
           </section>
 
-          {/* Subscription Status Section */}
+          {/* Unified Subscription Status Section */}
           <section className="w-full">
-            <GradientCardWrapper
-              gradientFrom="from-green-100"
-              gradientTo="to-green-200"
-            >
-              <SubscriptionStatus 
-                subscription={subscriptionData}
-                role={role}
-                currentUsage={currentUsage}
-                onUpgrade={handleUpgrade}
-              />
-            </GradientCardWrapper>
+            <UnifiedSubscriptionStatus onUpgrade={handleUpgrade} />
           </section>
 
 
@@ -196,6 +187,11 @@ const Dashboard = () => {
           {/* Overview Cards Section */}
           <section className="w-full">
             <ModernOverviewCards data={dashboardData} loading={loading} />
+          </section>
+
+          {/* Accurate Usage Cards Section */}
+          <section className="w-full">
+            <AccurateUsageCards />
           </section>
 
           {/* Quick Actions Section - Prominent and Balanced */}

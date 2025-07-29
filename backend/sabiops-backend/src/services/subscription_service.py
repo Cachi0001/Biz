@@ -81,9 +81,12 @@ class SubscriptionService:
         self.supabase = current_app.config.get('SUPABASE')
         self.paystack_secret = os.getenv('PAYSTACK_SECRET_KEY')
         
-    def get_user_subscription_status(self, user_id: str) -> Dict[str, Any]:
-        """Get comprehensive subscription status for a user"""
+    def get_unified_subscription_status(self, user_id: str) -> Dict[str, Any]:
+        """Get single source of truth for subscription status - resolves conflicts"""
         try:
+            # First resolve any subscription conflicts
+            self.resolve_subscription_conflicts(user_id)
+            
             # Get user data
             user_result = self.supabase.table('users').select('*').eq('id', user_id).single().execute()
             if not user_result.data:
@@ -119,6 +122,11 @@ class SubscriptionService:
                 trial_days_left
             )
             
+            # Determine unified status priority: expired > trial > active > inactive
+            unified_status = self._determine_unified_status(
+                subscription_status, trial_days_left, remaining_days, subscription_plan
+            )
+            
             # Get plan configuration
             plan_config = self.PLAN_CONFIGS.get(subscription_plan, self.PLAN_CONFIGS['free'])
             
@@ -126,19 +134,115 @@ class SubscriptionService:
                 'user_id': user_id,
                 'subscription_plan': subscription_plan,
                 'subscription_status': subscription_status,
+                'unified_status': unified_status,  # Single source of truth
                 'remaining_days': remaining_days,
                 'trial_days_left': trial_days_left,
                 'plan_config': plan_config,
                 'subscription_end_date': subscription_end_date,
-                'is_trial': trial_days_left > 0 and subscription_plan == 'weekly',
-                'is_active': subscription_status == 'active' or trial_days_left > 0,
+                'is_trial': unified_status == 'trial',
+                'is_active': unified_status in ['active', 'trial'],
+                'is_expired': unified_status == 'expired',
                 'is_team_member': bool(owner_id),
-                'owner_id': owner_id
+                'owner_id': owner_id,
+                'display_message': self._get_status_display_message(unified_status, remaining_days, subscription_plan)
             }
             
         except Exception as e:
-            logger.error(f"Error getting subscription status for user {user_id}: {str(e)}")
+            logger.error(f"Error getting unified subscription status for user {user_id}: {str(e)}")
             raise
+
+    def get_user_subscription_status(self, user_id: str) -> Dict[str, Any]:
+        """Legacy method - redirects to unified status for backward compatibility"""
+        return self.get_unified_subscription_status(user_id)
+
+    def resolve_subscription_conflicts(self, user_id: str) -> Dict[str, Any]:
+        """Resolve conflicting subscription states using most recent database record"""
+        try:
+            # Get all subscription-related records for this user
+            user_result = self.supabase.table('users').select('*').eq('id', user_id).single().execute()
+            if not user_result.data:
+                return {'conflicts_found': False, 'message': 'User not found'}
+            
+            user = user_result.data
+            current_time = datetime.now()
+            conflicts_resolved = []
+            
+            # Check for expired subscriptions that are still marked as active
+            subscription_end_date = user.get('subscription_end_date')
+            subscription_status = user.get('subscription_status', 'inactive')
+            trial_days_left = user.get('trial_days_left', 0)
+            
+            if subscription_end_date and subscription_status == 'active':
+                end_date = datetime.fromisoformat(subscription_end_date.replace('Z', '+00:00'))
+                if end_date < current_time and trial_days_left <= 0:
+                    # Subscription has expired but still marked as active
+                    self.supabase.table('users').update({
+                        'subscription_status': 'expired',
+                        'subscription_plan': 'free',
+                        'trial_days_left': 0,
+                        'updated_at': current_time.isoformat()
+                    }).eq('id', user_id).execute()
+                    
+                    conflicts_resolved.append('Expired subscription downgraded to free')
+                    logger.info(f"Resolved expired subscription conflict for user {user_id}")
+            
+            # Check for trial conflicts
+            if trial_days_left > 0 and subscription_status not in ['trial', 'active']:
+                # Has trial days but wrong status
+                self.supabase.table('users').update({
+                    'subscription_status': 'trial',
+                    'updated_at': current_time.isoformat()
+                }).eq('id', user_id).execute()
+                
+                conflicts_resolved.append('Trial status corrected')
+                logger.info(f"Resolved trial status conflict for user {user_id}")
+            
+            # Check for multiple active subscriptions (shouldn't happen but just in case)
+            # This would require checking subscription_transactions table for duplicates
+            
+            return {
+                'conflicts_found': len(conflicts_resolved) > 0,
+                'conflicts_resolved': conflicts_resolved,
+                'message': f"Resolved {len(conflicts_resolved)} conflicts" if conflicts_resolved else "No conflicts found"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error resolving subscription conflicts for user {user_id}: {str(e)}")
+            return {'conflicts_found': False, 'error': str(e)}
+
+    def _determine_unified_status(self, subscription_status: str, trial_days_left: int, 
+                                remaining_days: int, subscription_plan: str) -> str:
+        """Determine single unified status based on all factors"""
+        # Priority order: expired > trial > active > inactive
+        
+        if subscription_plan == 'free':
+            return 'free'
+        
+        if remaining_days <= 0 and trial_days_left <= 0:
+            return 'expired'
+        
+        if trial_days_left > 0:
+            return 'trial'
+        
+        if subscription_status == 'active' and remaining_days > 0:
+            return 'active'
+        
+        return 'inactive'
+
+    def _get_status_display_message(self, unified_status: str, remaining_days: int, 
+                                  subscription_plan: str) -> str:
+        """Get appropriate display message for dashboard"""
+        if unified_status == 'expired':
+            return "Your subscription has expired. Reactivate to continue using premium features."
+        elif unified_status == 'trial':
+            return f"You're on a 7-day free trial. {remaining_days} days remaining."
+        elif unified_status == 'active':
+            plan_name = self.PLAN_CONFIGS.get(subscription_plan, {}).get('name', subscription_plan)
+            return f"You're on {plan_name}. {remaining_days} days remaining."
+        elif unified_status == 'free':
+            return "You're on the free plan. Upgrade to unlock more features."
+        else:
+            return "Your subscription is inactive. Please upgrade to access premium features."
     
     def verify_paystack_payment(self, reference: str) -> Dict[str, Any]:
         """Verify payment with Paystack API"""
@@ -188,7 +292,20 @@ class SubscriptionService:
     
     def upgrade_subscription(self, user_id: str, plan_id: str, payment_reference: str, 
                            paystack_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Upgrade user subscription after successful payment verification"""
+        """Comprehensive upgrade with pro-ration and fair usage management"""
+        try:
+            # Use the comprehensive upgrade service
+            return self.upgrade_with_proration_and_fair_limits(
+                user_id, plan_id, payment_reference, paystack_data
+            )
+            
+        except Exception as e:
+            logger.error(f"Subscription upgrade failed for user {user_id}: {str(e)}")
+            raise
+
+    def upgrade_with_proration_and_fair_limits(self, user_id: str, plan_id: str, 
+                                             payment_reference: str, paystack_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Complete upgrade flow with pro-ration, usage reset, and abuse detection"""
         try:
             # Validate plan
             if plan_id not in self.PLAN_CONFIGS:
@@ -196,11 +313,33 @@ class SubscriptionService:
             
             plan_config = self.PLAN_CONFIGS[plan_id]
             
+            # Check for suspicious upgrade patterns
+            abuse_check = self.usage_abuse_detection(user_id)
+            if abuse_check['requires_manual_review']:
+                logger.warning(f"User {user_id} flagged for manual review: {abuse_check['recommendation']}")
+                # Still allow upgrade but log for review
+            
+            # Get current subscription status
+            current_status = self.get_unified_subscription_status(user_id)
+            current_plan = current_status['subscription_plan']
+            remaining_days = current_status['remaining_days']
+            
+            # Apply pro-ration if upgrading from paid plan
+            proration_result = None
+            total_duration = plan_config.get('duration_days', 0)
+            
+            if current_plan != 'free' and remaining_days > 0:
+                proration_result = self.calculate_proration(
+                    user_id, current_plan, plan_id, remaining_days
+                )
+                total_duration = proration_result['total_duration_days']
+                logger.info(f"Pro-ration applied: {proration_result['extended_duration_days']} bonus days")
+            
             # Calculate subscription dates
             start_date = datetime.now()
-            end_date = self._calculate_subscription_end_date(plan_id, start_date)
+            end_date = start_date + timedelta(days=total_duration) if total_duration > 0 else None
             
-            # Update user subscription
+            # Update user subscription with all details
             update_data = {
                 'subscription_plan': plan_id,
                 'subscription_status': 'active',
@@ -212,13 +351,18 @@ class SubscriptionService:
                 'updated_at': datetime.now().isoformat()
             }
             
+            # Add pro-ration details if calculated
+            if proration_result:
+                update_data['proration_details'] = proration_result['proration_details']
+                update_data['extended_duration_days'] = proration_result['extended_duration_days']
+            
             # Update user record
             user_result = self.supabase.table('users').update(update_data).eq('id', user_id).execute()
             
             if not user_result.data:
                 raise Exception("Failed to update user subscription")
             
-            # Record subscription transaction
+            # Record comprehensive transaction
             transaction_data = {
                 'user_id': user_id,
                 'plan_id': plan_id,
@@ -226,27 +370,92 @@ class SubscriptionService:
                 'payment_reference': payment_reference,
                 'paystack_reference': paystack_data.get('reference'),
                 'status': 'successful',
+                'proration_applied': proration_result is not None,
+                'proration_details': proration_result['proration_details'] if proration_result else None,
                 'metadata': paystack_data,
                 'created_at': datetime.now().isoformat()
             }
             
             self.supabase.table('subscription_transactions').insert(transaction_data).execute()
             
-            # Reset usage counters for new plan
-            self._reset_usage_counters(user_id, plan_id)
+            # Reset usage counters (fair usage policy)
+            reset_result = self.reset_usage_on_upgrade(user_id, plan_id)
             
-            logger.info(f"Successfully upgraded user {user_id} to {plan_id}")
+            # Apply new plan limits
+            limits_result = self.apply_plan_limits(user_id, plan_id)
+            
+            logger.info(f"Successfully upgraded user {user_id} to {plan_id} with comprehensive flow")
             
             return {
                 'success': True,
                 'subscription': user_result.data[0],
                 'plan_config': plan_config,
-                'usage_reset': True,
-                'message': f'Successfully upgraded to {plan_config["name"]}'
+                'proration_applied': proration_result is not None,
+                'proration_details': proration_result['proration_details'] if proration_result else None,
+                'extended_duration_days': proration_result['extended_duration_days'] if proration_result else 0,
+                'total_duration_days': total_duration,
+                'usage_reset': reset_result['reset_applied'],
+                'new_limits': limits_result['new_limits'],
+                'abuse_check': abuse_check,
+                'message': f'Successfully upgraded to {plan_config["name"]} with {proration_result["extended_duration_days"] if proration_result else 0} bonus days'
             }
             
         except Exception as e:
-            logger.error(f"Subscription upgrade failed for user {user_id}: {str(e)}")
+            logger.error(f"Comprehensive upgrade failed for user {user_id}: {str(e)}")
+            raise
+
+    def downgrade_subscription(self, user_id: str, new_plan_id: str) -> Dict[str, Any]:
+        """Handle subscription downgrade with limit enforcement"""
+        try:
+            if new_plan_id not in self.PLAN_CONFIGS:
+                raise ValueError(f"Invalid plan ID: {new_plan_id}")
+            
+            # Get current status
+            current_status = self.get_unified_subscription_status(user_id)
+            current_plan = current_status['subscription_plan']
+            
+            if current_plan == new_plan_id:
+                return {
+                    'success': False,
+                    'message': 'User is already on the requested plan'
+                }
+            
+            # Apply downgrade limit enforcement
+            enforcement_result = self.downgrade_limit_enforcement(user_id, new_plan_id)
+            
+            # Update subscription
+            plan_config = self.PLAN_CONFIGS[new_plan_id]
+            current_time = datetime.now()
+            
+            # Calculate new end date (immediate for downgrades)
+            end_date = None
+            if new_plan_id != 'free':
+                end_date = current_time + timedelta(days=plan_config.get('duration_days', 0))
+            
+            update_data = {
+                'subscription_plan': new_plan_id,
+                'subscription_status': 'active' if new_plan_id != 'free' else 'inactive',
+                'subscription_end_date': end_date.isoformat() if end_date else None,
+                'updated_at': current_time.isoformat()
+            }
+            
+            user_result = self.supabase.table('users').update(update_data).eq('id', user_id).execute()
+            
+            if not user_result.data:
+                raise Exception("Failed to update user subscription")
+            
+            logger.info(f"Successfully downgraded user {user_id} to {new_plan_id}")
+            
+            return {
+                'success': True,
+                'subscription': user_result.data[0],
+                'plan_config': plan_config,
+                'enforcement_result': enforcement_result,
+                'message': f'Successfully downgraded to {plan_config["name"]}'
+            }
+            
+        except Exception as e:
+            logger.error(f"Subscription downgrade failed for user {user_id}: {str(e)}")
             raise
     
     def activate_trial(self, user_id: str) -> Dict[str, Any]:
@@ -418,3 +627,651 @@ class SubscriptionService:
         except Exception as e:
             logger.error(f"Error resetting usage counters for user {user_id}: {str(e)}")
             raise
+
+    # Usage Tracking Service Methods
+    def get_accurate_usage_counts(self, user_id: str) -> Dict[str, Any]:
+        """Query database directly for accurate usage counts"""
+        try:
+            # Get current usage from feature_usage table
+            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
+            
+            usage_counts = {}
+            for usage_record in usage_result.data:
+                feature_type = usage_record['feature_type']
+                usage_counts[feature_type] = {
+                    'current_count': usage_record['current_count'],
+                    'limit_count': usage_record['limit_count'],
+                    'remaining': max(0, usage_record['limit_count'] - usage_record['current_count']),
+                    'percentage_used': (usage_record['current_count'] / usage_record['limit_count'] * 100) if usage_record['limit_count'] > 0 else 0
+                }
+            
+            # Also get actual counts from database tables for verification
+            actual_counts = self._get_actual_database_counts(user_id)
+            
+            # Compare and flag discrepancies
+            discrepancies = {}
+            for feature_type, actual_count in actual_counts.items():
+                if feature_type in usage_counts:
+                    tracked_count = usage_counts[feature_type]['current_count']
+                    if tracked_count != actual_count:
+                        discrepancies[feature_type] = {
+                            'tracked': tracked_count,
+                            'actual': actual_count,
+                            'difference': actual_count - tracked_count
+                        }
+            
+            return {
+                'user_id': user_id,
+                'usage_counts': usage_counts,
+                'actual_counts': actual_counts,
+                'discrepancies': discrepancies,
+                'has_discrepancies': len(discrepancies) > 0,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting accurate usage counts for user {user_id}: {str(e)}")
+            raise
+
+    def increment_usage_atomic(self, user_id: str, feature_type: str, amount: int = 1) -> Dict[str, Any]:
+        """Atomically increment usage with database transaction and retry logic"""
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                # Start transaction-like operation
+                current_time = datetime.now()
+                
+                # Get current usage record
+                usage_result = self.supabase.table('feature_usage').select('*').eq(
+                    'user_id', user_id
+                ).eq('feature_type', feature_type).single().execute()
+                
+                if not usage_result.data:
+                    # Create new usage record if doesn't exist
+                    user_subscription = self.get_unified_subscription_status(user_id)
+                    plan_config = user_subscription['plan_config']
+                    limit_count = plan_config['features'].get(feature_type, 0)
+                    
+                    new_usage = {
+                        'user_id': user_id,
+                        'feature_type': feature_type,
+                        'current_count': amount,
+                        'limit_count': limit_count,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=30)).isoformat(),
+                        'created_at': current_time.isoformat(),
+                        'updated_at': current_time.isoformat(),
+                        'sync_status': 'synced',
+                        'last_synced_at': current_time.isoformat()
+                    }
+                    
+                    result = self.supabase.table('feature_usage').insert(new_usage).execute()
+                    
+                    return {
+                        'success': True,
+                        'new_count': amount,
+                        'limit': limit_count,
+                        'remaining': max(0, limit_count - amount),
+                        'created_new_record': True
+                    }
+                
+                # Update existing record
+                current_count = usage_result.data['current_count']
+                new_count = current_count + amount
+                
+                update_result = self.supabase.table('feature_usage').update({
+                    'current_count': new_count,
+                    'updated_at': current_time.isoformat(),
+                    'last_synced_at': current_time.isoformat(),
+                    'sync_status': 'synced'
+                }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                
+                if update_result.data:
+                    limit_count = usage_result.data['limit_count']
+                    return {
+                        'success': True,
+                        'new_count': new_count,
+                        'limit': limit_count,
+                        'remaining': max(0, limit_count - new_count),
+                        'incremented_by': amount
+                    }
+                else:
+                    raise Exception("Failed to update usage count")
+                
+            except Exception as e:
+                retry_count += 1
+                logger.warning(f"Usage increment attempt {retry_count} failed for user {user_id}, feature {feature_type}: {str(e)}")
+                
+                if retry_count >= max_retries:
+                    logger.error(f"Usage increment failed after {max_retries} attempts for user {user_id}, feature {feature_type}")
+                    # Mark as out of sync
+                    try:
+                        self.supabase.table('feature_usage').update({
+                            'sync_status': 'out_of_sync',
+                            'discrepancy_count': self.supabase.table('feature_usage').select('discrepancy_count').eq('user_id', user_id).eq('feature_type', feature_type).single().execute().data.get('discrepancy_count', 0) + 1
+                        }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                    except:
+                        pass
+                    
+                    raise Exception(f"Failed to increment usage after {max_retries} attempts: {str(e)}")
+                
+                # Wait before retry
+                import time
+                time.sleep(0.1 * retry_count)
+
+    def sync_usage_counts(self, user_id: str) -> Dict[str, Any]:
+        """Sync cached counts with database reality"""
+        try:
+            # Get actual counts from database
+            actual_counts = self._get_actual_database_counts(user_id)
+            
+            # Get current tracked counts
+            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
+            
+            synced_features = []
+            current_time = datetime.now()
+            
+            for usage_record in usage_result.data:
+                feature_type = usage_record['feature_type']
+                tracked_count = usage_record['current_count']
+                actual_count = actual_counts.get(feature_type, 0)
+                
+                if tracked_count != actual_count:
+                    # Sync the count
+                    self.supabase.table('feature_usage').update({
+                        'current_count': actual_count,
+                        'updated_at': current_time.isoformat(),
+                        'last_synced_at': current_time.isoformat(),
+                        'sync_status': 'synced',
+                        'discrepancy_count': 0
+                    }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                    
+                    synced_features.append({
+                        'feature_type': feature_type,
+                        'old_count': tracked_count,
+                        'new_count': actual_count,
+                        'difference': actual_count - tracked_count
+                    })
+            
+            return {
+                'success': True,
+                'synced_features': synced_features,
+                'total_synced': len(synced_features),
+                'message': f"Synced {len(synced_features)} features" if synced_features else "All counts were already accurate"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error syncing usage counts for user {user_id}: {str(e)}")
+            raise
+
+    def validate_usage_consistency(self, user_id: str) -> Dict[str, Any]:
+        """Check for and report usage count discrepancies"""
+        try:
+            # Get tracked counts
+            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
+            
+            # Get actual counts
+            actual_counts = self._get_actual_database_counts(user_id)
+            
+            discrepancies = []
+            consistent_features = []
+            
+            for usage_record in usage_result.data:
+                feature_type = usage_record['feature_type']
+                tracked_count = usage_record['current_count']
+                actual_count = actual_counts.get(feature_type, 0)
+                
+                if tracked_count != actual_count:
+                    discrepancies.append({
+                        'feature_type': feature_type,
+                        'tracked_count': tracked_count,
+                        'actual_count': actual_count,
+                        'difference': actual_count - tracked_count,
+                        'percentage_error': ((abs(actual_count - tracked_count) / max(actual_count, 1)) * 100),
+                        'last_synced': usage_record.get('last_synced_at'),
+                        'sync_status': usage_record.get('sync_status', 'unknown')
+                    })
+                else:
+                    consistent_features.append(feature_type)
+            
+            return {
+                'user_id': user_id,
+                'is_consistent': len(discrepancies) == 0,
+                'discrepancies': discrepancies,
+                'consistent_features': consistent_features,
+                'total_discrepancies': len(discrepancies),
+                'validation_timestamp': datetime.now().isoformat(),
+                'recommendation': 'Run sync_usage_counts() to fix discrepancies' if discrepancies else 'Usage counts are accurate'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error validating usage consistency for user {user_id}: {str(e)}")
+            raise
+
+    def _get_actual_database_counts(self, user_id: str) -> Dict[str, int]:
+        """Get actual counts from database tables"""
+        try:
+            counts = {}
+            
+            # Count invoices
+            invoice_result = self.supabase.table('invoices').select('id', count='exact').eq('user_id', user_id).execute()
+            counts['invoices'] = invoice_result.count or 0
+            
+            # Count expenses
+            expense_result = self.supabase.table('expenses').select('id', count='exact').eq('user_id', user_id).execute()
+            counts['expenses'] = expense_result.count or 0
+            
+            # Count sales
+            sales_result = self.supabase.table('sales').select('id', count='exact').eq('user_id', user_id).execute()
+            counts['sales'] = sales_result.count or 0
+            
+            # Count products
+            products_result = self.supabase.table('products').select('id', count='exact').eq('user_id', user_id).execute()
+            counts['products'] = products_result.count or 0
+            
+            return counts
+            
+        except Exception as e:
+            logger.error(f"Error getting actual database counts for user {user_id}: {str(e)}")
+            return {}
+
+    # Pro-ration Calculation System
+    def calculate_proration(self, user_id: str, current_plan: str, new_plan: str, 
+                          days_remaining: int) -> Dict[str, Any]:
+        """Calculate pro-rated upgrade with time extension"""
+        try:
+            if current_plan not in self.PLAN_CONFIGS or new_plan not in self.PLAN_CONFIGS:
+                raise ValueError("Invalid plan configuration")
+            
+            current_config = self.PLAN_CONFIGS[current_plan]
+            new_config = self.PLAN_CONFIGS[new_plan]
+            
+            # Daily rates (prices in kobo, converted to naira)
+            daily_rates = {
+                'weekly': 1400 / 7,    # ₦200 per day
+                'monthly': 4500 / 30,  # ₦150 per day  
+                'yearly': 50000 / 365  # ₦137 per day
+            }
+            
+            # Calculate remaining value from current plan
+            current_daily_rate = daily_rates.get(current_plan, 0)
+            remaining_value = current_daily_rate * days_remaining
+            
+            # Calculate how many extra days this value provides in new plan
+            new_daily_rate = daily_rates.get(new_plan, 0)
+            extra_days = int(remaining_value / new_daily_rate) if new_daily_rate > 0 else 0
+            
+            # Calculate total duration for new plan
+            base_duration = new_config.get('duration_days', 0)
+            total_duration = base_duration + extra_days
+            
+            # Calculate new end date
+            start_date = datetime.now()
+            new_end_date = start_date + timedelta(days=total_duration)
+            
+            proration_details = {
+                'current_plan': current_plan,
+                'new_plan': new_plan,
+                'days_remaining': days_remaining,
+                'remaining_value': round(remaining_value, 2),
+                'current_daily_rate': round(current_daily_rate, 2),
+                'new_daily_rate': round(new_daily_rate, 2),
+                'extra_days_granted': extra_days,
+                'base_duration': base_duration,
+                'total_duration': total_duration,
+                'new_end_date': new_end_date.isoformat(),
+                'calculation_timestamp': datetime.now().isoformat()
+            }
+            
+            return {
+                'success': True,
+                'proration_details': proration_details,
+                'extended_duration_days': extra_days,
+                'total_duration_days': total_duration,
+                'new_end_date': new_end_date.isoformat(),
+                'value_preserved': remaining_value > 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating proration for user {user_id}: {str(e)}")
+            raise
+
+    def calculate_extended_duration(self, current_plan: str, new_plan: str, 
+                                  remaining_time: int) -> Dict[str, Any]:
+        """Calculate new plan duration with time extension"""
+        try:
+            if current_plan == 'free' or new_plan == 'free':
+                # No proration for free plans
+                new_config = self.PLAN_CONFIGS[new_plan]
+                return {
+                    'base_duration': new_config.get('duration_days', 0),
+                    'extended_duration': 0,
+                    'total_duration': new_config.get('duration_days', 0),
+                    'proration_applied': False
+                }
+            
+            # Use proration calculation
+            proration_result = self.calculate_proration('temp', current_plan, new_plan, remaining_time)
+            
+            return {
+                'base_duration': proration_result['proration_details']['base_duration'],
+                'extended_duration': proration_result['extended_duration_days'],
+                'total_duration': proration_result['total_duration_days'],
+                'proration_applied': True,
+                'proration_details': proration_result['proration_details']
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating extended duration: {str(e)}")
+            raise
+
+    def apply_proration_to_upgrade(self, user_id: str, new_plan_id: str, 
+                                 payment_reference: str, paystack_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply pro-ration calculation to subscription upgrade"""
+        try:
+            # Get current subscription status
+            current_status = self.get_unified_subscription_status(user_id)
+            current_plan = current_status['subscription_plan']
+            remaining_days = current_status['remaining_days']
+            
+            # Calculate proration if upgrading from paid plan
+            proration_result = None
+            total_duration = self.PLAN_CONFIGS[new_plan_id].get('duration_days', 0)
+            
+            if current_plan != 'free' and remaining_days > 0:
+                proration_result = self.calculate_proration(
+                    user_id, current_plan, new_plan_id, remaining_days
+                )
+                total_duration = proration_result['total_duration_days']
+            
+            # Calculate subscription dates
+            start_date = datetime.now()
+            end_date = start_date + timedelta(days=total_duration)
+            
+            # Update user subscription with proration details
+            update_data = {
+                'subscription_plan': new_plan_id,
+                'subscription_status': 'active',
+                'subscription_start_date': start_date.isoformat(),
+                'subscription_end_date': end_date.isoformat(),
+                'last_payment_date': start_date.isoformat(),
+                'payment_reference': payment_reference,
+                'trial_days_left': 0,  # Reset trial when upgrading
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            # Add proration details if calculated
+            if proration_result:
+                update_data['proration_details'] = proration_result['proration_details']
+                update_data['extended_duration_days'] = proration_result['extended_duration_days']
+            
+            # Update user record
+            user_result = self.supabase.table('users').update(update_data).eq('id', user_id).execute()
+            
+            if not user_result.data:
+                raise Exception("Failed to update user subscription")
+            
+            # Record subscription transaction with proration details
+            transaction_data = {
+                'user_id': user_id,
+                'plan_id': new_plan_id,
+                'amount': paystack_data.get('amount', 0),
+                'payment_reference': payment_reference,
+                'paystack_reference': paystack_data.get('reference'),
+                'status': 'successful',
+                'proration_applied': proration_result is not None,
+                'proration_details': proration_result['proration_details'] if proration_result else None,
+                'metadata': paystack_data,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            self.supabase.table('subscription_transactions').insert(transaction_data).execute()
+            
+            # Reset usage counters for new plan (fair usage policy)
+            self._reset_usage_counters(user_id, new_plan_id)
+            
+            logger.info(f"Successfully upgraded user {user_id} to {new_plan_id} with proration")
+            
+            return {
+                'success': True,
+                'subscription': user_result.data[0],
+                'plan_config': self.PLAN_CONFIGS[new_plan_id],
+                'proration_applied': proration_result is not None,
+                'proration_details': proration_result['proration_details'] if proration_result else None,
+                'total_duration_days': total_duration,
+                'usage_reset': True,
+                'message': f'Successfully upgraded with {proration_result["extended_duration_days"] if proration_result else 0} bonus days'
+            }
+            
+        except Exception as e:
+            logger.error(f"Proration upgrade failed for user {user_id}: {str(e)}")
+            raise
+
+    # Fair Usage Limit Management System
+    def reset_usage_on_upgrade(self, user_id: str, new_plan_id: str) -> Dict[str, Any]:
+        """Reset usage counts when upgrading (protects business from abuse)"""
+        try:
+            current_time = datetime.now()
+            plan_config = self.PLAN_CONFIGS.get(new_plan_id, self.PLAN_CONFIGS['free'])
+            
+            # Log the reset action for audit
+            reset_log = {
+                'user_id': user_id,
+                'action': 'usage_reset_on_upgrade',
+                'new_plan': new_plan_id,
+                'timestamp': current_time.isoformat(),
+                'reason': 'Fair usage policy - preventing limit exploitation'
+            }
+            
+            # Get current usage before reset for logging
+            current_usage = self.get_accurate_usage_counts(user_id)
+            reset_log['usage_before_reset'] = current_usage.get('usage_counts', {})
+            
+            # Reset all usage counters to 0
+            self._reset_usage_counters(user_id, new_plan_id)
+            
+            # Log the reset in upgrade_history
+            try:
+                user_result = self.supabase.table('users').select('upgrade_history').eq('id', user_id).single().execute()
+                upgrade_history = user_result.data.get('upgrade_history', []) if user_result.data else []
+                upgrade_history.append(reset_log)
+                
+                self.supabase.table('users').update({
+                    'upgrade_history': upgrade_history
+                }).eq('id', user_id).execute()
+            except Exception as log_error:
+                logger.warning(f"Failed to log usage reset: {str(log_error)}")
+            
+            return {
+                'success': True,
+                'reset_applied': True,
+                'new_limits': plan_config['features'],
+                'message': 'Usage limits reset to prevent abuse - you now have full access to new plan limits'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error resetting usage on upgrade for user {user_id}: {str(e)}")
+            raise
+
+    def apply_plan_limits(self, user_id: str, plan_id: str) -> Dict[str, Any]:
+        """Apply new plan limits immediately"""
+        try:
+            plan_config = self.PLAN_CONFIGS.get(plan_id, self.PLAN_CONFIGS['free'])
+            current_time = datetime.now()
+            
+            # Update all feature usage records with new limits
+            for feature_type, new_limit in plan_config['features'].items():
+                # Check if usage record exists
+                usage_result = self.supabase.table('feature_usage').select('*').eq(
+                    'user_id', user_id
+                ).eq('feature_type', feature_type).execute()
+                
+                if usage_result.data:
+                    # Update existing record
+                    self.supabase.table('feature_usage').update({
+                        'limit_count': new_limit,
+                        'updated_at': current_time.isoformat()
+                    }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                else:
+                    # Create new record
+                    new_usage = {
+                        'user_id': user_id,
+                        'feature_type': feature_type,
+                        'current_count': 0,
+                        'limit_count': new_limit,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=30)).isoformat(),
+                        'created_at': current_time.isoformat(),
+                        'updated_at': current_time.isoformat()
+                    }
+                    self.supabase.table('feature_usage').insert(new_usage).execute()
+            
+            return {
+                'success': True,
+                'new_limits': plan_config['features'],
+                'plan_name': plan_config['name']
+            }
+            
+        except Exception as e:
+            logger.error(f"Error applying plan limits for user {user_id}: {str(e)}")
+            raise
+
+    def downgrade_limit_enforcement(self, user_id: str, new_plan_id: str) -> Dict[str, Any]:
+        """Handle downgrade by capping limits but preserving current usage"""
+        try:
+            new_plan_config = self.PLAN_CONFIGS.get(new_plan_id, self.PLAN_CONFIGS['free'])
+            current_usage = self.get_accurate_usage_counts(user_id)
+            
+            enforcement_actions = []
+            warnings = []
+            
+            for feature_type, new_limit in new_plan_config['features'].items():
+                if feature_type in current_usage['usage_counts']:
+                    current_count = current_usage['usage_counts'][feature_type]['current_count']
+                    
+                    if current_count > new_limit:
+                        # Current usage exceeds new limit
+                        warnings.append({
+                            'feature_type': feature_type,
+                            'current_usage': current_count,
+                            'new_limit': new_limit,
+                            'excess': current_count - new_limit,
+                            'message': f'You have {current_count} {feature_type} but new plan allows only {new_limit}. You can view existing items but cannot create new ones until next billing cycle.'
+                        })
+                    
+                    # Update limit but keep current count
+                    self.supabase.table('feature_usage').update({
+                        'limit_count': new_limit,
+                        'updated_at': datetime.now().isoformat()
+                    }).eq('user_id', user_id).eq('feature_type', feature_type).execute()
+                    
+                    enforcement_actions.append({
+                        'feature_type': feature_type,
+                        'old_limit': current_usage['usage_counts'][feature_type]['limit_count'],
+                        'new_limit': new_limit,
+                        'current_usage': current_count,
+                        'can_create_new': current_count < new_limit
+                    })
+            
+            return {
+                'success': True,
+                'enforcement_actions': enforcement_actions,
+                'warnings': warnings,
+                'has_usage_conflicts': len(warnings) > 0,
+                'message': f'Downgraded to {new_plan_config["name"]}. Some features may be restricted due to current usage.'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error enforcing downgrade limits for user {user_id}: {str(e)}")
+            raise
+
+    def usage_abuse_detection(self, user_id: str) -> Dict[str, Any]:
+        """Detect suspicious upgrade/downgrade patterns"""
+        try:
+            # Get upgrade history
+            user_result = self.supabase.table('users').select('upgrade_history').eq('id', user_id).single().execute()
+            upgrade_history = user_result.data.get('upgrade_history', []) if user_result.data else []
+            
+            # Analyze patterns in the last 30 days
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            recent_upgrades = []
+            
+            for entry in upgrade_history:
+                try:
+                    entry_time = datetime.fromisoformat(entry.get('timestamp', ''))
+                    if entry_time > thirty_days_ago:
+                        recent_upgrades.append(entry)
+                except:
+                    continue
+            
+            # Detection criteria
+            suspicious_patterns = []
+            
+            # Pattern 1: Too many upgrades/downgrades in short time
+            if len(recent_upgrades) > 5:
+                suspicious_patterns.append({
+                    'pattern': 'excessive_plan_changes',
+                    'count': len(recent_upgrades),
+                    'severity': 'high',
+                    'description': f'User changed plans {len(recent_upgrades)} times in 30 days'
+                })
+            
+            # Pattern 2: Rapid upgrade-downgrade cycles
+            upgrade_downgrade_cycles = 0
+            for i in range(len(recent_upgrades) - 1):
+                current_action = recent_upgrades[i].get('action', '')
+                next_action = recent_upgrades[i + 1].get('action', '')
+                if 'upgrade' in current_action and 'downgrade' in next_action:
+                    upgrade_downgrade_cycles += 1
+            
+            if upgrade_downgrade_cycles > 2:
+                suspicious_patterns.append({
+                    'pattern': 'upgrade_downgrade_cycling',
+                    'count': upgrade_downgrade_cycles,
+                    'severity': 'medium',
+                    'description': f'User performed {upgrade_downgrade_cycles} upgrade-downgrade cycles'
+                })
+            
+            # Pattern 3: Same-day plan changes
+            same_day_changes = {}
+            for entry in recent_upgrades:
+                try:
+                    date_key = entry.get('timestamp', '')[:10]  # YYYY-MM-DD
+                    same_day_changes[date_key] = same_day_changes.get(date_key, 0) + 1
+                except:
+                    continue
+            
+            max_same_day = max(same_day_changes.values()) if same_day_changes else 0
+            if max_same_day > 2:
+                suspicious_patterns.append({
+                    'pattern': 'same_day_multiple_changes',
+                    'count': max_same_day,
+                    'severity': 'high',
+                    'description': f'User changed plans {max_same_day} times in a single day'
+                })
+            
+            # Determine overall risk level
+            risk_level = 'low'
+            if any(p['severity'] == 'high' for p in suspicious_patterns):
+                risk_level = 'high'
+            elif any(p['severity'] == 'medium' for p in suspicious_patterns):
+                risk_level = 'medium'
+            
+            return {
+                'user_id': user_id,
+                'risk_level': risk_level,
+                'suspicious_patterns': suspicious_patterns,
+                'recent_upgrades_count': len(recent_upgrades),
+                'requires_manual_review': risk_level == 'high',
+                'recommendation': 'Flag for manual review' if risk_level == 'high' else 'Monitor usage patterns'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error detecting usage abuse for user {user_id}: {str(e)}")
+            return {
+                'user_id': user_id,
+                'risk_level': 'unknown',
+                'error': str(e)
+            }
