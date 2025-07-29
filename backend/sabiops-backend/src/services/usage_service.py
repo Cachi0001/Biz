@@ -287,16 +287,14 @@ class UsageService:
     def _get_effective_user_id(self, user_id: str) -> str:
         """Get effective user ID (business owner for team members)"""
         try:
-            # Check if user is a team member
-            team_result = self.supabase.table('team').select('business_owner_id').eq(
-                'member_id', user_id
-            ).execute()
+            # Check if user is a team member by looking for owner_id in users table
+            user_result = self.supabase.table('users').select('owner_id').eq('id', user_id).single().execute()
             
-            if team_result.data:
+            if user_result.data and user_result.data.get('owner_id'):
                 # User is a team member, return business owner ID
-                return team_result.data[0]['business_owner_id']
+                return user_result.data['owner_id']
             
-            # User is not a team member, return their own ID
+            # User is not a team member (owner_id is null), return their own ID
             return user_id
             
         except Exception as e:

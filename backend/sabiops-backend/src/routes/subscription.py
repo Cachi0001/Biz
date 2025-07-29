@@ -257,23 +257,33 @@ def get_team_member_subscription_status(team_member_id):
         
         # Check if current user is authorized to view this team member's status
         supabase = current_app.config['SUPABASE']
-        team_result = supabase.table('team').select('*').eq('member_id', team_member_id).single().execute()
+        user_result = supabase.table('users').select('*').eq('id', team_member_id).single().execute()
         
-        if not team_result.data:
+        if not user_result.data:
             return error_response("Team member not found", "Not found", 404)
         
-        team_data = team_result.data
+        user_data = user_result.data
+        owner_id = user_data.get('owner_id')
+        
+        # If user has no owner_id, they are the owner themselves
+        if not owner_id:
+            # Return their own subscription status
+            status = subscription_service.get_user_subscription_status(team_member_id)
+            return success_response(
+                data=status,
+                message="User subscription status retrieved successfully"
+            )
         
         # Only business owner or the team member themselves can view status
-        if current_user_id != team_data['business_owner_id'] and current_user_id != team_member_id:
+        if current_user_id != owner_id and current_user_id != team_member_id:
             return error_response("Unauthorized", "Access denied", 403)
         
         # Get owner's subscription status (team members inherit)
-        owner_status = subscription_service.get_user_subscription_status(team_data['business_owner_id'])
+        owner_status = subscription_service.get_user_subscription_status(owner_id)
         
         # Add team member specific information
         owner_status['is_team_member'] = True
-        owner_status['business_owner_id'] = team_data['business_owner_id']
+        owner_status['business_owner_id'] = owner_id
         owner_status['team_member_id'] = team_member_id
         
         return success_response(

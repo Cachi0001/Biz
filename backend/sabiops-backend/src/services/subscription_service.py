@@ -90,10 +90,27 @@ class SubscriptionService:
                 raise ValueError("User not found")
             
             user = user_result.data
-            subscription_plan = user.get('subscription_plan', 'free')
-            subscription_status = user.get('subscription_status', 'inactive')
-            trial_days_left = user.get('trial_days_left', 0)
-            subscription_end_date = user.get('subscription_end_date')
+            
+            # Check if user is a team member (has owner_id)
+            owner_id = user.get('owner_id')
+            if owner_id:
+                # Team member inherits subscription from owner
+                logger.info(f"User {user_id} is team member, inheriting from owner {owner_id}")
+                owner_result = self.supabase.table('users').select('*').eq('id', owner_id).single().execute()
+                if owner_result.data:
+                    # Use owner's subscription data
+                    subscription_user = owner_result.data
+                else:
+                    # Fallback to user's own data if owner not found
+                    subscription_user = user
+            else:
+                # User is owner or individual user
+                subscription_user = user
+            
+            subscription_plan = subscription_user.get('subscription_plan', 'free')
+            subscription_status = subscription_user.get('subscription_status', 'inactive')
+            trial_days_left = subscription_user.get('trial_days_left', 0)
+            subscription_end_date = subscription_user.get('subscription_end_date')
             
             # Calculate remaining days
             remaining_days = self._calculate_remaining_days(
@@ -114,7 +131,9 @@ class SubscriptionService:
                 'plan_config': plan_config,
                 'subscription_end_date': subscription_end_date,
                 'is_trial': trial_days_left > 0 and subscription_plan == 'weekly',
-                'is_active': subscription_status == 'active' or trial_days_left > 0
+                'is_active': subscription_status == 'active' or trial_days_left > 0,
+                'is_team_member': bool(owner_id),
+                'owner_id': owner_id
             }
             
         except Exception as e:
@@ -303,15 +322,16 @@ class SubscriptionService:
     def get_team_owner_subscription(self, team_member_id: str) -> Optional[Dict[str, Any]]:
         """Get subscription status of team owner for inheritance"""
         try:
-            # Get team member's business owner
-            team_result = self.supabase.table('team').select('business_owner_id').eq(
-                'member_id', team_member_id
+            # Get team member's business owner using users table
+            user_result = self.supabase.table('users').select('owner_id').eq(
+                'id', team_member_id
             ).single().execute()
             
-            if not team_result.data:
+            if not user_result.data or not user_result.data.get('owner_id'):
+                # User is not a team member or is the owner themselves
                 return None
             
-            owner_id = team_result.data['business_owner_id']
+            owner_id = user_result.data['owner_id']
             return self.get_user_subscription_status(owner_id)
             
         except Exception as e:
