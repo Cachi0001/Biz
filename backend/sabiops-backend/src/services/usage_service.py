@@ -80,21 +80,55 @@ class UsageService:
             # Get effective user ID (for team members, use business owner)
             effective_user_id = self._get_effective_user_id(user_id)
             
-            # Call the database function to increment usage
-            result = self.supabase.rpc('increment_usage_counter', {
-                'p_user_id': effective_user_id,
-                'p_feature_type': feature_type
-            }).execute()
+            # Try to call the database function first
+            try:
+                result = self.supabase.rpc('increment_usage_counter', {
+                    'p_user_id': effective_user_id,
+                    'p_feature_type': feature_type
+                }).execute()
+                
+                if result.data and result.data.get('success'):
+                    logger.info(f"Incremented {feature_type} usage for user {user_id} (effective: {effective_user_id})")
+                    return self.check_usage_limit(user_id, feature_type)
+                else:
+                    # Function returned error, fall back to manual increment
+                    logger.warning(f"Database function failed, using manual increment: {result.data}")
+            except Exception as rpc_error:
+                logger.warning(f"Database function not available, using manual increment: {str(rpc_error)}")
             
-            if not result.data:
-                raise Exception("Failed to increment usage counter")
+            # Manual increment fallback
+            usage_data = self._get_current_usage(effective_user_id, feature_type)
+            
+            if not usage_data:
+                # Initialize usage record if it doesn't exist
+                usage_data = self._initialize_usage_record(effective_user_id, feature_type)
+            
+            # Check if user has reached limit
+            if usage_data['current_count'] >= usage_data['limit_count']:
+                raise Exception(f"Usage limit reached for {feature_type}: {usage_data['current_count']}/{usage_data['limit_count']}")
+            
+            # Increment usage counter manually
+            new_count = usage_data['current_count'] + 1
+            
+            self.supabase.table('feature_usage').update({
+                'current_count': new_count,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', usage_data['id']).execute()
+            
+            # Also update user table for backward compatibility
+            if feature_type == 'invoices':
+                self.supabase.table('users').update({
+                    'current_month_invoices': new_count
+                }).eq('id', effective_user_id).execute()
+            elif feature_type == 'expenses':
+                self.supabase.table('users').update({
+                    'current_month_expenses': new_count
+                }).eq('id', effective_user_id).execute()
+            
+            logger.info(f"Manually incremented {feature_type} usage for user {user_id} (effective: {effective_user_id})")
             
             # Get updated usage status
-            usage_status = self.check_usage_limit(user_id, feature_type)
-            
-            logger.info(f"Incremented {feature_type} usage for user {user_id} (effective: {effective_user_id})")
-            
-            return usage_status
+            return self.check_usage_limit(user_id, feature_type)
             
         except Exception as e:
             logger.error(f"Error incrementing usage for user {user_id}, feature {feature_type}: {str(e)}")
@@ -307,7 +341,7 @@ class UsageService:
         try:
             current_time = datetime.now()
             
-            # Get usage record for current period
+            # Get usage record for current period (period_start <= now <= period_end)
             usage_result = self.supabase.table('feature_usage').select('*').eq(
                 'user_id', user_id
             ).eq('feature_type', feature_type).lte(
@@ -316,6 +350,19 @@ class UsageService:
             
             if usage_result.data:
                 return usage_result.data[0]
+            
+            # If no record found with the above query, try a simpler approach
+            # Get the most recent record for this user and feature type
+            usage_result = self.supabase.table('feature_usage').select('*').eq(
+                'user_id', user_id
+            ).eq('feature_type', feature_type).order('created_at', desc=True).limit(1).execute()
+            
+            if usage_result.data:
+                record = usage_result.data[0]
+                # Check if the record is still valid (within period)
+                period_end = datetime.fromisoformat(record['period_end'].replace('Z', '+00:00'))
+                if period_end > current_time:
+                    return record
             
             return None
             

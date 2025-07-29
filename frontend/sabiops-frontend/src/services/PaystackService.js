@@ -85,63 +85,17 @@ class PaystackService {
     try {
       console.log(`PaystackService: Verifying payment (attempt ${retryCount + 1}):`, reference);
 
-      const response = await fetch('/api/subscription/verify-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          reference: reference,
-          plan_id: planData.id,
-          amount: planData.price
-        })
+      // Import the API service to use the correct base URL
+      const { default: api } = await import('./api.js');
+      
+      const response = await api.post('/subscription/verify-payment', {
+        reference: reference,
+        plan_id: planData.id,
+        amount: planData.price
       });
 
-      // Handle different HTTP status codes
-      if (response.status === 405) {
-        throw new Error('Payment verification endpoint not available. Please try again or contact support.');
-      }
-
-      if (response.status === 401) {
-        throw new Error('Authentication failed. Please log in again.');
-      }
-
-      if (response.status === 403) {
-        throw new Error('Access denied. Please check your permissions.');
-      }
-
-      if (response.status >= 500) {
-        // Server error - retry if we haven't exceeded max retries
-        if (retryCount < maxRetries) {
-          console.warn(`Server error (${response.status}), retrying in ${retryDelay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          return this.verifyPayment(reference, planData, retryCount + 1);
-        }
-        throw new Error('Server error. Please try again later.');
-      }
-
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          // If JSON parsing fails, use the HTTP status message
-          console.warn('Failed to parse error response as JSON:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Parse JSON response
-      let result;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
-        throw new Error('Invalid response from server. Please try again.');
-      }
+      // Axios automatically handles JSON parsing and throws errors for HTTP error status codes
+      const result = response.data;
 
       // Validate response structure
       if (!result || typeof result !== 'object') {
@@ -158,14 +112,41 @@ class PaystackService {
     } catch (error) {
       console.error('PaystackService: Payment verification failed:', error);
       
-      // Retry on network errors if we haven't exceeded max retries
-      if ((error.name === 'TypeError' || error.message.includes('fetch')) && retryCount < maxRetries) {
-        console.warn(`Network error, retrying in ${retryDelay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        return this.verifyPayment(reference, planData, retryCount + 1);
+      // Handle axios errors
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        if (status === 405) {
+          throw new Error('Payment verification endpoint not available. Please try again or contact support.');
+        } else if (status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (status === 403) {
+          throw new Error('Access denied. Please check your permissions.');
+        } else if (status >= 500) {
+          // Server error - retry if we haven't exceeded max retries
+          if (retryCount < maxRetries) {
+            console.warn(`Server error (${status}), retrying in ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return this.verifyPayment(reference, planData, retryCount + 1);
+          }
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(errorData?.message || errorData?.error || `HTTP ${status} error`);
+        }
+      } else if (error.request) {
+        // Network error - retry if we haven't exceeded max retries
+        if (retryCount < maxRetries) {
+          console.warn(`Network error, retrying in ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          return this.verifyPayment(reference, planData, retryCount + 1);
+        }
+        throw new Error('Network error. Please check your connection.');
+      } else {
+        // Other error
+        throw error;
       }
-      
-      throw error;
     }
   }
 
@@ -178,32 +159,16 @@ class PaystackService {
     try {
       console.log('PaystackService: Updating subscription:', paymentData);
 
-      const response = await fetch('/api/subscription/upgrade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          plan_id: paymentData.plan_id,
-          payment_reference: paymentData.reference,
-          amount: paymentData.amount
-        })
+      // Import the API service to use the correct base URL
+      const { default: api } = await import('./api.js');
+      
+      const response = await api.post('/subscription/upgrade', {
+        plan_id: paymentData.plan_id,
+        payment_reference: paymentData.reference,
+        amount: paymentData.amount
       });
 
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          console.warn('Failed to parse error response as JSON:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       console.log('PaystackService: Subscription updated successfully:', result);
       return result;
 
@@ -219,25 +184,11 @@ class PaystackService {
    */
   static async getSubscriptionStatus() {
     try {
-      const response = await fetch('/api/subscription/status', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          console.warn('Failed to parse error response as JSON:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      // Import the API service to use the correct base URL
+      const { default: api } = await import('./api.js');
+      
+      const response = await api.get('/subscription/status');
+      const result = response.data;
       return result;
 
     } catch (error) {
@@ -252,25 +203,11 @@ class PaystackService {
    */
   static async getUsageStatus() {
     try {
-      const response = await fetch('/api/subscription/usage-status', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          console.warn('Failed to parse error response as JSON:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      // Import the API service to use the correct base URL
+      const { default: api } = await import('./api.js');
+      
+      const response = await api.get('/subscription/usage-status');
+      const result = response.data;
       return result;
 
     } catch (error) {
