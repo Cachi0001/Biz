@@ -121,6 +121,9 @@ def register():
             user_id = str(uuid.uuid4())
             password_hash = generate_password_hash(password)
 
+            # Calculate trial end date (7 days from now)
+            trial_end_date = datetime.now() + timedelta(days=7)
+            
             user_data = {
                 "id": user_id,
                 "email": email,
@@ -132,6 +135,10 @@ def register():
                 "role": "Owner",
                 "subscription_plan": "weekly",
                 "subscription_status": "trial",
+                "trial_days_left": 7,
+                "subscription_start_date": datetime.now().isoformat(),
+                "subscription_end_date": trial_end_date.isoformat(),
+                "trial_ends_at": trial_end_date,
                 "active": True,
                 "email_confirmed": False
             }
@@ -178,6 +185,17 @@ def register():
             if not verify_result.data:
                 print(f"[ERROR] User verification failed after creation - no data returned")
                 return error_response("User verification failed", status_code=500)
+
+            # Initialize usage records for the new user with weekly trial limits
+            print(f"[DEBUG] Initializing usage records for user ID: {actual_user_id}")
+            try:
+                from src.services.subscription_service import SubscriptionService
+                subscription_service = SubscriptionService()
+                subscription_service._reset_usage_counters(actual_user_id, 'weekly')
+                print(f"[DEBUG] Usage records initialized successfully for user: {actual_user_id}")
+            except Exception as e:
+                print(f"[WARNING] Failed to initialize usage records: {str(e)}")
+                # Don't fail registration if usage initialization fails
 
             print(f"[DEBUG] User verified, creating token for user ID: {actual_user_id}")
 

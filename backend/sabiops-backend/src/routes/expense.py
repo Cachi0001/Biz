@@ -253,20 +253,7 @@ def create_expense():
             return error_response(str(e), "Authorization error", 403)
         supabase = get_supabase()
         
-        # Check usage limits for free plan users
-        user_result = supabase.table("users").select("subscription_plan,current_month_expenses").eq("id", owner_id).single().execute()
-        if not user_result.data:
-            return error_response("User not found", status_code=404)
-            
-        user = user_result.data
-        if user['subscription_plan'] == 'free':
-            current_expenses = user.get('current_month_expenses', 0)
-            if current_expenses >= 20:  # Updated to match new limit
-                return error_response(
-                    "Monthly expense limit reached", 
-                    "Upgrade to create more expenses",
-                    status_code=402  # Payment Required
-                )
+        # The @protected_expense_creation decorator handles all subscription and usage limit checks
         data = request.get_json()
         data['owner_id'] = owner_id
         
@@ -303,6 +290,15 @@ def create_expense():
             return error_response(error_message, status_code=400)
         
         logging.info(f"[EXPENSE CREATE SUCCESS] Expense created with ID: {expense_record['id']}")
+        
+        # Track usage after successful creation
+        try:
+            from src.services.usage_service import UsageService
+            usage_service = UsageService()
+            usage_service.increment_usage(user_id, 'expenses')
+            logging.info(f"[EXPENSE CREATE] Usage tracked for user: {user_id}")
+        except Exception as e:
+            logging.warning(f"[EXPENSE CREATE] Failed to track usage: {str(e)}")
         
         # Get updated usage status for response
         usage_status = get_usage_status_for_response(user_id, 'expenses')

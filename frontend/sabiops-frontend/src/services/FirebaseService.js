@@ -335,10 +335,8 @@ class FirebaseService {
       
       const response = await get(`/notifications?limit=${limit}&offset=${offset}`);
       const data = response.data || response;
-      }
-
-      const result = JSON.parse(text);
-      return result.data || [];
+      
+      return data.data || [];
 
     } catch (error) {
       console.error('FirebaseService: Failed to fetch notifications:', error);
