@@ -138,7 +138,7 @@ def register():
                 "trial_days_left": 7,
                 "subscription_start_date": datetime.now().isoformat(),
                 "subscription_end_date": trial_end_date.isoformat(),
-                "trial_ends_at": trial_end_date,
+                "trial_ends_at": trial_end_date.isoformat(),
                 "active": True,
                 "email_confirmed": False
             }
