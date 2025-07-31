@@ -294,11 +294,34 @@ const Settings = () => {
                   </Alert>
 
                   <div className="mt-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="border-2 border-primary">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* Free Plan */}
+                      <Card className="border-2 border-gray-300 bg-gray-50">
+                        <CardHeader>
+                          <CardTitle className="text-lg text-gray-700">Free Plan</CardTitle>
+                          <div className="text-2xl font-bold text-gray-700">₦0<span className="text-sm font-normal">/forever</span></div>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2 text-sm text-gray-600">
+                            <li>• 5 invoices per month</li>
+                            <li>• 20 expenses per month</li>
+                            <li>• 50 sales per month</li>
+                            <li>• 20 products per month</li>
+                            <li>• Basic reporting</li>
+                            <li>• Community support</li>
+                          </ul>
+                          <Button variant="outline" className="w-full mt-4" disabled>
+                            Current Plan
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      {/* Weekly Plan */}
+                      <Card className="border-2 border-primary bg-blue-50">
                         <CardHeader>
                           <CardTitle className="text-lg">Silver Weekly</CardTitle>
                           <div className="text-2xl font-bold">₦1,400<span className="text-sm font-normal">/week</span></div>
+                          <div className="text-xs text-blue-600 font-medium">7-Day Free Trial</div>
                         </CardHeader>
                         <CardContent>
                           <ul className="space-y-2 text-sm">
@@ -308,6 +331,7 @@ const Settings = () => {
                             <li>• 100 products per week</li>
                             <li>• Advanced reporting</li>
                             <li>• Email support</li>
+                            <li>• Real-time sync</li>
                           </ul>
                           <Button className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
@@ -315,30 +339,35 @@ const Settings = () => {
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      {/* Monthly Plan */}
+                      <Card className="border-2 border-green-400 bg-green-50">
                         <CardHeader>
                           <CardTitle className="text-lg">Silver Monthly</CardTitle>
                           <div className="text-2xl font-bold">₦4,500<span className="text-sm font-normal">/month</span></div>
+                          <div className="text-xs text-green-600 font-medium">Most Popular</div>
                         </CardHeader>
                         <CardContent>
                           <ul className="space-y-2 text-sm">
                             <li>• 450 invoices per month</li>
                             <li>• 500 expenses per month</li>
-                            <li>• 1500 sales per month</li>
+                            <li>• 1,500 sales per month</li>
                             <li>• 500 products per month</li>
-                            <li>• ₦500 referral rewards</li>
+                            <li>• Advanced analytics</li>
                             <li>• Priority support</li>
+                            <li>• ₦500 referral rewards</li>
                           </ul>
-                          <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
+                          <Button variant="outline" className="w-full mt-4 border-green-500 text-green-700 hover:bg-green-100" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
                           </Button>
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      {/* Yearly Plan */}
+                      <Card className="border-2 border-purple-400 bg-purple-50">
                         <CardHeader>
                           <CardTitle className="text-lg">Silver Yearly</CardTitle>
                           <div className="text-2xl font-bold">₦50,000<span className="text-sm font-normal">/year</span></div>
+                          <div className="text-xs text-purple-600 font-medium">Best Value</div>
                         </CardHeader>
                         <CardContent>
                           <ul className="space-y-2 text-sm">
@@ -346,10 +375,12 @@ const Settings = () => {
                             <li>• 2,000 expenses per year</li>
                             <li>• 18,000 sales per year</li>
                             <li>• 2,000 products per year</li>
-                            <li>• ₦5,000 referral rewards</li>
+                            <li>• Premium analytics</li>
                             <li>• Premium support</li>
+                            <li>• ₦5,000 referral rewards</li>
+                            <li>• Custom integrations</li>
                           </ul>
-                          <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
+                          <Button variant="outline" className="w-full mt-4 border-purple-500 text-purple-700 hover:bg-purple-100" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
                           </Button>
                         </CardContent>

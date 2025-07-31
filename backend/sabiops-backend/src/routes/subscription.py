@@ -320,10 +320,48 @@ def get_unified_subscription_status():
     """Get unified subscription status - single source of truth"""
     try:
         user_id = get_jwt_identity()
-        subscription_service = SubscriptionService()
         
-        # Get unified status that resolves conflicts
-        status = subscription_service.get_unified_subscription_status(user_id)
+        # Get user data directly from database
+        user_result = supabase.table('users').select('*').eq('id', user_id).single().execute()
+        
+        if not user_result.data:
+            return error_response("User not found", "User not found", 404)
+        
+        user = user_result.data
+        
+        # Calculate remaining days
+        remaining_days = 0
+        is_trial = user.get('subscription_status') == 'trial'
+        is_active = user.get('subscription_status') == 'active'
+        
+        if is_trial and user.get('trial_ends_at'):
+            from datetime import datetime
+            trial_end = datetime.fromisoformat(user['trial_ends_at'].replace('Z', '+00:00'))
+            remaining_days = max(0, (trial_end - datetime.now()).days)
+        elif is_active and user.get('subscription_end_date'):
+            from datetime import datetime
+            sub_end = datetime.fromisoformat(user['subscription_end_date'].replace('Z', '+00:00'))
+            remaining_days = max(0, (sub_end - datetime.now()).days)
+        
+        # Build response
+        status = {
+            'subscription_plan': user.get('subscription_plan', 'free'),
+            'subscription_status': user.get('subscription_status', 'inactive'),
+            'unified_status': user.get('subscription_status', 'inactive'),
+            'remaining_days': remaining_days,
+            'trial_days_left': user.get('trial_days_left', 0),
+            'is_trial': is_trial,
+            'is_active': is_active or is_trial,
+            'plan_config': {
+                'name': f"{user.get('subscription_plan', 'free').title()} Plan",
+                'features': {
+                    'invoices': 100 if user.get('subscription_plan') == 'weekly' else 450 if user.get('subscription_plan') == 'monthly' else 6000 if user.get('subscription_plan') == 'yearly' else 5,
+                    'expenses': 100 if user.get('subscription_plan') == 'weekly' else 500 if user.get('subscription_plan') == 'monthly' else 2000 if user.get('subscription_plan') == 'yearly' else 20,
+                    'sales': 250 if user.get('subscription_plan') == 'weekly' else 1500 if user.get('subscription_plan') == 'monthly' else 18000 if user.get('subscription_plan') == 'yearly' else 50,
+                    'products': 100 if user.get('subscription_plan') == 'weekly' else 500 if user.get('subscription_plan') == 'monthly' else 2000 if user.get('subscription_plan') == 'yearly' else 20
+                }
+            }
+        }
         
         return success_response(
             data=status,
