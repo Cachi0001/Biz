@@ -1,9 +1,3 @@
-/**
- * Enhanced Real-time Notification Service for SabiOps
- * Fixes pulling issues and aligns with best practices
- * Combines toast notifications, push notifications, and real-time updates
- */
-
 import { toast } from 'react-hot-toast';
 import { apiClient } from './apiClient';
 import { messaging, getToken, onMessage } from '../firebase';
