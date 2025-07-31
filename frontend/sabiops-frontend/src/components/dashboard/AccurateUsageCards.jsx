@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { RefreshCw, FileText, Receipt, ShoppingCart, Package, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import subscriptionService from '../../services/subscriptionService';
 
 const AccurateUsageCards = () => {
-  const { user } = useAuth();
+  const { user, updateToken } = useAuth();
   const [usageData, setUsageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -15,65 +16,46 @@ const AccurateUsageCards = () => {
     try {
       setError(null);
       
-      const response = await fetch('/api/subscription/usage-status', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch accurate usage');
-      }
-      
-      const data = await response.json();
-      setUsageData(data.data || data);
+      const data = await subscriptionService.getUsageStatus();
+      setUsageData(data);
       
     } catch (err) {
-      console.error('Error fetching accurate usage:', err);
-      setError(err.message);
+      console.error('Error fetching usage data:', err);
+      setError(err.message || 'Failed to load usage data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchAccurateUsage();
-  };
-
-  const syncUsageCounts = async () => {
-    try {
-      setRefreshing(true);
-      
-      const response = await fetch('/api/subscription/sync-usage', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to sync usage counts');
+  // Handle token updates
+  useEffect(() => {
+    const handleTokenUpdate = (event) => {
+      if (event.detail?.token) {
+        // Update the auth context with the new token
+        updateToken(event.detail.token);
+        // Refresh the usage data
+        fetchAccurateUsage();
       }
-      
-      // Refresh data after sync
-      await fetchAccurateUsage();
-      
-    } catch (err) {
-      console.error('Error syncing usage counts:', err);
-      setError(err.message);
-      setRefreshing(false);
-    }
-  };
+    };
+
+    window.addEventListener('tokenUpdated', handleTokenUpdate);
+    
+    return () => {
+      window.removeEventListener('tokenUpdated', handleTokenUpdate);
+    };
+  }, [updateToken]);
 
   useEffect(() => {
     if (user) {
       fetchAccurateUsage();
     }
   }, [user]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchAccurateUsage();
+  };
 
   if (loading && !usageData) {
     return (
@@ -162,7 +144,7 @@ const AccurateUsageCards = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={syncUsageCounts}
+              onClick={subscriptionService.syncUsageCounts}
               disabled={refreshing}
               className="text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
             >

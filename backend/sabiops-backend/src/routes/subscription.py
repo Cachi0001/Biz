@@ -1,11 +1,6 @@
-"""
-Subscription Routes
-Handles subscription-related API endpoints including payment verification and status checks
-"""
-
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from datetime import datetime, timedelta
 import logging
 
 from src.services.subscription_service import SubscriptionService
@@ -32,14 +27,15 @@ def error_response(error, message="Error", status_code=400):
     }), status_code
 
 @subscription_bp.route("/status", methods=["GET"])
+@subscription_bp.route("/unified-status", methods=["GET"])  # Add alias for backward compatibility
 @jwt_required()
 def get_subscription_status():
-    """Get current user's subscription status"""
     try:
         user_id = get_jwt_identity()
         subscription_service = SubscriptionService()
         
-        status = subscription_service.get_user_subscription_status(user_id)
+        # Use the unified status method for consistent results
+        status = subscription_service.get_unified_subscription_status(user_id)
         
         return success_response(
             data=status,
@@ -50,15 +46,70 @@ def get_subscription_status():
         logger.error(f"Error getting subscription status: {str(e)}")
         return error_response(str(e), "Failed to get subscription status", 500)
 
+@subscription_bp.route("/usage-status", methods=["GET"])
+@jwt_required()
+def get_usage_status():
+    """Get current usage status for all features"""
+    try:
+        user_id = get_jwt_identity()
+        supabase = current_app.config['SUPABASE']
+        
+        # Get current usage from feature_usage table
+        usage_result = supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
+        
+        # Get subscription status using unified method
+        subscription_service = SubscriptionService()
+        subscription_status = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Format usage data
+        current_usage = {}
+        for usage in usage_result.data:
+            feature_type = usage['feature_type']
+            current_usage[feature_type] = {
+                'current': usage['current_count'],
+                'limit': usage['limit_count'],
+                'percentage': round((usage['current_count'] / usage['limit_count']) * 100, 1) if usage['limit_count'] > 0 else 0,
+                'period_start': usage['period_start'],
+                'period_end': usage['period_end']
+            }
+        
+        # Ensure all feature types are present
+        plan_config = subscription_status.get('plan_config', {})
+        for feature_type, limit in plan_config.get('features', {}).items():
+            if feature_type not in current_usage:
+                current_usage[feature_type] = {
+                    'current': 0,
+                    'limit': limit,
+                    'percentage': 0,
+                    'period_start': None,
+                    'period_end': None
+                }
+        
+        return success_response(
+            data={
+                "current_usage": current_usage,
+                "subscription": {
+                    "plan": subscription_status.get('subscription_plan', 'free'),
+                    "status": subscription_status.get('subscription_status', 'inactive'),
+                    "days_remaining": subscription_status.get('remaining_days', 0),
+                    "is_trial": subscription_status.get('is_trial', False),
+                    "is_active": subscription_status.get('is_active', False)
+                }
+            },
+            message="Usage status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting usage status: {str(e)}")
+        return error_response(str(e), "Failed to get usage status", 500)
+
 @subscription_bp.route("/verify-payment", methods=["POST"])
 @jwt_required()
 def verify_payment():
-    """Verify Paystack payment and upgrade subscription"""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        # Validate required fields
         required_fields = ["reference", "plan_id"]
         for field in required_fields:
             if not data.get(field):
@@ -69,7 +120,6 @@ def verify_payment():
         
         subscription_service = SubscriptionService()
         
-        # Verify payment with Paystack
         logger.info(f"Verifying payment {reference} for user {user_id}")
         paystack_result = subscription_service.verify_paystack_payment(reference)
         
@@ -86,7 +136,19 @@ def verify_payment():
             user_id, plan_id, reference, paystack_result
         )
         
-        # Notify user of successful upgrade
+        # Generate new JWT token with updated subscription info
+        access_token = create_access_token(
+            identity=user_id,
+            expires_delta=timedelta(days=30),  # Or your preferred expiration
+            additional_claims={
+                'plan_id': upgrade_result['plan_config']['id'],
+                'plan_name': upgrade_result['plan_config']['name'],
+                'is_subscribed': True,
+                'subscription_status': 'active',
+                'subscription_expiry': upgrade_result['subscription']['end_date'].isoformat() if upgrade_result['subscription'].get('end_date') else None
+            }
+        )
+        
         try:
             supa_service = SupabaseService()
             plan_name = upgrade_result['plan_config']['name']
@@ -104,6 +166,7 @@ def verify_payment():
                 "subscription": upgrade_result['subscription'],
                 "plan_config": upgrade_result['plan_config'],
                 "usage_reset": upgrade_result['usage_reset'],
+                "access_token": access_token,  # Include the new token in the response
                 "paystack_data": {
                     "reference": paystack_result['reference'],
                     "amount": paystack_result['amount'],
@@ -160,64 +223,6 @@ def upgrade_subscription():
         logger.error(f"Manual subscription upgrade failed: {str(e)}")
         return error_response(str(e), "Subscription upgrade failed", 500)
 
-@subscription_bp.route("/usage-status", methods=["GET"])
-@jwt_required()
-def get_usage_status():
-    """Get current usage status for all features"""
-    try:
-        user_id = get_jwt_identity()
-        supabase = current_app.config['SUPABASE']
-        
-        # Get current usage from feature_usage table
-        usage_result = supabase.table('feature_usage').select('*').eq('user_id', user_id).execute()
-        
-        # Get subscription status
-        subscription_service = SubscriptionService()
-        subscription_status = subscription_service.get_user_subscription_status(user_id)
-        
-        # Format usage data
-        current_usage = {}
-        for usage in usage_result.data:
-            feature_type = usage['feature_type']
-            current_usage[feature_type] = {
-                'current': usage['current_count'],
-                'limit': usage['limit_count'],
-                'percentage': round((usage['current_count'] / usage['limit_count']) * 100, 1) if usage['limit_count'] > 0 else 0,
-                'period_start': usage['period_start'],
-                'period_end': usage['period_end']
-            }
-        
-        # Ensure all feature types are present
-        plan_config = subscription_status['plan_config']
-        for feature_type, limit in plan_config['features'].items():
-            if feature_type not in current_usage:
-                current_usage[feature_type] = {
-                    'current': 0,
-                    'limit': limit,
-                    'percentage': 0,
-                    'period_start': None,
-                    'period_end': None
-                }
-        
-        return success_response(
-            data={
-                "current_usage": current_usage,
-                "subscription": {
-                    "plan": subscription_status['subscription_plan'],
-                    "status": subscription_status['subscription_status'],
-                    "days_remaining": subscription_status['remaining_days'],
-                    "is_trial": subscription_status['is_trial'],
-                    "is_active": subscription_status['is_active']
-                },
-                "plan_config": plan_config
-            },
-            message="Usage status retrieved successfully"
-        )
-        
-    except Exception as e:
-        logger.error(f"Error getting usage status: {str(e)}")
-        return error_response(str(e), "Failed to get usage status", 500)
-
 @subscription_bp.route("/activate-trial", methods=["POST"])
 @jwt_required()
 def activate_trial():
@@ -265,23 +270,18 @@ def get_team_member_subscription_status(team_member_id):
         user_data = user_result.data
         owner_id = user_data.get('owner_id')
         
-        # If user has no owner_id, they are the owner themselves
         if not owner_id:
-            # Return their own subscription status
             status = subscription_service.get_user_subscription_status(team_member_id)
             return success_response(
                 data=status,
                 message="User subscription status retrieved successfully"
             )
         
-        # Only business owner or the team member themselves can view status
         if current_user_id != owner_id and current_user_id != team_member_id:
             return error_response("Unauthorized", "Access denied", 403)
         
-        # Get owner's subscription status (team members inherit)
         owner_status = subscription_service.get_user_subscription_status(owner_id)
         
-        # Add team member specific information
         owner_status['is_team_member'] = True
         owner_status['business_owner_id'] = owner_id
         owner_status['team_member_id'] = team_member_id
@@ -297,11 +297,7 @@ def get_team_member_subscription_status(team_member_id):
 
 @subscription_bp.route("/check-expired", methods=["POST"])
 def check_expired_subscriptions():
-    """Check and downgrade expired subscriptions (internal endpoint)"""
     try:
-        # This endpoint should be called by a cron job or internal service
-        # Add authentication check for internal services if needed
-        
         subscription_service = SubscriptionService()
         count = subscription_service.check_and_update_expired_subscriptions()
         
@@ -313,64 +309,6 @@ def check_expired_subscriptions():
     except Exception as e:
         logger.error(f"Error checking expired subscriptions: {str(e)}")
         return error_response(str(e), "Failed to check expired subscriptions", 500)
-
-@subscription_bp.route("/unified-status", methods=["GET"])
-@jwt_required()
-def get_unified_subscription_status():
-    """Get unified subscription status - single source of truth"""
-    try:
-        user_id = get_jwt_identity()
-        
-        # Get user data directly from database
-        user_result = supabase.table('users').select('*').eq('id', user_id).single().execute()
-        
-        if not user_result.data:
-            return error_response("User not found", "User not found", 404)
-        
-        user = user_result.data
-        
-        # Calculate remaining days
-        remaining_days = 0
-        is_trial = user.get('subscription_status') == 'trial'
-        is_active = user.get('subscription_status') == 'active'
-        
-        if is_trial and user.get('trial_ends_at'):
-            from datetime import datetime
-            trial_end = datetime.fromisoformat(user['trial_ends_at'].replace('Z', '+00:00'))
-            remaining_days = max(0, (trial_end - datetime.now()).days)
-        elif is_active and user.get('subscription_end_date'):
-            from datetime import datetime
-            sub_end = datetime.fromisoformat(user['subscription_end_date'].replace('Z', '+00:00'))
-            remaining_days = max(0, (sub_end - datetime.now()).days)
-        
-        # Build response
-        status = {
-            'subscription_plan': user.get('subscription_plan', 'free'),
-            'subscription_status': user.get('subscription_status', 'inactive'),
-            'unified_status': user.get('subscription_status', 'inactive'),
-            'remaining_days': remaining_days,
-            'trial_days_left': user.get('trial_days_left', 0),
-            'is_trial': is_trial,
-            'is_active': is_active or is_trial,
-            'plan_config': {
-                'name': f"{user.get('subscription_plan', 'free').title()} Plan",
-                'features': {
-                    'invoices': 100 if user.get('subscription_plan') == 'weekly' else 450 if user.get('subscription_plan') == 'monthly' else 6000 if user.get('subscription_plan') == 'yearly' else 5,
-                    'expenses': 100 if user.get('subscription_plan') == 'weekly' else 500 if user.get('subscription_plan') == 'monthly' else 2000 if user.get('subscription_plan') == 'yearly' else 20,
-                    'sales': 250 if user.get('subscription_plan') == 'weekly' else 1500 if user.get('subscription_plan') == 'monthly' else 18000 if user.get('subscription_plan') == 'yearly' else 50,
-                    'products': 100 if user.get('subscription_plan') == 'weekly' else 500 if user.get('subscription_plan') == 'monthly' else 2000 if user.get('subscription_plan') == 'yearly' else 20
-                }
-            }
-        }
-        
-        return success_response(
-            data=status,
-            message="Unified subscription status retrieved successfully"
-        )
-        
-    except Exception as e:
-        logger.error(f"Error getting unified subscription status: {str(e)}")
-        return error_response(str(e), "Failed to get unified subscription status", 500)
 
 @subscription_bp.route("/accurate-usage", methods=["GET"])
 @jwt_required()

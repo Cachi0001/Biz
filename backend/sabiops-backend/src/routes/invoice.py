@@ -14,6 +14,10 @@ from reportlab.lib.colors import HexColor
 import io
 from src.services.supabase_service import SupabaseService
 from src.routes.create_sale_from_invoice import create_sale_from_invoice
+import logging
+import asyncio
+from async_timeout import timeout
+from src.utils.email_service import send_invoice_notification
 
 invoice_bp = Blueprint("invoice", __name__)
 
@@ -198,7 +202,11 @@ def create_invoice():
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
             return error_response(str(e), "Authorization error", 403)
+        
         supabase = get_supabase()
+        
+        # Initialize InvoiceInventoryManager with supabase client
+        inventory_manager = InvoiceInventoryManager(supabase)
         
         # Check usage limits for free plan users
         user_result = supabase.table("users").select("subscription_plan,current_month_invoices").eq("id", owner_id).single().execute()
@@ -214,6 +222,7 @@ def create_invoice():
                     "Upgrade to create more invoices",
                     status_code=402  # Payment Required
                 )
+        
         data = request.get_json()
         data['owner_id'] = owner_id
         
@@ -268,72 +277,57 @@ def create_invoice():
         tax_amount = float(data.get("tax_amount", 0))
         total_amount = subtotal + tax_amount
         
-        # Use InvoiceInventoryManager to validate stock and calculate costs
-        inventory_manager = InvoiceInventoryManager()
-        
-        # Validate stock availability first
-        stock_validation = inventory_manager.validate_stock_availability(processed_items)
-        if not stock_validation['valid']:
+        # Validate stock availability
+        stock_validation = inventory_manager.validate_stock_availability(processed_items, owner_id)
+        if not stock_validation.get('valid', False):
             error_msg = "Insufficient stock for the following items:\n"
-            for item in stock_validation['insufficient_stock']:
-                error_msg += f"- {item['product_name']}: Need {item['requested']}, Available {item['available']}\n"
+            for item in stock_validation.get('insufficient_stock', []):
+                error_msg += f"- {item.get('product_name', 'Unknown')}: Need {item.get('requested', 0)}, Available {item.get('available', 0)}\n"
             return error_response(error_msg, "Insufficient stock", status_code=400)
         
-        # Process inventory reduction and cost calculation
-        inventory_result = inventory_manager.process_invoice_creation(
-            {"owner_id": owner_id}, processed_items
-        )
-        
-        if inventory_result['errors']:
-            return error_response(
-                "Inventory processing failed: " + "; ".join(inventory_result['errors']),
-                "Inventory error",
-                status_code=400
-            )
-        
+        # Create invoice data
         invoice_data = {
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
             "customer_id": data["customer_id"],
-            "customer_name": customer.data["name"],
             "invoice_number": invoice_number,
-            "amount": subtotal,
+            "status": "draft",
+            "issue_date": datetime.now().isoformat(),
+            "due_date": due_date,
+            "subtotal": subtotal,
             "tax_amount": tax_amount,
             "total_amount": total_amount,
-            "total_cogs": inventory_result['total_cogs'],  # Add COGS
-            "gross_profit": inventory_result['gross_profit'],  # Add profit
-            "status": "draft",
-            "due_date": due_date,
             "notes": data.get("notes", ""),
-            "currency": data.get("currency", "NGN"),
-            "payment_terms": data.get("payment_terms", "Net 30"),
-            "terms_and_conditions": data.get("terms_and_conditions", "Payment is due within 30 days of invoice date."),
-            "discount_amount": float(data.get("discount_amount", 0)),
+            "terms": data.get("terms", ""),
             "items": processed_items,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
-
+        
+        # Save invoice to database
         result = supabase.table("invoices").insert(invoice_data).execute()
         
         if not result.data:
             return error_response("Failed to create invoice", status_code=500)
-
-        # Get updated usage status for response
-        usage_status = get_usage_status_for_response(user_id, 'invoices')
+        
+        # Reserve inventory
+        if not inventory_manager.reserve_inventory(processed_items, owner_id):
+            logging.warning(f"Failed to reserve inventory for invoice {invoice_number}")
+            # Don't fail the request if inventory reservation fails, just log it
+        
+        # Update user's invoice count if on free plan
+        if user['subscription_plan'] == 'free':
+            supabase.rpc('increment_invoice_count', {'user_id': owner_id}).execute()
         
         return success_response(
-            data={
-                "invoice": result.data[0],
-                "usage_status": usage_status
-            },
-            message=f"Invoice {invoice_number} created successfully!",
+            data={"invoice_id": invoice_data["id"]},
+            message="Invoice created successfully",
             status_code=201
         )
-
+        
     except Exception as e:
-        current_app.logger.error(f"Error creating invoice: {e}", exc_info=True)
-        return error_response(str(e), "Failed to create invoice", status_code=500)
+        logging.error(f"Error creating invoice: {str(e)}", exc_info=True)
+        return error_response("An error occurred while creating the invoice", status_code=500)
 
 @invoice_bp.route("/<invoice_id>", methods=["PUT"])
 @jwt_required()
@@ -477,7 +471,7 @@ def delete_invoice(invoice_id):
 
 @invoice_bp.route("/<invoice_id>/status", methods=["PUT"])
 @jwt_required()
-def update_invoice_status(invoice_id):
+async def update_invoice_status(invoice_id):
     try:
         user_id = get_jwt_identity()
         try:
@@ -486,60 +480,113 @@ def update_invoice_status(invoice_id):
             return error_response(str(e), "Authorization error", 403)
         
         supabase = get_supabase()
+        
+        # Initialize InvoiceInventoryManager with supabase client
+        inventory_manager = InvoiceInventoryManager(supabase)
+        
+        # Get the current invoice
+        result = supabase.table("invoices").select("*").eq("id", invoice_id).eq("owner_id", owner_id).single().execute()
+        
+        if not result.data:
+            return error_response("Invoice not found", status_code=404)
+            
+        current_invoice = result.data
+        current_status = current_invoice.get("status", "draft")
+        
+        # Get the new status from request
         data = request.get_json()
         new_status = data.get("status")
         
-        # Use InvoiceStatusManager for proper status management
-        status_manager = InvoiceStatusManager(supabase)
-        result = status_manager.update_status(invoice_id, new_status, owner_id)
+        if not new_status or new_status not in ["draft", "sent", "paid", "overdue", "cancelled"]:
+            return error_response("Invalid status provided", status_code=400)
+            
+        # Check if status transition is valid
+        valid_transitions = {
+            "draft": ["sent", "cancelled"],
+            "sent": ["paid", "overdue", "cancelled"],
+            "paid": [],
+            "overdue": ["paid", "cancelled"],
+            "cancelled": []
+        }
         
-        if not result["success"]:
-            return error_response(result["message"], status_code=400)
+        if new_status != current_status and new_status not in valid_transitions.get(current_status, []):
+            return error_response(
+                f"Cannot transition from {current_status} to {new_status}",
+                "Invalid status transition",
+                status_code=400
+            )
         
-        # Handle revenue recording for paid invoices
+        update_data = {
+            "status": new_status,
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Handle paid status
         if new_status == "paid":
+            update_data["paid_at"] = datetime.now().isoformat()
+            update_data["paid_amount"] = current_invoice.get("total_amount")
+            
+            # Create a transaction record
+            transaction_data = {
+                "id": str(uuid.uuid4()),
+                "owner_id": owner_id,
+                "type": "income",
+                "amount": float(current_invoice.get("total_amount", 0)),
+                "category": "Invoice Payment",
+                "description": f"Payment for Invoice {current_invoice.get('invoice_number')}",
+                "reference_id": invoice_id,
+                "reference_type": "invoice",
+                "date": datetime.now().isoformat(),
+                "created_at": datetime.now().isoformat()
+            }
+            
+            # Record the transaction
+            supabase.table("transactions").insert(transaction_data).execute()
+            
+            # Update inventory (deduct from stock)
             try:
-                invoice = result["data"]
-                
-                # Use InvoiceInventoryManager to record revenue and update dashboard
-                inventory_manager = InvoiceInventoryManager()
-                revenue_result = inventory_manager.process_invoice_status_update(
-                    invoice_id, "draft", new_status, invoice
-                )
-                
-                # Send notification
-                supa_service = SupabaseService()
-                currency = invoice.get("currency", "NGN")
-                currency_symbols = {
-                    'NGN': '₦', 'USD': '$', 'EUR': '€', 'GBP': '£', 
-                    'ZAR': 'R', 'GHS': '₵', 'KES': 'KSh'
-                }
-                symbol = currency_symbols.get(currency, '₦')
-                amount_str = f"{symbol} {invoice['total_amount']:,.2f}" if currency == 'KES' else f"{symbol}{invoice['total_amount']:,.2f}"
-                
-                supa_service.notify_user(
-                    str(owner_id),
-                    "Invoice Paid! 💰",
-                    f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid. Revenue and profit have been recorded.",
-                    "success"
-                )
-                
-                # Log revenue recording result
-                if revenue_result['revenue_recorded']:
-                    current_app.logger.info(f"Revenue recorded for invoice {invoice_id}: {revenue_result['actions_taken']}")
-                else:
-                    current_app.logger.warning(f"Revenue recording failed for invoice {invoice_id}: {revenue_result['errors']}")
-                    
+                inventory_manager.process_invoice_payment(current_invoice, owner_id)
             except Exception as e:
-                current_app.logger.warning(f"Error processing invoice payment: {str(e)}")
+                logging.error(f"Error processing inventory for paid invoice: {str(e)}")
+                # Continue even if inventory update fails
+        
+        # Handle cancelled status
+        elif new_status == "cancelled" and current_status != "cancelled":
+            # Release reserved inventory
+            try:
+                inventory_manager.release_inventory(current_invoice.get("items", []), owner_id)
+            except Exception as e:
+                logging.error(f"Error releasing inventory for cancelled invoice: {str(e)}")
+                # Continue even if inventory release fails
+        
+        # Update the invoice status
+        result = supabase.table("invoices")\
+            .update(update_data)\
+            .eq("id", invoice_id)\
+            .eq("owner_id", owner_id)\
+            .execute()
+        
+        if not result.data:
+            return error_response("Failed to update invoice status", status_code=500)
+        
+        # Get the updated invoice
+        updated_invoice = result.data[0]
+        
+        # Send email notification if status changed to paid or sent
+        if new_status in ["paid", "sent"] and new_status != current_status:
+            try:
+                await send_invoice_notification(updated_invoice, new_status)
+            except Exception as e:
+                logging.error(f"Error sending {new_status} notification: {str(e)}")
         
         return success_response(
-            message=result["message"],
-            data={"invoice": result["data"]}
+            data={"invoice": updated_invoice},
+            message=f"Invoice marked as {new_status}"
         )
         
     except Exception as e:
-        return error_response(str(e), "Failed to update invoice status", status_code=500)
+        logging.error(f"Error updating invoice status: {str(e)}", exc_info=True)
+        return error_response("An error occurred while updating the invoice status", status_code=500)
 
 @invoice_bp.route("/<invoice_id>/send", methods=["POST"])
 @jwt_required()

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Crown, Calendar, CreditCard, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
-import { getCurrentUsage, getSubscriptionLimits } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import subscriptionService from '../../services/subscriptionService';
 
 const UnifiedSubscriptionStatus = ({ onUpgrade }) => {
   const { user } = useAuth();
@@ -17,24 +17,13 @@ const UnifiedSubscriptionStatus = ({ onUpgrade }) => {
       setLoading(true);
       setError(null);
       
-      // Fetch unified subscription status from backend
-      const response = await fetch('/api/subscription/unified-status', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription status');
-      }
-      
-      const data = await response.json();
-      setSubscriptionStatus(data.data || data);
+      // Use the subscription service to fetch status
+      const status = await subscriptionService.getSubscriptionStatus();
+      setSubscriptionStatus(status);
       
     } catch (err) {
       console.error('Error fetching unified subscription status:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load subscription status');
     } finally {
       setLoading(false);
       setRefreshing(false);

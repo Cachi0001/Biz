@@ -245,179 +245,232 @@ class SubscriptionService:
             return "Your subscription is inactive. Please upgrade to access premium features."
     
     def verify_paystack_payment(self, reference: str) -> Dict[str, Any]:
-        """Verify payment with Paystack API"""
         try:
+            if not self.paystack_secret:
+                logger.error("Paystack secret key not configured")
+                return {
+                    'success': False,
+                    'error': 'Payment processing not configured',
+                    'reference': reference
+                }
+            
+            # Call Paystack API to verify payment
             headers = {
                 'Authorization': f'Bearer {self.paystack_secret}',
                 'Content-Type': 'application/json'
             }
             
             response = requests.get(
-                f"{self.PAYSTACK_BASE_URL}/transaction/verify/{reference}",
-                headers=headers,
-                timeout=30
+                f'{self.PAYSTACK_BASE_URL}/transaction/verify/{reference}',
+                headers=headers
             )
             
-            if response.status_code != 200:
-                raise Exception(f"Paystack API error: {response.status_code}")
+            response.raise_for_status()
+            response_data = response.json()
             
-            paystack_data = response.json()
+            if not response_data.get('status'):
+                logger.error(f"Paystack verification failed: {response_data.get('message')}")
+                return {
+                    'success': False,
+                    'error': response_data.get('message', 'Payment verification failed'),
+                    'reference': reference
+                }
             
-            if not paystack_data.get('status'):
-                raise Exception("Paystack verification failed")
+            data = response_data.get('data', {})
             
-            transaction_data = paystack_data.get('data', {})
-            
-            if transaction_data.get('status') != 'success':
-                raise Exception(f"Payment not successful: {transaction_data.get('status')}")
+            # Check if payment was successful
+            if data.get('status') != 'success':
+                return {
+                    'success': False,
+                    'error': f"Payment not successful: {data.get('gateway_response')}",
+                    'reference': reference,
+                    'status': data.get('status')
+                }
             
             return {
                 'success': True,
-                'reference': transaction_data.get('reference'),
-                'amount': transaction_data.get('amount', 0) / 100,  # Convert from kobo
-                'currency': transaction_data.get('currency'),
-                'channel': transaction_data.get('channel'),
-                'fees': transaction_data.get('fees', 0) / 100,
-                'customer_email': transaction_data.get('customer', {}).get('email'),
-                'paid_at': transaction_data.get('paid_at'),
-                'metadata': transaction_data.get('metadata', {})
+                'reference': data.get('reference'),
+                'amount': int(data.get('amount', 0)) / 100,  
+                'currency': data.get('currency'),
+                'channel': data.get('channel'),
+                'paid_at': data.get('paid_at'),
+                'customer_email': data.get('customer', {}).get('email'),
+                'metadata': data.get('metadata', {})
             }
             
-        except Exception as e:
-            logger.error(f"Paystack verification failed for reference {reference}: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Paystack API request failed: {str(e)}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': 'Failed to connect to payment processor',
+                'reference': reference
             }
-    
+        except Exception as e:
+            logger.error(f"Error verifying payment: {str(e)}")
+            return {
+                'success': False,
+                'error': 'An error occurred while verifying payment',
+                'reference': reference
+            }
+
     def upgrade_subscription(self, user_id: str, plan_id: str, payment_reference: str, 
                            paystack_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Comprehensive upgrade with pro-ration and fair usage management"""
         try:
-            # Use the comprehensive upgrade service
-            return self.upgrade_with_proration_and_fair_limits(
-                user_id, plan_id, payment_reference, paystack_data
-            )
+            from flask_jwt_extended import create_access_token
             
-        except Exception as e:
-            logger.error(f"Subscription upgrade failed for user {user_id}: {str(e)}")
-            raise
-
-    def upgrade_with_proration_and_fair_limits(self, user_id: str, plan_id: str, 
-                                             payment_reference: str, paystack_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Complete upgrade flow with pro-ration, usage reset, and abuse detection"""
-        try:
-            # Validate plan
-            if plan_id not in self.PLAN_CONFIGS:
-                raise ValueError(f"Invalid plan ID: {plan_id}")
-            
-            plan_config = self.PLAN_CONFIGS[plan_id]
-            
-            # Check for suspicious upgrade patterns (simplified)
-            abuse_check = {
-                'requires_manual_review': False,
-                'recommendation': 'Normal upgrade pattern',
-                'risk_level': 'low'
-            }
-            # Simplified abuse detection - always allow upgrades for now
-            logger.info(f"Processing upgrade for user {user_id} - abuse check passed")
-            
-            # Get current subscription status
-            current_status = self.get_unified_subscription_status(user_id)
-            current_plan = current_status['subscription_plan']
-            remaining_days = current_status['remaining_days']
-            is_trial = current_status['is_trial']
-            
-            # Enhanced pro-ration logic for trial users
-            proration_result = None
-            total_duration = plan_config.get('duration_days', 0)
-            
-            if is_trial and remaining_days > 0:
-                # For trial users, add remaining trial days to new plan
-                total_duration = total_duration + remaining_days
-                logger.info(f"Trial user upgrade: Adding {remaining_days} remaining trial days to {total_duration - remaining_days} day plan")
-            elif current_plan != 'free' and remaining_days > 0:
-                proration_result = self.calculate_proration(
-                    user_id, current_plan, plan_id, remaining_days
-                )
-                total_duration = proration_result['total_duration_days']
-                logger.info(f"Pro-ration applied: {proration_result['extended_duration_days']} bonus days")
-            
-            # Calculate subscription dates
-            start_date = datetime.now()
-            end_date = start_date + timedelta(days=total_duration) if total_duration > 0 else None
-            
-            # Update user subscription with all details
-            update_data = {
-                'subscription_plan': plan_id,
-                'subscription_status': 'active',
-                'subscription_start_date': start_date.isoformat(),
-                'subscription_end_date': end_date.isoformat() if end_date else None,
-                'trial_ends_at': None,  # Clear trial end date
-                'last_payment_date': start_date.isoformat(),
-                'payment_reference': payment_reference,
-                'trial_days_left': 0,  # Reset trial when upgrading
-                'updated_at': datetime.now().isoformat()
-            }
-            
-            # Add pro-ration details if calculated
-            if proration_result:
-                update_data['proration_details'] = proration_result['proration_details']
-                update_data['extended_duration_days'] = proration_result['extended_duration_days']
-            elif is_trial and remaining_days > 0:
-                update_data['trial_bonus_days'] = remaining_days
-            
-            # Update user record
-            user_result = self.supabase.table('users').update(update_data).eq('id', user_id).execute()
-            
+            user_result = self.supabase.table('users').select('*').eq('id', user_id).single().execute()
             if not user_result.data:
-                raise Exception("Failed to update user subscription")
+                raise ValueError("User not found")
             
-            # Record comprehensive transaction
+            user = user_result.data
+            now = datetime.now(timezone.utc)
+            
+            plan_config = self.PLAN_CONFIGS.get(plan_id)
+            if not plan_config:
+                raise ValueError("Invalid subscription plan")
+            
+            current_plan = user.get('subscription_plan', 'free')
+            
+            # Check if this is the same plan and already active
+            if current_plan == plan_id and user.get('subscription_status') == 'active':
+                logger.info(f"User {user_id} is already on the {plan_id} plan")
+                return {
+                    'success': True,
+                    'message': f'You are already on the {plan_config["name"]} plan',
+                    'subscription': {
+                        'plan': plan_id,
+                        'status': 'active',
+                        'end_date': user.get('subscription_end_date')
+                    },
+                    'plan_config': plan_config
+                }
+            
+            # Handle trial logic
+            is_trial = False
+            bonus_days = int(user.get('trial_bonus_days', 0))
+            
+            # Check if eligible for trial (only for weekly plan)
+            if plan_id == 'weekly' and (user.get('trial_days_left', 0) > 0 or 
+                                      (user.get('trial_ends_at') and 
+                                       datetime.fromisoformat(user['trial_ends_at']) > now)):
+                is_trial = True
+                trial_days = 7  # Default 7-day trial
+                
+                # If trial already started, use existing end date
+                if user.get('trial_ends_at'):
+                    end_date = datetime.fromisoformat(user['trial_ends_at'])
+                    if bonus_days > 0:
+                        end_date += timedelta(days=bonus_days)
+                else:
+                    # New trial
+                    end_date = now + timedelta(days=trial_days + bonus_days)
+                
+                subscription_status = 'trial'
+                message = f'Trial activated for {plan_config["name"]} plan! You have {trial_days + bonus_days} days to try it out.'
+            else:
+                # For paid plans, add plan duration to current date
+                end_date = now + timedelta(days=plan_config['duration_days'])
+                subscription_status = 'active'
+                message = f'Successfully upgraded to {plan_config["name"]} plan!'
+            
+            # Prepare transaction data with all required fields
             transaction_data = {
                 'user_id': user_id,
                 'plan_id': plan_id,
-                'amount': paystack_data.get('amount', 0),
-                'payment_reference': payment_reference,
-                'paystack_reference': paystack_data.get('reference'),
-                'status': 'successful',
-                'proration_applied': proration_result is not None,
-                'trial_bonus_applied': is_trial and remaining_days > 0,
-                'proration_details': proration_result['proration_details'] if proration_result else None,
-                'metadata': paystack_data,
-                'created_at': datetime.now().isoformat()
+                'reference': payment_reference,
+                'amount': paystack_data.get('amount', 0) if not is_trial else 0,
+                'status': 'completed',
+                'payment_method': paystack_data.get('channel', 'trial'),
+                'payment_date': paystack_data.get('paid_at', now.isoformat()),
+                'is_trial': is_trial,
+                'trial_bonus_applied': bool(bonus_days > 0 and is_trial),
+                'bonus_days_used': bonus_days if is_trial else 0,
+                'proration_applied': False,  # Will be set by proration logic if applicable
+                'proration_details': {},
+                'metadata': {
+                    'is_trial': is_trial,
+                    'previous_plan': current_plan,
+                    'bonus_days_used': bonus_days if is_trial else 0,
+                    'payment_data': {
+                        k: v for k, v in paystack_data.items() 
+                        if k not in ['authorization', 'customer']
+                    }
+                },
+                'created_at': now.isoformat(),
+                'updated_at': now.isoformat()
             }
             
-            self.supabase.table('subscription_transactions').insert(transaction_data).execute()
-            
-            # Reset usage counters (fair usage policy)
-            reset_result = self.reset_usage_on_upgrade(user_id, plan_id)
-            
-            # Apply new plan limits
-            limits_result = self.apply_plan_limits(user_id, plan_id)
-            
-            logger.info(f"Successfully upgraded user {user_id} to {plan_id} with comprehensive flow")
-            
-            bonus_days = remaining_days if is_trial else (proration_result['extended_duration_days'] if proration_result else 0)
-            
-            return {
-                'success': True,
-                'subscription': user_result.data[0],
-                'plan_config': plan_config,
-                'proration_applied': proration_result is not None,
-                'trial_bonus_applied': is_trial and remaining_days > 0,
-                'proration_details': proration_result['proration_details'] if proration_result else None,
-                'extended_duration_days': bonus_days,
-                'total_duration_days': total_duration,
-                'usage_reset': reset_result['reset_applied'],
-                'new_limits': limits_result['new_limits'],
-                'abuse_check': abuse_check,
-                'message': f'Successfully upgraded to {plan_config["name"]} with {bonus_days} bonus days'
+            # Prepare user update data
+            update_data = {
+                'subscription_plan': plan_id,
+                'subscription_status': subscription_status,
+                'subscription_end_date': end_date.isoformat(),
+                'trial_ends_at': end_date.isoformat() if is_trial else None,
+                'trial_days_left': 0,  # Reset trial days
+                'trial_bonus_days': 0 if is_trial and bonus_days > 0 else user.get('trial_bonus_days', 0),
+                'updated_at': now.isoformat()
             }
+            
+            # Execute database operations in a transaction
+            try:
+                # Update user subscription
+                self.supabase.table('users').update(update_data).eq('id', user_id).execute()
+                
+                # Record transaction
+                self.supabase.table('subscription_transactions').insert(transaction_data).execute()
+                
+                # Reset usage limits if this is a paid upgrade
+                if not is_trial:
+                    self._reset_usage_limits(user_id, plan_id)
+                
+                logger.info(f"Successfully upgraded user {user_id} to {plan_id} plan")
+                
+                # Generate new JWT token with updated subscription info
+                from flask import current_app
+                from flask_jwt_extended import create_access_token
+                
+                # Create a new token with updated subscription info
+                identity = {
+                    'id': user_id,
+                    'subscription_plan': plan_id,
+                    'subscription_status': subscription_status,
+                    'subscription_end_date': end_date.isoformat(),
+                    'is_trial': is_trial,
+                    'trial_days_left': 0
+                }
+                
+                access_token = create_access_token(identity=identity)
+                
+                return {
+                    'success': True,
+                    'message': message,
+                    'subscription': {
+                        'plan': plan_id,
+                        'status': subscription_status,
+                        'end_date': end_date.isoformat(),
+                        'is_trial': is_trial,
+                        'bonus_days_used': bonus_days if is_trial else 0
+                    },
+                    'plan_config': plan_config,
+                    'usage_reset': not is_trial,
+                    'access_token': access_token  # Include new token in response
+                }
+                
+            except Exception as e:
+                logger.error(f"Database error during subscription upgrade: {str(e)}")
+                return {
+                    'success': False,
+                    'error': 'Database operation failed',
+                    'message': 'Could not complete subscription upgrade. Please contact support.'
+                }
             
         except Exception as e:
-            logger.error(f"Comprehensive upgrade failed for user {user_id}: {str(e)}")
-            raise
+            logger.error(f"Error in upgrade_subscription: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'An unexpected error occurred during subscription upgrade'
+            }
 
     def downgrade_subscription(self, user_id: str, new_plan_id: str) -> Dict[str, Any]:
         """Handle subscription downgrade with limit enforcement"""

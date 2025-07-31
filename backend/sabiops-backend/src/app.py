@@ -30,21 +30,18 @@ from .routes.dashboard import dashboard_bp
 from .routes.notifications import notifications_bp
 from .routes.search import search_bp
 from .routes.data_integrity import data_integrity_bp
+from .routes.subscription import subscription_bp
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__)
 
-    # Configuration
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-    # Initialize extensions
-    # Enable CORS for frontend and localhost
     CORS(
         app,
         origins=[
@@ -59,7 +56,6 @@ def create_app():
     print("[DEBUG] CORS initialized with origins: https://sabiops.vercel.app, http://localhost:3000, http://localhost:5173")
     jwt = JWTManager(app)
 
-    # Check for required environment variables
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
     
@@ -67,7 +63,6 @@ def create_app():
     print(f"[DEBUG] Supabase key available: {bool(supabase_key)}")
     print(f"[DEBUG] Supabase key starts with dummy: {supabase_key.startswith('dummy') if supabase_key else 'N/A'}")
 
-    # Initialize Supabase client if credentials are available
     supabase = None
     if supabase_url and supabase_key and not (supabase_url.startswith('dummy') or supabase_key.startswith('dummy')):
         try:
@@ -187,6 +182,7 @@ def create_app():
     app.register_blueprint(notifications_bp, url_prefix='/notifications')
     app.register_blueprint(search_bp, url_prefix='/api')
     app.register_blueprint(data_integrity_bp, url_prefix='/api/data-integrity')
+    app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
 
     @app.route('/debug', methods=['GET'])
     def debug():
@@ -234,4 +230,3 @@ def create_app():
         print(rule)
 
     return app
-

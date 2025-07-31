@@ -1,8 +1,3 @@
-"""
-Invoice Inventory Manager - Handles inventory operations for invoices
-Manages inventory reservation, deduction, and release for invoice lifecycle
-"""
-
 import logging
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -10,8 +5,6 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 class InvoiceInventoryManager:
-    """Handles inventory operations for invoice lifecycle"""
-    
     def __init__(self, supabase_client):
         self.supabase = supabase_client
     
@@ -61,10 +54,6 @@ class InvoiceInventoryManager:
             return False
     
     def release_inventory(self, invoice_items: List[Dict], owner_id: str) -> bool:
-        """
-        Release reserved inventory when invoice is cancelled
-        Returns: Boolean indicating success
-        """
         try:
             for item in invoice_items:
                 product_id = item.get("product_id")
