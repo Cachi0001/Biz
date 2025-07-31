@@ -15,83 +15,82 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        console.log('Token from localStorage before verifyToken:', token); // Added log
+        console.log('[DEBUG] Verifying authentication token');
         const response = await verifyToken();
+        
         if (response.success) {
           const userData = response.data.user;
-          // Calculate trial_days_left based on trial_ends_at
-          if (userData.trial_ends_at) {
-            const trialEndDate = new Date(userData.trial_ends_at);
-            const today = new Date();
-            const diffTime = trialEndDate.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            userData.trial_days_left = Math.max(0, diffDays);
-          } else {
-            userData.trial_days_left = 0;
-          }
-
-          // Add subscription and role information for dashboard
-          const plan = userData.subscription_plan || 'free';
-          const getPlanLimits = (planType) => {
-            switch (planType) {
-              case 'free':
-              case 'basic':
-                return { invoices: 5, expenses: 5 };
-              case 'silver_weekly':
-              case 'weekly':
-                return { invoices: 100, expenses: 100 };
-              case 'silver_monthly':
-              case 'monthly':
-                return { invoices: 450, expenses: 450 };
-              case 'silver_yearly':
-              case 'yearly':
-                return { invoices: 6000, expenses: 6000 };
-              default:
-                return { invoices: 5, expenses: 5 };
-            }
+          console.log('[DEBUG] User data from verifyToken:', userData);
+          
+          // Process subscription data from backend
+          const subscriptionData = {
+            plan: userData.subscription_plan || 'free',
+            status: userData.subscription_status || 'inactive',
+            is_trial: userData.is_trial || false,
+            trial_days_left: userData.trial_days_left || 0,
+            remaining_days: userData.remaining_days || 0,
+            is_active: userData.is_active || false,
+            is_expired: userData.is_expired || false,
+            plan_config: userData.plan_config || {}
           };
 
-          userData.subscription = {
-            plan: plan,
-            status: userData.subscription_status || 'trial',
-            is_trial: userData.subscription_status === 'trial',
-            trial_days_left: userData.trial_days_left,
-            current_usage: {
-              invoices: userData.current_month_invoices || 0,
-              expenses: userData.current_month_expenses || 0
-            },
-            usage_limits: getPlanLimits(plan)
+          // Merge subscription data into user object
+          const updatedUser = {
+            ...userData,
+            subscription: subscriptionData,
+            // For backward compatibility
+            subscription_plan: userData.subscription_plan,
+            subscription_status: userData.subscription_status,
+            trial_ends_at: userData.trial_ends_at,
+            trial_days_left: userData.trial_days_left
           };
-          setUser(userData);
+
+          console.log('[DEBUG] Updated user with subscription data:', updatedUser);
+          setUser(updatedUser);
           setIsAuthenticated(true);
+          
           // Start notification polling when user is authenticated
           notificationService.startPollingIfAuthenticated();
+          
           // Start real-time usage tracking
-          usageTrackingService.startTracking(userData);
-          console.log('checkAuth: isAuthenticated set to TRUE'); // Added log
+          usageTrackingService.startTracking(updatedUser);
+          
+          return true;
         } else {
-          localStorage.removeItem('token');
-          setUser(null);
-          setIsAuthenticated(false);
-          // Stop usage tracking when token is invalid
-          usageTrackingService.stopTracking();
-          console.log('checkAuth: isAuthenticated set to FALSE (token invalid)'); // Added log
+          console.log('[DEBUG] Token verification failed:', response.message);
+          if (response.requiresReauth) {
+            // If token is invalid, clear it and set as unauthenticated
+            localStorage.removeItem('token');
+            setUser(null);
+            setIsAuthenticated(false);
+            usageTrackingService.stopTracking();
+            
+            // Show toast if there's a specific message
+            if (response.message) {
+              toastService.error(response.message);
+            }
+          }
+          return false;
         }
       } else {
+        console.log('[DEBUG] No token found, user not authenticated');
         setUser(null);
         setIsAuthenticated(false);
-        // Stop usage tracking when no token
         usageTrackingService.stopTracking();
-        console.log('checkAuth: isAuthenticated set to FALSE (no token)'); // Added log
+        return false;
       }
     } catch (error) {
-      console.error('Authentication check failed:', error);
+      console.error('[ERROR] Error during authentication check:', error);
       localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
-      // Stop usage tracking on error
       usageTrackingService.stopTracking();
-      console.log('checkAuth: isAuthenticated set to FALSE (error)'); // Added log
+      
+      // Only show error toast if it's not a network error (which might be temporary)
+      if (!error.message.includes('Network Error')) {
+        toastService.error('Failed to verify authentication. Please log in again.');
+      }
+      return false;
     } finally {
       setLoading(false);
     }
@@ -288,5 +287,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-

@@ -165,7 +165,6 @@ class SubscriptionService:
             
             user = user_result.data
             current_time = datetime.now()
-            conflicts_resolved = []
             
             # Check for expired subscriptions that are still marked as active
             subscription_end_date = user.get('subscription_end_date')
@@ -183,7 +182,6 @@ class SubscriptionService:
                         'updated_at': current_time.isoformat()
                     }).eq('id', user_id).execute()
                     
-                    conflicts_resolved.append('Expired subscription downgraded to free')
                     logger.info(f"Resolved expired subscription conflict for user {user_id}")
             
             # Check for trial conflicts
@@ -194,16 +192,14 @@ class SubscriptionService:
                     'updated_at': current_time.isoformat()
                 }).eq('id', user_id).execute()
                 
-                conflicts_resolved.append('Trial status corrected')
                 logger.info(f"Resolved trial status conflict for user {user_id}")
             
             # Check for multiple active subscriptions (shouldn't happen but just in case)
             # This would require checking subscription_transactions table for duplicates
             
             return {
-                'conflicts_found': len(conflicts_resolved) > 0,
-                'conflicts_resolved': conflicts_resolved,
-                'message': f"Resolved {len(conflicts_resolved)} conflicts" if conflicts_resolved else "No conflicts found"
+                'conflicts_found': True,
+                'message': "Resolved subscription conflicts"
             }
             
         except Exception as e:
@@ -622,18 +618,38 @@ class SubscriptionService:
             if plan == 'free':
                 return -1  # Unlimited for free plan
             
-            if trial_days > 0:
+            if trial_days and trial_days > 0:
                 return trial_days
             
             if not end_date_str:
                 return 0
             
-            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-            remaining = (end_date - datetime.now()).days
+            from datetime import timezone, datetime
+            
+            # Parse the end date and ensure it's timezone-aware
+            if isinstance(end_date_str, str):
+                if end_date_str.endswith('Z'):
+                    end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                else:
+                    end_date = datetime.fromisoformat(end_date_str)
+                    if end_date.tzinfo is None:
+                        end_date = end_date.replace(tzinfo=timezone.utc)
+            elif hasattr(end_date_str, 'isoformat'):  # Already a datetime object
+                end_date = end_date_str
+                if end_date.tzinfo is None:
+                    end_date = end_date.replace(tzinfo=timezone.utc)
+            else:
+                return 0
+            
+            # Get current time in UTC
+            now = datetime.now(timezone.utc)
+            
+            # Calculate remaining days
+            remaining = (end_date - now).days
             return max(0, remaining)
             
         except Exception as e:
-            logger.error(f"Error calculating remaining days: {str(e)}")
+            logger.error(f"Error calculating remaining days: {str(e)}", exc_info=True)
             return 0
     
     def _calculate_subscription_end_date(self, plan_id: str, start_date: datetime) -> Optional[datetime]:

@@ -137,15 +137,25 @@ def verify_payment():
         )
         
         # Generate new JWT token with updated subscription info
+        subscription = upgrade_result['subscription']
+        plan_config = upgrade_result['plan_config']
+        
+        # Get the current subscription status to include in the token
+        subscription_status = subscription_service.get_unified_subscription_status(user_id)
+        
         access_token = create_access_token(
             identity=user_id,
             expires_delta=timedelta(days=30),  # Or your preferred expiration
             additional_claims={
-                'plan_id': upgrade_result['plan_config']['id'],
-                'plan_name': upgrade_result['plan_config']['name'],
+                'plan_id': plan_config['id'],
+                'plan_name': plan_config['name'],
                 'is_subscribed': True,
                 'subscription_status': 'active',
-                'subscription_expiry': upgrade_result['subscription']['end_date'].isoformat() if upgrade_result['subscription'].get('end_date') else None
+                'subscription_expiry': subscription.get('end_date'),
+                'trial_days_left': subscription_status.get('trial_days_left', 0),
+                'remaining_days': subscription_status.get('remaining_days', 0),
+                'is_trial': subscription_status.get('is_trial', False),
+                'features': plan_config.get('features', {})
             }
         )
         

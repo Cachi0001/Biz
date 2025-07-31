@@ -36,7 +36,6 @@ def error_response(error, message="Error", status_code=400):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """Register user: create user with email_confirmed=False, send verification email."""
     try:
         supabase = g.supabase
         mock_db = g.mock_db
