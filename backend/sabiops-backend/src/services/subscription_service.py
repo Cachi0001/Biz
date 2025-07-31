@@ -323,12 +323,17 @@ class SubscriptionService:
             current_status = self.get_unified_subscription_status(user_id)
             current_plan = current_status['subscription_plan']
             remaining_days = current_status['remaining_days']
+            is_trial = current_status['is_trial']
             
-            # Apply pro-ration if upgrading from paid plan
+            # Enhanced pro-ration logic for trial users
             proration_result = None
             total_duration = plan_config.get('duration_days', 0)
             
-            if current_plan != 'free' and remaining_days > 0:
+            if is_trial and remaining_days > 0:
+                # For trial users, add remaining trial days to new plan
+                total_duration = total_duration + remaining_days
+                logger.info(f"Trial user upgrade: Adding {remaining_days} remaining trial days to {total_duration - remaining_days} day plan")
+            elif current_plan != 'free' and remaining_days > 0:
                 proration_result = self.calculate_proration(
                     user_id, current_plan, plan_id, remaining_days
                 )
@@ -345,6 +350,7 @@ class SubscriptionService:
                 'subscription_status': 'active',
                 'subscription_start_date': start_date.isoformat(),
                 'subscription_end_date': end_date.isoformat() if end_date else None,
+                'trial_ends_at': None,  # Clear trial end date
                 'last_payment_date': start_date.isoformat(),
                 'payment_reference': payment_reference,
                 'trial_days_left': 0,  # Reset trial when upgrading
@@ -355,6 +361,8 @@ class SubscriptionService:
             if proration_result:
                 update_data['proration_details'] = proration_result['proration_details']
                 update_data['extended_duration_days'] = proration_result['extended_duration_days']
+            elif is_trial and remaining_days > 0:
+                update_data['trial_bonus_days'] = remaining_days
             
             # Update user record
             user_result = self.supabase.table('users').update(update_data).eq('id', user_id).execute()
@@ -371,6 +379,7 @@ class SubscriptionService:
                 'paystack_reference': paystack_data.get('reference'),
                 'status': 'successful',
                 'proration_applied': proration_result is not None,
+                'trial_bonus_applied': is_trial and remaining_days > 0,
                 'proration_details': proration_result['proration_details'] if proration_result else None,
                 'metadata': paystack_data,
                 'created_at': datetime.now().isoformat()
@@ -386,18 +395,21 @@ class SubscriptionService:
             
             logger.info(f"Successfully upgraded user {user_id} to {plan_id} with comprehensive flow")
             
+            bonus_days = remaining_days if is_trial else (proration_result['extended_duration_days'] if proration_result else 0)
+            
             return {
                 'success': True,
                 'subscription': user_result.data[0],
                 'plan_config': plan_config,
                 'proration_applied': proration_result is not None,
+                'trial_bonus_applied': is_trial and remaining_days > 0,
                 'proration_details': proration_result['proration_details'] if proration_result else None,
-                'extended_duration_days': proration_result['extended_duration_days'] if proration_result else 0,
+                'extended_duration_days': bonus_days,
                 'total_duration_days': total_duration,
                 'usage_reset': reset_result['reset_applied'],
                 'new_limits': limits_result['new_limits'],
                 'abuse_check': abuse_check,
-                'message': f'Successfully upgraded to {plan_config["name"]} with {proration_result["extended_duration_days"] if proration_result else 0} bonus days'
+                'message': f'Successfully upgraded to {plan_config["name"]} with {bonus_days} bonus days'
             }
             
         except Exception as e:

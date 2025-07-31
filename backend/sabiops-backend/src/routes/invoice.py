@@ -268,6 +268,29 @@ def create_invoice():
         tax_amount = float(data.get("tax_amount", 0))
         total_amount = subtotal + tax_amount
         
+        # Use InvoiceInventoryManager to validate stock and calculate costs
+        inventory_manager = InvoiceInventoryManager()
+        
+        # Validate stock availability first
+        stock_validation = inventory_manager.validate_stock_availability(processed_items)
+        if not stock_validation['valid']:
+            error_msg = "Insufficient stock for the following items:\n"
+            for item in stock_validation['insufficient_stock']:
+                error_msg += f"- {item['product_name']}: Need {item['requested']}, Available {item['available']}\n"
+            return error_response(error_msg, "Insufficient stock", status_code=400)
+        
+        # Process inventory reduction and cost calculation
+        inventory_result = inventory_manager.process_invoice_creation(
+            {"owner_id": owner_id}, processed_items
+        )
+        
+        if inventory_result['errors']:
+            return error_response(
+                "Inventory processing failed: " + "; ".join(inventory_result['errors']),
+                "Inventory error",
+                status_code=400
+            )
+        
         invoice_data = {
             "id": str(uuid.uuid4()),
             "owner_id": owner_id,
@@ -277,6 +300,8 @@ def create_invoice():
             "amount": subtotal,
             "tax_amount": tax_amount,
             "total_amount": total_amount,
+            "total_cogs": inventory_result['total_cogs'],  # Add COGS
+            "gross_profit": inventory_result['gross_profit'],  # Add profit
             "status": "draft",
             "due_date": due_date,
             "notes": data.get("notes", ""),
@@ -471,10 +496,18 @@ def update_invoice_status(invoice_id):
         if not result["success"]:
             return error_response(result["message"], status_code=400)
         
-        # Handle notifications for paid invoices
+        # Handle revenue recording for paid invoices
         if new_status == "paid":
             try:
                 invoice = result["data"]
+                
+                # Use InvoiceInventoryManager to record revenue and update dashboard
+                inventory_manager = InvoiceInventoryManager()
+                revenue_result = inventory_manager.process_invoice_status_update(
+                    invoice_id, "draft", new_status, invoice
+                )
+                
+                # Send notification
                 supa_service = SupabaseService()
                 currency = invoice.get("currency", "NGN")
                 currency_symbols = {
@@ -486,15 +519,19 @@ def update_invoice_status(invoice_id):
                 
                 supa_service.notify_user(
                     str(owner_id),
-                    "Invoice Paid!",
-                    f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid.",
+                    "Invoice Paid! 💰",
+                    f"Invoice {invoice['invoice_number']} for {amount_str} has been marked as paid. Revenue and profit have been recorded.",
                     "success"
                 )
                 
-                # Create sale from invoice
-                create_sale_from_invoice(invoice)
+                # Log revenue recording result
+                if revenue_result['revenue_recorded']:
+                    current_app.logger.info(f"Revenue recorded for invoice {invoice_id}: {revenue_result['actions_taken']}")
+                else:
+                    current_app.logger.warning(f"Revenue recording failed for invoice {invoice_id}: {revenue_result['errors']}")
+                    
             except Exception as e:
-                current_app.logger.warning(f"Error sending notification or creating sale: {str(e)}")
+                current_app.logger.warning(f"Error processing invoice payment: {str(e)}")
         
         return success_response(
             message=result["message"],

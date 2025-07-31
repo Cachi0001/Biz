@@ -15,7 +15,7 @@ const AccurateUsageCards = () => {
     try {
       setError(null);
       
-      const response = await fetch('/api/subscription/accurate-usage', {
+      const response = await fetch('/api/subscription/usage-status', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
