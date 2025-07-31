@@ -25,7 +25,7 @@ const getBaseURL = () => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // Production fallback - use the Vercel backend URL
+  // Production fallback - use the correct Vercel backend URL
   return 'https://sabiops-backend.vercel.app/api';
 };
 

@@ -304,10 +304,12 @@ const Settings = () => {
                           <ul className="space-y-2 text-sm">
                             <li>• 100 invoices per week</li>
                             <li>• 100 expenses per week</li>
+                            <li>• 250 sales per week</li>
+                            <li>• 100 products per week</li>
                             <li>• Advanced reporting</li>
                             <li>• Email support</li>
                           </ul>
-                          <Button className="w-full mt-4" onClick={() => toast.info('Upgrade functionality coming soon!')}>
+                          <Button className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
                           </Button>
                         </CardContent>
@@ -321,11 +323,13 @@ const Settings = () => {
                         <CardContent>
                           <ul className="space-y-2 text-sm">
                             <li>• 450 invoices per month</li>
-                            <li>• 450 expenses per month</li>
+                            <li>• 500 expenses per month</li>
+                            <li>• 1500 sales per month</li>
+                            <li>• 500 products per month</li>
                             <li>• ₦500 referral rewards</li>
                             <li>• Priority support</li>
                           </ul>
-                          <Button variant="outline" className="w-full mt-4" onClick={() => toast.info('Upgrade functionality coming soon!')}>
+                          <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
                           </Button>
                         </CardContent>
@@ -339,11 +343,13 @@ const Settings = () => {
                         <CardContent>
                           <ul className="space-y-2 text-sm">
                             <li>• 6,000 invoices per year</li>
-                            <li>• 6,000 expenses per year</li>
+                            <li>• 2,000 expenses per year</li>
+                            <li>• 18,000 sales per year</li>
+                            <li>• 2,000 products per year</li>
                             <li>• ₦5,000 referral rewards</li>
                             <li>• Premium support</li>
                           </ul>
-                          <Button variant="outline" className="w-full mt-4" onClick={() => toast.info('Upgrade functionality coming soon!')}>
+                          <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now
                           </Button>
                         </CardContent>

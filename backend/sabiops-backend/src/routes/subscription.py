@@ -407,3 +407,171 @@ def get_available_plans():
     except Exception as e:
         logger.error(f"Error getting available plans: {str(e)}")
         return error_response(str(e), "Failed to get available plans", 500)
+
+@subscription_bp.route("/upgrade-notifications", methods=["GET"])
+@jwt_required()
+def get_upgrade_notifications():
+    """Get upgrade notifications and suggestions for the current user"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        # Get current subscription status
+        status = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Generate notifications based on usage and status
+        notifications = []
+        
+        # Check if user is near limits
+        if status.get('plan_config', {}).get('features'):
+            for feature_type, limit in status['plan_config']['features'].items():
+                current_usage = status.get('current_usage', {}).get(feature_type, 0)
+                usage_percentage = (current_usage / limit * 100) if limit > 0 else 0
+                
+                if usage_percentage > 80:
+                    notifications.append({
+                        'id': f'usage_warning_{feature_type}',
+                        'type': 'usage_warning',
+                        'title': f'High {feature_type} usage',
+                        'message': f'You\'ve used {usage_percentage:.1f}% of your {feature_type} limit',
+                        'read': False,
+                        'created_at': datetime.now().isoformat()
+                    })
+                
+                if usage_percentage > 95:
+                    notifications.append({
+                        'id': f'upgrade_suggestion_{feature_type}',
+                        'type': 'upgrade_suggestion',
+                        'title': 'Upgrade Recommended',
+                        'message': f'You\'re almost at your {feature_type} limit. Consider upgrading for more capacity.',
+                        'read': False,
+                        'created_at': datetime.now().isoformat()
+                    })
+        
+        # Check trial status
+        if status.get('is_trial') and status.get('trial_days_left', 0) <= 2:
+            notifications.append({
+                'id': 'trial_ending',
+                'type': 'trial_ending',
+                'title': 'Trial Ending Soon',
+                'message': f'Your trial ends in {status.get("trial_days_left", 0)} days. Upgrade to continue using premium features.',
+                'read': False,
+                'created_at': datetime.now().isoformat()
+            })
+        
+        # Check if subscription is expired
+        if status.get('is_expired'):
+            notifications.append({
+                'id': 'subscription_expired',
+                'type': 'subscription_expired',
+                'title': 'Subscription Expired',
+                'message': 'Your subscription has expired. Reactivate to continue using premium features.',
+                'read': False,
+                'created_at': datetime.now().isoformat()
+            })
+        
+        return success_response(
+            data={
+                'notifications': notifications,
+                'total': len(notifications),
+                'unread': len([n for n in notifications if not n.get('read', False)]),
+                'suggestions': len([n for n in notifications if n.get('type') == 'upgrade_suggestion'])
+            },
+            message="Upgrade notifications retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting upgrade notifications: {str(e)}")
+        return error_response(str(e), "Failed to get upgrade notifications", 500)
+
+@subscription_bp.route("/notifications/<notification_id>/read", methods=["PUT"])
+@jwt_required()
+def mark_notification_read(notification_id):
+    """Mark a notification as read"""
+    try:
+        # In a real implementation, you would store this in the database
+        # For now, we'll just return success
+        return success_response(
+            data={'notification_id': notification_id, 'read': True},
+            message="Notification marked as read"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {str(e)}")
+        return error_response(str(e), "Failed to mark notification as read", 500)
+
+@subscription_bp.route("/notifications/<notification_id>", methods=["DELETE"])
+@jwt_required()
+def dismiss_notification(notification_id):
+    """Dismiss a notification"""
+    try:
+        # In a real implementation, you would remove this from the database
+        # For now, we'll just return success
+        return success_response(
+            data={'notification_id': notification_id, 'dismissed': True},
+            message="Notification dismissed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error dismissing notification: {str(e)}")
+        return error_response(str(e), "Failed to dismiss notification", 500)
+
+@subscription_bp.route("/analytics", methods=["GET"])
+@jwt_required()
+def get_subscription_analytics():
+    """Get subscription analytics and usage insights"""
+    try:
+        user_id = get_jwt_identity()
+        subscription_service = SubscriptionService()
+        
+        # Get current status
+        status = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Get usage data
+        usage_data = subscription_service.get_accurate_usage_counts(user_id)
+        
+        # Generate analytics
+        analytics = {
+            'usage': {},
+            'trends': {},
+            'recommendations': {
+                'upgrade': []
+            }
+        }
+        
+        # Process usage data
+        if usage_data.get('usage_counts'):
+            for feature_type, data in usage_data['usage_counts'].items():
+                percentage = data.get('percentage_used', 0)
+                analytics['usage'][feature_type] = {
+                    'current': data.get('current_count', 0),
+                    'limit': data.get('limit_count', 0),
+                    'remaining': data.get('remaining', 0),
+                    'percentage': percentage
+                }
+                
+                # Generate recommendations
+                if percentage > 80:
+                    analytics['recommendations']['upgrade'].append({
+                        'type': 'high_usage',
+                        'feature': feature_type,
+                        'percentage': percentage,
+                        'message': f'Consider upgrading for more {feature_type} capacity'
+                    })
+        
+        # Add trial recommendations
+        if status.get('is_trial') and status.get('trial_days_left', 0) <= 3:
+            analytics['recommendations']['upgrade'].append({
+                'type': 'trial_ending',
+                'message': 'Your trial is ending soon. Upgrade to continue using premium features.',
+                'urgency': 'high'
+            })
+        
+        return success_response(
+            data=analytics,
+            message="Subscription analytics retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting subscription analytics: {str(e)}")
+        return error_response(str(e), "Failed to get subscription analytics", 500)
