@@ -417,7 +417,10 @@ const ExpenseForm = ({
               onValueChange={(value) => handleSelectChange('category', value)}
             >
               <SelectTrigger className={`form-select ${errors.category ? 'error' : ''}`}>
-                <SelectValue placeholder="Select a category" />
+                <SelectValue 
+                  placeholder="Select a category"
+                  value={formData.category ? expenseCategories.find(cat => cat.id === formData.category)?.name : undefined}
+                />
               </SelectTrigger>
               <SelectContent>
                 {expenseCategories.map((category) => (
@@ -440,7 +443,10 @@ const ExpenseForm = ({
               disabled={!formData.category}
             >
               <SelectTrigger className="form-select">
-                <SelectValue placeholder={formData.category ? "Select a subcategory" : "Select category first"} />
+                <SelectValue 
+                  placeholder={formData.category ? "Select a subcategory" : "Select category first"}
+                  value={formData.subcategory}
+                />
               </SelectTrigger>
               <SelectContent>
                 {formData.category && subcategories[formData.category]?.map((subcategory) => (

@@ -302,7 +302,10 @@ const Products = () => {
                 <div className="w-full">
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="h-12 text-base touch-manipulation">
-                      <SelectValue placeholder="All Categories" />
+                      <SelectValue 
+                        placeholder="All Categories"
+                        value={selectedCategory === 'all' ? undefined : categories.find(cat => cat.id === selectedCategory)?.name}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>

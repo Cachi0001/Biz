@@ -377,7 +377,10 @@ const Expenses = () => {
                   <Label htmlFor="category_filter" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Category</Label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger id="category_filter" className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500">
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue 
+                        placeholder="Select category"
+                        value={categoryFilter === 'all' ? undefined : categories.find(cat => cat.id === categoryFilter)?.name}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
@@ -393,7 +396,10 @@ const Expenses = () => {
                   <Label htmlFor="date_filter" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Date</Label>
                   <Select value={dateFilter} onValueChange={setDateFilter}>
                     <SelectTrigger id="date_filter" className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500">
-                      <SelectValue placeholder="Select date range" />
+                      <SelectValue 
+                        placeholder="Select date range"
+                        value={dateFilter === 'all' ? undefined : dateFilter.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Time</SelectItem>

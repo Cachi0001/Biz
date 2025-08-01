@@ -43,7 +43,8 @@ export const Select = ({ children, value, onValueChange, ...props }) => {
         if (child.type === SelectTrigger) {
           return React.cloneElement(child, {
             onClick: handleToggle,
-            isOpen
+            isOpen,
+            selectedValue: value
           });
         }
         if (child.type === SelectContent) {
@@ -58,7 +59,7 @@ export const Select = ({ children, value, onValueChange, ...props }) => {
   );
 };
 
-export const SelectTrigger = ({ children, onClick, isOpen, className = '', ...props }) => {
+export const SelectTrigger = ({ children, onClick, isOpen, selectedValue, className = '', ...props }) => {
   return (
     <button
       type="button"
@@ -70,13 +71,29 @@ export const SelectTrigger = ({ children, onClick, isOpen, className = '', ...pr
       className={`flex items-center justify-between w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 touch-manipulation ${className}`}
       {...props}
     >
-      {children}
+      {React.Children.map(children, child => {
+        if (child.type === SelectValue) {
+          return React.cloneElement(child, { value: selectedValue });
+        }
+        return child;
+      })}
       <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
     </button>
   );
 };
 
-export const SelectValue = ({ placeholder = 'Select...' }) => {
+export const SelectValue = ({ placeholder = 'Select...', value, children }) => {
+  // If there's a selected value, display it
+  if (value) {
+    return <span>{value}</span>;
+  }
+  
+  // If there are children (like in SelectItem), display them
+  if (children) {
+    return <span>{children}</span>;
+  }
+  
+  // Otherwise show placeholder
   return <span>{placeholder}</span>;
 };
 

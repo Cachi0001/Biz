@@ -330,7 +330,10 @@ const Payments = () => {
                     }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
+                      <SelectValue 
+                        placeholder="Select payment method"
+                        value={newPayment.payment_method ? newPayment.payment_method.charAt(0).toUpperCase() + newPayment.payment_method.slice(1).replace('_', ' ') : undefined}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cash">Cash</SelectItem>
@@ -475,7 +478,10 @@ const Payments = () => {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue 
+                  placeholder="Filter by status"
+                  value={statusFilter === 'all' ? undefined : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -486,7 +492,10 @@ const Payments = () => {
             </Select>
             <Select value={methodFilter} onValueChange={setMethodFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by method" />
+                <SelectValue 
+                  placeholder="Filter by method"
+                  value={methodFilter === 'all' ? undefined : methodFilter.charAt(0).toUpperCase() + methodFilter.slice(1).replace('_', ' ')}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Methods</SelectItem>

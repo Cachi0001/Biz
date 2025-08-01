@@ -395,7 +395,10 @@ const Invoices = () => {
                   <Label htmlFor="status_filter" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Status</Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="status_filter" className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500">
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue 
+                        placeholder="Select status"
+                        value={statusFilter === 'all' ? undefined : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
@@ -410,7 +413,10 @@ const Invoices = () => {
                   <Label htmlFor="date_filter" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Date</Label>
                   <Select value={dateFilter} onValueChange={setDateFilter}>
                     <SelectTrigger id="date_filter" className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500">
-                      <SelectValue placeholder="Select date range" />
+                      <SelectValue 
+                        placeholder="Select date range"
+                        value={dateFilter === 'all' ? undefined : dateFilter.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Time</SelectItem>

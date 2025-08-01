@@ -836,7 +836,10 @@ const Sales = () => {
                       }}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select customer" />
+                        <SelectValue 
+                          placeholder="Select customer"
+                          value={formData.customer_id ? (formData.customer_id === 'walkin' ? 'Walk-in Customer' : customers.find(c => c.id === formData.customer_id)?.name) : undefined}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -906,7 +909,10 @@ const Sales = () => {
                       disabled={productsLoading || !!productsError || products.length === 0}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')} />
+                        <SelectValue 
+                          placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
+                          value={formData.product_id ? products.find(p => p.id === formData.product_id)?.name : undefined}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {productsLoading ? (
@@ -1046,7 +1052,10 @@ const Sales = () => {
                       onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue 
+                          placeholder="Select payment method"
+                          value={formData.payment_method ? formData.payment_method.charAt(0).toUpperCase() + formData.payment_method.slice(1).replace('_', ' ') : undefined}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cash">Cash</SelectItem>

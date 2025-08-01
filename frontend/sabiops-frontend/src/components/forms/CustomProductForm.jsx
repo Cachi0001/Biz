@@ -363,7 +363,10 @@ const CustomProductForm = ({
               onValueChange={(value) => handleInputChange('category', value)}
             >
               <SelectTrigger className="form-select">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue 
+                  placeholder="Select a category"
+                  value={formData.category}
+                />
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {BUSINESS_CATEGORIES.map((category) => (
@@ -383,7 +386,10 @@ const CustomProductForm = ({
               disabled={!formData.category}
             >
               <SelectTrigger className="form-select">
-                <SelectValue placeholder={formData.category ? "Select a subcategory" : "Select category first"} />
+                <SelectValue 
+                  placeholder={formData.category ? "Select a subcategory" : "Select category first"}
+                  value={formData.subcategory}
+                />
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {getSubcategories(formData.category).map((subcategory) => (
