@@ -89,13 +89,23 @@ const subscriptionService = {
    */
   getSubscriptionStatus: async () => {
     try {
+      const token = getAuthToken();
       console.log('[SubscriptionService] Fetching subscription status...');
+      console.log('[SubscriptionService] Token:', token);
+      console.log('[SubscriptionService] Token type:', typeof token);
+      console.log('[SubscriptionService] Token value:', JSON.stringify(token));
+      
+      // Check if token is null or "null" string
+      if (!token || token === 'null' || token === 'undefined') {
+        console.error('[SubscriptionService] Invalid token detected:', token);
+        throw new Error('No valid authentication token found');
+      }
       
       const response = await axios.get(
         `${API_BASE_URL}/subscription/unified-status`,
         {
           headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           timeout: 10000, // 10 seconds timeout
@@ -126,13 +136,23 @@ const subscriptionService = {
    */
   getUsageStatus: async () => {
     try {
+      const token = getAuthToken();
       console.log('[SubscriptionService] Fetching usage status...');
+      console.log('[SubscriptionService] Token:', token);
+      console.log('[SubscriptionService] Token type:', typeof token);
+      console.log('[SubscriptionService] Token value:', JSON.stringify(token));
+      
+      // Check if token is null or "null" string
+      if (!token || token === 'null' || token === 'undefined') {
+        console.error('[SubscriptionService] Invalid token detected:', token);
+        throw new Error('No valid authentication token found');
+      }
       
       const response = await axios.get(
         `${API_BASE_URL}/subscription/usage-status`,
         {
           headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           timeout: 10000, // 10 seconds timeout

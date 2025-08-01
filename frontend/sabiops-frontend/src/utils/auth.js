@@ -7,7 +7,12 @@ const SUBSCRIPTION_KEY = 'sabiops_subscription_data';
  */
 export const getAuthToken = () => {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    // Handle case where token is literally the string "null" or "undefined"
+    if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
+      return null;
+    }
+    return token;
   } catch (error) {
     console.error('Error getting auth token:', error);
     return null;
