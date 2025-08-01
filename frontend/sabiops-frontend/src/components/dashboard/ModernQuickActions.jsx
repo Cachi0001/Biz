@@ -1,17 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { FileText, Users, Package, TrendingUp, Calculator, CreditCard, Settings, BarChart3 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import CustomProductForm from '../forms/CustomProductForm';
+import ExpenseForm from '../forms/ExpenseForm';
+import CustomInvoiceForm from '../forms/CustomInvoiceForm';
+import { SalesForm } from '../forms/SalesForm';
 
 const ModernQuickActions = () => {
-  const navigate = useNavigate();
   const { role, isOwner, isAdmin, isSalesperson } = useAuth();
+  const [activeModal, setActiveModal] = useState(null);
+  const [modalData, setModalData] = useState({});
 
-  const handleNavigation = (path) => {
-    navigate(path);
+  const openModal = (type, data = {}) => {
+    setActiveModal(type);
+    setModalData(data);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setModalData({});
+  };
+
+  const handleSuccess = (type) => {
+    closeModal();
+    // Emit events to refresh dashboard data
+    window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { type } }));
   };
 
   const getActionsForRole = () => {
@@ -19,14 +36,14 @@ const ModernQuickActions = () => {
       {
         icon: FileText,
         label: 'New Invoice',
-        path: '/invoices',
+        action: () => openModal('invoice'),
         variant: 'primary',
         description: 'Create invoice'
       },
       {
         icon: TrendingUp,
         label: 'Record Sale',
-        path: '/sales',
+        action: () => openModal('sale'),
         variant: 'primary',
         description: 'Add new sale'
       }
@@ -37,45 +54,43 @@ const ModernQuickActions = () => {
         {
           icon: Package,
           label: 'Add Product',
-          path: '/products',
+          action: () => openModal('product'),
           variant: 'primary',
           description: 'Manage inventory'
         },
         {
           icon: Calculator,
           label: 'Add Expense',
-          path: '/expenses',
+          action: () => openModal('expense'),
           variant: 'primary',
           description: 'Track expenses'
         }
       );
-    }
 
     if (isOwner) {
       baseActions.push(
         {
           icon: Calculator,
           label: 'Add Expense',
-          path: '/expenses',
+          action: () => openModal('expense'),
           variant: 'secondary',
           description: 'Track expenses'
         },
         {
           icon: BarChart3,
           label: 'Analytics',
-          path: '/analytics',
+          action: () => openModal('analytics'),
           variant: 'primary',
           description: 'View reports'
         }
       );
-    }
 
     if (isSalesperson) {
       baseActions.push(
         {
           icon: Package,
           label: 'Products',
-          path: '/products',
+          action: () => openModal('product'),
           variant: 'primary',
           description: 'Manage inventory'
         }
@@ -84,17 +99,10 @@ const ModernQuickActions = () => {
 
     // Add common actions
     baseActions.push(
-      // {
-      //   icon: CreditCard,
-      //   label: 'Payments',
-      //   path: '/payments',
-      //   variant: 'primary',
-      //   description: 'Payment history'
-      // },
       {
         icon: Settings,
         label: 'Settings',
-        path: '/settings',
+        action: () => openModal('settings'),
         variant: 'secondary',
         description: 'App settings'
       }
@@ -141,18 +149,83 @@ const ModernQuickActions = () => {
               <div className="grid grid-cols-2 gap-2">
                 {actions.slice(4).map((action, index) => (
                   <Button
-                    key={index + 4}
-                    variant="outline"
-                    onClick={() => handleNavigation(action.path)}
-                    className="h-14 flex-col space-y-0 border-gray-300 hover:border-gray-400 hover:bg-gray-50 px-1"
+                    key={index}
+                    variant={action.variant === 'primary' ? 'default' : 'outline'}
+                    className="w-full h-auto py-3 px-4 flex flex-col items-center justify-center gap-2 text-center hover:shadow-lg transition-all duration-200 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                    onClick={action.action}
                   >
-                    <action.icon className="h-3 w-3 text-gray-600" />
-                    <div className="text-[10px] font-medium text-gray-700 leading-none mt-1 break-words text-center">{action.label}</div>
+                    <action.icon className="h-5 w-5 mb-1" />
+                    <span className="text-xs font-medium">{action.label}</span>
                   </Button>
                 ))}
               </div>
             </CardContent>
           </Card>
+
+          {/* Modal Dialogs */}
+          <Dialog open={activeModal !== null} onOpenChange={(open) => !open && closeModal()}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              {activeModal === 'invoice' && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Create New Invoice</DialogTitle>
+                    <DialogDescription>
+                      Create a new invoice for your customer
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CustomInvoiceForm 
+                    onSuccess={() => handleSuccess('invoice')}
+                    onCancel={closeModal}
+                  />
+                </>
+              )}
+              
+              {activeModal === 'sale' && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Record New Sale</DialogTitle>
+                    <DialogDescription>
+                      Add a new sale transaction to your records
+                    </DialogDescription>
+                  </DialogHeader>
+                  <SalesForm 
+                    onSuccess={() => handleSuccess('sale')}
+                    onCancel={closeModal}
+                  />
+                </>
+              )}
+              
+              {activeModal === 'product' && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Add New Product</DialogTitle>
+                    <DialogDescription>
+                      Add a new product to your inventory
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CustomProductForm 
+                    onSuccess={() => handleSuccess('product')}
+                    onCancel={closeModal}
+                  />
+                </>
+              )}
+              
+              {activeModal === 'expense' && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Add New Expense</DialogTitle>
+                    <DialogDescription>
+                      Track your business expenses
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ExpenseForm 
+                    onSuccess={() => handleSuccess('expense')}
+                    onCancel={closeModal}
+                  />
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
         </GradientCardWrapper>
       )}
 
