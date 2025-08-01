@@ -18,8 +18,8 @@ import {
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { getPayments, createPayment } from '@/services/api';
 import { formatNaira } from '@/utils/formatting';
-import { toastService } from '@/services/toastService';
-import { formatDate } from '@/utils/dateUtils';
+import { toastService } from '@/components/notifications/ToastManager';
+import { formatDate } from '@/utils/dateUtils.js';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
 
 const Payments = () => {

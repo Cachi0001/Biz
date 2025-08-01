@@ -96,7 +96,7 @@ def get_overview():
             total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
         
         # Include paid invoice revenue in total revenue
-        paid_invoices_result = supabase.table('invoices').select('total_amount, created_at, status, paid_date, items').eq('owner_id', owner_id).execute()
+        paid_invoices_result = supabase.table('invoices').select('total_amount, created_at, status, paid_date, paid_at, items').eq('owner_id', owner_id).execute()
         if paid_invoices_result.data:
             for invoice in paid_invoices_result.data:
                 # Only include paid invoices in revenue
@@ -175,7 +175,8 @@ def get_overview():
         if paid_invoices_result.data:
             for invoice in paid_invoices_result.data:
                 if invoice.get('status') == 'paid' or invoice.get('paid_date'):
-                    invoice_date = parse_supabase_datetime(invoice.get('created_at')) or parse_supabase_datetime(invoice.get('paid_date'))
+                    # Use paid_at date for revenue calculations (when the payment was actually received)
+                    invoice_date = parse_supabase_datetime(invoice.get('paid_at')) or parse_supabase_datetime(invoice.get('paid_date')) or parse_supabase_datetime(invoice.get('created_at'))
                     invoice_amount = float(invoice.get('total_amount', 0))
                     
                     # Calculate invoice profit

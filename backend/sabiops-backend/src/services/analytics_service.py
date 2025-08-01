@@ -81,21 +81,92 @@ class AnalyticsService:
                 'total_amount, profit_from_sales, total_cogs, date'
             ).eq('owner_id', owner_id).gte('date', previous_start.isoformat()).lte('date', previous_end.isoformat()).execute()
             
-            # Calculate current period metrics
+            # Get paid invoices for current period (using paid_at date)
+            current_paid_invoices = self.supabase.table('invoices').select(
+                'total_amount, paid_at, items, status'
+            ).eq('owner_id', owner_id).eq('status', 'paid').gte('paid_at', start_date.isoformat()).lte('paid_at', end_date.isoformat()).execute()
+            
+            # Get paid invoices for previous period (for comparison)
+            previous_paid_invoices = self.supabase.table('invoices').select(
+                'total_amount, paid_at, items, status'
+            ).eq('owner_id', owner_id).eq('status', 'paid').gte('paid_at', previous_start.isoformat()).lte('paid_at', previous_end.isoformat()).execute()
+            
+            # Calculate current period metrics from sales
             current_revenue = sum(float(sale.get('total_amount', 0)) for sale in current_sales.data)
             current_profit = sum(float(sale.get('profit_from_sales', 0)) for sale in current_sales.data)
             current_cogs = sum(float(sale.get('total_cogs', 0)) for sale in current_sales.data)
             
-            # Calculate previous period metrics
+            # Add paid invoice revenue to current period
+            for invoice in current_paid_invoices.data:
+                invoice_amount = float(invoice.get('total_amount', 0))
+                current_revenue += invoice_amount
+                
+                # Calculate profit from invoice items
+                if invoice.get('items'):
+                    invoice_profit = 0
+                    invoice_cogs = 0
+                    for item in invoice['items']:
+                        quantity = float(item.get('quantity', 0))
+                        unit_price = float(item.get('unit_price', 0))
+                        tax_rate = float(item.get('tax_rate', 0))
+                        discount_rate = float(item.get('discount_rate', 0))
+                        
+                        # Calculate item total
+                        item_total = quantity * unit_price
+                        discount_amount = item_total * (discount_rate / 100)
+                        item_total_after_discount = item_total - discount_amount
+                        tax_amount = item_total_after_discount * (tax_rate / 100)
+                        final_item_total = item_total_after_discount + tax_amount
+                        
+                        # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                        estimated_cost = item_total * 0.4
+                        item_profit = final_item_total - estimated_cost
+                        
+                        invoice_profit += item_profit
+                        invoice_cogs += estimated_cost
+                    
+                    current_profit += invoice_profit
+                    current_cogs += invoice_cogs
+            
+            # Calculate previous period metrics from sales
             previous_revenue = sum(float(sale.get('total_amount', 0)) for sale in previous_sales.data)
             previous_profit = sum(float(sale.get('profit_from_sales', 0)) for sale in previous_sales.data)
+            
+            # Add paid invoice revenue to previous period
+            for invoice in previous_paid_invoices.data:
+                invoice_amount = float(invoice.get('total_amount', 0))
+                previous_revenue += invoice_amount
+                
+                # Calculate profit from invoice items
+                if invoice.get('items'):
+                    invoice_profit = 0
+                    for item in invoice['items']:
+                        quantity = float(item.get('quantity', 0))
+                        unit_price = float(item.get('unit_price', 0))
+                        tax_rate = float(item.get('tax_rate', 0))
+                        discount_rate = float(item.get('discount_rate', 0))
+                        
+                        # Calculate item total
+                        item_total = quantity * unit_price
+                        discount_amount = item_total * (discount_rate / 100)
+                        item_total_after_discount = item_total - discount_amount
+                        tax_amount = item_total_after_discount * (tax_rate / 100)
+                        final_item_total = item_total_after_discount + tax_amount
+                        
+                        # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                        estimated_cost = item_total * 0.4
+                        item_profit = final_item_total - estimated_cost
+                        
+                        invoice_profit += item_profit
+                    
+                    previous_profit += invoice_profit
             
             # Calculate growth rates
             revenue_growth = self._calculate_growth_rate(current_revenue, previous_revenue)
             profit_growth = self._calculate_growth_rate(current_profit, previous_profit)
             
-            # Generate time series data for charts
-            revenue_trends = self._generate_revenue_time_series(current_sales.data, period)
+            # Generate time series data for charts (include both sales and paid invoices)
+            revenue_trends = self._generate_revenue_time_series(current_sales.data, current_paid_invoices.data, period)
             
             return {
                 'total_revenue': current_revenue,
@@ -306,15 +377,53 @@ class AnalyticsService:
                 'total_amount, profit_from_sales, total_cogs, date'
             ).eq('owner_id', owner_id).gte('date', start_date.isoformat()).lte('date', end_date.isoformat()).execute()
             
+            # Get paid invoices data (additional money in)
+            paid_invoices_result = self.supabase.table('invoices').select(
+                'total_amount, paid_at, items, status'
+            ).eq('owner_id', owner_id).eq('status', 'paid').gte('paid_at', start_date.isoformat()).lte('paid_at', end_date.isoformat()).execute()
+            
             # Get expenses data (money out)
             expenses_result = self.supabase.table('expenses').select(
                 'amount, category, date'
             ).eq('owner_id', owner_id).gte('date', start_date.isoformat()).lte('date', end_date.isoformat()).execute()
             
-            # Calculate financial metrics
+            # Calculate financial metrics from sales
             total_revenue = sum(float(sale.get('total_amount', 0)) for sale in sales_result.data)
             total_profit = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
             total_cogs = sum(float(sale.get('total_cogs', 0)) for sale in sales_result.data)
+            
+            # Add paid invoice revenue and profit
+            for invoice in paid_invoices_result.data:
+                invoice_amount = float(invoice.get('total_amount', 0))
+                total_revenue += invoice_amount
+                
+                # Calculate profit from invoice items
+                if invoice.get('items'):
+                    invoice_profit = 0
+                    invoice_cogs = 0
+                    for item in invoice['items']:
+                        quantity = float(item.get('quantity', 0))
+                        unit_price = float(item.get('unit_price', 0))
+                        tax_rate = float(item.get('tax_rate', 0))
+                        discount_rate = float(item.get('discount_rate', 0))
+                        
+                        # Calculate item total
+                        item_total = quantity * unit_price
+                        discount_amount = item_total * (discount_rate / 100)
+                        item_total_after_discount = item_total - discount_amount
+                        tax_amount = item_total_after_discount * (tax_rate / 100)
+                        final_item_total = item_total_after_discount + tax_amount
+                        
+                        # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                        estimated_cost = item_total * 0.4
+                        item_profit = final_item_total - estimated_cost
+                        
+                        invoice_profit += item_profit
+                        invoice_cogs += estimated_cost
+                    
+                    total_profit += invoice_profit
+                    total_cogs += invoice_cogs
+            
             total_expenses = sum(float(expense.get('amount', 0)) for expense in expenses_result.data)
             
             # Calculate profitability metrics
@@ -424,12 +533,13 @@ class AnalyticsService:
         except (ValueError, TypeError):
             return None
     
-    def _generate_revenue_time_series(self, sales_data: List[Dict], period: str) -> List[Dict]:
-        """Generate time series data for revenue trends"""
+    def _generate_revenue_time_series(self, sales_data: List[Dict], invoice_data: List[Dict], period: str) -> List[Dict]:
+        """Generate time series data for revenue trends including both sales and paid invoices"""
         try:
             # Group sales by time period
             time_groups = {}
             
+            # Process sales data
             for sale in sales_data:
                 sale_date = self._parse_date(sale.get('date'))
                 if not sale_date:
@@ -453,6 +563,55 @@ class AnalyticsService:
                 time_groups[time_key]['revenue'] += float(sale.get('total_amount', 0))
                 time_groups[time_key]['profit'] += float(sale.get('profit_from_sales', 0))
                 time_groups[time_key]['orders'] += 1
+            
+            # Process paid invoice data
+            for invoice in invoice_data:
+                invoice_date = self._parse_date(invoice.get('paid_at'))
+                if not invoice_date:
+                    continue
+                
+                # Create time key based on period
+                if period == 'daily':
+                    time_key = invoice_date.strftime('%Y-%m-%d')
+                elif period == 'weekly':
+                    # Get week start date
+                    week_start = invoice_date - timedelta(days=invoice_date.weekday())
+                    time_key = week_start.strftime('%Y-W%U')
+                elif period == 'yearly':
+                    time_key = invoice_date.strftime('%Y')
+                else:  # monthly
+                    time_key = invoice_date.strftime('%Y-%m')
+                
+                if time_key not in time_groups:
+                    time_groups[time_key] = {'revenue': 0, 'profit': 0, 'orders': 0}
+                
+                invoice_amount = float(invoice.get('total_amount', 0))
+                time_groups[time_key]['revenue'] += invoice_amount
+                time_groups[time_key]['orders'] += 1
+                
+                # Calculate profit from invoice items
+                if invoice.get('items'):
+                    invoice_profit = 0
+                    for item in invoice['items']:
+                        quantity = float(item.get('quantity', 0))
+                        unit_price = float(item.get('unit_price', 0))
+                        tax_rate = float(item.get('tax_rate', 0))
+                        discount_rate = float(item.get('discount_rate', 0))
+                        
+                        # Calculate item total
+                        item_total = quantity * unit_price
+                        discount_amount = item_total * (discount_rate / 100)
+                        item_total_after_discount = item_total - discount_amount
+                        tax_amount = item_total_after_discount * (tax_rate / 100)
+                        final_item_total = item_total_after_discount + tax_amount
+                        
+                        # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                        estimated_cost = item_total * 0.4
+                        item_profit = final_item_total - estimated_cost
+                        
+                        invoice_profit += item_profit
+                    
+                    time_groups[time_key]['profit'] += invoice_profit
             
             # Convert to list and sort
             trends = [

@@ -170,13 +170,22 @@ def upgrade_subscription():
 def get_usage_status():
     """Get current usage status for all features"""
     try:
-        user_id = get_jwt_identity()
-        logger.info(f"Getting usage status for user: {user_id}")
+        # Enhanced JWT token debugging
+        try:
+            user_id = get_jwt_identity()
+            logger.info(f"JWT token parsed successfully for usage-status. User ID: {user_id} (type: {type(user_id)})")
+        except Exception as jwt_error:
+            logger.error(f"JWT token parsing failed in usage-status: {str(jwt_error)}")
+            return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
         
         # Validate user_id format
-        if not user_id or not isinstance(user_id, str):
-            logger.error(f"Invalid user_id format in usage-status: {user_id} (type: {type(user_id)})")
-            return error_response("Invalid user ID format", "Authentication error", 422)
+        if not user_id:
+            logger.error(f"Empty user_id from JWT token in usage-status: {user_id}")
+            return error_response("Empty user ID from token", "Authentication error", 422)
+            
+        if not isinstance(user_id, str):
+            logger.error(f"Invalid user_id type in usage-status: {user_id} (type: {type(user_id)})")
+            return error_response(f"Invalid user ID type: {type(user_id)}", "Authentication error", 422)
         
         supabase = current_app.config['SUPABASE']
         
@@ -236,7 +245,23 @@ def get_usage_status():
 def activate_trial():
     """Activate 7-day free trial for new users"""
     try:
-        user_id = get_jwt_identity()
+        # Enhanced JWT token debugging
+        try:
+            user_id = get_jwt_identity()
+            logger.info(f"JWT token parsed successfully for activate-trial. User ID: {user_id} (type: {type(user_id)})")
+        except Exception as jwt_error:
+            logger.error(f"JWT token parsing failed in activate-trial: {str(jwt_error)}")
+            return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
+        
+        # Validate user_id format
+        if not user_id:
+            logger.error(f"Empty user_id from JWT token in activate-trial: {user_id}")
+            return error_response("Empty user ID from token", "Authentication error", 422)
+            
+        if not isinstance(user_id, str):
+            logger.error(f"Invalid user_id type in activate-trial: {user_id} (type: {type(user_id)})")
+            return error_response(f"Invalid user ID type: {type(user_id)}", "Authentication error", 422)
+        
         subscription_service = SubscriptionService()
         
         # Check if user already has an active subscription or trial
@@ -265,7 +290,23 @@ def activate_trial():
 def get_team_member_subscription_status(team_member_id):
     """Get subscription status for team member (inherits from owner)"""
     try:
-        current_user_id = get_jwt_identity()
+        # Enhanced JWT token debugging
+        try:
+            current_user_id = get_jwt_identity()
+            logger.info(f"JWT token parsed successfully for team-status. User ID: {current_user_id} (type: {type(current_user_id)})")
+        except Exception as jwt_error:
+            logger.error(f"JWT token parsing failed in team-status: {str(jwt_error)}")
+            return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
+        
+        # Validate user_id format
+        if not current_user_id:
+            logger.error(f"Empty user_id from JWT token in team-status: {current_user_id}")
+            return error_response("Empty user ID from token", "Authentication error", 422)
+            
+        if not isinstance(current_user_id, str):
+            logger.error(f"Invalid user_id type in team-status: {current_user_id} (type: {type(current_user_id)})")
+            return error_response(f"Invalid user ID type: {type(current_user_id)}", "Authentication error", 422)
+        
         subscription_service = SubscriptionService()
         
         # Check if current user is authorized to view this team member's status
@@ -332,13 +373,22 @@ def check_expired_subscriptions():
 def get_unified_subscription_status():
     """Get unified subscription status - single source of truth"""
     try:
-        user_id = get_jwt_identity()
-        logger.info(f"Getting unified subscription status for user: {user_id}")
+        # Enhanced JWT token debugging
+        try:
+            user_id = get_jwt_identity()
+            logger.info(f"JWT token parsed successfully. User ID: {user_id} (type: {type(user_id)})")
+        except Exception as jwt_error:
+            logger.error(f"JWT token parsing failed: {str(jwt_error)}")
+            return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
         
         # Validate user_id format
-        if not user_id or not isinstance(user_id, str):
-            logger.error(f"Invalid user_id format: {user_id} (type: {type(user_id)})")
-            return error_response("Invalid user ID format", "Authentication error", 422)
+        if not user_id:
+            logger.error(f"Empty user_id from JWT token: {user_id}")
+            return error_response("Empty user ID from token", "Authentication error", 422)
+            
+        if not isinstance(user_id, str):
+            logger.error(f"Invalid user_id type: {user_id} (type: {type(user_id)})")
+            return error_response(f"Invalid user ID type: {type(user_id)}", "Authentication error", 422)
         
         subscription_service = SubscriptionService()
         
