@@ -490,119 +490,121 @@ const Sales = () => {
             </Alert>
           )}
 
-          {/* Sales Statistics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+          {/* Sales Statistics Cards - 2x2 mobile layout like transaction history */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{salesStats.total_transactions || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {salesStats.total_transactions || 0}
+                    </p>
                   </div>
-                  <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <ShoppingCart className="h-6 w-6 text-blue-600" />
-                  </div>
+                  <ShoppingCart className="h-8 w-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+            
+            <Card>
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600 mt-1">{formatNaira(salesStats.total_sales || 0)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatNaira(salesStats.total_sales || 0)}
+                    </p>
                   </div>
-                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-green-600" />
-                  </div>
+                  <DollarSign className="h-8 w-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+            
+            <Card>
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Items Sold</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{salesStats.total_quantity || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {salesStats.total_quantity || 0}
+                    </p>
                   </div>
-                  <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Package className="h-6 w-6 text-purple-600" />
-                  </div>
+                  <Package className="h-8 w-8 text-purple-600" />
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+            
+            <Card>
+              <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Profit From Sales (Monthly)</p>
-                    <p className="text-2xl font-bold text-green-600 mt-1">{formatNaira(salesStats.profit_from_sales_monthly || 0)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Profit</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatNaira(salesStats.profit_from_sales_monthly || 0)}
+                    </p>
                   </div>
-                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-green-600" />
-                  </div>
+                  <DollarSign className="h-8 w-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Filters Section */}
-          <Card className="mb-6 bg-white shadow-sm border border-gray-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold text-gray-900">Filter & Search</CardTitle>
-              <CardDescription>Filter sales by date and search for specific transactions</CardDescription>
+          {/* Filters Section - 2x2 mobile layout like transaction history */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+              </CardTitle>
+              <CardDescription>
+                Filter sales by date and search for specific transactions
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <Label htmlFor="search" className="text-sm font-medium text-gray-700 mb-2 block">Search Sales</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Search Sales</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <StableInput
-                      id="search"
-                      name="search"
-                      placeholder="Search by customer name, product, or sale details..."
+                      placeholder="Search..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-12 h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 md:text-xs"
+                      className="pl-10"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="filter_date" className="text-sm font-medium text-gray-700 mb-2 block">Filter by Date</Label>
+                
+                <div className="space-y-2">
+                  <Label>Date</Label>
                   <MobileDateInput
-                    id="filter_date"
-                    name="filter_date"
-                    type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  onClick={downloadReport}
-                  className="h-10 px-4 text-sm font-medium border-gray-300 hover:bg-gray-50"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    fetchSales();
-                    fetchSalesStats();
-                  }}
-                  className="h-10 px-4 text-sm font-medium border-gray-300 hover:bg-gray-50"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Data
-                </Button>
+                
+                <div className="space-y-2">
+                  <Label>Actions</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={downloadReport}
+                      className="h-10 px-3 text-sm"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        fetchSales();
+                        fetchSalesStats();
+                      }}
+                      className="h-10 px-3 text-sm"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
