@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Edit, Trash2, Eye, Receipt, Calendar, Tag } from 'lucide-react';
 import { formatNaira, formatDateTime, truncateText } from '../../utils/formatting';
+import { mobileAmountClasses } from '../../utils/mobileUtils';
 
 const ExpenseCard = ({ expense, onEdit, onDelete, onView }) => {
   const getCategoryColor = (category) => {
@@ -89,7 +90,7 @@ const ExpenseCard = ({ expense, onEdit, onDelete, onView }) => {
 
           {/* Amount */}
           <div className="text-center py-2">
-            <p className="text-lg font-semibold text-red-600">
+            <p className={`${mobileAmountClasses.medium} ${mobileAmountClasses.container} text-red-600`}>
               {formatNaira(expense.amount)}
             </p>
             <p className="text-xs text-gray-500">Expense Amount</p>

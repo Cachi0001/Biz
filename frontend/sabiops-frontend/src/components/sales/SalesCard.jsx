@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Edit, Trash2, Eye, ShoppingCart, User, Package, Calendar } from 'lucide-react';
 import { formatNaira, formatDateTime, formatPaymentMethod } from '../../utils/formatting';
+import { mobileAmountClasses } from '../../utils/mobileUtils';
 
 const SalesCard = ({ sale, onEdit, onDelete, onView }) => {
   return (
@@ -87,7 +88,7 @@ const SalesCard = ({ sale, onEdit, onDelete, onView }) => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-xs text-gray-500">Total Amount</p>
-              <p className="text-sm font-semibold text-green-600">
+              <p className={`${mobileAmountClasses.small} ${mobileAmountClasses.container} text-green-600`}>
                 {formatNaira(sale.total_amount)}
               </p>
             </div>
@@ -105,7 +106,7 @@ const SalesCard = ({ sale, onEdit, onDelete, onView }) => {
               {sale.unit_price && (
                 <div>
                   <p className="text-xs text-gray-500">Unit Price</p>
-                  <p className="text-xs text-gray-700">
+                  <p className={`${mobileAmountClasses.small} ${mobileAmountClasses.container} text-gray-700`}>
                     {formatNaira(sale.unit_price)}
                   </p>
                 </div>
@@ -113,7 +114,7 @@ const SalesCard = ({ sale, onEdit, onDelete, onView }) => {
               {sale.profit && (
                 <div>
                   <p className="text-xs text-gray-500">Profit</p>
-                  <p className="text-xs text-green-600 font-medium">
+                  <p className={`${mobileAmountClasses.small} ${mobileAmountClasses.container} text-green-600 font-medium`}>
                     {formatNaira(sale.profit)}
                   </p>
                 </div>

@@ -104,6 +104,35 @@ export const mobileFormClasses = {
 };
 
 /**
+ * Mobile-optimized amount/currency styling
+ */
+export const mobileAmountClasses = {
+  // Small amount (for cards, lists)
+  small: "text-xs sm:text-sm font-semibold truncate",
+  
+  // Medium amount (for transaction details)
+  medium: "text-sm sm:text-base font-semibold truncate",
+  
+  // Large amount (for main displays)
+  large: "text-base sm:text-lg font-bold truncate",
+  
+  // Extra large amount (for hero sections)
+  xlarge: "text-lg sm:text-xl font-bold truncate",
+  
+  // Amount container to prevent overflow
+  container: "overflow-hidden text-ellipsis",
+  
+  // Currency symbol styling
+  currency: "text-xs sm:text-sm font-medium",
+  
+  // Amount with currency (combined)
+  withCurrency: "flex items-center gap-1 overflow-hidden",
+  
+  // Responsive amount sizing
+  responsive: "text-xs sm:text-sm md:text-base font-semibold truncate leading-tight"
+};
+
+/**
  * Mobile-optimized card layouts
  */
 export const mobileCardClasses = {
@@ -132,7 +161,10 @@ export const mobileCardClasses = {
   stats: "space-y-1.5 sm:space-y-2",
   
   // Mobile card stat row
-  statRow: "flex justify-between items-center text-xs sm:text-sm"
+  statRow: "flex justify-between items-center text-xs sm:text-sm",
+  
+  // Mobile card amount styling
+  amount: "text-xs sm:text-sm font-semibold truncate leading-tight"
 };
 
 /**
@@ -205,6 +237,52 @@ export const mobileNavClasses = {
   
   // Navigation label
   navLabel: "text-center leading-tight truncate w-full text-[10px] sm:text-xs"
+};
+
+/**
+ * Comprehensive mobile utility function
+ * Provides consistent mobile styling and behavior
+ */
+export const getMobileClasses = (type, variant = 'default') => {
+  const classes = {
+    // Notification dropdown
+    notification: {
+      container: 'notification-dropdown',
+      backdrop: 'notification-backdrop',
+      content: 'mobile-scroll'
+    },
+    
+    // Select dropdown
+    select: {
+      container: 'mobile-select-content',
+      trigger: 'touch-manipulation',
+      item: 'touch-manipulation'
+    },
+    
+    // Amount display
+    amount: {
+      small: mobileAmountClasses.small,
+      medium: mobileAmountClasses.medium,
+      large: mobileAmountClasses.large,
+      container: mobileAmountClasses.container
+    },
+    
+    // Card layouts
+    card: {
+      container: mobileCardClasses.standard,
+      content: mobileCardClasses.content,
+      amount: mobileCardClasses.amount
+    },
+    
+    // Form elements
+    form: {
+      input: touchFriendlyClasses.input,
+      select: touchFriendlyClasses.select,
+      button: touchFriendlyClasses.button
+    }
+  };
+  
+  return classes[type]?.[variant] || classes[type] || '';
 };
 
 /**
@@ -285,6 +363,20 @@ export const mobileUtils = {
  * Mobile-specific event handlers
  */
 export const mobileEventHandlers = {
+  // Prevent default and stop propagation for mobile touch events
+  handleTouch: (callback) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    callback(e);
+  },
+  
+  // Handle both click and touch events
+  handleClickAndTouch: (callback) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    callback(e);
+  },
+  
   /**
    * Handle touch start for better button feedback
    */
@@ -340,15 +432,36 @@ export const mobileEventHandlers = {
   }
 };
 
+/**
+ * Mobile breakpoint detection
+ */
+export const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 768px)').matches;
+};
+
+export const isTablet = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(min-width: 769px) and (max-width: 1024px)').matches;
+};
+
+export const isDesktop = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(min-width: 1025px)').matches;
+};
+
 export default {
   touchFriendlyClasses,
   breakpoints,
   mobileDialogClasses,
   mobileFormClasses,
+  mobileAmountClasses,
   mobileCardClasses,
   mobileTableClasses,
-  mobileSearchClasses,
   mobileNavClasses,
-  mobileUtils,
-  mobileEventHandlers
+  mobileEventHandlers,
+  getMobileClasses,
+  isMobile,
+  isTablet,
+  isDesktop
 };

@@ -118,11 +118,11 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
           subtitle: 'Monthly comparison',
           component: (
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="10%">
+              <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="2%">
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
                 <YAxis hide />
-                <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           )
@@ -136,11 +136,11 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         subtitle: 'Monthly comparison',
         component: (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartRevenueData} barCategoryGap="5%">
+            <BarChart data={chartRevenueData} barCategoryGap="2%">
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
               <YAxis hide />
-              <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={30} />
+              <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={30} />
             </BarChart>
           </ResponsiveContainer>
         )

@@ -136,12 +136,12 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-40 notification-backdrop"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Notification Panel */}
-          <Card className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-hidden z-50 shadow-lg border">
+          <Card className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-hidden z-50 shadow-lg border md:right-0 md:w-80 sm:right-0 sm:w-72 xs:right-0 xs:w-64 sm:transform sm:-translate-x-1/2 sm:left-1/2 notification-dropdown">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium">

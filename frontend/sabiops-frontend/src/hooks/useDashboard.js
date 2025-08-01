@@ -171,6 +171,48 @@ export const useDashboard = () => {
         });
       }
 
+      // Calculate profit from sales data if available
+      let calculatedProfitFromSales = 0;
+      let calculatedThisMonthProfitFromSales = 0;
+      let calculatedTodayProfitFromSales = 0;
+      
+      if (salesResponse.status === 'fulfilled') {
+        let salesData = [];
+        if (salesResponse.value?.data?.sales) {
+          salesData = salesResponse.value.data.sales;
+        } else if (salesResponse.value?.sales) {
+          salesData = salesResponse.value.sales;
+        } else if (Array.isArray(salesResponse.value)) {
+          salesData = salesResponse.value;
+        }
+        
+        console.log('[DEBUG] Calculating profit from sales data:', salesData.length, 'sales found');
+        
+        const today = new Date();
+        const thisMonth = today.getMonth();
+        const thisYear = today.getFullYear();
+        
+        salesData.forEach(sale => {
+          const profit = parseFloat(sale.profit_from_sales) || 0;
+          calculatedProfitFromSales += profit;
+          
+          const saleDate = new Date(sale.created_at || sale.date);
+          if (saleDate.getMonth() === thisMonth && saleDate.getFullYear() === thisYear) {
+            calculatedThisMonthProfitFromSales += profit;
+          }
+          
+          if (saleDate.toDateString() === today.toDateString()) {
+            calculatedTodayProfitFromSales += profit;
+          }
+        });
+        
+        console.log('[DEBUG] Calculated profit values:', {
+          total: calculatedProfitFromSales,
+          thisMonth: calculatedThisMonthProfitFromSales,
+          today: calculatedTodayProfitFromSales
+        });
+      }
+
       // Process revenue chart data if available
       let revenueChartData = null;
       if (revenueChartResponse.status === 'fulfilled' && revenueChartResponse.value?.data) {
@@ -181,9 +223,20 @@ export const useDashboard = () => {
       // Sort activities by timestamp (most recent first)
       recentActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+      // Update revenue object with calculated profit values if API values are 0
+      const updatedRevenue = {
+        ...mergedOverview.revenue,
+        // Use calculated values if API values are 0 or undefined
+        profit_from_sales: mergedOverview.revenue?.profit_from_sales || calculatedProfitFromSales,
+        total_profit_from_sales: mergedOverview.revenue?.total_profit_from_sales || calculatedProfitFromSales,
+        today_profit_from_sales: mergedOverview.revenue?.today_profit_from_sales || calculatedTodayProfitFromSales,
+        this_month_profit_from_sales: mergedOverview.revenue?.this_month_profit_from_sales || calculatedThisMonthProfitFromSales
+      };
+
       // Combine overview data with recent activities
       const combinedData = {
         ...mergedOverview,
+        revenue: updatedRevenue,
         recent_activities: recentActivities.slice(0, 5),
         revenue_chart: revenueChartData
       };

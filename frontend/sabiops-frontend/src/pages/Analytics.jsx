@@ -239,6 +239,11 @@ const Analytics = () => {
     revenue: item.money_in || 0
   }));
 
+  // Check if we're using mock data
+  const isUsingMockData = !analyticsData || 
+    (analyticsData && Object.keys(analyticsData).length === 0) ||
+    (financialData.cash_flow_trends && financialData.cash_flow_trends.length === 0 && revenueData.trends && revenueData.trends.length === 0);
+
   return (
     <DashboardLayout>
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-7xl">
@@ -251,10 +256,53 @@ const Analytics = () => {
                   <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Business Analytics</h1>
                   <p className="text-blue-100 text-sm sm:text-base">Comprehensive insights into your business performance</p>
                 </div>
-                <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-white opacity-80" />
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={handleRefreshAnalytics}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/50"
+                    disabled={analyticsLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-white opacity-80" />
+                </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Mock Data Warning */}
+          {isUsingMockData && (
+            <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-900">
+                        This is not your real business data - please refresh
+                      </p>
+                      <p className="text-xs text-yellow-700">
+                        Sample data is being shown because real analytics data couldn't be loaded
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRefreshAnalytics}
+                    variant="outline"
+                    size="sm"
+                    className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300"
+                    disabled={analyticsLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                    Refresh Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Time Period Filter */}
           <TimePeriodFilter 

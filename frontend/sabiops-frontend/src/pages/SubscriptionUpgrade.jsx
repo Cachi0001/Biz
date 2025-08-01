@@ -138,7 +138,7 @@ const SubscriptionUpgrade = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-green-600 shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -146,21 +146,21 @@ const SubscriptionUpgrade = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/dashboard')}
-                className="hover:bg-green-100"
+                className="hover:bg-green-700 text-white"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Subscription Plans</h1>
-                <p className="text-sm text-gray-600">Choose the perfect plan for your business</p>
+                <h1 className="text-xl font-bold text-white">Subscription Plans</h1>
+                <p className="text-sm text-green-100">Choose the perfect plan for your business</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">S</span>
               </div>
-              <span className="text-sm font-medium text-gray-700">SabiOps</span>
+              <span className="text-sm font-medium text-white">SabiOps</span>
             </div>
           </div>
         </div>

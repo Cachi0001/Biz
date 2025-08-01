@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import MobileDateInput from '@/components/ui/MobileDateInput';
+import { mobileAmountClasses } from '../utils/mobileUtils';
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -491,7 +492,9 @@ const Transactions = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-medium ${transaction.color}`}>
-                        {transaction.type === 'money_in' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        <div className={`${mobileAmountClasses.small} ${mobileAmountClasses.container}`}>
+                          {transaction.type === 'money_in' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
@@ -547,7 +550,7 @@ const Transactions = () => {
 
               {/* Amount */}
               <div className="text-center py-4 bg-gray-50 rounded-lg">
-                <p className={`text-2xl font-bold ${selectedTransaction.color}`}>
+                <p className={`${mobileAmountClasses.large} ${mobileAmountClasses.container} ${selectedTransaction.color}`}>
                   {selectedTransaction.type === 'money_in' ? '+' : '-'}{formatCurrency(selectedTransaction.amount)}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">Transaction Amount</p>
