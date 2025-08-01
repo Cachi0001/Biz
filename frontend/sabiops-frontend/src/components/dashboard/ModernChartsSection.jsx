@@ -34,12 +34,22 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
   ];
 
   // Transform revenue data for chart display
-  const chartRevenueData = revenueData.map(item => ({
+  let chartRevenueData = revenueData.map(item => ({
     month: item.period || item.month,
     revenue: item.revenue || 0,
     expenses: item.expenses || 0,
     profit: item.profit || 0
   }));
+
+  // Ensure that chart data uses the proper revenue trends data
+  const revenueTrends = analyticsData?.revenue_trends || [];
+  if (revenueTrends.length > 0) {
+    chartRevenueData = revenueTrends.map(trend => ({
+      month: trend.period,
+      revenue: trend.revenue,
+      expenses: trend.expenses
+    }));
+  }
 
   const topProductsData = analyticsData?.products?.top_products_by_revenue?.slice(0, 4).map((product, index) => ({
     name: product.name || `Product ${index + 1}`,
@@ -72,7 +82,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
       return [
         {
           title: 'Revenue vs Expenses',
-          subtitle: 'Monthly comparison (Trial)',
+          subtitle: 'Monthly comparison',
           component: (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="20%">

@@ -62,10 +62,20 @@ const Analytics = () => {
         const analyticsResponse = await api.get(`/dashboard/analytics?period=${timePeriod}`);
         const analyticsData = analyticsResponse.data.data;
         
+        // Fetch revenue vs expenses data
+        const chartResponse = await api.get(`/dashboard/analytics/revenue-expenses?period=${timePeriod}`);
+        const chartData = chartResponse.data.data;
+
+        // Combine main analytics data with chart data
+        const combinedAnalyticsData = {
+          ...analyticsData,
+          revenue_trends: chartData.trends || [],
+        };
+
         // Cache the data
-        frontendAnalyticsCache.setCachedData(cacheKey, analyticsData, timePeriod);
+        frontendAnalyticsCache.setCachedData(cacheKey, combinedAnalyticsData, timePeriod);
         
-        setAnalyticsData(analyticsData);
+        setAnalyticsData(combinedAnalyticsData);
 
         // Preload other time periods in background
         frontendAnalyticsCache.preloadAnalyticsData(user?.id, timePeriod, async (period) => {
@@ -79,7 +89,7 @@ const Analytics = () => {
       } finally {
         setAnalyticsLoading(false);
       }
-    };
+    }
 
     if (isAuthenticated && user?.id) {
       fetchAnalyticsData();

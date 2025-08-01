@@ -62,6 +62,109 @@ def get_chart_data():
         logger.error(f"Error getting chart data: {str(e)}")
         return error_response(str(e), "Failed to get chart data", 500)
 
+@analytics_bp.route("/revenue-expenses", methods=["GET"])
+@jwt_required()
+def get_revenue_expenses_chart():
+    """Get revenue vs expenses chart data for advanced analytics"""
+    try:
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        supabase = get_supabase()
+        period = request.args.get('period', 'monthly')
+        
+        # Get time range based on period
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        
+        if period == 'daily':
+            start_date = now - timedelta(days=30)
+            date_format = '%Y-%m-%d'
+        elif period == 'weekly':
+            start_date = now - timedelta(weeks=12)
+            date_format = '%Y-W%U'
+        elif period == 'yearly':
+            start_date = now - timedelta(days=365*3)
+            date_format = '%Y'
+        else:  # monthly
+            start_date = now - timedelta(days=365)
+            date_format = '%Y-%m'
+        
+        # Get sales data (revenue)
+        sales_result = supabase.table('sales').select(
+            'total_amount, date'
+        ).eq('owner_id', owner_id).gte('date', start_date.isoformat()).execute()
+        
+        # Get expenses data
+        expenses_result = supabase.table('expenses').select(
+            'amount, date'
+        ).eq('owner_id', owner_id).gte('date', start_date.isoformat()).execute()
+        
+        # Group data by time period
+        revenue_by_period = {}
+        expenses_by_period = {}
+        
+        # Process sales data
+        for sale in sales_result.data or []:
+            sale_date = datetime.fromisoformat(sale['date'].replace('Z', '+00:00'))
+            if period == 'weekly':
+                week_start = sale_date - timedelta(days=sale_date.weekday())
+                period_key = week_start.strftime('%b %d')
+            elif period == 'daily':
+                period_key = sale_date.strftime('%b %d')
+            elif period == 'yearly':
+                period_key = sale_date.strftime('%Y')
+            else:  # monthly
+                period_key = sale_date.strftime('%b %Y')
+            
+            revenue_by_period[period_key] = revenue_by_period.get(period_key, 0) + float(sale.get('total_amount', 0))
+        
+        # Process expenses data
+        for expense in expenses_result.data or []:
+            expense_date = datetime.fromisoformat(expense['date'].replace('Z', '+00:00'))
+            if period == 'weekly':
+                week_start = expense_date - timedelta(days=expense_date.weekday())
+                period_key = week_start.strftime('%b %d')
+            elif period == 'daily':
+                period_key = expense_date.strftime('%b %d')
+            elif period == 'yearly':
+                period_key = expense_date.strftime('%Y')
+            else:  # monthly
+                period_key = expense_date.strftime('%b %Y')
+            
+            expenses_by_period[period_key] = expenses_by_period.get(period_key, 0) + float(expense.get('amount', 0))
+        
+        # Create combined chart data
+        all_periods = set(list(revenue_by_period.keys()) + list(expenses_by_period.keys()))
+        chart_data = []
+        
+        for period_key in sorted(all_periods):
+            chart_data.append({
+                'period': period_key,
+                'revenue': revenue_by_period.get(period_key, 0),
+                'expenses': expenses_by_period.get(period_key, 0)
+            })
+        
+        return success_response(
+            data={
+                'trends': chart_data,
+                'period': period,
+                'summary': {
+                    'total_revenue': sum(revenue_by_period.values()),
+                    'total_expenses': sum(expenses_by_period.values()),
+                    'net_profit': sum(revenue_by_period.values()) - sum(expenses_by_period.values())
+                }
+            },
+            message="Revenue vs expenses data retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting revenue vs expenses data: {str(e)}")
+        return error_response(str(e), "Failed to get revenue vs expenses data", 500)
+
 def get_chart_data_fallback(owner_id, period_days=30):
     """Fallback method to get chart data using direct queries"""
     try:
