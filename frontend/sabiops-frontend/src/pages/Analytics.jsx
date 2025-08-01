@@ -93,11 +93,46 @@ const Analytics = () => {
     setTimePeriod(newPeriod);
   };
 
-  const handleRefreshAnalytics = () => {
-    if (isAuthenticated) {
+  const handleRefreshAnalytics = async () => {
+    if (isAuthenticated && user?.id) {
       setAnalyticsLoading(true);
-      // Trigger re-fetch by updating a dependency
-      setTimePeriod(prev => prev);
+      setAnalyticsError(null);
+      
+      try {
+        // Clear the cache for this user to force fresh data
+        frontendAnalyticsCache.invalidateUserCache(user.id);
+        
+        // Force a fresh fetch
+        const accessResponse = await api.get('/dashboard/analytics/access-check');
+        setAccessCheck(accessResponse.data.data);
+
+        if (!accessResponse.data.data.has_access) {
+          setAnalyticsLoading(false);
+          return;
+        }
+
+        // Fetch fresh data from API
+        const analyticsResponse = await api.get(`/dashboard/analytics?period=${timePeriod}`);
+        const analyticsData = analyticsResponse.data.data;
+        
+        // Cache the fresh data
+        const cacheKey = frontendAnalyticsCache.getCacheKey(user.id, 'business_analytics', timePeriod);
+        frontendAnalyticsCache.setCachedData(cacheKey, analyticsData, timePeriod);
+        
+        setAnalyticsData(analyticsData);
+
+        // Preload other time periods in background
+        frontendAnalyticsCache.preloadAnalyticsData(user.id, timePeriod, async (period) => {
+          const response = await api.get(`/dashboard/analytics?period=${period}`);
+          return response.data.data;
+        });
+
+      } catch (error) {
+        console.error('Failed to refresh analytics data:', error);
+        setAnalyticsError(error.response?.data?.message || 'Failed to refresh analytics data');
+      } finally {
+        setAnalyticsLoading(false);
+      }
     }
   };
 

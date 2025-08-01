@@ -3,7 +3,8 @@ import { Label } from './label';
 import { Input } from './input';
 import { Textarea } from './textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { FieldError } from './ErrorMessage';
+import { FieldError } from './field-error';
+import RequiredFieldIndicator from './RequiredFieldIndicator';
 import { cn } from '@/lib/utils';
 
 /**
@@ -33,16 +34,13 @@ const FormField = ({
   'aria-invalid': ariaInvalid,
   ...props
 }) => {
-  const hasError = Boolean(error && touched);
-  const fieldId = props.id || `field-${name}`;
-  const helpId = `${fieldId}-help`;
+  const fieldId = name || `field-${Math.random().toString(36).substr(2, 9)}`;
   const errorId = `${fieldId}-error`;
+  const hasError = error && touched;
 
   const getInputClassName = () => {
-    const baseClasses = 'h-12 min-h-[48px] text-base sm:text-sm touch-manipulation transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1';
-    const errorClasses = hasError 
-      ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
-      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20';
+    const baseClasses = 'w-full';
+    const errorClasses = hasError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '';
     const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
     
     return cn(baseClasses, errorClasses, disabledClasses, inputClassName);
@@ -51,9 +49,8 @@ const FormField = ({
   const getLabelClassName = () => {
     const baseClasses = 'text-sm font-medium';
     const errorClasses = hasError ? 'text-red-700' : 'text-gray-700';
-    const requiredClasses = required ? 'after:content-["*"] after:ml-1 after:text-red-500' : '';
     
-    return cn(baseClasses, errorClasses, requiredClasses, labelClassName);
+    return cn(baseClasses, errorClasses, labelClassName);
   };
 
   const handleChange = (e) => {
@@ -185,6 +182,7 @@ const FormField = ({
           className={getLabelClassName()}
         >
           {label}
+          {required && <RequiredFieldIndicator />}
         </Label>
       )}
       

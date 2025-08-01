@@ -35,8 +35,7 @@ const UpgradePrompt = ({
       'Everything in Basic',
       'Team collaboration',
       'API access',
-      'Priority support',
-      'Custom integrations'
+      'Custom branding'
     ]
   };
 

@@ -121,7 +121,7 @@ export const UpgradePrompt = ({
                 '100 invoices & expenses weekly',
                 'Unlimited customers & products',
                 'Advanced features unlocked',
-                'Priority support'
+                'Email support'
             ]
         };
     };
@@ -135,7 +135,7 @@ export const UpgradePrompt = ({
                 '100 invoices & expenses per week',
                 'Advanced analytics dashboard',
                 'Team collaboration (5 members)',
-                'Priority customer support'
+                'Email support'
             ]
         };
     };

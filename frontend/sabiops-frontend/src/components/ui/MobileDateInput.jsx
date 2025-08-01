@@ -129,16 +129,11 @@ const MobileDateInput = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-full max-w-xs p-0" 
+          className="w-auto p-0 mobile-datepicker-content" 
           align="start"
           side="bottom"
           sideOffset={4}
           style={{
-            minWidth: '100%',
-            maxWidth: '100vw',
-            width: '100%',
-            boxSizing: 'border-box',
-            overflow: 'auto',
             zIndex: 9999
           }}
         >

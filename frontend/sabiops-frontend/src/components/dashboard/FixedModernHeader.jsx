@@ -284,7 +284,7 @@ const FixedModernHeader = () => {
             </div>
 
             {/* Global Search Bar */}
-            <div className="flex-1 max-w-md mx-6">
+            <div className="flex-1 mx-1 sm:mx-6 max-w-none sm:max-w-md">
               <GlobalSearchBar 
                 className="w-full"
                 placeholder="Search customers, products, invoices..."

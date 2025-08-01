@@ -164,7 +164,7 @@ const GlobalSearchBar = ({ className = '', placeholder = "Search products, custo
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <svg 
-            className="h-5 w-5 text-green-200" 
+            className="h-6 w-6 sm:h-5 sm:w-5 text-green-200" 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -187,7 +187,7 @@ const GlobalSearchBar = ({ className = '', placeholder = "Search products, custo
           placeholder={placeholder}
           className="block w-full pl-10 pr-10 py-2 bg-green-600/50 text-white border border-green-400/30 rounded-lg 
                    focus:ring-2 focus:ring-green-300 focus:border-green-300 
-                   placeholder:text-green-200 text-sm"
+                   placeholder:text-green-200 text-sm touch-manipulation h-12 sm:h-auto"
           autoComplete="off"
         />
         
@@ -202,9 +202,9 @@ const GlobalSearchBar = ({ className = '', placeholder = "Search products, custo
         {query && (
           <button
             onClick={clearSearch}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-green-200 hover:text-white"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-green-200 hover:text-white touch-manipulation"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

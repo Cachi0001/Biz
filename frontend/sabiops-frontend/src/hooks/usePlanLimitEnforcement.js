@@ -28,7 +28,7 @@ export const usePlanLimitEnforcement = () => {
         reports: false,
         team_members: 1
       },
-      silver_weekly: {
+      weekly: {
         invoices: 100,
         expenses: 100,
         sales: 250,
@@ -38,7 +38,7 @@ export const usePlanLimitEnforcement = () => {
         reports: true,
         team_members: 5
       },
-      silver_monthly: {
+      monthly: {
         invoices: 450,
         expenses: 500,
         sales: 1500,
@@ -48,7 +48,7 @@ export const usePlanLimitEnforcement = () => {
         reports: true,
         team_members: 10
       },
-      silver_yearly: {
+      yearly: {
         invoices: 6000,
         expenses: 2000,
         sales: 18000,

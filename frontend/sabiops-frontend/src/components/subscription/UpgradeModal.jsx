@@ -19,12 +19,10 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       displayPrice: '₦1,400',
       period: '/week',
       features: [
-        '100 invoices per week',
-        '100 expenses per week',
-        'Advanced reporting',
-        'Team management',
-        'Priority support',
-        'All other features unlimited'
+        'Advanced analytics',
+        'Team collaboration',
+        'API access',
+        'Custom branding'
       ],
       popular: true,
     },
@@ -35,13 +33,10 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       displayPrice: '₦4,500',
       period: '/month',
       features: [
-        '450 invoices per month',
-        '450 expenses per month',
-        'Advanced reporting',
-        'Team management',
-        'Priority support',
-        'Referral earnings (10% for 3 months)',
-        'All other features unlimited'
+        'Advanced analytics',
+        'Team collaboration',
+        'API access',
+        'Custom branding'
       ],
     },
     {
@@ -52,13 +47,10 @@ const UpgradeModal = ({ isOpen, onClose }) => {
       period: '/year',
       savings: 'Save ₦4,000 annually',
       features: [
-        '6000 invoices per year',
-        '6000 expenses per year',
-        'Advanced reporting',
-        'Team management',
-        'Priority support',
-        'Referral earnings (10% for 3 payments)',
-        'All other features unlimited'
+        'Advanced analytics',
+        'Team collaboration',
+        'API access',
+        'Custom branding'
       ],
     },
   ];

@@ -41,9 +41,10 @@ SUBSCRIPTION_PLANS = {
             '7-day free trial',
             '100 invoices per week',
             '100 expenses per week',
+            '250 sales per week',
+            '100 products per week',
             'Advanced reporting',
             'Team management',
-            'Priority support',
             'All other features unlimited'
         ],
         'referral_earning': 0,
@@ -63,14 +64,15 @@ SUBSCRIPTION_PLANS = {
         'duration': '30 days',
         'features': [
             '450 invoices per month',
-            '450 expenses per month',
+            '500 expenses per month',
+            '1,500 sales per month',
+            '500 products per month',
             'Advanced reporting',
             'Team management',
-            'Priority support',
             'Referral earnings (10% for 3 months)',
             'All other features unlimited'
         ],
-        'referral_earning': 450,  # 10% of ₦4,500
+        'referral_earning': 500,
         'popular': False,
         'limits': {
             'invoices_per_month': 450,
@@ -85,17 +87,17 @@ SUBSCRIPTION_PLANS = {
         'currency': 'NGN',
         'duration': '365 days',
         'features': [
-            '6000 invoices per year',
-            '6000 expenses per year',
+            '6,000 invoices per year',
+            '2,000 expenses per year',
+            '18,000 sales per year',
+            '2,000 products per year',
             'Advanced reporting',
             'Team management',
-            'Priority support',
-            'Referral earnings (10% for 3 months)',
+            'Referral earnings (10% for 3 payments)',
             'All other features unlimited'
         ],
-        'referral_earning': 5000,  # 10% of ₦50,000
+        'referral_earning': 5000,
         'popular': False,
-        'savings': '₦4,000 saved vs monthly',
         'limits': {
             'invoices_per_year': 6000,
             'expenses_per_year': 2000,

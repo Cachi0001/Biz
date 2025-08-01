@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
+import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 
 const CustomProductForm = ({ 
   categories = [], 
@@ -308,7 +309,10 @@ const CustomProductForm = ({
       <form ref={formRef} onSubmit={handleSubmit}>
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Product Name *</label>
+            <label className="form-label flex items-center gap-1">
+              Product Name
+              <RequiredFieldIndicator />
+            </label>
             <input
               ref={nameInputRef}
               type="text"
@@ -350,7 +354,10 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Category *</label>
+            <label className="form-label flex items-center gap-1">
+              Category
+              <RequiredFieldIndicator />
+            </label>
             <Select 
               value={formData.category} 
               onValueChange={(value) => handleInputChange('category', value)}
@@ -406,7 +413,10 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Selling Price (₦) *</label>
+            <label className="form-label flex items-center gap-1">
+              Selling Price (₦)
+              <RequiredFieldIndicator />
+            </label>
             <input
               ref={priceInputRef}
               type="number"
@@ -439,7 +449,10 @@ const CustomProductForm = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Stock Quantity *</label>
+            <label className="form-label flex items-center gap-1">
+              Stock Quantity
+              <RequiredFieldIndicator />
+            </label>
             <Input
               id="quantity"
               name="quantity"

@@ -165,22 +165,32 @@ const PaymentModal = ({
 
   const getPlanFeatures = (planType) => {
     const features = {
-      monthly: [
-        'Unlimited invoices',
-        'Unlimited expenses',
+      weekly: [
+        '100 invoices per week',
+        '100 expenses per week',
+        '250 sales per week',
+        '100 products per week',
         'Advanced reporting',
         'Team management',
-        'Customer management',
-        'Sales analytics',
-        'Priority support'
+        'Email support'
+      ],
+      monthly: [
+        '450 invoices per month',
+        '500 expenses per month',
+        '1,500 sales per month',
+        '500 products per month',
+        'Advanced reporting',
+        'Team management',
+        'Team collaboration'
       ],
       yearly: [
-        'All Monthly plan features',
+        '6,000 invoices per year',
+        '2,000 expenses per year',
+        '18,000 sales per year',
+        '2,000 products per year',
         'Advanced team management',
-        'Priority support',
         'Custom integrations',
         'Advanced analytics',
-        'Data export',
         'API access'
       ]
     };

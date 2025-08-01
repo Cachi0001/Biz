@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Alert, AlertDescription } from '../components/ui/alert';
 import toast from 'react-hot-toast';
 import { getReferralStats, getWithdrawals, requestWithdrawal, getErrorMessage } from '../services/api';
+import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 
 const Referrals = () => {
   const [stats, setStats] = useState(null);
@@ -115,7 +116,10 @@ const Referrals = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Amount to Withdraw (₦)*</Label>
+                <Label htmlFor="amount" className="flex items-center gap-1">
+                  Amount to Withdraw (₦)
+                  <RequiredFieldIndicator />
+                </Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -142,7 +146,10 @@ const Referrals = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="bank_name">Bank Name*</Label>
+                <Label htmlFor="bank_name" className="flex items-center gap-1">
+                  Bank Name
+                  <RequiredFieldIndicator />
+                </Label>
                 <Input
                   id="bank_name"
                   name="bank_name"
@@ -153,7 +160,10 @@ const Referrals = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="account_number">Account Number*</Label>
+                <Label htmlFor="account_number" className="flex items-center gap-1">
+                  Account Number
+                  <RequiredFieldIndicator />
+                </Label>
                 <Input
                   id="account_number"
                   name="account_number"
@@ -164,7 +174,10 @@ const Referrals = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="account_name">Account Name*</Label>
+                <Label htmlFor="account_name" className="flex items-center gap-1">
+                  Account Name
+                  <RequiredFieldIndicator />
+                </Label>
                 <Input
                   id="account_name"
                   name="account_name"
@@ -175,7 +188,10 @@ const Referrals = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="bank_code">Bank Code*</Label>
+                <Label htmlFor="bank_code" className="flex items-center gap-1">
+                  Bank Code
+                  <RequiredFieldIndicator />
+                </Label>
                 <Input
                   id="bank_code"
                   name="bank_code"

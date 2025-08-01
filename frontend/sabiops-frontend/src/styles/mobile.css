@@ -79,6 +79,101 @@
     border-radius: 12px !important;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
   }
+  
+  .mobile-datepicker-content {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 320px !important;
+    max-height: 70vh !important;
+    z-index: 9999 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .mobile-datepicker-content .calendar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .mobile-datepicker-content .calendar table {
+    width: 100% !important;
+    font-size: 14px !important;
+  }
+  
+  .mobile-datepicker-content .calendar th,
+  .mobile-datepicker-content .calendar td {
+    padding: 8px 4px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .mobile-datepicker-content .calendar button {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Mobile-optimized native date inputs */
+  input[type="date"] {
+    height: 48px !important;
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background-color: white !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  
+  input[type="date"]:focus {
+    outline: none !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  /* Prevent zoom on iOS */
+  input[type="date"] {
+    font-size: 16px !important;
+  }
+  
+  /* Mobile-optimized date inputs with icons */
+  .form-input[type="date"] {
+    height: 48px !important;
+    font-size: 16px !important;
+    padding: 12px 16px 12px 40px !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background-color: white !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  
+  .form-input[type="date"]:focus {
+    outline: none !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  /* Ensure date input containers don't overflow */
+  .form-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  .form-group .relative {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* Mobile-optimized tables */

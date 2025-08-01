@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar, RefreshCw, Calculator, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import StableInput from '@/components/ui/StableInput';
 import MobileDateInput from '@/components/ui/MobileDateInput';
 import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
+import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -850,7 +851,10 @@ const Sales = () => {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                    <Label htmlFor="product" className="text-base font-medium">Product *</Label>
+                    <Label htmlFor="product" className="text-base font-medium flex items-center gap-1">
+                      Product
+                      <RequiredFieldIndicator />
+                    </Label>
                       <Button
                         type="button"
                         size="sm"
@@ -959,7 +963,10 @@ const Sales = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="quantity" className="text-base font-medium">Quantity *</Label>
+                    <Label htmlFor="quantity" className="text-base font-medium flex items-center gap-1">
+                      Quantity
+                      <RequiredFieldIndicator />
+                    </Label>
                     <StableInput
                       id="quantity"
                       name="quantity"
@@ -1002,7 +1009,10 @@ const Sales = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="unit_price" className="text-base font-medium">Unit Price (₦) *</Label>
+                    <Label htmlFor="unit_price" className="text-base font-medium flex items-center gap-1">
+                      Unit Price (₦)
+                      <RequiredFieldIndicator />
+                    </Label>
                     <StableInput
                       id="unit_price"
                       name="unit_price"

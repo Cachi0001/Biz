@@ -75,7 +75,7 @@ const SubscriptionManager = () => {
         '100 products per week',
         'Team management',
         'Advanced reporting',
-        'Priority support'
+        'Email support'
       ],
       limits: {
         invoices: 100,
@@ -98,7 +98,7 @@ const SubscriptionManager = () => {
         'Advanced analytics',
         'API access',
         'Custom branding',
-        'Priority support'
+        'Team collaboration'
       ],
       limits: {
         invoices: 450,
@@ -119,8 +119,8 @@ const SubscriptionManager = () => {
         '2,000 products per year',
         'Unlimited team members',
         'Advanced integrations',
-        'Dedicated account manager',
-        '24/7 priority support'
+        'Custom integrations',
+        'API access'
       ],
       limits: {
         invoices: 6000,

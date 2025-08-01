@@ -94,7 +94,6 @@ const ComprehensiveSubscriptionCards = ({
         { icon: TrendingUp, text: '1,500 sales per month', highlight: true },
         { icon: Package, text: '500 products per month', highlight: true },
         { icon: Shield, text: 'Advanced analytics' },
-        { icon: Check, text: 'Priority support' },
         { icon: Check, text: 'Team collaboration' },
         { icon: Check, text: 'Export capabilities' },
         { icon: Crown, text: '₦500 referral rewards', special: true }
@@ -118,7 +117,6 @@ const ComprehensiveSubscriptionCards = ({
         { icon: TrendingUp, text: '18,000 sales per year', highlight: true },
         { icon: Package, text: '2,000 products per year', highlight: true },
         { icon: Shield, text: 'Premium analytics' },
-        { icon: Check, text: 'Premium support' },
         { icon: Check, text: 'Custom integrations' },
         { icon: Check, text: 'API access' },
         { icon: Check, text: 'White-label options' },
@@ -339,7 +337,7 @@ const ComprehensiveSubscriptionCards = ({
       {/* Additional Benefits */}
       <div className="text-center text-sm text-gray-500 space-y-2">
         <p>
-          All paid plans include: Advanced reporting, Priority support, Real-time sync, Team collaboration
+          All paid plans include: Advanced reporting, Team collaboration, Real-time sync, Email support
         </p>
         <p>
           Need help choosing? <a href="mailto:support@sabiops.com" className="text-blue-500 hover:underline">Contact our team</a>

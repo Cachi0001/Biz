@@ -185,8 +185,7 @@ const PlanUpgradePrompt = ({ action, usage, limits, blockedChildren }) => {
             <ul className="mt-2 space-y-1 text-sm">
               <li>• 100 invoices & expenses per week</li>
               <li>• Advanced analytics & reporting</li>
-              <li>• Team member access</li>
-              <li>• Priority support</li>
+              <li>• Team collaboration</li>
             </ul>
           </AlertDescription>
         </Alert>

@@ -31,9 +31,10 @@ const SubscriptionUpgrade = () => {
       features: [
         '100 invoices per week',
         '100 expenses per week',
+        '250 sales per week',
+        '100 products per week',
         'Advanced reporting',
         'Team management',
-        'Priority support',
         'All other features unlimited'
       ],
       popular: true,
@@ -47,10 +48,11 @@ const SubscriptionUpgrade = () => {
       period: '/month',
       features: [
         '450 invoices per month',
-        '450 expenses per month',
+        '500 expenses per month',
+        '1,500 sales per month',
+        '500 products per month',
         'Advanced reporting',
         'Team management',
-        'Priority support',
         'Referral earnings (10% for 3 months)',
         'All other features unlimited'
       ],
@@ -64,11 +66,12 @@ const SubscriptionUpgrade = () => {
       period: '/year',
       savings: 'Save ₦4,000 annually',
       features: [
-        '6000 invoices per year',
-        '6000 expenses per year',
+        '6,000 invoices per year',
+        '2,000 expenses per year',
+        '18,000 sales per year',
+        '2,000 products per year',
         'Advanced reporting',
         'Team management',
-        'Priority support',
         'Referral earnings (10% for 3 payments)',
         'All other features unlimited'
       ],

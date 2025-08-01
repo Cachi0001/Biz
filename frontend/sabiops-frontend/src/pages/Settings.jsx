@@ -353,7 +353,7 @@ const Settings = () => {
                             <li>• 1,500 sales per month</li>
                             <li>• 500 products per month</li>
                             <li>• Advanced analytics</li>
-                            <li>• Priority support</li>
+                            <li>• Team collaboration</li>
                             <li>• ₦500 referral rewards</li>
                           </ul>
                           <Button variant="outline" className="w-full mt-4 border-green-500 text-green-700 hover:bg-green-100" onClick={() => window.location.href = '/subscription-upgrade'}>
@@ -376,9 +376,9 @@ const Settings = () => {
                             <li>• 18,000 sales per year</li>
                             <li>• 2,000 products per year</li>
                             <li>• Premium analytics</li>
-                            <li>• Premium support</li>
-                            <li>• ₦5,000 referral rewards</li>
                             <li>• Custom integrations</li>
+                            <li>• ₦5,000 referral rewards</li>
+                            <li>• API access</li>
                           </ul>
                           <Button variant="outline" className="w-full mt-4 border-purple-500 text-purple-700 hover:bg-purple-100" onClick={() => window.location.href = '/subscription-upgrade'}>
                             Upgrade Now

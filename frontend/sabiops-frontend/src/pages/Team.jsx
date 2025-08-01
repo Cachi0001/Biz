@@ -37,6 +37,7 @@ import {
   showErrorToast,
   safeArray
 } from '../utils/errorHandling';
+import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 
 // Stable form component outside main component to prevent re-renders and input focus loss
 const TeamMemberForm = ({ 
@@ -58,7 +59,10 @@ const TeamMemberForm = ({
     )}
 
     <div className="space-y-2">
-      <Label htmlFor="full_name">Full Name *</Label>
+      <Label htmlFor="full_name" className="flex items-center gap-1">
+        Full Name
+        <RequiredFieldIndicator />
+      </Label>
       <Input
         id="full_name"
         name="full_name"
@@ -71,7 +75,10 @@ const TeamMemberForm = ({
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email" className="flex items-center gap-1">
+          Email
+          <RequiredFieldIndicator />
+        </Label>
         <Input
           id="email"
           name="email"
@@ -85,7 +92,10 @@ const TeamMemberForm = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="role">Role *</Label>
+        <Label htmlFor="role" className="flex items-center gap-1">
+          Role
+          <RequiredFieldIndicator />
+        </Label>
         <Select 
           value={formData.role} 
           onValueChange={(value) => onInputChange({ target: { name: 'role', value } })}
@@ -103,7 +113,10 @@ const TeamMemberForm = ({
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number *</Label>
+        <Label htmlFor="phone" className="flex items-center gap-1">
+          Phone Number
+          <RequiredFieldIndicator />
+        </Label>
         <Input
           id="phone"
           name="phone"
@@ -115,8 +128,9 @@ const TeamMemberForm = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">
-          {editingMember ? 'New Password (leave blank to keep current)' : 'Password *'}
+        <Label htmlFor="password" className="flex items-center gap-1">
+          {editingMember ? 'New Password (leave blank to keep current)' : 'Password'}
+          {!editingMember && <RequiredFieldIndicator />}
         </Label>
         <div className="relative">
           <Input

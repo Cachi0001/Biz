@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
+import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 
 const CustomInvoiceForm = ({ 
   customers = [], 
@@ -539,7 +540,10 @@ const CustomInvoiceForm = ({
         {/* Basic Information */}
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Customer *</label>
+            <label className="form-label flex items-center gap-1">
+              Customer
+              <RequiredFieldIndicator />
+            </label>
             <Select 
               value={formData.customer_id} 
               onValueChange={(value) => {
@@ -564,7 +568,10 @@ const CustomInvoiceForm = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Issue Date *</label>
+            <label className="form-label flex items-center gap-1">
+              Issue Date
+              <RequiredFieldIndicator />
+            </label>
             <input
               type="date"
               className={`form-input ${hasFieldError('issue_date') ? 'error' : ''}`}
@@ -613,7 +620,10 @@ const CustomInvoiceForm = ({
         {/* Invoice Items */}
         <div className="form-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <label className="form-label">Invoice Items *</label>
+            <label className="form-label flex items-center gap-1">
+              Invoice Items
+              <RequiredFieldIndicator />
+            </label>
             <button
               type="button"
               className="btn btn-outline"
@@ -693,7 +703,10 @@ const CustomInvoiceForm = ({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Description *</label>
+                  <label className="form-label flex items-center gap-1">
+                    Description
+                    <RequiredFieldIndicator />
+                  </label>
                   <input
                     type="text"
                     className={`form-input ${hasItemFieldError(index, 'description') ? 'error' : ''}`}
@@ -708,7 +721,10 @@ const CustomInvoiceForm = ({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Quantity *</label>
+                  <label className="form-label flex items-center gap-1">
+                    Quantity
+                    <RequiredFieldIndicator />
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -723,7 +739,10 @@ const CustomInvoiceForm = ({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Unit Price (₦) *</label>
+                  <label className="form-label flex items-center gap-1">
+                    Unit Price (₦)
+                    <RequiredFieldIndicator />
+                  </label>
                   <input
                     type="number"
                     step="0.01"

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 
 const ExpenseForm = ({ 
   onSubmit, 
@@ -407,7 +408,10 @@ const ExpenseForm = ({
         {/* Category and Subcategory */}
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Category *</label>
+            <label className="form-label flex items-center gap-1">
+              Category
+              <RequiredFieldIndicator />
+            </label>
             <Select 
               value={formData.category} 
               onValueChange={(value) => handleSelectChange('category', value)}
@@ -452,7 +456,10 @@ const ExpenseForm = ({
         {/* Amount and Date */}
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Amount (₦) *</label>
+            <label className="form-label flex items-center gap-1">
+              Amount (₦)
+              <RequiredFieldIndicator />
+            </label>
             <input
               type="number"
               step="0.01"
@@ -470,7 +477,10 @@ const ExpenseForm = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Date *</label>
+            <label className="form-label flex items-center gap-1">
+              Date
+              <RequiredFieldIndicator />
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input

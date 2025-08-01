@@ -66,20 +66,18 @@ const IntelligentUpgradePrompt = ({
       silver_weekly: [
         '100 invoices & expenses per week',
         'Advanced analytics',
-        'Priority support',
+        'Email support',
         'Team collaboration'
       ],
       silver_monthly: [
         '450 invoices & expenses per month',
         'Advanced analytics',
-        'Priority support',
         'Team collaboration',
         'Custom reports'
       ],
       silver_yearly: [
         'Unlimited invoices & expenses',
         'Advanced analytics',
-        'Priority support',
         'Team collaboration',
         'Custom reports',
         'API access'
