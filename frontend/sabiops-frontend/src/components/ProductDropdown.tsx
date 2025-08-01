@@ -103,7 +103,7 @@ export const ProductDropdown: React.FC<ProductDropdownProps> = ({
           placeholder={placeholder}
           aria-label={selectedProduct ? formatSelectedValue(selectedProduct) : placeholder}
         >
-          {selectedProduct && formatSelectedValue(selectedProduct)}
+          {selectedProduct ? formatSelectedValue(selectedProduct) : placeholder}
         </SelectValue>
       </SelectTrigger>
       

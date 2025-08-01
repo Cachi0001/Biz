@@ -125,12 +125,15 @@ export async function login(credentials) {
     console.log("[DEBUG] Login response:", response);
     console.log("[DEBUG] Login response data:", response.data);
     
-    if (response.data.data && response.data.data.access_token) {
-      setAuthToken(response.data.data.access_token);
-      console.log("[DEBUG] Token set from response.data.data.access_token");
-    } else if (response.data.access_token) {
-      setAuthToken(response.data.access_token);
-      console.log("[DEBUG] Token set from response.data.access_token");
+    // Safely access the token
+    const token = response.data?.data?.access_token || response.data?.access_token;
+
+    if (token) {
+      setAuthToken(token);
+      console.log("[DEBUG] Token set successfully");
+    } else {
+      console.error("[ERROR] Login response did not contain a valid token");
+      throw new Error("Login failed: No authentication token received.");
     }
     
     console.log("[DEBUG] Login success:", response.data);
