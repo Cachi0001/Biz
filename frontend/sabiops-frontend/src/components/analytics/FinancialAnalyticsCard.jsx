@@ -133,7 +133,7 @@ const FinancialAnalyticsCard = ({ financialData, loading }) => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={cashFlowChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barCategoryGap="2%">
+                <BarChart data={cashFlowChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barGap={0.5}>
                   <XAxis 
                     dataKey="period" 
                     axisLine={false} 

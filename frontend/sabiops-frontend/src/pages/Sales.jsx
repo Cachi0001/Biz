@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
-import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar, RefreshCw, Calculator, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Users, Package, Calendar, RefreshCw, Calculator, Eye, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import MobileDateInput from '@/components/ui/MobileDateInput';
 import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
+import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -40,7 +41,7 @@ const Sales = () => {
     quantity: '',
     unit_price: 0,
     total_amount: 0,
-    payment_method: 'cash',
+    payment_method: DEFAULT_PAYMENT_METHOD,
     date: new Date().toISOString().split('T')[0],
     salesperson_id: ''
   });
@@ -354,7 +355,7 @@ const Sales = () => {
         quantity: '',
         unit_price: 0,
         total_amount: 0,
-        payment_method: 'cash',
+        payment_method: DEFAULT_PAYMENT_METHOD,
         date: new Date().toISOString().split('T')[0],
         salesperson_id: ''
       });
@@ -1054,16 +1055,15 @@ const Sales = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue 
                           placeholder="Select payment method"
-                          value={formData.payment_method ? formData.payment_method.charAt(0).toUpperCase() + formData.payment_method.slice(1).replace('_', ' ') : undefined}
+                          value={formData.payment_method ? getPaymentMethodLabel(formData.payment_method) : undefined}
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="card">Card</SelectItem>
-                        <SelectItem value="transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="cheque">Cheque</SelectItem>
-                        <SelectItem value="online_payment">Online Payment</SelectItem>
-                        <SelectItem value="pending">Pending Payment</SelectItem>
+                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

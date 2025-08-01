@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
+import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '../../constants/paymentMethods';
 
 const ExpenseForm = ({ 
   onSubmit, 
@@ -25,7 +26,7 @@ const ExpenseForm = ({
     amount: '',
     date: new Date().toISOString().split('T')[0],
     vendor: '',
-    payment_method: 'cash',
+    payment_method: DEFAULT_PAYMENT_METHOD,
     reference: '',
     notes: '',
     receipt_url: '',
@@ -72,15 +73,6 @@ const ExpenseForm = ({
     'Training & Development': ['Workshops', 'Courses', 'Books', 'Conferences'],
     'Other': ['Miscellaneous']
   };
-
-  // Payment methods
-  const paymentMethods = [
-    { id: 'cash', name: 'Cash' },
-    { id: 'bank_transfer', name: 'Bank Transfer' },
-    { id: 'card', name: 'Card Payment' },
-    { id: 'mobile_money', name: 'Mobile Money' },
-    { id: 'cheque', name: 'Cheque' }
-  ];
 
   // Initialize form with editing data
   useEffect(() => {
@@ -189,7 +181,7 @@ const ExpenseForm = ({
       amount: '',
       date: new Date().toISOString().split('T')[0],
       vendor: '',
-      payment_method: 'cash',
+      payment_method: DEFAULT_PAYMENT_METHOD,
       reference: '',
       notes: '',
       receipt_url: '',
@@ -525,12 +517,15 @@ const ExpenseForm = ({
               onValueChange={(value) => handleSelectChange('payment_method', value)}
             >
               <SelectTrigger className="form-select">
-                <SelectValue />
+                <SelectValue 
+                  placeholder="Select payment method"
+                  value={formData.payment_method ? getPaymentMethodLabel(formData.payment_method) : undefined}
+                />
               </SelectTrigger>
               <SelectContent>
-                {paymentMethods.map((method) => (
-                  <SelectItem key={method.id} value={method.id}>
-                    {method.name}
+                {PAYMENT_METHOD_OPTIONS.map((method) => (
+                  <SelectItem key={method.value} value={method.value}>
+                    {method.label}
                   </SelectItem>
                 ))}
               </SelectContent>

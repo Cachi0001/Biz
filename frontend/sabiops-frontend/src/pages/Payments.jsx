@@ -1,33 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import {
-  Plus,
-  Search,
-  Filter,
-  Download,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  Building,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  CheckCircle,
-  XCircle,
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Plus, 
+  Search, 
+  Download, 
+  TrendingUp, 
   Clock,
-  Eye
+  CreditCard,
+  Filter
 } from 'lucide-react';
-import { getPayments, recordPayment } from "../services/api";
-import { normalizePaymentResponse, safeFilter, safeReduce, normalizePaymentObject } from "../utils/responseNormalizer";
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import { getPayments, createPayment } from '@/services/api';
+import { formatNaira } from '@/utils/formatting';
+import { toastService } from '@/services/toastService';
+import { formatDate } from '@/utils/dateUtils';
+import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -46,7 +39,7 @@ const Payments = () => {
     customer_name: '',
     invoice_id: '',
     amount: '',
-    payment_method: 'cash',
+    payment_method: DEFAULT_PAYMENT_METHOD,
     payment_date: new Date().toISOString().split('T')[0],
     reference_number: '',
     notes: '',
@@ -332,14 +325,15 @@ const Payments = () => {
                     <SelectTrigger>
                       <SelectValue 
                         placeholder="Select payment method"
-                        value={newPayment.payment_method ? newPayment.payment_method.charAt(0).toUpperCase() + newPayment.payment_method.slice(1).replace('_', ' ') : undefined}
+                        value={newPayment.payment_method ? getPaymentMethodLabel(newPayment.payment_method) : undefined}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                      <SelectItem value="card">Card Payment</SelectItem>
+                      {PAYMENT_METHOD_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -494,15 +488,16 @@ const Payments = () => {
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue 
                   placeholder="Filter by method"
-                  value={methodFilter === 'all' ? undefined : methodFilter.charAt(0).toUpperCase() + methodFilter.slice(1).replace('_', ' ')}
+                  value={methodFilter === 'all' ? undefined : getPaymentMethodLabel(methodFilter)}
                 />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                <SelectItem value="card">Card Payment</SelectItem>
+                {PAYMENT_METHOD_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button variant="outline">
