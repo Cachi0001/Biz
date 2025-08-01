@@ -1408,6 +1408,132 @@ class SubscriptionService:
                 'plan': 'unknown',
                 'limits': {}
             }
+    
+    def can_create_product(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create products based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_counts = self.get_accurate_usage_counts(user_id)
+            current_products = usage_counts.get('products', 0)
+            product_limit = plan_config['features']['products']
+            
+            if current_products >= product_limit:
+                return False, {
+                    'message': f'Product limit reached ({current_products}/{product_limit})',
+                    'current_usage': current_products,
+                    'limit': product_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Product creation allowed',
+                'current_usage': current_products,
+                'limit': product_limit,
+                'remaining': product_limit - current_products
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking product creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking product creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def can_create_sale(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create sales based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_counts = self.get_accurate_usage_counts(user_id)
+            current_sales = usage_counts.get('sales', 0)
+            sales_limit = plan_config['features']['sales']
+            
+            if current_sales >= sales_limit:
+                return False, {
+                    'message': f'Sales limit reached ({current_sales}/{sales_limit})',
+                    'current_usage': current_sales,
+                    'limit': sales_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Sales creation allowed',
+                'current_usage': current_sales,
+                'limit': sales_limit,
+                'remaining': sales_limit - current_sales
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking sales creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking sales creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def can_create_expense(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create expenses based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_counts = self.get_accurate_usage_counts(user_id)
+            current_expenses = usage_counts.get('expenses', 0)
+            expense_limit = plan_config['features']['expenses']
+            
+            if current_expenses >= expense_limit:
+                return False, {
+                    'message': f'Expense limit reached ({current_expenses}/{expense_limit})',
+                    'current_usage': current_expenses,
+                    'limit': expense_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Expense creation allowed',
+                'current_usage': current_expenses,
+                'limit': expense_limit,
+                'remaining': expense_limit - current_expenses
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking expense creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking expense creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
             # Simplified approach - always allow upgrades to prevent payment failures
             return {
                 'user_id': user_id,

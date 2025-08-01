@@ -336,3 +336,126 @@ def get_usage_status_for_response(user_id: str) -> dict:
             'message': 'Unable to determine usage status',
             'error': str(e)
         }
+
+def protected_product_creation(f):
+    """
+    Decorator to protect product creation based on subscription limits
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentication required'
+                }), 401
+            
+            # Get subscription service
+            from src.services.subscription_service import SubscriptionService
+            subscription_service = SubscriptionService()
+            
+            # Check if user can create products
+            can_create, limit_info = subscription_service.can_create_product(user_id)
+            
+            if not can_create:
+                return jsonify({
+                    'success': False,
+                    'error': 'Product creation limit reached',
+                    'message': limit_info.get('message', 'You have reached your product creation limit'),
+                    'limit_info': limit_info,
+                    'upgrade_required': True
+                }), 403
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error in protected_product_creation decorator: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Unable to verify product creation permissions'
+            }), 500
+    
+    return decorated_function
+
+def protected_sales_creation(f):
+    """
+    Decorator to protect sales creation based on subscription limits
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentication required'
+                }), 401
+            
+            # Get subscription service
+            from src.services.subscription_service import SubscriptionService
+            subscription_service = SubscriptionService()
+            
+            # Check if user can create sales
+            can_create, limit_info = subscription_service.can_create_sale(user_id)
+            
+            if not can_create:
+                return jsonify({
+                    'success': False,
+                    'error': 'Sales creation limit reached',
+                    'message': limit_info.get('message', 'You have reached your sales creation limit'),
+                    'limit_info': limit_info,
+                    'upgrade_required': True
+                }), 403
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error in protected_sales_creation decorator: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Unable to verify sales creation permissions'
+            }), 500
+    
+    return decorated_function
+
+def protected_expense_creation(f):
+    """
+    Decorator to protect expense creation based on subscription limits
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentication required'
+                }), 401
+            
+            # Get subscription service
+            from src.services.subscription_service import SubscriptionService
+            subscription_service = SubscriptionService()
+            
+            # Check if user can create expenses
+            can_create, limit_info = subscription_service.can_create_expense(user_id)
+            
+            if not can_create:
+                return jsonify({
+                    'success': False,
+                    'error': 'Expense creation limit reached',
+                    'message': limit_info.get('message', 'You have reached your expense creation limit'),
+                    'limit_info': limit_info,
+                    'upgrade_required': True
+                }), 403
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error in protected_expense_creation decorator: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Unable to verify expense creation permissions'
+            }), 500
+    
+    return decorated_function
