@@ -16,7 +16,7 @@ const subscriptionService = {
       console.log(`[SubscriptionService] Verifying payment for plan ${planId} with reference ${reference}`);
       
       const response = await axios.post(
-        `${API_BASE_URL}/api/subscription/verify-payment`,
+        `${API_BASE_URL}/subscription/verify-payment`,
         { reference, plan_id: planId },
         {
           headers: {
@@ -92,7 +92,7 @@ const subscriptionService = {
       console.log('[SubscriptionService] Fetching subscription status...');
       
       const response = await axios.get(
-        `${API_BASE_URL}/api/subscription/unified-status`,
+        `${API_BASE_URL}/subscription/unified-status`,
         {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,
@@ -129,7 +129,7 @@ const subscriptionService = {
       console.log('[SubscriptionService] Fetching usage status...');
       
       const response = await axios.get(
-        `${API_BASE_URL}/api/subscription/usage-status`,
+        `${API_BASE_URL}/subscription/usage-status`,
         {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,
@@ -166,7 +166,7 @@ const subscriptionService = {
       console.log('[SubscriptionService] Fetching subscription plans...');
       
       const response = await axios.get(
-        `${API_BASE_URL}/api/subscription/plans`,
+        `${API_BASE_URL}/subscription/plans`,
         {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,

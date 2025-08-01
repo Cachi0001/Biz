@@ -96,12 +96,37 @@ def get_overview():
             total_profit_from_sales = sum(float(sale.get('profit_from_sales', 0)) for sale in sales_result.data)
         
         # Include paid invoice revenue in total revenue
-        paid_invoices_result = supabase.table('invoices').select('total_amount, date, status, paid_date').eq('owner_id', owner_id).execute()
+        paid_invoices_result = supabase.table('invoices').select('total_amount, created_at, status, paid_date, items').eq('owner_id', owner_id).execute()
         if paid_invoices_result.data:
             for invoice in paid_invoices_result.data:
                 # Only include paid invoices in revenue
                 if invoice.get('status') == 'paid' or invoice.get('paid_date'):
-                    total_revenue += float(invoice.get('total_amount', 0))
+                    invoice_amount = float(invoice.get('total_amount', 0))
+                    total_revenue += invoice_amount
+                    
+                    # Calculate profit from invoice items if no sales record exists
+                    if invoice.get('items'):
+                        invoice_profit = 0
+                        for item in invoice['items']:
+                            quantity = float(item.get('quantity', 0))
+                            unit_price = float(item.get('unit_price', 0))
+                            tax_rate = float(item.get('tax_rate', 0))
+                            discount_rate = float(item.get('discount_rate', 0))
+                            
+                            # Calculate item total
+                            item_total = quantity * unit_price
+                            discount_amount = item_total * (discount_rate / 100)
+                            item_total_after_discount = item_total - discount_amount
+                            tax_amount = item_total_after_discount * (tax_rate / 100)
+                            final_item_total = item_total_after_discount + tax_amount
+                            
+                            # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                            estimated_cost = item_total * 0.4
+                            item_profit = final_item_total - estimated_cost
+                            
+                            invoice_profit += item_profit
+                        
+                        total_profit_from_sales += invoice_profit
         
         overview["revenue"]["total"] = total_revenue
         overview["revenue"]["profit_from_sales"] = total_profit_from_sales
@@ -150,13 +175,39 @@ def get_overview():
         if paid_invoices_result.data:
             for invoice in paid_invoices_result.data:
                 if invoice.get('status') == 'paid' or invoice.get('paid_date'):
-                    invoice_date = parse_supabase_datetime(invoice.get('date')) or parse_supabase_datetime(invoice.get('paid_date'))
+                    invoice_date = parse_supabase_datetime(invoice.get('created_at')) or parse_supabase_datetime(invoice.get('paid_date'))
+                    invoice_amount = float(invoice.get('total_amount', 0))
+                    
+                    # Calculate invoice profit
+                    invoice_profit = 0
+                    if invoice.get('items'):
+                        for item in invoice['items']:
+                            quantity = float(item.get('quantity', 0))
+                            unit_price = float(item.get('unit_price', 0))
+                            tax_rate = float(item.get('tax_rate', 0))
+                            discount_rate = float(item.get('discount_rate', 0))
+                            
+                            # Calculate item total
+                            item_total = quantity * unit_price
+                            discount_amount = item_total * (discount_rate / 100)
+                            item_total_after_discount = item_total - discount_amount
+                            tax_amount = item_total_after_discount * (tax_rate / 100)
+                            final_item_total = item_total_after_discount + tax_amount
+                            
+                            # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                            estimated_cost = item_total * 0.4
+                            item_profit = final_item_total - estimated_cost
+                            
+                            invoice_profit += item_profit
+                    
                     if invoice_date and invoice_date >= current_month_start:
-                        this_month_revenue += float(invoice.get('total_amount', 0))
+                        this_month_revenue += invoice_amount
+                        this_month_profit_from_sales += invoice_profit
                     
                     # Include in today's revenue if paid today
                     if invoice_date and today_start <= invoice_date <= today_end:
-                        today_revenue += float(invoice.get('total_amount', 0))
+                        today_revenue += invoice_amount
+                        today_profit_from_sales += invoice_profit
         
         # Calculate daily profit growth
         daily_profit_growth = 0
@@ -276,7 +327,7 @@ def get_revenue_chart():
         sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()
         
         # Get paid invoices data for the last 12 months
-        invoices_result = supabase.table('invoices').select('total_amount, date, status, paid_date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()
+        invoices_result = supabase.table('invoices').select('total_amount, created_at, status, paid_date').eq('owner_id', owner_id).gte('created_at', twelve_months_ago.isoformat()).execute()
         
         # Get expenses data for the last 12 months
         expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()

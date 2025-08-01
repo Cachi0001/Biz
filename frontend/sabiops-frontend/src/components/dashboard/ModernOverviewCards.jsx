@@ -15,6 +15,9 @@ const ModernOverviewCards = ({ data, loading }) => {
   console.log('ModernOverviewCards - profit_from_sales value:', data?.revenue?.profit_from_sales);
   console.log('ModernOverviewCards - this_month_profit_from_sales value:', data?.revenue?.this_month_profit_from_sales);
   console.log('ModernOverviewCards - invoices data:', data?.invoices);
+  console.log('ModernOverviewCards - Total revenue:', data?.revenue?.total);
+  console.log('ModernOverviewCards - This month revenue:', data?.revenue?.this_month);
+  console.log('ModernOverviewCards - Net profit calculation:', (data?.revenue?.total || 0) - (data?.expenses?.total || 0));
 
   if (loading) {
     return (

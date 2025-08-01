@@ -553,7 +553,31 @@ def update_invoice_status(invoice_id):
             update_data["paid_at"] = datetime.now().isoformat()
             update_data["paid_amount"] = current_invoice.get("total_amount")
             
-            # Create a transaction record
+            # Calculate profit from invoice items
+            total_profit = 0
+            total_cogs = 0
+            if current_invoice.get("items"):
+                for item in current_invoice["items"]:
+                    quantity = float(item.get("quantity", 0))
+                    unit_price = float(item.get("unit_price", 0))
+                    tax_rate = float(item.get("tax_rate", 0))
+                    discount_rate = float(item.get("discount_rate", 0))
+                    
+                    # Calculate item total
+                    item_total = quantity * unit_price
+                    discount_amount = item_total * (discount_rate / 100)
+                    item_total_after_discount = item_total - discount_amount
+                    tax_amount = item_total_after_discount * (tax_rate / 100)
+                    final_item_total = item_total_after_discount + tax_amount
+                    
+                    # Estimate COGS (cost of goods sold) - assuming 40% cost margin
+                    estimated_cost = item_total * 0.4
+                    item_profit = final_item_total - estimated_cost
+                    
+                    total_profit += item_profit
+                    total_cogs += estimated_cost
+            
+            # Create a transaction record with profit information
             transaction_data = {
                 "id": str(uuid.uuid4()),
                 "owner_id": owner_id,
@@ -564,11 +588,31 @@ def update_invoice_status(invoice_id):
                 "reference_id": invoice_id,
                 "reference_type": "invoice",
                 "date": datetime.now().isoformat(),
-                "created_at": datetime.now().isoformat()
+                "created_at": datetime.now().isoformat(),
+                "profit_from_sales": total_profit,
+                "total_cogs": total_cogs
             }
             
             # Record the transaction
             supabase.table("transactions").insert(transaction_data).execute()
+            
+            # Also create a sales record for profit tracking
+            sales_data = {
+                "id": str(uuid.uuid4()),
+                "owner_id": owner_id,
+                "customer_id": current_invoice.get("customer_id"),
+                "total_amount": float(current_invoice.get("total_amount", 0)),
+                "profit_from_sales": total_profit,
+                "total_cogs": total_cogs,
+                "date": datetime.now().isoformat(),
+                "created_at": datetime.now().isoformat(),
+                "reference_id": invoice_id,
+                "reference_type": "invoice",
+                "description": f"Sale from Invoice {current_invoice.get('invoice_number')}"
+            }
+            
+            # Record the sale for profit tracking
+            supabase.table("sales").insert(sales_data).execute()
             
             # Update inventory (deduct from stock)
             try:

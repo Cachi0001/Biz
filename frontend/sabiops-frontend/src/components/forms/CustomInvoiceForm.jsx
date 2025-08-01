@@ -36,7 +36,7 @@ const CustomInvoiceForm = ({
     items: [{ 
       id: Date.now(), 
       product_id: '', 
-      description: '', 
+      description: 'Item 1', 
       quantity: 1, 
       unit_price: 0, 
       tax_rate: 0, 
@@ -98,13 +98,13 @@ const CustomInvoiceForm = ({
           ? editingInvoice.items.map((item, index) => ({
             id: item.id || Date.now() + index,
             product_id: item.product_id || '',
-            description: item.description || '',
+            description: item.description || `Item ${index + 1}`,
             quantity: item.quantity || 1,
             unit_price: item.unit_price || 0,
             tax_rate: item.tax_rate || 0,
             discount_rate: item.discount_rate || 0,
           }))
-          : [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+          : [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
       });
     }
   }, [editingInvoice]);
@@ -164,7 +164,7 @@ const CustomInvoiceForm = ({
       items: [...prev.items, { 
         id: Date.now() + Math.random(), 
         product_id: '', 
-        description: '', 
+        description: `Item ${prev.items.length + 1}`, 
         quantity: 1, 
         unit_price: 0, 
         tax_rate: 0, 
@@ -206,14 +206,20 @@ const CustomInvoiceForm = ({
     e.stopPropagation();
 
     console.log('🎯 CustomInvoiceForm: Form submitted');
+    console.log('🎯 Form data:', formData);
 
     const validationResult = validateForm(formData);
+    console.log('🎯 Validation result:', validationResult);
 
     if (validationResult.hasErrors) {
       const allErrors = getAllErrors();
+      console.log('🎯 All errors:', allErrors);
+      
       if (allErrors.length === 1) {
+        console.log('🎯 Single error:', allErrors[0]);
         handleApiErrorWithToast(new Error(allErrors[0]));
       } else {
+        console.log('🎯 Multiple errors:', allErrors);
         handleApiErrorWithToast(new Error(`Please fix ${allErrors.length} errors before submitting`));
       }
       if (typeof onError === 'function') onError(new Error('Validation failed'), editingInvoice ? 'update' : 'create');
@@ -239,7 +245,7 @@ const CustomInvoiceForm = ({
       terms_and_conditions: 'Payment is due within 30 days of invoice date.',
       currency: 'NGN',
       discount_amount: 0,
-      items: [{ id: Date.now(), product_id: '', description: '', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+      items: [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
     });
     clearErrors();
     
