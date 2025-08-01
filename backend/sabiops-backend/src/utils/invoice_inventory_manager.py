@@ -271,3 +271,61 @@ class InvoiceInventoryManager:
                 "message": f"Error validating inventory: {str(e)}",
                 "insufficient_items": []
             }
+    
+    def process_invoice_payment(self, invoice_data: Dict, owner_id: str) -> bool:
+        """
+        Process inventory changes when invoice is marked as paid
+        Note: In a real-life scenario, inventory should already be reduced when invoice is created
+        This method ensures consistency for any edge cases
+        """
+        try:
+            items = invoice_data.get("items", [])
+            if not items:
+                logger.info("No items to process for invoice payment")
+                return True
+            
+            # Check if inventory has already been updated
+            if invoice_data.get("inventory_updated", False):
+                logger.info(f"Inventory already updated for invoice {invoice_data.get('id')}")
+                return True
+            
+            # Process each item (reduce inventory if not already done)
+            for item in items:
+                product_id = item.get("product_id")
+                quantity = int(item.get("quantity", 0))
+                
+                if not product_id or quantity <= 0:
+                    continue
+                
+                # Get current product
+                product_result = self.supabase.table("products").select("quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                
+                if not product_result.data:
+                    logger.warning(f"Product {product_id} not found for inventory reduction")
+                    continue
+                
+                product = product_result.data
+                current_qty = int(product.get("quantity", 0))
+                
+                # Reduce quantity (if not already reduced)
+                new_quantity = max(0, current_qty - quantity)
+                
+                # Update product quantity
+                self.supabase.table("products").update({
+                    "quantity": new_quantity,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", product_id).execute()
+                
+                logger.info(f"Processed inventory for paid invoice - Product {product_id}: {current_qty} -> {new_quantity}")
+            
+            # Mark invoice as inventory updated
+            self.supabase.table("invoices").update({
+                "inventory_updated": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", invoice_data.get("id")).execute()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error processing invoice payment inventory: {str(e)}")
+            return False

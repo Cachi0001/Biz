@@ -97,7 +97,7 @@ def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
             "amount": float(invoice_data["total_amount"]),
             "category": "Invoice Payment",
             "description": f"Payment for Invoice {invoice_data['invoice_number']}",
-            "payment_method": "invoice",
+            "payment_method": "cash",
             "reference_id": invoice_data["id"],
             "reference_type": "invoice",
             "date": datetime.now().isoformat(),
@@ -557,7 +557,7 @@ def update_invoice_status(invoice_id):
             transaction_data = {
                 "id": str(uuid.uuid4()),
                 "owner_id": owner_id,
-                "type": "income",
+                "type": "money_in",
                 "amount": float(current_invoice.get("total_amount", 0)),
                 "category": "Invoice Payment",
                 "description": f"Payment for Invoice {current_invoice.get('invoice_number')}",
