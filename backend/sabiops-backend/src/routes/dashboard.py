@@ -231,7 +231,7 @@ def get_overview():
 @dashboard_bp.route('/revenue-chart', methods=['GET'])
 @jwt_required()
 def get_revenue_chart():
-    """Get revenue chart data for the last 12 months"""
+    """Get revenue vs expenses chart data for the last 12 months"""
     try:
         user_id = get_jwt_identity()
         owner_id, user_role = get_user_context(user_id)
@@ -250,16 +250,21 @@ def get_revenue_chart():
         # Get sales data for the last 12 months
         sales_result = supabase.table('sales').select('total_amount, date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()
         
-        # Initialize chart data for 12 months
+        # Get expenses data for the last 12 months
+        expenses_result = supabase.table('expenses').select('amount, date').eq('owner_id', owner_id).gte('date', twelve_months_ago.isoformat()).execute()
+        
+        # Initialize chart data for 12 months with both revenue and expenses
         chart_data = []
         for i in range(12):
             month_date = now.replace(day=1) - timedelta(days=30 * (11 - i))
             chart_data.append({
                 "period": month_date.strftime("%b %Y"),
-                "revenue": 0
+                "month": month_date.strftime("%b %Y"),  # Add month field for compatibility
+                "revenue": 0,
+                "expenses": 0
             })
         
-        # Process sales data
+        # Process sales data (revenue)
         if sales_result.data:
             for sale in sales_result.data:
                 sale_date = parse_supabase_datetime(sale.get('date'))
@@ -271,7 +276,19 @@ def get_revenue_chart():
                             data_point["revenue"] += float(sale.get('total_amount', 0))
                             break
         
-        return success_response("Revenue chart data fetched successfully", {
+        # Process expenses data
+        if expenses_result.data:
+            for expense in expenses_result.data:
+                expense_date = parse_supabase_datetime(expense.get('date'))
+                if expense_date:
+                    # Find the corresponding month in chart_data
+                    month_key = expense_date.strftime("%b %Y")
+                    for data_point in chart_data:
+                        if data_point["period"] == month_key:
+                            data_point["expenses"] += float(expense.get('amount', 0))
+                            break
+        
+        return success_response("Revenue vs expenses chart data fetched successfully", {
             "chart_data": chart_data
         })
         

@@ -62,15 +62,8 @@ const Analytics = () => {
         const analyticsResponse = await api.get(`/dashboard/analytics?period=${timePeriod}`);
         const analyticsData = analyticsResponse.data.data;
         
-        // Fetch revenue vs expenses data
-        const chartResponse = await api.get(`/dashboard/analytics/revenue-expenses?period=${timePeriod}`);
-        const chartData = chartResponse.data.data;
-
-        // Combine main analytics data with chart data
-        const combinedAnalyticsData = {
-          ...analyticsData,
-          revenue_trends: chartData.trends || [],
-        };
+        // Analytics data already contains the chart data we need
+        const combinedAnalyticsData = analyticsData;
 
         // Cache the data
         frontendAnalyticsCache.setCachedData(cacheKey, combinedAnalyticsData, timePeriod);
