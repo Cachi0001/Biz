@@ -37,7 +37,7 @@ const Sales = () => {
     product_id: '',
     customer_id: '',
     customer_name: '',
-    quantity: 1,
+    quantity: '',
     unit_price: 0,
     total_amount: 0,
     payment_method: 'cash',
@@ -330,7 +330,7 @@ const Sales = () => {
       const selectedProduct = products.find(p => p.id === formData.product_id);
       if (selectedProduct) {
         const availableQuantity = parseInt(selectedProduct.quantity) || 0;
-        const requestedQuantity = parseInt(formData.quantity) || 1;
+        const requestedQuantity = parseInt(formData.quantity) || 1; // Default to 1 if empty
         if (requestedQuantity > availableQuantity) {
           toastService.error(`Cannot sell more than available stock. Only ${availableQuantity} units available for ${selectedProduct.name}.`);
           setSubmitting(false);
@@ -351,7 +351,7 @@ const Sales = () => {
         product_id: '',
         customer_id: '',
         customer_name: '',
-        quantity: 1,
+        quantity: '',
         unit_price: 0,
         total_amount: 0,
         payment_method: 'cash',

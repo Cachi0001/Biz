@@ -171,6 +171,13 @@ def get_usage_status():
     """Get current usage status for all features"""
     try:
         user_id = get_jwt_identity()
+        logger.info(f"Getting usage status for user: {user_id}")
+        
+        # Validate user_id format
+        if not user_id or not isinstance(user_id, str):
+            logger.error(f"Invalid user_id format in usage-status: {user_id} (type: {type(user_id)})")
+            return error_response("Invalid user ID format", "Authentication error", 422)
+        
         supabase = current_app.config['SUPABASE']
         
         # Get current usage from feature_usage table
@@ -204,6 +211,7 @@ def get_usage_status():
                     'period_end': None
                 }
         
+        logger.info(f"Successfully retrieved usage status for user {user_id}")
         return success_response(
             data={
                 "current_usage": current_usage,
@@ -325,11 +333,19 @@ def get_unified_subscription_status():
     """Get unified subscription status - single source of truth"""
     try:
         user_id = get_jwt_identity()
+        logger.info(f"Getting unified subscription status for user: {user_id}")
+        
+        # Validate user_id format
+        if not user_id or not isinstance(user_id, str):
+            logger.error(f"Invalid user_id format: {user_id} (type: {type(user_id)})")
+            return error_response("Invalid user ID format", "Authentication error", 422)
+        
         subscription_service = SubscriptionService()
         
         # Get unified status that resolves conflicts
         status = subscription_service.get_unified_subscription_status(user_id)
         
+        logger.info(f"Successfully retrieved unified status for user {user_id}")
         return success_response(
             data=status,
             message="Unified subscription status retrieved successfully"

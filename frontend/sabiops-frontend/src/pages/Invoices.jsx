@@ -145,7 +145,6 @@ const Invoices = () => {
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
-        showSuccessToast('Invoice PDF downloaded');
       } else {
         handleApiErrorWithToast(new Error('Failed to download PDF. The file may not exist.'));
       }
