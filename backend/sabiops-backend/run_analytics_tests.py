@@ -15,17 +15,14 @@ def run_analytics_tests():
     # Add the src directory to the path
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
     
-    # Create test suite
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     
-    # Test files to run
     test_modules = [
         'tests.test_analytics_service',
         'tests.test_subscription_decorators'
     ]
     
-    # Load tests from each module
     for module_name in test_modules:
         try:
             module_suite = loader.loadTestsFromName(module_name)
@@ -35,7 +32,6 @@ def run_analytics_tests():
             print(f"✗ Failed to load tests from {module_name}: {e}")
             continue
     
-    # Run tests with detailed output
     stream = StringIO()
     runner = unittest.TextTestRunner(
         stream=stream,
@@ -49,7 +45,6 @@ def run_analytics_tests():
     
     result = runner.run(suite)
     
-    # Print results
     output = stream.getvalue()
     print(output)
     

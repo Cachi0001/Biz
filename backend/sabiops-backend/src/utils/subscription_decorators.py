@@ -260,3 +260,79 @@ def get_subscription_upgrade_info(user_id: str) -> dict:
             'upgrade_options': [],
             'error': str(e)
         }
+
+def protected_invoice_creation(f):
+    """
+    Decorator to protect invoice creation based on subscription limits
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentication required'
+                }), 401
+            
+            # Get subscription service
+            from src.services.subscription_service import SubscriptionService
+            subscription_service = SubscriptionService()
+            
+            # Check if user can create invoices
+            can_create, limit_info = subscription_service.can_create_invoice(user_id)
+            
+            if not can_create:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invoice creation limit reached',
+                    'message': limit_info.get('message', 'You have reached your invoice creation limit'),
+                    'limit_info': limit_info,
+                    'upgrade_required': True
+                }), 403
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error in protected_invoice_creation decorator: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Unable to verify invoice creation permissions'
+            }), 500
+    
+    return decorated_function
+
+def get_usage_status_for_response(user_id: str) -> dict:
+    """
+    Get usage status information to include in API responses
+    """
+    try:
+        from src.services.subscription_service import SubscriptionService
+        subscription_service = SubscriptionService()
+        
+        subscription_status = subscription_service.get_unified_subscription_status(user_id)
+        
+        if not subscription_status:
+            return {
+                'usage_status': 'unknown',
+                'message': 'Unable to determine usage status'
+            }
+        
+        # Get current usage limits
+        usage_info = subscription_service.get_usage_limits(user_id)
+        
+        return {
+            'usage_status': 'active',
+            'current_plan': subscription_status.get('subscription_plan', 'free'),
+            'is_trial': subscription_status.get('is_trial', False),
+            'usage_limits': usage_info,
+            'upgrade_available': subscription_status.get('subscription_plan') == 'free'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting usage status for user {user_id}: {str(e)}")
+        return {
+            'usage_status': 'error',
+            'message': 'Unable to determine usage status',
+            'error': str(e)
+        }

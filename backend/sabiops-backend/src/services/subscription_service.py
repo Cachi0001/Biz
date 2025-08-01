@@ -1313,6 +1313,101 @@ class SubscriptionService:
     def usage_abuse_detection(self, user_id: str) -> Dict[str, Any]:
         """Simplified abuse detection - always allows upgrades for better user experience"""
         try:
+            # Always allow upgrades for better user experience
+            return {
+                'abuse_detected': False,
+                'can_upgrade': True,
+                'message': 'No usage abuse detected'
+            }
+        except Exception as e:
+            logger.error(f"Error in usage abuse detection for user {user_id}: {str(e)}")
+            return {
+                'abuse_detected': False,
+                'can_upgrade': True,
+                'error': str(e)
+            }
+    
+    def can_create_invoice(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create invoices based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_counts = self.get_accurate_usage_counts(user_id)
+            current_invoices = usage_counts.get('invoices', 0)
+            invoice_limit = plan_config['features']['invoices']
+            
+            if current_invoices >= invoice_limit:
+                return False, {
+                    'message': f'Invoice limit reached ({current_invoices}/{invoice_limit})',
+                    'current_usage': current_invoices,
+                    'limit': invoice_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Invoice creation allowed',
+                'current_usage': current_invoices,
+                'limit': invoice_limit,
+                'remaining': invoice_limit - current_invoices
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking invoice creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking invoice creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def get_usage_limits(self, user_id: str) -> Dict[str, Any]:
+        """Get current usage limits for user's subscription plan"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return {
+                    'error': 'Unable to verify subscription status'
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_counts = self.get_accurate_usage_counts(user_id)
+            
+            limits = {}
+            for feature, limit in plan_config['features'].items():
+                current_usage = usage_counts.get(feature, 0)
+                limits[feature] = {
+                    'limit': limit,
+                    'current': current_usage,
+                    'remaining': max(0, limit - current_usage),
+                    'percentage_used': (current_usage / limit * 100) if limit > 0 else 0
+                }
+            
+            return {
+                'plan': current_plan,
+                'limits': limits,
+                'is_trial': subscription_status.get('is_trial', False),
+                'trial_days_left': subscription_status.get('trial_days_left', 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting usage limits for user {user_id}: {str(e)}")
+            return {
+                'error': str(e),
+                'plan': 'unknown',
+                'limits': {}
+            }
             # Simplified approach - always allow upgrades to prevent payment failures
             return {
                 'user_id': user_id,
