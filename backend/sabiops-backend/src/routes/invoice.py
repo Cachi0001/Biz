@@ -529,9 +529,9 @@ def update_invoice_status(invoice_id):
             
         # Check if status transition is valid
         valid_transitions = {
-            "draft": ["sent", "cancelled"],
+            "draft": ["sent", "paid", "cancelled"],  # Allow draft to paid directly
             "sent": ["paid", "overdue", "cancelled"],
-            "paid": [],
+            "paid": ["overdue"],  # Only allow paid to overdue if needed
             "overdue": ["paid", "cancelled"],
             "cancelled": []
         }

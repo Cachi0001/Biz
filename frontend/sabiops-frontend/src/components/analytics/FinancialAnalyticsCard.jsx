@@ -122,7 +122,69 @@ const FinancialAnalyticsCard = ({ financialData, loading }) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Cash Flow Trends */}
+        {/* Revenue vs Expenses Comparison Chart */}
+        {cashFlowChartData.length > 0 && (
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center">
+                <BarChart className="h-5 w-5 mr-2" />
+                Revenue vs Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={cashFlowChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="period" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#6b7280' }} 
+                  />
+                  <YAxis hide />
+                  {/* Green Revenue Bars */}
+                  <Bar
+                    dataKey="revenue"
+                    fill="#16a34a"
+                    name="Revenue"
+                    radius={[2, 2, 0, 0]}
+                  />
+                  {/* Orange Expense Bars */}
+                  <Bar
+                    dataKey="expenses"
+                    fill="#f97316"
+                    name="Expenses"
+                    radius={[2, 2, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex justify-center space-x-6 mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-green-500 rounded shadow-sm"></div>
+                  <span className="text-sm font-medium text-gray-700">Revenue</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-orange-500 rounded shadow-sm"></div>
+                  <span className="text-sm font-medium text-gray-700">Expenses</span>
+                </div>
+              </div>
+              {/* Summary Stats */}
+              <div className="mt-4 pt-3 border-t border-blue-200">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(total_revenue)}</p>
+                    <p className="text-xs text-gray-600">Total Revenue</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-orange-600">{formatCurrency(total_expenses)}</p>
+                    <p className="text-xs text-gray-600">Total Expenses</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cash Flow Trends Line Chart */}
         {cashFlowChartData.length > 0 && (
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg">
             <CardHeader>
@@ -152,9 +214,9 @@ const FinancialAnalyticsCard = ({ financialData, loading }) => {
                   <Line
                     type="monotone"
                     dataKey="expenses"
-                    stroke="#ef4444"
+                    stroke="#f97316"
                     strokeWidth={2}
-                    dot={{ fill: '#ef4444', strokeWidth: 2, r: 3 }}
+                    dot={{ fill: '#f97316', strokeWidth: 2, r: 3 }}
                     name="Expenses"
                   />
                   <Line
@@ -173,7 +235,7 @@ const FinancialAnalyticsCard = ({ financialData, loading }) => {
                   <span className="text-xs text-gray-600">Revenue</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
                   <span className="text-xs text-gray-600">Expenses</span>
                 </div>
                 <div className="flex items-center space-x-1">

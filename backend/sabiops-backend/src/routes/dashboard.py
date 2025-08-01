@@ -150,20 +150,20 @@ def get_overview():
             overview["revenue"]["daily_profit_growth"] = round(daily_profit_growth, 2)
             overview["revenue"]["daily_profit_reset_time"] = today_start.isoformat()
         
-        # Get outstanding revenue from invoices - fix calculation
+        # Get outstanding revenue from OVERDUE invoices only (past due date and unpaid)
         invoices_result = supabase.table('invoices').select('total_amount, status, due_date, paid_date').eq('owner_id', owner_id).execute()
         if invoices_result.data:
             outstanding = 0
             overdue_count = 0
             for invoice in invoices_result.data:
-                # Consider unpaid invoices as outstanding
-                if invoice.get('status') in ['sent', 'pending', 'draft'] and not invoice.get('paid_date'):
+                # Only consider invoices that are past due date and unpaid as outstanding
+                due_date = parse_supabase_datetime(invoice.get('due_date'))
+                is_unpaid = invoice.get('status') not in ['paid', 'cancelled'] and not invoice.get('paid_date')
+                
+                if due_date and due_date < now and is_unpaid:
+                    # This invoice is overdue (past due date and unpaid)
                     outstanding += float(invoice.get('total_amount', 0))
-                    
-                    # Check if overdue (unpaid and past due date)
-                    due_date = parse_supabase_datetime(invoice.get('due_date'))
-                    if due_date and due_date < now and not invoice.get('paid_date'):
-                        overdue_count += 1
+                    overdue_count += 1
             
             overview["revenue"]["outstanding"] = outstanding
             overview["invoices"]["overdue"] = overdue_count
