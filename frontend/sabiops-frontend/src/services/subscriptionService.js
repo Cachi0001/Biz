@@ -92,7 +92,7 @@ const subscriptionService = {
       console.log('[SubscriptionService] Fetching subscription status...');
       
       const response = await axios.get(
-        `${API_BASE_URL}/api/subscription/unified-status`,
+        `${API_BASE_URL}/subscription/unified-status`,
         {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,

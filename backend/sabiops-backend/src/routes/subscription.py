@@ -170,12 +170,34 @@ def upgrade_subscription():
 def get_usage_status():
     """Get current usage status for all features"""
     try:
-        # Enhanced JWT token debugging
+        # Enhanced JWT token debugging with request headers
+        from flask import request as flask_request
+        auth_header = flask_request.headers.get('Authorization', 'No Authorization header')
+        logger.info(f"Usage-status request - Authorization header: {auth_header[:50]}..." if len(str(auth_header)) > 50 else f"Usage-status request - Authorization header: {auth_header}")
+        
+        # Extract and analyze the token
+        token = None
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]  # Remove 'Bearer ' prefix
+            logger.info(f"Extracted token length: {len(token)} characters")
+            
+            # Check token segments
+            segments = token.split('.')
+            logger.info(f"Token segments: {len(segments)}")
+            
+            if len(segments) != 3:
+                logger.error(f"Invalid JWT format: expected 3 segments, got {len(segments)}")
+                return error_response(f"Invalid JWT format: {len(segments)} segments", "Malformed token", 422)
+        else:
+            logger.error(f"Invalid Authorization header format: {auth_header}")
+            return error_response("Invalid Authorization header format", "Authentication error", 422)
+        
         try:
             user_id = get_jwt_identity()
             logger.info(f"JWT token parsed successfully for usage-status. User ID: {user_id} (type: {type(user_id)})")
         except Exception as jwt_error:
             logger.error(f"JWT token parsing failed in usage-status: {str(jwt_error)}")
+            logger.error(f"JWT error type: {type(jwt_error).__name__}")
             return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
         
         # Validate user_id format
@@ -373,12 +395,34 @@ def check_expired_subscriptions():
 def get_unified_subscription_status():
     """Get unified subscription status - single source of truth"""
     try:
-        # Enhanced JWT token debugging
+        # Enhanced JWT token debugging with request headers
+        from flask import request as flask_request
+        auth_header = flask_request.headers.get('Authorization', 'No Authorization header')
+        logger.info(f"Unified-status request - Authorization header: {auth_header[:50]}..." if len(str(auth_header)) > 50 else f"Unified-status request - Authorization header: {auth_header}")
+        
+        # Extract and analyze the token
+        token = None
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]  # Remove 'Bearer ' prefix
+            logger.info(f"Extracted token length: {len(token)} characters")
+            
+            # Check token segments
+            segments = token.split('.')
+            logger.info(f"Token segments: {len(segments)}")
+            
+            if len(segments) != 3:
+                logger.error(f"Invalid JWT format: expected 3 segments, got {len(segments)}")
+                return error_response(f"Invalid JWT format: {len(segments)} segments", "Malformed token", 422)
+        else:
+            logger.error(f"Invalid Authorization header format: {auth_header}")
+            return error_response("Invalid Authorization header format", "Authentication error", 422)
+        
         try:
             user_id = get_jwt_identity()
-            logger.info(f"JWT token parsed successfully. User ID: {user_id} (type: {type(user_id)})")
+            logger.info(f"JWT token parsed successfully for unified-status. User ID: {user_id} (type: {type(user_id)})")
         except Exception as jwt_error:
-            logger.error(f"JWT token parsing failed: {str(jwt_error)}")
+            logger.error(f"JWT token parsing failed in unified-status: {str(jwt_error)}")
+            logger.error(f"JWT error type: {type(jwt_error).__name__}")
             return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
         
         # Validate user_id format
