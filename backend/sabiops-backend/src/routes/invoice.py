@@ -480,7 +480,7 @@ def delete_invoice(invoice_id):
 
 @invoice_bp.route("/<invoice_id>/status", methods=["PUT"])
 @jwt_required()
-async def update_invoice_status(invoice_id):
+def update_invoice_status(invoice_id):
     try:
         user_id = get_jwt_identity()
         try:

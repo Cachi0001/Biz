@@ -1,18 +1,18 @@
-ERROR:src.services.subscription_service:Error resolving subscription conflicts for user c9e4e667-94d5-41d3-bf36-41fa09336efe: can't compare offset-naive and offset-aware datetimes
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/users?select=%2A&id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/users?select=owner_id%2C%20role&id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/feature_usage?select=%2A&user_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/users?select=owner_id%2C%20role&id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/invoices?select=id&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/expenses?select=id&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/sales?select=id&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/products?select=id&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/users?select=id%2C%20role%2C%20owner_id&id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/users?select=subscription_plan%2Ccurrent_month_invoices&id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/customers?select=%2A&id=eq.1cd33b25-775b-40a5-a3bc-735bf0421322&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/invoices?select=id&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe&created_at=gte.2025-08-01T00%3A00%3A00&created_at=lt.2025-08-02T00%3A00%3A00 "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/invoices?select=id&invoice_number=eq.INV-20250801-0001 "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: GET https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/products?select=name%2C%20quantity&id=eq.9e14bf80-aa6b-454c-a359-3d89156665e6&owner_id=eq.c9e4e667-94d5-41d3-bf36-41fa09336efe "HTTP/1.1 200 OK"
-INFO:httpx:HTTP Request: POST https://okpqkuxnzibrjmniihhu.supabase.co/rest/v1/invoices "HTTP/1.1 400 Bad Request"
-Error creating invoice: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'terms' column of 'invoices' in the schema cache"}
-127.0.0.1 - - [01/Aug/2025 10:45:52] "POST /api/invoices/ HTTP/1.1" 500 -
+ERROR:api.index:Unhandled exception: Install Flask with the 'async' extra in order to use async views.
+ERROR:api.index:Traceback (most recent call last):
+File "/var/task/flask/app.py", line 1484, in full_dispatch_request
+rv = self.dispatch_request()
+^^^^^^^^^^^^^^^^^^^^^^^
+File "/var/task/flask/app.py", line 1469, in dispatch_request
+return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/var/task/flask_jwt_extended/view_decorators.py", line 170, in decorator
+return current_app.ensure_sync(fn)(*args, **kwargs)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/var/task/flask/app.py", line 1553, in ensure_sync
+return self.async_to_sync(func)
+^^^^^^^^^^^^^^^^^^^^^^^^
+File "/var/task/flask/app.py", line 1574, in async_to_sync
+raise RuntimeError(
+RuntimeError: Install Flask with the 'async' extra in order to use async views.
+127.0.0.1 - - [01/Aug/2025 11:44:42] "PUT /api/invoices/fe78633f-946f-48a2-91ea-7ca3109ef83a/status HTTP/1.1" 500 -
