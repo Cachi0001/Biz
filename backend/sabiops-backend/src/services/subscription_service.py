@@ -338,7 +338,8 @@ class SubscriptionService:
                         'status': 'active',
                         'end_date': user.get('subscription_end_date')
                     },
-                    'plan_config': plan_config
+                    'plan_config': plan_config,
+                    'usage_reset': False
                 }
             
             # Handle trial logic
@@ -660,6 +661,54 @@ class SubscriptionService:
         
         return start_date + timedelta(days=plan_config['duration_days'])
     
+    def usage_abuse_detection(self, user_id: str) -> Dict[str, Any]:
+        """Simple abuse detection - always allow for now"""
+        try:
+            # For now, always allow payments
+            # In the future, this could check for:
+            # - Multiple rapid payment attempts
+            # - Suspicious usage patterns
+            # - Blacklisted users
+            return {
+                'requires_manual_review': False,
+                'risk_score': 0,
+                'message': 'Payment approved'
+            }
+        except Exception as e:
+            logger.error(f"Error in abuse detection for user {user_id}: {str(e)}")
+            return {
+                'requires_manual_review': False,
+                'risk_score': 0,
+                'message': 'Abuse detection failed, allowing payment'
+            }
+
+    def _reset_usage_limits(self, user_id: str, plan_id: str):
+        """Reset usage limits for new plan"""
+        try:
+            plan_config = self.PLAN_CONFIGS.get(plan_id, self.PLAN_CONFIGS['free'])
+            current_time = datetime.now()
+            
+            # Reset feature usage counters
+            for feature_type, limit in plan_config['features'].items():
+                try:
+                    # Update or insert feature usage record
+                    self.supabase.table('feature_usage').upsert({
+                        'user_id': user_id,
+                        'feature_type': feature_type,
+                        'current_count': 0,
+                        'limit_count': limit,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=plan_config.get('duration_days', 30))).isoformat(),
+                        'updated_at': current_time.isoformat()
+                    }).execute()
+                except Exception as e:
+                    logger.error(f"Failed to reset {feature_type} usage for user {user_id}: {str(e)}")
+            
+            logger.info(f"Reset usage limits for user {user_id} on plan {plan_id}")
+            
+        except Exception as e:
+            logger.error(f"Error resetting usage limits for user {user_id}: {str(e)}")
+
     def _reset_usage_counters(self, user_id: str, plan_id: str):
         """Reset usage counters for new plan limits"""
         try:

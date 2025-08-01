@@ -30,7 +30,8 @@ def test_flask_blueprint_registration():
             ('routes.team', 'team_bp', '/team'),
             ('routes.payment', 'payment_bp', '/payments'),
             ('routes.subscription', 'subscription_bp', '/subscription'),
-            ('routes.dashboard', 'dashboard_bp', '/dashboard')
+            ('routes.dashboard', 'dashboard_bp', '/dashboard'),
+            ('routes.user', 'user_bp', '/user')
         ]
         
         registered_count = 0

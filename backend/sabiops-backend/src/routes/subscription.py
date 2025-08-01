@@ -1,8 +1,3 @@
-"""
-Subscription Routes
-Handles subscription-related API endpoints including payment verification and status checks
-"""
-
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime

@@ -30,6 +30,8 @@ from routes.subscription import subscription_bp
 from routes.dashboard import dashboard_bp
 from routes.notifications import notifications_bp
 from routes.search import search_bp
+from routes.user import user_bp
+from routes.push_notifications import push_notifications_bp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -165,6 +167,8 @@ app.register_blueprint(subscription_bp, url_prefix='/subscription')
 app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 app.register_blueprint(notifications_bp, url_prefix='/notifications')
 app.register_blueprint(search_bp, url_prefix='/search')
+app.register_blueprint(user_bp, url_prefix='/user')
+app.register_blueprint(push_notifications_bp, url_prefix='/push-notifications')
 
 # Vercel expects the Flask app to be exported as 'app'.
 # Remove the '__main__' block for serverless compatibility.

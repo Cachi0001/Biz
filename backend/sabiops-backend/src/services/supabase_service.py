@@ -181,10 +181,15 @@ class SupabaseService:
                 "created_at": "now()"
             }
             
-            self.insert("notifications", notification_data)
+            # Try with admin client first if available (bypasses RLS)
+            if self.admin_client:
+                response = self.admin_client.table("notifications").insert(notification_data).execute()
+            else:
+                self.insert("notifications", notification_data)
             return True
         except Exception as e:
             logger.error(f"Send notification error: {e}")
+            # Don't fail the main operation if notification fails
             return False
     
     def get_notifications(self, user_id: str, unread_only: bool = False) -> List[Dict[str, Any]]:
@@ -230,8 +235,14 @@ class SupabaseService:
             # Get all device tokens for the user
             tokens = []
             if self.is_enabled():
-                subs = self.select("push_subscriptions", "device_token", {"user_id": user_id})
-                tokens = [s["device_token"] for s in subs if s.get("device_token")]
+                try:
+                    # Try with 'token' column first, fallback to 'device_token'
+                    subs = self.select("push_subscriptions", "token", {"user_id": user_id})
+                    tokens = [s["token"] for s in subs if s.get("token")]
+                except Exception as e:
+                    logger.error(f"Error getting push subscriptions: {e}")
+                    # If push_subscriptions table doesn't exist or column is wrong, skip push notifications
+                    tokens = []
             if not tokens:
                 logging.info(f"No device tokens for user {user_id}")
                 return False

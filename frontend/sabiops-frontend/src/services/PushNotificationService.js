@@ -1,272 +1,132 @@
 /**
  * Push Notification Service
- * Handles web push notifications for SabiOps
+ * Handles device token registration and push notification management
  */
 
-import { apiClient } from './apiClient';
+import api from './api';
 
 class PushNotificationService {
-  constructor() {
-    this.vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
-    this.registration = null;
-    this.subscription = null;
-    this.isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+  static isSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window;
   }
 
   /**
-   * Initialize push notification service
+   * Request notification permission from the user
+   * @returns {Promise<string>} Permission status: 'granted', 'denied', or 'default'
    */
-  async initialize() {
-    if (!this.isSupported) {
-      console.warn('Push notifications are not supported in this browser');
-      return false;
-    }
-
-    try {
-      // Register service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered successfully');
-
-      // Check for existing subscription
-      this.subscription = await this.registration.pushManager.getSubscription();
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize push notifications:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Request notification permission from user
-   */
-  async requestPermission() {
-    if (!this.isSupported) {
-      return 'unsupported';
+  static async requestPermission() {
+    if (!this.isSupported()) {
+      throw new Error('Push notifications are not supported in this browser');
     }
 
     const permission = await Notification.requestPermission();
+    console.log('Notification permission:', permission);
     return permission;
   }
 
   /**
-   * Subscribe user to push notifications
+   * Register device token for push notifications
+   * @param {string} token - FCM token or web push subscription
+   * @param {string} deviceType - 'web', 'android', 'ios', 'desktop'
+   * @param {Object} deviceInfo - Additional device information
+   * @returns {Promise<Object>} Registration result
    */
-  async subscribe() {
+  static async registerDeviceToken(token, deviceType = 'web', deviceInfo = {}) {
     try {
-      const permission = await this.requestPermission();
-      
-      if (permission !== 'granted') {
-        throw new Error('Notification permission denied');
-      }
-
-      if (!this.registration) {
-        await this.initialize();
-      }
-
-      // Create subscription
-      this.subscription = await this.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+      const response = await api.post('/push-notifications/register-token', {
+        token: token,
+        device_type: deviceType,
+        device_info: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          timestamp: new Date().toISOString(),
+          ...deviceInfo
+        }
       });
 
-      // Send subscription to server
-      await this.sendSubscriptionToServer(this.subscription);
-
-      console.log('Successfully subscribed to push notifications');
-      return this.subscription;
-    } catch (error) {
-      console.error('Failed to subscribe to push notifications:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Unsubscribe user from push notifications
-   */
-  async unsubscribe() {
-    try {
-      if (this.subscription) {
-        await this.subscription.unsubscribe();
-        
-        // Notify server
-        await this.removeSubscriptionFromServer(this.subscription.endpoint);
-        
-        this.subscription = null;
-        console.log('Successfully unsubscribed from push notifications');
-      }
-    } catch (error) {
-      console.error('Failed to unsubscribe from push notifications:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if user is currently subscribed
-   */
-  async isSubscribed() {
-    if (!this.isSupported || !this.registration) {
-      return false;
-    }
-
-    try {
-      this.subscription = await this.registration.pushManager.getSubscription();
-      return !!this.subscription;
-    } catch (error) {
-      console.error('Failed to check subscription status:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get current subscription
-   */
-  async getSubscription() {
-    if (!this.isSupported || !this.registration) {
-      return null;
-    }
-
-    try {
-      this.subscription = await this.registration.pushManager.getSubscription();
-      return this.subscription;
-    } catch (error) {
-      console.error('Failed to get subscription:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Send subscription data to server
-   */
-  async sendSubscriptionToServer(subscription) {
-    try {
-      const subscriptionData = {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
-          auth: this.arrayBufferToBase64(subscription.getKey('auth'))
-        }
-      };
-
-      await apiClient.post('/api/notifications/subscribe', subscriptionData);
-    } catch (error) {
-      console.error('Failed to send subscription to server:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove subscription from server
-   */
-  async removeSubscriptionFromServer(endpoint) {
-    try {
-      await apiClient.post('/api/notifications/unsubscribe', { endpoint });
-    } catch (error) {
-      console.error('Failed to remove subscription from server:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Show local notification (fallback)
-   */
-  showLocalNotification(title, options = {}) {
-    if (!this.isSupported) {
-      return;
-    }
-
-    const defaultOptions = {
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/badge-72x72.png',
-      requireInteraction: true,
-      ...options
-    };
-
-    if (Notification.permission === 'granted') {
-      new Notification(title, defaultOptions);
-    }
-  }
-
-  /**
-   * Handle notification click events
-   */
-  setupNotificationHandlers() {
-    if (!this.isSupported || !this.registration) {
-      return;
-    }
-
-    // Listen for notification clicks
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
-        const { data } = event.data;
-        
-        // Handle different notification types
-        switch (data.type) {
-          case 'low_stock':
-            window.location.href = '/products';
-            break;
-          case 'payment':
-            window.location.href = data.url || '/invoices';
-            break;
-          case 'trial_expiry':
-            window.location.href = '/pricing';
-            break;
-          case 'team_invitation':
-            window.location.href = '/team';
-            break;
-          default:
-            window.location.href = '/dashboard';
-        }
-      }
-    });
-  }
-
-  /**
-   * Get notification history
-   */
-  async getNotificationHistory(limit = 20) {
-    try {
-      const response = await apiClient.get('/api/notifications/history', {
-        params: { limit }
-      });
+      console.log('Device token registered successfully:', response.data);
       return response.data;
+
     } catch (error) {
-      console.error('Failed to get notification history:', error);
-      return { notifications: [] };
+      console.error('Failed to register device token:', error);
+      throw error;
     }
   }
 
   /**
-   * Mark notification as read
+   * Get all registered device tokens for the current user
+   * @returns {Promise<Object>} List of device tokens
    */
-  async markNotificationRead(notificationId) {
+  static async getUserTokens() {
     try {
-      await apiClient.post(`/api/notifications/${notificationId}/read`);
+      const response = await api.get('/push-notifications/tokens');
+      return response.data;
+
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      console.error('Failed to get user tokens:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a specific device token
+   * @param {string} tokenId - Token ID to remove
+   * @returns {Promise<Object>} Removal result
+   */
+  static async removeDeviceToken(tokenId) {
+    try {
+      const response = await api.delete(`/push-notifications/tokens/${tokenId}`);
+      return response.data;
+
+    } catch (error) {
+      console.error('Failed to remove device token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send a test push notification
+   * @returns {Promise<Object>} Test result
+   */
+  static async sendTestNotification() {
+    try {
+      const response = await api.post('/push-notifications/test');
+      return response.data;
+
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      throw error;
     }
   }
 
   /**
    * Get notification preferences
+   * @returns {Promise<Object>} User preferences
    */
-  async getNotificationPreferences() {
+  static async getNotificationPreferences() {
     try {
-      const response = await apiClient.get('/api/notifications/preferences');
+      const response = await api.get('/push-notifications/preferences');
       return response.data;
+
     } catch (error) {
       console.error('Failed to get notification preferences:', error);
-      return {};
+      throw error;
     }
   }
 
   /**
    * Update notification preferences
+   * @param {Array} preferences - Array of preference objects
+   * @returns {Promise<Object>} Update result
    */
-  async updateNotificationPreferences(preferences) {
+  static async updateNotificationPreferences(preferences) {
     try {
-      const response = await apiClient.put('/api/notifications/preferences', preferences);
+      const response = await api.put('/push-notifications/preferences', {
+        preferences: preferences
+      });
       return response.data;
+
     } catch (error) {
       console.error('Failed to update notification preferences:', error);
       throw error;
@@ -274,68 +134,126 @@ class PushNotificationService {
   }
 
   /**
-   * Test notification (for development)
+   * Get notification history
+   * @param {number} page - Page number (default: 1)
+   * @param {number} limit - Items per page (default: 20)
+   * @returns {Promise<Object>} Notification history
    */
-  async sendTestNotification() {
+  static async getNotificationHistory(page = 1, limit = 20) {
     try {
-      await apiClient.post('/api/notifications/test');
+      const response = await api.get(`/push-notifications/history?page=${page}&limit=${limit}`);
+      return response.data;
+
     } catch (error) {
-      console.error('Failed to send test notification:', error);
+      console.error('Failed to get notification history:', error);
       throw error;
     }
   }
 
-  // Utility functions
-
   /**
-   * Convert VAPID key to Uint8Array
+   * Initialize push notifications for web
+   * This is a simplified example - you'll need to implement Firebase FCM properly
+   * @returns {Promise<string>} FCM token
    */
-  urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+  static async initializeWebPush() {
+    try {
+      // Check if Firebase is available (you'll need to add Firebase SDK)
+      if (typeof firebase === 'undefined' || !firebase.messaging) {
+        throw new Error('Firebase messaging not available');
+      }
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+      const messaging = firebase.messaging();
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+      // Request permission
+      const permission = await this.requestPermission();
+      if (permission !== 'granted') {
+        throw new Error('Notification permission not granted');
+      }
+
+      // Get FCM token
+      const token = await messaging.getToken({
+        vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY // You'll need to set this
+      });
+
+      if (!token) {
+        throw new Error('Failed to get FCM token');
+      }
+
+      // Register the token with your backend
+      await this.registerDeviceToken(token, 'web', {
+        fcm_token: true,
+        browser: this.getBrowserInfo()
+      });
+
+      // Handle foreground messages
+      messaging.onMessage((payload) => {
+        console.log('Foreground message received:', payload);
+        this.showNotification(payload.notification);
+      });
+
+      return token;
+
+    } catch (error) {
+      console.error('Failed to initialize web push:', error);
+      throw error;
     }
-    return outputArray;
   }
 
   /**
-   * Convert ArrayBuffer to Base64
+   * Show a local notification
+   * @param {Object} notification - Notification data
    */
-  arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
+  static showNotification(notification) {
+    if (!this.isSupported()) return;
+
+    const { title, body, icon, badge, tag } = notification;
+
+    new Notification(title, {
+      body: body,
+      icon: icon || '/favicon.ico',
+      badge: badge || '/favicon.ico',
+      tag: tag || 'sabiops-notification',
+      requireInteraction: true
+    });
   }
 
   /**
-   * Check if notifications are supported
+   * Get browser information
+   * @returns {Object} Browser details
    */
-  static isSupported() {
-    return 'serviceWorker' in navigator && 'PushManager' in window;
+  static getBrowserInfo() {
+    const ua = navigator.userAgent;
+    let browser = 'Unknown';
+
+    if (ua.includes('Chrome')) browser = 'Chrome';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari')) browser = 'Safari';
+    else if (ua.includes('Edge')) browser = 'Edge';
+
+    return {
+      name: browser,
+      userAgent: ua,
+      platform: navigator.platform,
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      onLine: navigator.onLine
+    };
   }
 
   /**
-   * Get current permission status
+   * Clean up expired tokens (admin function)
+   * @returns {Promise<Object>} Cleanup result
    */
-  static getPermissionStatus() {
-    if (!PushNotificationService.isSupported()) {
-      return 'unsupported';
+  static async cleanupExpiredTokens() {
+    try {
+      const response = await api.post('/push-notifications/cleanup');
+      return response.data;
+
+    } catch (error) {
+      console.error('Failed to cleanup expired tokens:', error);
+      throw error;
     }
-    return Notification.permission;
   }
 }
 
-// Create and export singleton instance
-export const pushNotificationService = new PushNotificationService();
 export default PushNotificationService;
-

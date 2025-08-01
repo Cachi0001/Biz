@@ -294,7 +294,7 @@ def create_invoice():
             "status": "draft",
             "issue_date": datetime.now().isoformat(),
             "due_date": due_date,
-            "subtotal": subtotal,
+
             "tax_amount": tax_amount,
             "total_amount": total_amount,
             "notes": data.get("notes", ""),

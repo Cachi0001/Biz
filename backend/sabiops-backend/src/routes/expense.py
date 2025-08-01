@@ -64,6 +64,10 @@ def get_nigerian_expense_categories():
             "description": "Basic business utilities",
             "subcategories": ["Electricity", "Water", "Internet", "Phone", "Generator Fuel"]
         },
+        "Rent & Utilities": {
+            "description": "Combined rent and utility expenses",
+            "subcategories": ["Shop Rent + Utilities", "Office Rent + Utilities", "Electricity Bills", "Water Bills", "Internet Bills"]
+        },
         "Transportation": {
             "description": "Business travel and logistics",
             "subcategories": ["Fuel", "Vehicle Maintenance", "Public Transport", "Delivery Costs", "Logistics"]
