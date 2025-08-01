@@ -71,27 +71,16 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
     if (isFreeTrial) {
       return [
         {
-          title: 'Revenue Trend',
-          subtitle: 'Last 3 months (Trial)',
+          title: 'Revenue vs Expenses',
+          subtitle: 'Monthly comparison (Trial)',
           component: (
             <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={chartRevenueData.slice(0, 3)}>
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+              <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="20%">
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
                 <YAxis hide />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="url(#revenueGradient)"
-                  strokeWidth={3}
-                  dot={false}
-                />
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#16a34a" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-              </LineChart>
+                <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
             </ResponsiveContainer>
           )
         }
@@ -104,11 +93,11 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         subtitle: 'Monthly comparison',
         component: (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartRevenueData}>
+            <BarChart data={chartRevenueData} barCategoryGap="20%">
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
               <YAxis hide />
-              <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
             </BarChart>
           </ResponsiveContainer>
         )
@@ -120,30 +109,34 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         title: 'Top Products',
         subtitle: 'Sales distribution',
         component: (
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width={120} height={120}>
-              <PieChart>
-                <Pie
-                  data={topProductsData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={30}
-                  outerRadius={60}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {topProductsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="ml-4 space-y-1">
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0">
+            <div className="w-full sm:w-auto flex justify-center">
+              <ResponsiveContainer width={140} height={140} minWidth={120}>
+                <PieChart>
+                  <Pie
+                    data={topProductsData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={25}
+                    outerRadius={55}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {topProductsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-full sm:ml-4 space-y-1">
               {topProductsData.map((item, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-xs text-gray-600">{item.name}</span>
-                  <span className="text-xs font-medium text-gray-900">{item.value}</span>
+                <div key={index} className="flex items-center justify-between p-2 bg-white rounded">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm text-gray-700 truncate">{item.name}</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -158,11 +151,11 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         subtitle: 'This week',
         component: (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={salesData}>
+            <BarChart data={salesData} barCategoryGap="25%">
               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
               <YAxis hide />
-              <Bar dataKey="sales" fill="#16a34a" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="target" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="sales" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={35} />
+              <Bar dataKey="target" fill="#e5e7eb" radius={[4, 4, 0, 0]} maxBarSize={35} />
             </BarChart>
           </ResponsiveContainer>
         )

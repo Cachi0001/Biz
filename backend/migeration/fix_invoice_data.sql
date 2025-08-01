@@ -1,25 +1,24 @@
---This script is intended to fix data inconsistencies that may have resulted from the previous bug.
--- It is recommended to back up your database before running this script.
+Key Columns:
 
--- Update product quantities based on paid invoices
-DO $$
-DECLARE
-    inv RECORD;
-    item JSONB;
-    product_id_var UUID;
-    quantity_var NUMERIC;
-BEGIN
-    FOR inv IN SELECT * FROM invoices WHERE status = 'paid' LOOP
-        FOR item IN SELECT * FROM jsonb_array_elements(inv.items) LOOP
-            product_id_var := (item->>'product_id')::UUID;
-            quantity_var := (item->>'quantity')::NUMERIC;
+id: UUID (Primary Key)
+owner_id: UUID (Foreign Key to users table)
+customer_id: UUID (Foreign Key to customers table)
+invoice_number: Text (Unique, auto-generated)
+amount: Numeric (Invoice subtotal)
+tax_amount: Numeric (Tax amount)
+total_amount: Numeric (Total invoice amount)
+status: Text (Invoice status)
+Possible values: 'draft', 'sent', 'paid', 'overdue', 'cancelled'
+due_date: Timestamp
+paid_date: Timestamp
+items: JSONB (Stores invoice line items)
+currency: Text (Default: 'NGN')
+issue_date: Timestamp (Default: current timestamp)
+Additional Interesting Columns:
 
-            IF product_id_var IS NOT NULL AND quantity_var > 0 THEN
-                UPDATE products
-                SET quantity = quantity - quantity_var
-                WHERE id = product_id_var;
-            END IF;
-        END LOOP;
-    END LOOP;
-END;
-$$;
+total_cogs: Numeric (Total Cost of Goods Sold)
+gross_profit: Numeric
+payment_terms: Text (Default: 30 days)
+seller_name, seller_address, seller_contact
+discount_amount: Numeric
+inventory_updated: Boolean (Tracks if inventory has been updated)

@@ -32,22 +32,31 @@ def success_response(data=None, message="Success", status_code=200):
         "message": message
     }), status_code
 
-def error_response(error, message="Error", status_code=400, include_toast=True):
-    response_data = {
+def error_response(error, message="Error", status_code=400):
+    """Standardized error response with consistent toast format"""
+    return jsonify({
         "success": False,
-        "error": error,
-        "message": message
-    }
-    
-    # Add toast notification for client-side display
-    if include_toast:
-        response_data["toast"] = {
+        "error": str(error),
+        "message": message,
+        "toast": {
             "type": "error",
-            "message": message if isinstance(message, str) else str(error),
+            "message": message,
             "timeout": 4000
         }
-    
-    return jsonify(response_data), status_code
+    }), status_code
+
+def success_response(data=None, message="Success", status_code=200):
+    """Standardized success response with consistent toast format"""
+    return jsonify({
+        "success": True,
+        "data": data,
+        "message": message,
+        "toast": {
+            "type": "success",
+            "message": message,
+            "timeout": 3000
+        }
+    }), status_code
 
 def generate_invoice_number(owner_id):
     """Generate unique invoice number with format INV-YYYYMMDD-XXXX"""
@@ -794,7 +803,6 @@ def get_overdue_invoices():
                     "warning"
                 )
         
-        # Re-fetch to get updated statuses
         overdue_invoices_result = get_supabase().table("invoices").select("*").eq("owner_id", owner_id).eq("status", "overdue").execute()
         overdue_invoices = overdue_invoices_result.data
 

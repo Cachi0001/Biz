@@ -315,103 +315,15 @@ const Analytics = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Left Column */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Charts Section - Moved from Dashboard */}
+              {/* Charts Section - Revenue vs Expenses Combined */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Revenue & Performance</h2>
                 <ModernChartsSection data={dashboardData} loading={loading} analyticsData={analyticsData} />
               </div>
-
-              {/* Top Products Card - Moved from Dashboard */}
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-green-900 flex items-center">
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Top Products
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="animate-pulse space-y-2">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="h-4 bg-gray-200 rounded"></div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0">
-                      <div className="w-full sm:w-auto flex justify-center">
-                        <ResponsiveContainer width={140} height={140} minWidth={120}>
-                          <PieChart>
-                            <Pie
-                              data={topProductsData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={25}
-                              outerRadius={55}
-                              paddingAngle={2}
-                              dataKey="value"
-                            >
-                              {topProductsData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="w-full sm:ml-4 space-y-1">
-                        {topProductsData.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                              <span className="text-sm text-gray-700 truncate">{item.name}</span>
-                            </div>
-                            <span className="text-sm font-medium text-gray-900">{item.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
 
             {/* Right Column */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Monthly Expenses Chart - Moved from Dashboard */}
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-orange-900 flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Monthly Expenses
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="w-full overflow-x-auto">
-                    <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                      <BarChart data={monthlyExpensesData}>
-                        <XAxis 
-                          dataKey="month" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fontSize: 10, fill: '#6b7280' }} 
-                        />
-                        <YAxis hide />
-                        <Bar dataKey="expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="budget" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex justify-center space-x-4 mt-2">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                      <span className="text-xs text-gray-600">Actual</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-gray-300 rounded"></div>
-                      <span className="text-xs text-gray-600">Budget</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Low Stock Products Card - NEW */}
               <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-lg">
