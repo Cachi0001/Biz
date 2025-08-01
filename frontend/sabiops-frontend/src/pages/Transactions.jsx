@@ -98,7 +98,7 @@ const Transactions = () => {
             type: 'money_in',
             category: 'Invoice Payment',
             description: `Payment for Invoice #${invoice.invoice_number}`,
-            amount: invoice.total,
+            amount: invoice.total_amount || 0,
             date: invoice.updated_at,
             paymentMethod: 'Bank Transfer',
             reference: invoice.invoice_number,

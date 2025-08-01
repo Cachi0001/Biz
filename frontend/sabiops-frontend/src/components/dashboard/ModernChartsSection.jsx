@@ -23,33 +23,66 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
     );
   }
 
-  // Use real analytics data if available, otherwise fallback to dashboard data or mock data
-  const revenueData = analyticsData?.revenue?.trends || data?.revenue_chart || [
-    { period: 'Jan', revenue: 12000, expenses: 8000 },
-    { period: 'Feb', revenue: 19000, expenses: 12000 },
-    { period: 'Mar', revenue: 15000, expenses: 9000 },
-    { period: 'Apr', revenue: 22000, expenses: 13000 },
-    { period: 'May', revenue: 18000, expenses: 11000 },
-    { period: 'Jun', revenue: 25000, expenses: 14000 },
-  ];
-
-  // Transform revenue data for chart display
-  let chartRevenueData = revenueData.map(item => ({
-    month: item.period || item.month,
-    revenue: item.revenue || 0,
-    expenses: item.expenses || 0,
-    profit: item.profit || 0
-  }));
-
-  // Ensure that chart data uses the proper revenue trends data
-  const revenueTrends = analyticsData?.revenue_trends || [];
+  // Get revenue trends from analytics data or use mock data
+  const revenueTrends = analyticsData?.revenue?.trends || [];
+  const cashFlowTrends = analyticsData?.financial?.cash_flow_trends || [];
+  
+  // Debug logs for troubleshooting
+  console.log('ModernChartsSection Debug:', {
+    analyticsData: analyticsData,
+    revenueTrends: revenueTrends,
+    cashFlowTrends: cashFlowTrends,
+    dashboardData: data
+  });
+  
+  // Create a combined dataset with revenue from revenue trends and expenses from cash flow trends
+  let chartRevenueData = [];
+  
   if (revenueTrends.length > 0) {
-    chartRevenueData = revenueTrends.map(trend => ({
-      month: trend.period,
-      revenue: trend.revenue,
-      expenses: trend.expenses
+    // Use revenue trends as the base and match with cash flow data for expenses
+    chartRevenueData = revenueTrends.map(revenueItem => {
+      // Find matching period in cash flow data for expenses
+      const matchingCashFlow = cashFlowTrends.find(cashFlow => 
+        cashFlow.period === revenueItem.period
+      );
+      
+      return {
+        month: revenueItem.period,
+        revenue: revenueItem.revenue || 0,
+        expenses: matchingCashFlow?.money_out || 0,
+        profit: revenueItem.profit || 0
+      };
+    });
+  } else if (cashFlowTrends.length > 0) {
+    // If no revenue trends but have cash flow data, use that
+    chartRevenueData = cashFlowTrends.map(cashFlow => ({
+      month: cashFlow.period,
+      revenue: cashFlow.money_in || 0,
+      expenses: cashFlow.money_out || 0,
+      profit: (cashFlow.money_in || 0) - (cashFlow.money_out || 0)
     }));
+  } else if (data?.revenue_chart) {
+    // Fallback to dashboard data
+    chartRevenueData = data.revenue_chart.map(item => ({
+      month: item.period || item.month,
+      revenue: item.revenue || 0,
+      expenses: item.expenses || 0,
+      profit: item.profit || 0
+    }));
+  } else {
+    // Final fallback to mock data with expenses
+    chartRevenueData = [
+      { month: 'Jan', revenue: 12000, expenses: 8000 },
+      { month: 'Feb', revenue: 19000, expenses: 12000 },
+      { month: 'Mar', revenue: 15000, expenses: 9000 },
+      { month: 'Apr', revenue: 22000, expenses: 13000 },
+      { month: 'May', revenue: 18000, expenses: 11000 },
+      { month: 'Jun', revenue: 25000, expenses: 14000 },
+    ];
   }
+  
+  // Additional debug log for chart data
+  console.log('Chart Revenue Data:', chartRevenueData);
 
   const topProductsData = analyticsData?.products?.top_products_by_revenue?.slice(0, 4).map((product, index) => ({
     name: product.name || `Product ${index + 1}`,

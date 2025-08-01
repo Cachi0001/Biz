@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDashboardOverview, getAccurateDashboardMetrics, getSales, getInvoices, getExpenses, validateDataConsistency, syncAllBusinessData } from '../services/api';
+import api from '../services/api';
 import { handleApiError, showToast } from '../utils/errorHandling';
 import { 
   optimizedApiCall, 
@@ -96,11 +97,12 @@ export const useDashboard = () => {
         net_profit: accurateMetrics.net_profit || { total: 0, this_month: 0 }
       };
         
-      // Fetch recent activities from sales, invoices, and expenses
-      const [salesResponse, invoicesResponse, expensesResponse] = await Promise.allSettled([
+      // Fetch recent activities from sales, invoices, and expenses, plus revenue chart data
+      const [salesResponse, invoicesResponse, expensesResponse, revenueChartResponse] = await Promise.allSettled([
         getSales(),
         getInvoices(), 
-        getExpenses()
+        getExpenses(),
+        api.get('/dashboard/revenue-chart')
       ]);
 
       // Process recent activities
