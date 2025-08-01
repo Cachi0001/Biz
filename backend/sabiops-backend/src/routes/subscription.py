@@ -586,10 +586,10 @@ def get_subscription_analytics():
         logger.error(f"Error getting subscription analytics: {str(e)}")
         return error_response(str(e), "Failed to get subscription analytics", 500)
 
-@subscription_bp.route("/unified-status", methods=["GET"])
+@subscription_bp.route("/direct-status", methods=["GET"])
 @jwt_required()
-def get_unified_subscription_status():
-    """Get unified subscription status with direct database queries for reliability"""
+def get_direct_subscription_status():
+    """Get subscription status with direct database queries for reliability"""
     try:
         user_id = get_jwt_identity()
         supabase_service = SupabaseService()
@@ -629,15 +629,15 @@ def get_unified_subscription_status():
             }
         }
         
-        return success_response(data=status, message="Unified status retrieved successfully")
+        return success_response(data=status, message="Direct status retrieved successfully")
         
     except Exception as e:
-        logger.error(f"Error getting unified subscription status: {str(e)}")
-        return error_response(str(e), "Failed to get unified subscription status", 500)
+        logger.error(f"Error getting direct subscription status: {str(e)}")
+        return error_response(str(e), "Failed to get direct subscription status", 500)
 
-@subscription_bp.route("/usage-status", methods=["GET"])
+@subscription_bp.route("/direct-usage", methods=["GET"])
 @jwt_required()
-def get_usage_status():
+def get_direct_usage_status():
     """Get usage status with direct database queries for reliability"""
     try:
         user_id = get_jwt_identity()
