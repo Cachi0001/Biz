@@ -118,6 +118,46 @@ class InvoiceInventoryManager:
         except Exception as e:
             logger.error(f"Error releasing inventory: {str(e)}")
             return False
+
+    def reduce_inventory_on_invoice_creation(self, invoice_items: List[Dict], owner_id: str) -> bool:
+        """
+        Reduce inventory immediately when invoice is created (like sales do)
+        This prevents overselling by committing products to the invoice
+        """
+        try:
+            for item in invoice_items:
+                product_id = item.get("product_id")
+                quantity = int(item.get("quantity", 0))
+                
+                if not product_id or quantity <= 0:
+                    continue
+                
+                # Get current product
+                product_result = self.supabase.table("products").select("quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                
+                if not product_result.data:
+                    logger.warning(f"Product {product_id} not found for inventory reduction")
+                    continue
+                
+                product = product_result.data
+                current_qty = int(product.get("quantity", 0))
+                
+                # Reduce quantity immediately (like sales)
+                new_quantity = max(0, current_qty - quantity)
+                
+                # Update product quantity
+                self.supabase.table("products").update({
+                    "quantity": new_quantity,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", product_id).execute()
+                
+                logger.info(f"Reduced inventory on invoice creation - Product {product_id}: {current_qty} -> {new_quantity}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error reducing inventory on invoice creation: {str(e)}")
+            return False
     
     def deduct_inventory(self, invoice_items: List[Dict], owner_id: str) -> bool:
         """

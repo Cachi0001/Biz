@@ -96,7 +96,7 @@ def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
             "type": transaction_type,
             "amount": float(invoice_data["total_amount"]),
             "category": "Invoice Payment",
-            "description": f"Payment for Invoice {invoice_data['invoice_number']} - {invoice_data['customer_name']}",
+            "description": f"Payment for Invoice {invoice_data['invoice_number']}",
             "payment_method": "invoice",
             "reference_id": invoice_data["id"],
             "reference_type": "invoice",
@@ -109,6 +109,19 @@ def create_transaction_for_invoice(invoice_data, transaction_type="money_in"):
     except Exception as e:
         print(f"Error creating transaction for invoice: {str(e)}")
         return None
+
+def send_invoice_notification_sync(invoice_data, status):
+    """
+    Synchronous function to send invoice notifications
+    """
+    try:
+        # Implement your notification logic here
+        # For now, just log the notification
+        logger.info(f"Invoice {invoice_data.get('invoice_number')} notification sent for status: {status}")
+        return True
+    except Exception as e:
+        logger.error(f"Error sending invoice notification: {str(e)}")
+        return False
 
 @invoice_bp.route("/", methods=["GET"])
 @jwt_required()
@@ -290,9 +303,14 @@ def create_invoice():
         stock_validation = inventory_manager.validate_stock_availability(processed_items, owner_id)
         if not stock_validation.get('valid', False):
             error_msg = "Insufficient stock for the following items:\n"
-            for item in stock_validation.get('insufficient_stock', []):
-                error_msg += f"- {item.get('product_name', 'Unknown')}: Need {item.get('requested', 0)}, Available {item.get('available', 0)}\n"
+            for error in stock_validation.get('errors', []):
+                error_msg += f"- {error}\n"
             return error_response(error_msg, "Insufficient stock", status_code=400)
+        
+        # Reduce inventory immediately when invoice is created (like sales)
+        inventory_reduction_result = inventory_manager.reduce_inventory_on_invoice_creation(processed_items, owner_id)
+        if not inventory_reduction_result:
+            return error_response("Failed to update inventory", "Inventory update failed", status_code=500)
         
         # Create invoice data
         invoice_data = {
@@ -581,10 +599,27 @@ def update_invoice_status(invoice_id):
         # Get the updated invoice
         updated_invoice = result.data[0]
         
-        # Send email notification if status changed to paid or sent
+        # Handle payment processing when invoice is marked as paid
+        if new_status == "paid" and current_status != "paid":
+            try:
+                # Create transaction record for paid invoice (for revenue calculations)
+                transaction_result = create_transaction_for_invoice(updated_invoice)
+                if not transaction_result:
+                    logging.warning(f"Failed to create transaction for paid invoice {invoice_id}")
+                
+                # Update paid_at timestamp
+                supabase.table("invoices").update({
+                    "paid_at": datetime.now().isoformat(),
+                    "paid_amount": updated_invoice.get("total_amount", 0)
+                }).eq("id", invoice_id).execute()
+                    
+            except Exception as e:
+                logging.error(f"Error processing paid invoice {invoice_id}: {str(e)}")
+        
+        # Send email notification if status changed to paid or sent (synchronous)
         if new_status in ["paid", "sent"] and new_status != current_status:
             try:
-                await send_invoice_notification(updated_invoice, new_status)
+                send_invoice_notification_sync(updated_invoice, new_status)
             except Exception as e:
                 logging.error(f"Error sending {new_status} notification: {str(e)}")
         

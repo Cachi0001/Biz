@@ -31,6 +31,7 @@ from .routes.notifications import notifications_bp
 from .routes.search import search_bp
 from .routes.data_integrity import data_integrity_bp
 from .routes.subscription import subscription_bp
+from .routes.analytics import analytics_bp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -183,6 +184,7 @@ def create_app():
     app.register_blueprint(search_bp, url_prefix='/api')
     app.register_blueprint(data_integrity_bp, url_prefix='/api/data-integrity')
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
+    app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
 
     @app.route('/debug', methods=['GET'])
     def debug():
