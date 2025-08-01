@@ -118,7 +118,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
           subtitle: 'Monthly comparison',
           component: (
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="20%">
+              <BarChart data={chartRevenueData.slice(0, 3)} barCategoryGap="10%">
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
                 <YAxis hide />
                 <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -136,7 +136,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         subtitle: 'Monthly comparison',
         component: (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartRevenueData} barCategoryGap="20%">
+            <BarChart data={chartRevenueData} barCategoryGap="5%">
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
               <YAxis hide />
               <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={40} />

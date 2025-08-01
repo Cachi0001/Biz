@@ -171,13 +171,21 @@ export const useDashboard = () => {
         });
       }
 
+      // Process revenue chart data if available
+      let revenueChartData = null;
+      if (revenueChartResponse.status === 'fulfilled' && revenueChartResponse.value?.data) {
+        revenueChartData = revenueChartResponse.value.data;
+        console.log('[DEBUG] Revenue chart data received:', revenueChartData);
+      }
+
       // Sort activities by timestamp (most recent first)
       recentActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       // Combine overview data with recent activities
       const combinedData = {
         ...mergedOverview,
-        recent_activities: recentActivities.slice(0, 5)
+        recent_activities: recentActivities.slice(0, 5),
+        revenue_chart: revenueChartData
       };
 
       console.log('[DEBUG] Final combined dashboard data:', combinedData);

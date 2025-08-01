@@ -970,14 +970,12 @@ const Sales = () => {
                         const quantity = parseInt(e.target.value) || 1;
                         const selectedProduct = products.find(p => p.id === formData.product_id);
                         
+                        // Only perform basic validation without showing toasts
                         if (selectedProduct) {
                           const availableQuantity = parseInt(selectedProduct.quantity) || 0;
-                          const lowStockThreshold = parseInt(selectedProduct.low_stock_threshold) || 5;
                           
+                          // Silently adjust quantity if it exceeds available stock
                           if (quantity > availableQuantity && availableQuantity > 0) {
-                            toastService.warning(
-                              `Only ${availableQuantity} units available for ${selectedProduct.name}. Quantity adjusted.`
-                            );
                             setFormData(prev => ({
                               ...prev,
                               quantity: availableQuantity,
@@ -986,16 +984,9 @@ const Sales = () => {
                             return;
                           }
                           
+                          // Prevent setting quantity if out of stock
                           if (availableQuantity === 0) {
-                            toastService.error(`${selectedProduct.name} is out of stock!`);
                             return;
-                          }
-                          
-                          // Show low stock warning
-                          if (quantity <= lowStockThreshold && availableQuantity > 0) {
-                            toastService.info(
-                              `${selectedProduct.name} is running low on stock (${availableQuantity} remaining)`
-                            );
                           }
                         }
                         

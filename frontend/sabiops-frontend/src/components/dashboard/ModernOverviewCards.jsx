@@ -57,12 +57,12 @@ const ModernOverviewCards = ({ data, loading }) => {
     },
     {
       title: 'Profit From Sales',
-      value: formatNaira(data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0),
+      value: formatNaira(data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0),
       change: `${formatNaira(data?.revenue?.this_month_profit_from_sales || 0)} this month`,
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      trend: (data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0) > 0 ? 'up' : 'down'
+      trend: (data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0) > 0 ? 'up' : 'down'
     },
     {
       title: 'Customers',
