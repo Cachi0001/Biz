@@ -17,11 +17,11 @@ export function useUpgradeNotifications(options = {}) {
     upgradeSuggestions: 0
   });
 
-  const {
+  const { 
     autoRefresh = true,
     refreshInterval = 60000 // 1 minute
   } = options;
-
+  
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
 
@@ -46,7 +46,7 @@ export function useUpgradeNotifications(options = {}) {
   const markAsRead = useCallback(async (notificationId) => {
     try {
       await api.put(`/subscription/notifications/${notificationId}/read`);
-      setNotifications(prev => 
+          setNotifications(prev => 
         prev.map(notif => 
           notif.id === notificationId 
             ? { ...notif, read: true }

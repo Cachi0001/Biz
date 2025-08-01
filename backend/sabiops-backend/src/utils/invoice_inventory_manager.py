@@ -53,6 +53,60 @@ class InvoiceInventoryManager:
             logger.error(f"Error reserving inventory: {str(e)}")
             return False
     
+    def validate_stock_availability(self, invoice_items: List[Dict], owner_id: str) -> Dict:
+        """
+        Validate stock availability for invoice items before creation
+        Returns: Dict with validation result and details
+        """
+        try:
+            validation_result = {
+                "valid": True,
+                "errors": [],
+                "warnings": []
+            }
+            
+            for item in invoice_items:
+                product_id = item.get("product_id")
+                quantity = int(item.get("quantity", 0))
+                
+                if not product_id or quantity <= 0:
+                    continue
+                
+                # Get current product inventory
+                product_result = self.supabase.table("products").select("name, quantity, reserved_quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                
+                if not product_result.data:
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(f"Product {product_id} not found")
+                    continue
+                
+                product = product_result.data
+                product_name = product.get("name", f"Product {product_id}")
+                current_qty = int(product.get("quantity", 0))
+                reserved_qty = int(product.get("reserved_quantity", 0))
+                available_qty = current_qty - reserved_qty
+                
+                # Check if enough inventory available
+                if available_qty < quantity:
+                    validation_result["valid"] = False
+                    validation_result["errors"].append(
+                        f"Insufficient stock for {product_name}: available={available_qty}, requested={quantity}"
+                    )
+                elif available_qty < quantity * 1.2:  # Warning if less than 20% buffer
+                    validation_result["warnings"].append(
+                        f"Low stock warning for {product_name}: only {available_qty} units available"
+                    )
+            
+            return validation_result
+            
+        except Exception as e:
+            logger.error(f"Error validating stock availability: {str(e)}")
+            return {
+                "valid": False,
+                "errors": [f"Stock validation failed: {str(e)}"],
+                "warnings": []
+            }
+
     def release_inventory(self, invoice_items: List[Dict], owner_id: str) -> bool:
         try:
             for item in invoice_items:

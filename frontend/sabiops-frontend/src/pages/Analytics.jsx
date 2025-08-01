@@ -3,39 +3,100 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import ModernChartsSection from '../components/dashboard/ModernChartsSection';
+import TimePeriodFilter from '../components/analytics/TimePeriodFilter';
+import CustomerAnalyticsCard from '../components/analytics/CustomerAnalyticsCard';
+import ProductAnalyticsCard from '../components/analytics/ProductAnalyticsCard';
+import FinancialAnalyticsCard from '../components/analytics/FinancialAnalyticsCard';
+import ExportControls from '../components/analytics/ExportControls';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { BarChart3, TrendingUp, Crown, Lock, Package, AlertTriangle, ShoppingCart, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, Crown, Lock, Package, AlertTriangle, ShoppingCart, DollarSign, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '../lib/utils/index.js';
-import { getProducts } from '../services/api';
-import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, LineChart, Line } from 'recharts';
-import { responsiveSpacing, responsiveText, mobileClasses } from '../utils/mobileOptimizations.jsx';
+import api from '../services/api';
+import frontendAnalyticsCache from '../services/analyticsCacheService';
+import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const Analytics = () => {
   const { user, isAuthenticated, canAccessFeature, subscription } = useAuth();
   const { dashboardData, loading, error } = useDashboard();
-  const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState(null);
+  const [timePeriod, setTimePeriod] = useState('monthly');
+  const [accessCheck, setAccessCheck] = useState(null);
 
-  // Fetch products for low stock analysis
+  // Fetch analytics access check and data
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAnalyticsData = async () => {
       try {
-        setProductsLoading(true);
-        const response = await getProducts();
-        setProducts(Array.isArray(response) ? response : []);
+        setAnalyticsLoading(true);
+        setAnalyticsError(null);
+
+        // First check if user has access to analytics
+        const accessResponse = await api.get('/dashboard/analytics/access-check');
+        setAccessCheck(accessResponse.data.data);
+
+        if (!accessResponse.data.data.has_access) {
+          setAnalyticsLoading(false);
+          return;
+        }
+
+        // Check cache first
+        const cacheKey = frontendAnalyticsCache.getCacheKey(user?.id, 'business_analytics', timePeriod);
+        const cachedData = frontendAnalyticsCache.getCachedData(cacheKey);
+
+        if (cachedData) {
+          setAnalyticsData(cachedData);
+          setAnalyticsLoading(false);
+          
+          // Preload other time periods in background
+          frontendAnalyticsCache.preloadAnalyticsData(user?.id, timePeriod, async (period) => {
+            const response = await api.get(`/dashboard/analytics?period=${period}`);
+            return response.data.data;
+          });
+          
+          return;
+        }
+
+        // If not cached, fetch from API
+        const analyticsResponse = await api.get(`/dashboard/analytics?period=${timePeriod}`);
+        const analyticsData = analyticsResponse.data.data;
+        
+        // Cache the data
+        frontendAnalyticsCache.setCachedData(cacheKey, analyticsData, timePeriod);
+        
+        setAnalyticsData(analyticsData);
+
+        // Preload other time periods in background
+        frontendAnalyticsCache.preloadAnalyticsData(user?.id, timePeriod, async (period) => {
+          const response = await api.get(`/dashboard/analytics?period=${period}`);
+          return response.data.data;
+        });
+
       } catch (error) {
-        console.error('Failed to fetch products:', error);
-        setProducts([]);
+        console.error('Failed to fetch analytics data:', error);
+        setAnalyticsError(error.response?.data?.message || 'Failed to load analytics data');
       } finally {
-        setProductsLoading(false);
+        setAnalyticsLoading(false);
       }
     };
 
-    if (isAuthenticated) {
-      fetchProducts();
+    if (isAuthenticated && user?.id) {
+      fetchAnalyticsData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, timePeriod, user?.id]);
+
+  const handleTimePeriodChange = (newPeriod) => {
+    setTimePeriod(newPeriod);
+  };
+
+  const handleRefreshAnalytics = () => {
+    if (isAuthenticated) {
+      setAnalyticsLoading(true);
+      // Trigger re-fetch by updating a dependency
+      setTimePeriod(prev => prev);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -53,12 +114,12 @@ const Analytics = () => {
     );
   }
 
-  // Check if user can access analytics
-  if (!canAccessFeature('analytics')) {
+  // Check if user can access analytics based on backend response
+  if (accessCheck && !accessCheck.has_access) {
     return (
       <DashboardLayout>
         <div className="container mx-auto px-4 py-6 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 min-h-screen">
-          {/* Upgrade Notice for Non-Trial Users */}
+          {/* Upgrade Notice for Non-Subscribed Users */}
           <Card className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-orange-300 shadow-lg">
             <CardContent className="p-6 text-center">
               <div className="flex justify-center mb-4">
@@ -68,14 +129,81 @@ const Analytics = () => {
               </div>
               <h2 className="text-xl font-bold text-orange-900 mb-2">Advanced Analytics</h2>
               <p className="text-orange-800 mb-4">
-                Subscribe to access detailed business insights and advanced reporting.
+                {accessCheck.reason || 'Subscribe to access detailed business insights and advanced reporting.'}
               </p>
+              {accessCheck.upgrade_info?.trial_available && (
+                <div className="mb-4">
+                  <p className="text-sm text-orange-700 mb-2">Start with a 7-day free trial!</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+                  onClick={() => window.location.href = '/subscription-upgrade'}
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  {accessCheck.upgrade_info?.trial_available ? 'Start Free Trial' : 'Subscribe Now'}
+                </Button>
+                {accessCheck.upgrade_info?.upgrade_options?.length > 0 && (
+                  <div className="text-xs text-orange-600 mt-2">
+                    Plans starting from {accessCheck.upgrade_info.upgrade_options[0]?.price}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show loading state while checking access or loading data
+  if (analyticsLoading && !analyticsData) {
+    return (
+      <DashboardLayout>
+        <div className="container mx-auto px-4 py-6 space-y-6">
+          <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Business Analytics</h1>
+                  <p className="text-blue-100 text-sm sm:text-base">Loading your business insights...</p>
+                </div>
+                <RefreshCw className="h-8 w-8 sm:h-12 sm:w-12 text-white opacity-80 animate-spin" />
+              </div>
+            </CardContent>
+          </Card>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error state
+  if (analyticsError) {
+    return (
+      <DashboardLayout>
+        <div className="container mx-auto px-4 py-6 space-y-6">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-red-900 mb-2">Error Loading Analytics</h2>
+              <p className="text-red-800 mb-4">{analyticsError}</p>
               <Button
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-                onClick={() => window.location.href = '/subscription-upgrade'}
+                onClick={handleRefreshAnalytics}
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
-                <Crown className="h-4 w-4 mr-2" />
-                Subscribe Now
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
               </Button>
             </CardContent>
           </Card>
@@ -84,29 +212,29 @@ const Analytics = () => {
     );
   }
 
-  // Get low stock products (stock < 10 or custom threshold)
-  const lowStockProducts = products.filter(product => {
-    const stock = Number(product.stock) || 0;
-    const threshold = Number(product.low_stock_threshold) || 10;
-    return stock <= threshold && stock > 0;
-  });
+  // Get analytics data or use fallback values
+  const revenueData = analyticsData?.revenue || {};
+  const customerData = analyticsData?.customers || {};
+  const productData = analyticsData?.products || {};
+  const financialData = analyticsData?.financial || {};
 
-  // Get top products data (mock data for now, should come from sales data)
-  const topProductsData = products.slice(0, 5).map((product, index) => ({
+  // Get low stock products from analytics data
+  const lowStockProducts = productData.low_stock_products || [];
+
+  // Get top products data from analytics
+  const topProductsData = (productData.top_products_by_revenue || []).slice(0, 5).map((product, index) => ({
     name: product.name || `Product ${index + 1}`,
-    value: Math.floor(Math.random() * 50) + 10,
+    value: product.revenue || 0,
     color: ['#16a34a', '#8b5cf6', '#3b82f6', '#f59e0b', '#ef4444'][index] || '#6b7280'
   }));
 
-  // Monthly expenses data (mock data)
-  const monthlyExpensesData = [
-    { month: 'Jan', expenses: 8000, budget: 10000 },
-    { month: 'Feb', expenses: 12000, budget: 10000 },
-    { month: 'Mar', expenses: 9000, budget: 10000 },
-    { month: 'Apr', expenses: 13000, budget: 12000 },
-    { month: 'May', expenses: 11000, budget: 12000 },
-    { month: 'Jun', expenses: 14000, budget: 12000 },
-  ];
+  // Get cash flow data from analytics for expenses chart
+  const cashFlowData = financialData.cash_flow_trends || [];
+  const monthlyExpensesData = cashFlowData.map(item => ({
+    month: item.period,
+    expenses: item.money_out || 0,
+    revenue: item.money_in || 0
+  }));
 
   return (
     <DashboardLayout>
@@ -124,6 +252,21 @@ const Analytics = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Time Period Filter */}
+          <TimePeriodFilter 
+            currentPeriod={timePeriod}
+            onPeriodChange={handleTimePeriodChange}
+            loading={analyticsLoading}
+          />
+
+          {/* Export Controls */}
+          <ExportControls 
+            analyticsData={analyticsData}
+            timePeriod={timePeriod}
+            onExportStart={(type) => console.log(`Starting export: ${type}`)}
+            onExportComplete={(type, result) => console.log(`Export completed: ${type}`, result)}
+          />
 
           {/* Key Metrics Grid - Mobile Responsive */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -151,7 +294,7 @@ const Analytics = () => {
               <CardContent className="p-3 sm:p-4 text-center">
                 <Package className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 mx-auto mb-2" />
                 <p className="text-lg sm:text-2xl font-bold text-purple-900">
-                  {products.length}
+                  {productData.total_products || 0}
                 </p>
                 <p className="text-xs sm:text-sm text-purple-700 font-medium">Total Products</p>
               </CardContent>
@@ -175,7 +318,7 @@ const Analytics = () => {
               {/* Charts Section - Moved from Dashboard */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Revenue & Performance</h2>
-                <ModernChartsSection data={dashboardData} loading={loading} />
+                <ModernChartsSection data={dashboardData} loading={loading} analyticsData={analyticsData} />
               </div>
 
               {/* Top Products Card - Moved from Dashboard */}
@@ -279,7 +422,7 @@ const Analytics = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {productsLoading ? (
+                  {analyticsLoading ? (
                     <div className="animate-pulse space-y-2">
                       {[1, 2, 3].map(i => (
                         <div key={i} className="h-4 bg-gray-200 rounded"></div>
@@ -317,20 +460,28 @@ const Analytics = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Monthly Growth</span>
-                      <span className="text-sm font-bold text-green-600">+12.5%</span>
+                      <span className="text-sm font-medium text-gray-700">Revenue Growth</span>
+                      <span className={`text-sm font-bold ${revenueData.revenue_growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {revenueData.revenue_growth >= 0 ? '+' : ''}{revenueData.revenue_growth?.toFixed(1) || '0.0'}%
+                      </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Customer Retention</span>
-                      <span className="text-sm font-bold text-blue-600">87%</span>
+                      <span className="text-sm font-medium text-gray-700">Profit Margin</span>
+                      <span className="text-sm font-bold text-blue-600">
+                        {revenueData.profit_margin?.toFixed(1) || '0.0'}%
+                      </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                       <span className="text-sm font-medium text-gray-700">Average Order Value</span>
-                      <span className="text-sm font-bold text-purple-600">₦15,750</span>
+                      <span className="text-sm font-bold text-purple-600">
+                        {formatCurrency(customerData.avg_order_value || 0)}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                       <span className="text-sm font-medium text-gray-700">Inventory Turnover</span>
-                      <span className="text-sm font-bold text-orange-600">4.2x</span>
+                      <span className="text-sm font-bold text-orange-600">
+                        {productData.inventory_turnover?.toFixed(1) || '0.0'}x
+                      </span>
                     </div>
                   </div>
                 </CardContent>

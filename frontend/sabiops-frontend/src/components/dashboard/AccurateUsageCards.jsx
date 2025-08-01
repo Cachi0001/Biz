@@ -101,7 +101,7 @@ const AccurateUsageCards = () => {
     return null;
   }
 
-  const { usage_counts, actual_counts, has_discrepancies } = usageData;
+  const { usage_counts, actual_counts, has_discrepancies } = usageData || {};
 
   const usageCards = [
     {

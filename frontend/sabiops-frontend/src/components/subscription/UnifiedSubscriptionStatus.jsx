@@ -94,7 +94,7 @@ const UnifiedSubscriptionStatus = ({ onUpgrade }) => {
     return null;
   }
 
-  const { unified_status, remaining_days, subscription_plan, display_message, is_trial, is_active, is_expired } = subscriptionStatus;
+  const { unified_status, remaining_days, subscription_plan, display_message, is_trial, is_active, is_expired } = subscriptionStatus || {};
 
   // Single status display based on unified_status priority
   const renderStatusCard = () => {

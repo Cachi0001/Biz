@@ -618,6 +618,204 @@ def sync_all_business_data():
         current_app.logger.error(f"Error synchronizing business data: {str(e)}")
         return error_response("Failed to synchronize business data", 500)
 
+@dashboard_bp.route('/analytics', methods=['GET'])
+@jwt_required()
+def get_analytics_data():
+    """Get comprehensive business analytics data with subscription protection"""
+    try:
+        from src.utils.subscription_decorators import check_analytics_access, get_subscription_upgrade_info
+        from src.services.analytics_service import AnalyticsService
+        from flask import request
+        
+        user_id = get_jwt_identity()
+        
+        # Check analytics access
+        access_check = check_analytics_access(user_id)
+        if not access_check.get('has_access', False):
+            upgrade_info = get_subscription_upgrade_info(user_id)
+            return jsonify({
+                'success': False,
+                'error': 'Analytics access denied',
+                'message': access_check.get('reason', 'Subscription required for analytics'),
+                'access_denied': True,
+                'upgrade_required': True,
+                'upgrade_info': upgrade_info,
+                'current_plan': access_check.get('current_plan', 'free')
+            }), 403
+        
+        # Get time period filter
+        time_period = request.args.get('period', 'monthly')
+        if time_period not in ['daily', 'weekly', 'monthly', 'yearly']:
+            time_period = 'monthly'
+        
+        # Get analytics data
+        analytics_service = AnalyticsService()
+        analytics_data = analytics_service.get_business_analytics(user_id, time_period)
+        
+        if not analytics_data.get('success', False):
+            return error_response(
+                analytics_data.get('message', 'Failed to generate analytics'),
+                500
+            )
+        
+        return success_response(
+            "Analytics data retrieved successfully",
+            analytics_data['data']
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching analytics data: {str(e)}")
+        return error_response("Failed to fetch analytics data", 500)
+
+@dashboard_bp.route('/analytics/revenue', methods=['GET'])
+@jwt_required()
+def get_revenue_analytics():
+    """Get revenue analytics with subscription protection"""
+    try:
+        from src.utils.subscription_decorators import analytics_access_required
+        from src.services.analytics_service import AnalyticsService
+        from flask import request
+        
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        
+        # Check analytics access
+        from src.utils.subscription_decorators import check_analytics_access
+        access_check = check_analytics_access(user_id)
+        if not access_check.get('has_access', False):
+            return error_response("Analytics access denied", 403)
+        
+        time_period = request.args.get('period', 'monthly')
+        
+        analytics_service = AnalyticsService()
+        revenue_data = analytics_service.get_revenue_analytics(owner_id, time_period)
+        
+        return success_response("Revenue analytics retrieved successfully", revenue_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching revenue analytics: {str(e)}")
+        return error_response("Failed to fetch revenue analytics", 500)
+
+@dashboard_bp.route('/analytics/customers', methods=['GET'])
+@jwt_required()
+def get_customer_analytics():
+    """Get customer analytics with subscription protection"""
+    try:
+        from src.services.analytics_service import AnalyticsService
+        from flask import request
+        
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        
+        # Check analytics access
+        from src.utils.subscription_decorators import check_analytics_access
+        access_check = check_analytics_access(user_id)
+        if not access_check.get('has_access', False):
+            return error_response("Analytics access denied", 403)
+        
+        time_period = request.args.get('period', 'monthly')
+        
+        analytics_service = AnalyticsService()
+        customer_data = analytics_service.get_customer_analytics(owner_id, time_period)
+        
+        return success_response("Customer analytics retrieved successfully", customer_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching customer analytics: {str(e)}")
+        return error_response("Failed to fetch customer analytics", 500)
+
+@dashboard_bp.route('/analytics/products', methods=['GET'])
+@jwt_required()
+def get_product_analytics():
+    """Get product analytics with subscription protection"""
+    try:
+        from src.services.analytics_service import AnalyticsService
+        from flask import request
+        
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        
+        # Check analytics access
+        from src.utils.subscription_decorators import check_analytics_access
+        access_check = check_analytics_access(user_id)
+        if not access_check.get('has_access', False):
+            return error_response("Analytics access denied", 403)
+        
+        time_period = request.args.get('period', 'monthly')
+        
+        analytics_service = AnalyticsService()
+        product_data = analytics_service.get_product_analytics(owner_id, time_period)
+        
+        return success_response("Product analytics retrieved successfully", product_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching product analytics: {str(e)}")
+        return error_response("Failed to fetch product analytics", 500)
+
+@dashboard_bp.route('/analytics/financial', methods=['GET'])
+@jwt_required()
+def get_financial_analytics():
+    """Get financial analytics with subscription protection"""
+    try:
+        from src.services.analytics_service import AnalyticsService
+        from flask import request
+        
+        user_id = get_jwt_identity()
+        owner_id, user_role = get_user_context(user_id)
+        
+        # Check analytics access
+        from src.utils.subscription_decorators import check_analytics_access
+        access_check = check_analytics_access(user_id)
+        if not access_check.get('has_access', False):
+            return error_response("Analytics access denied", 403)
+        
+        time_period = request.args.get('period', 'monthly')
+        
+        analytics_service = AnalyticsService()
+        financial_data = analytics_service.get_financial_analytics(owner_id, time_period)
+        
+        return success_response("Financial analytics retrieved successfully", financial_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching financial analytics: {str(e)}")
+        return error_response("Failed to fetch financial analytics", 500)
+
+@dashboard_bp.route('/analytics/access-check', methods=['GET'])
+@jwt_required()
+def check_analytics_access_endpoint():
+    """Check if user has access to analytics features"""
+    try:
+        from src.utils.subscription_decorators import check_analytics_access, get_subscription_upgrade_info
+        
+        user_id = get_jwt_identity()
+        access_check = check_analytics_access(user_id)
+        
+        if access_check.get('has_access', False):
+            return success_response("Analytics access granted", {
+                'has_access': True,
+                'access_level': access_check.get('reason', 'Access granted'),
+                'current_plan': access_check.get('current_plan'),
+                'is_trial': access_check.get('is_trial', False),
+                'trial_days_left': access_check.get('trial_days_left', 0)
+            })
+        else:
+            upgrade_info = get_subscription_upgrade_info(user_id)
+            return jsonify({
+                'success': True,
+                'data': {
+                    'has_access': False,
+                    'reason': access_check.get('reason'),
+                    'current_plan': access_check.get('current_plan', 'free'),
+                    'upgrade_required': True,
+                    'upgrade_info': upgrade_info
+                },
+                'message': "Analytics access check completed"
+            }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error checking analytics access: {str(e)}")
+        return error_response("Failed to check analytics access", 500)
+
 @dashboard_bp.route('/profit-calculations', methods=['GET'])
 @jwt_required()
 def get_profit_calculations():

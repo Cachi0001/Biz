@@ -18,7 +18,6 @@ import BackButton from '../components/ui/BackButton';
 import StableInput from '../components/ui/StableInput';
 
 const Invoices = () => {
-  // State
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -58,9 +57,9 @@ const Invoices = () => {
   const fetchCustomers = async () => {
     try {
       const response = await customerApi.getCustomers();
-      
+
       let customersData = [];
-      
+
       if (response?.data?.customers && Array.isArray(response.data.customers)) {
         customersData = response.data.customers;
       } else if (response?.data && Array.isArray(response.data)) {
@@ -81,9 +80,9 @@ const Invoices = () => {
   const fetchProducts = async () => {
     try {
       const response = await productApi.getProducts();
-      
+
       let productsData = [];
-      
+
       if (response?.data?.products && Array.isArray(response.data.products)) {
         productsData = response.data.products;
       } else if (response?.data && Array.isArray(response.data)) {
@@ -160,14 +159,14 @@ const Invoices = () => {
 
   const handleReview = (formData) => {
     console.log('Review data:', formData);
-    
+
     const reviewFormData = {
       ...formData,
       customer_id: formData.customer_id || '',
       items: formData.items || [],
       status: formData.status || 'draft'
     };
-    
+
     setReviewData(reviewFormData);
     setShowReviewDialog(true);
   };
@@ -182,21 +181,21 @@ const Invoices = () => {
   const handleReviewConfirm = async () => {
     try {
       setLoading(true);
-      
+
       if (!reviewData) {
         handleApiErrorWithToast(new Error('No invoice data to save'));
         setLoading(false);
         return;
       }
-      
+
       const { validateInvoiceData } = await import('../utils/invoiceValidator');
-      
+
       const validation = validateInvoiceData(reviewData);
-      
+
       if (!validation.isValid) {
         const firstErrorKey = Object.keys(validation.errors)[0];
         const firstError = validation.errors[firstErrorKey];
-        
+
         if (firstErrorKey === 'itemErrors') {
           const itemErrors = validation.errors.itemErrors;
           for (let i = 0; i < itemErrors.length; i++) {
@@ -210,25 +209,25 @@ const Invoices = () => {
         } else {
           handleApiErrorWithToast(new Error(firstError));
         }
-        
+
         setLoading(false);
         return;
       }
-      
+
       // Add status field if not present
       const dataToSave = {
         ...validation.formattedData,
         status: validation.formattedData.status || 'draft'
       };
-      
+
       console.log('Saving invoice data:', dataToSave);
-      
+
       if (isEdit && editingInvoice) {
         await invoiceApi.updateInvoice(editingInvoice.id, dataToSave);
       } else {
         await invoiceApi.createInvoice(dataToSave);
       }
-      
+
       // Close dialogs and reset state
       setShowAddDialog(false);
       setShowEditDialog(false);
@@ -236,7 +235,7 @@ const Invoices = () => {
       setEditingInvoice(null);
       setReviewData(null);
       setIsEdit(false);
-      
+
       // Refresh invoices list
       fetchInvoices();
     } catch (error) {
@@ -255,16 +254,16 @@ const Invoices = () => {
   // Filter invoices
   const filteredInvoices = invoices.filter(invoice => {
     // Search term filter
-    const matchesSearch = 
+    const matchesSearch =
       (invoice.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (invoice.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (invoice.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Status filter
-    const matchesStatus = 
-      statusFilter === 'all' || 
+    const matchesStatus =
+      statusFilter === 'all' ||
       invoice.status === statusFilter;
-    
+
     // Date filter
     let matchesDate = true;
     const invoiceDate = new Date(invoice.issue_date || invoice.created_at);
@@ -273,13 +272,13 @@ const Invoices = () => {
     thirtyDaysAgo.setDate(today.getDate() - 30);
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(today.getDate() - 90);
-    
+
     if (dateFilter === 'last30days') {
       matchesDate = invoiceDate >= thirtyDaysAgo;
     } else if (dateFilter === 'last90days') {
       matchesDate = invoiceDate >= ninetyDaysAgo;
     }
-    
+
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -456,7 +455,7 @@ const Invoices = () => {
                   </CardTitle>
                   <CardDescription>
                     {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''} found
-                    {invoices.length > 0 && filteredInvoices.length !== invoices.length && 
+                    {invoices.length > 0 && filteredInvoices.length !== invoices.length &&
                       ` (${invoices.length} total)`
                     }
                   </CardDescription>
@@ -480,7 +479,7 @@ const Invoices = () => {
                       ? 'Try adjusting your search criteria or filters'
                       : 'Get started by creating your first invoice.'}
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setShowAddDialog(true);
                       setIsEdit(false);
@@ -560,36 +559,36 @@ const Invoices = () => {
 
                               {/* Actions */}
                               <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => handleEdit(invoice)}
                                   className="flex-1"
                                 >
                                   <Edit className="h-4 w-4 mr-1" />
                                   Edit
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => handleSend(invoice.id)}
                                   className="flex-1"
                                 >
                                   <Send className="h-4 w-4 mr-1" />
                                   Send
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => handleDownload(invoice.id)}
                                   className="flex-1"
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   PDF
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => handleDelete(invoice.id)}
                                   className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                                 >
@@ -666,33 +665,33 @@ const Invoices = () => {
                               </TableCell>
                               <TableCell className="px-6 py-4">
                                 <div className="flex justify-center space-x-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleEdit(invoice)}
                                     className="h-8 w-8 p-0 hover:bg-blue-100"
                                   >
                                     <Edit className="h-4 w-4 text-blue-600" />
                                   </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleSend(invoice.id)}
                                     className="h-8 w-8 p-0 hover:bg-green-100"
                                   >
                                     <Send className="h-4 w-4 text-green-600" />
                                   </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleDownload(invoice.id)}
                                     className="h-8 w-8 p-0 hover:bg-purple-100"
                                   >
                                     <Download className="h-4 w-4 text-purple-600" />
                                   </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleDelete(invoice.id)}
                                     className="h-8 w-8 p-0 hover:bg-red-100"
                                   >
