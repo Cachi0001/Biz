@@ -7,9 +7,9 @@ Werkzeug==2.3.7
 python-decouple==3.8
 supabase==1.0.4
 requests==2.31.0
-reportlab==4.0.4
+reportlab==4.4.3
 psycopg2-binary
 pytz==2023.3
 flask-limiter
 firebase-admin>=6.0.0
-async-timeout==4.0.3
+async-timeout==5.0.1
