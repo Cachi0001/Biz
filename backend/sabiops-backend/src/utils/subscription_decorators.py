@@ -302,7 +302,7 @@ def protected_invoice_creation(f):
     
     return decorated_function
 
-def get_usage_status_for_response(user_id: str) -> dict:
+def get_usage_status_for_response(user_id: str, feature_type: str = None) -> dict:
     """
     Get usage status information to include in API responses
     """

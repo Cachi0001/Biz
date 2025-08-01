@@ -5,7 +5,7 @@ Handles subscription upgrades, downgrades, status checks, and trial management
 
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Tuple, Any
 import logging
 from flask import current_app
@@ -952,27 +952,19 @@ class SubscriptionService:
             counts = {}
             
             # Count invoices for the entire business (owner + team members)
-            invoice_result = self.supabase.table('invoices').select('id', count='exact').or_(
-                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
-            ).execute()
+            invoice_result = self.supabase.table('invoices').select('id', count='exact').eq('owner_id', business_owner_id).execute()
             counts['invoices'] = invoice_result.count or 0
             
             # Count expenses for the entire business
-            expense_result = self.supabase.table('expenses').select('id', count='exact').or_(
-                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
-            ).execute()
+            expense_result = self.supabase.table('expenses').select('id', count='exact').eq('owner_id', business_owner_id).execute()
             counts['expenses'] = expense_result.count or 0
             
             # Count sales for the entire business
-            sales_result = self.supabase.table('sales').select('id', count='exact').or_(
-                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
-            ).execute()
+            sales_result = self.supabase.table('sales').select('id', count='exact').eq('owner_id', business_owner_id).execute()
             counts['sales'] = sales_result.count or 0
             
             # Count products for the entire business
-            products_result = self.supabase.table('products').select('id', count='exact').or_(
-                f'user_id.eq.{business_owner_id},owner_id.eq.{business_owner_id}'
-            ).execute()
+            products_result = self.supabase.table('products').select('id', count='exact').eq('owner_id', business_owner_id).execute()
             counts['products'] = products_result.count or 0
             
             return counts

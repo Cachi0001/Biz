@@ -22,7 +22,7 @@ class InvoiceInventoryManager:
                     continue
                 
                 # Get current product inventory
-                product_result = self.supabase.table("products").select("quantity, reserved_quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                product_result = self.supabase.table("products").select("quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
                 
                 if not product_result.data:
                     logger.warning(f"Product {product_id} not found for inventory reservation")
@@ -30,20 +30,15 @@ class InvoiceInventoryManager:
                 
                 product = product_result.data
                 current_qty = int(product.get("quantity", 0))
-                reserved_qty = int(product.get("reserved_quantity", 0))
                 
                 # Check if enough inventory available
                 if current_qty < quantity:
                     logger.warning(f"Insufficient inventory for product {product_id}: available={current_qty}, requested={quantity}")
                     return False
                 
-                # Update reserved quantity
-                new_reserved = reserved_qty + quantity
-                
-                self.supabase.table("products").update({
-                    "reserved_quantity": new_reserved,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }).eq("id", product_id).execute()
+                # For now, we'll just log the reservation without updating the database
+                # since reserved_quantity column doesn't exist
+                logger.info(f"Would reserve {quantity} units of product {product_id} (current: {current_qty})")
                 
                 logger.info(f"Reserved {quantity} units of product {product_id}")
             
@@ -73,7 +68,7 @@ class InvoiceInventoryManager:
                     continue
                 
                 # Get current product inventory
-                product_result = self.supabase.table("products").select("name, quantity, reserved_quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                product_result = self.supabase.table("products").select("name, quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
                 
                 if not product_result.data:
                     validation_result["valid"] = False
@@ -83,8 +78,7 @@ class InvoiceInventoryManager:
                 product = product_result.data
                 product_name = product.get("name", f"Product {product_id}")
                 current_qty = int(product.get("quantity", 0))
-                reserved_qty = int(product.get("reserved_quantity", 0))
-                available_qty = current_qty - reserved_qty
+                available_qty = current_qty  # No reserved quantity tracking for now
                 
                 # Check if enough inventory available
                 if available_qty < quantity:
@@ -116,24 +110,8 @@ class InvoiceInventoryManager:
                 if not product_id or quantity <= 0:
                     continue
                 
-                # Get current product inventory
-                product_result = self.supabase.table("products").select("reserved_quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
-                
-                if not product_result.data:
-                    continue
-                
-                product = product_result.data
-                reserved_qty = int(product.get("reserved_quantity", 0))
-                
-                # Release reserved quantity
-                new_reserved = max(0, reserved_qty - quantity)
-                
-                self.supabase.table("products").update({
-                    "reserved_quantity": new_reserved,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }).eq("id", product_id).execute()
-                
-                logger.info(f"Released {quantity} units of product {product_id}")
+                # For now, we'll just log the release since reserved_quantity column doesn't exist
+                logger.info(f"Would release {quantity} units of product {product_id}")
             
             return True
             
@@ -155,22 +133,19 @@ class InvoiceInventoryManager:
                     continue
                 
                 # Get current product inventory
-                product_result = self.supabase.table("products").select("quantity, reserved_quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+                product_result = self.supabase.table("products").select("quantity").eq("id", product_id).eq("owner_id", owner_id).single().execute()
                 
                 if not product_result.data:
                     continue
                 
                 product = product_result.data
                 current_qty = int(product.get("quantity", 0))
-                reserved_qty = int(product.get("reserved_quantity", 0))
                 
-                # Deduct from both available and reserved quantities
+                # Deduct from available quantity
                 new_qty = max(0, current_qty - quantity)
-                new_reserved = max(0, reserved_qty - quantity)
                 
                 self.supabase.table("products").update({
                     "quantity": new_qty,
-                    "reserved_quantity": new_reserved,
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }).eq("id", product_id).execute()
                 
@@ -188,15 +163,15 @@ class InvoiceInventoryManager:
         Returns: Dictionary with inventory details
         """
         try:
-            product_result = self.supabase.table("products").select("quantity, reserved_quantity, name").eq("id", product_id).eq("owner_id", owner_id).single().execute()
+            product_result = self.supabase.table("products").select("quantity, name").eq("id", product_id).eq("owner_id", owner_id).single().execute()
             
             if not product_result.data:
                 return {"available": 0, "reserved": 0, "total": 0, "name": "Unknown"}
             
             product = product_result.data
             available = int(product.get("quantity", 0))
-            reserved = int(product.get("reserved_quantity", 0))
-            total = available + reserved
+            reserved = 0  # No reserved quantity tracking for now
+            total = available
             
             return {
                 "available": available,
