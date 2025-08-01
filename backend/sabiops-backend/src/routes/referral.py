@@ -12,6 +12,35 @@ def get_supabase():
     """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
 
+@referral_bp.route("/verify/<referral_code>", methods=["GET"])
+def verify_referral_code(referral_code):
+    """Verify a referral code and return referrer information"""
+    try:
+        supabase = get_supabase()
+        
+        # Find the user with this referral code
+        result = supabase.table("users").select("id, full_name, business_name").eq("referral_code", referral_code).execute()
+        
+        if result.data:
+            referrer = result.data[0]
+            return success_response(
+                data={
+                    "valid": True,
+                    "referrer": {
+                        "id": referrer["id"],
+                        "full_name": referrer["full_name"],
+                        "business_name": referrer.get("business_name", "")
+                    }
+                },
+                message="Referral code is valid"
+            )
+        else:
+            return error_response("Invalid referral code", "Referral code not found", 404)
+            
+    except Exception as e:
+        logger.error(f"Error verifying referral code: {str(e)}")
+        return error_response(str(e), "Failed to verify referral code", 500)
+
 @referral_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_referral_stats():

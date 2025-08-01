@@ -1,26 +1,194 @@
-ERROR:api.index:Unhandled exception: Install Flask with the 'async' extra in order to use async views.
-ERROR:api.index:Traceback (most recent call last):
-File "/var/task/flask/app.py", line 1484, in full_dispatch_request
-rv = self.dispatch_request()
-^^^^^^^^^^^^^^^^^^^^^^^
-File "/var/task/flask/app.py", line 1469, in dispatch_request
-return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-File "/var/task/flask_jwt_extended/view_decorators.py", line 170, in decorator
-return current_app.ensure_sync(fn)(*args, **kwargs)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-File "/var/task/flask/app.py", line 1553, in ensure_sync
-return self.async_to_sync(func)
-^^^^^^^^^^^^^^^^^^^^^^^^
-File "/var/task/flask/app.py", line 1574, in async_to_sync
-raise RuntimeError(
-RuntimeError: Install Flask with the 'async' extra in order to use async views.
-127.0.0.1 - - [01/Aug/2025 11:44:42] "PUT /api/invoices/fe78633f-946f-48a2-91ea-7ca3109ef83a/status HTTP/1.1" 500 -
-
-In the advanced analytics chart there is no orange candle that represents the expenses real time from the users expenses that allows the user to compare the revenue and expenses please can you fix this
-
-And also i tried updating invoice status and got the error message in the Errors.md file
-
-Traceback (most recent call last): File "/var/task/vc__handler__python.py", line 14, in <module> __vc_spec.loader.exec_module(__vc_module) File "<frozen importlib._bootstrap_external>", line 999, in exec_module File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed File "/var/task/api/index.py", line 23, in <module> from routes.invoice import invoice_bp File "/var/task/api/../src/routes/invoice.py", line 587 await send_invoice_notification(updated_invoice, new_status) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ SyntaxError: 'await' outside async function Python process exited with exit status: 1. The logs above can help with debugging the issue.
-
-Am tired of this invoice issue i just wanted an invoice that once created the product quantity reduces similar pattern to how sales reduces the product quantity once a sale is recorded and once the status change to paid it is been recorded across all the analytics , dashboard cards for calculation and transaction history , check this file C:\Users\DELL\Saas\Biz\Errors.md and check this to understand the current setup of invoice tableC:\Users\DELL\Saas\Biz\backend\migeration\fix_invoice_data.sql  on the supbase and help me implement or enhance to match this fix, and also for the toast error message on invoice am getting two different types please maintain one type please
+[
+  {
+    "id": "a1ccab99-b9d3-4f10-ba8d-085be60b7933",
+    "email": "admin@gmail.com",
+    "phone": "+2347041882799",
+    "full_name": "**CALEB KELECHI ONYEAMECHI",
+    "business_name": null,
+    "role": "Admin",
+    "owner_id": "fe12cd83-859b-45e6-b384-da9b8b23d0fc",
+    "subscription_plan": "yearly",
+    "subscription_status": "active",
+    "trial_ends_at": "2025-08-07 20:51:18.60499+00",
+    "referral_code": "SABI55CD70",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-07-31 20:51:18.60499+00",
+    "created_at": "2025-07-31 20:51:18.531206+00",
+    "updated_at": "2025-07-31 20:51:18.531208+00",
+    "password_hash": "pbkdf2:sha256:600000$08F8kkpFfnYrlcKr$1a7d66a962bf1b8a5398c2f7d1fb4e067c9c9415daba351973905e03ec4343bc",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-07-31 20:51:18.531181+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-07-31",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": null,
+    "subscription_end_date": "2026-07-31 20:41:43.581683+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-07-31 20:51:18.60499+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "fe12cd83-859b-45e6-b384-da9b8b23d0fc",
+    "email": "passioncaleb25@gmail.com",
+    "phone": "calebonyemechi22@gmail.com",
+    "full_name": "Onyemechi Caleb",
+    "business_name": "Shekina",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "yearly",
+    "subscription_status": "active",
+    "trial_ends_at": null,
+    "referral_code": "SABIB733A7",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-07-31 21:51:13.869217+00",
+    "created_at": "2025-07-31 17:40:09.638675+00",
+    "updated_at": "2025-07-31 21:51:13.941522+00",
+    "password_hash": "pbkdf2:sha256:600000$PvnnoHAE1Vv5vBN8$ebcbe1853bb6834ad7db7d5370378a0517475827fc327038fbd943c2112d80b0",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-07-31 17:40:43.066+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-07-31",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-07-31 20:41:43.581683+00",
+    "subscription_end_date": "2026-07-31 20:41:43.581683+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-07-31 17:40:09.638675+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": "2025-07-31 20:41:43.581683+00",
+    "payment_reference": "SABI_YEARLY_1753994488365_9zjlsk",
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 7,
+    "upgrade_history": []
+  },
+  {
+    "id": "7a600a40-4a62-4bf7-b46b-7417843b026a",
+    "email": "passioncaleb5@gmail.com",
+    "phone": "+23470418827990",
+    "full_name": "**CALEB KELECHI ONYEAMECHI",
+    "business_name": "Software King",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-08 04:39:32.942802+00",
+    "referral_code": "SABI2041CA",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 08:11:58.844811+00",
+    "created_at": "2025-08-01 04:39:32.942802+00",
+    "updated_at": "2025-08-01 09:01:21.381853+00",
+    "password_hash": "pbkdf2:sha256:600000$lOwfTHgxqpXUJWYX$39aa204c1c0e9551c5b140e7008ff4e51d5d5f121c01ec7eb58b01394a78660c",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 04:40:02.001+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 3,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-08-01 04:39:32.942802+00",
+    "subscription_end_date": "2025-08-08 04:39:32.942802+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 04:39:32.942802+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 7,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "c9e4e667-94d5-41d3-bf36-41fa09336efe",
+    "email": "sabiops.vercel@gmail.com",
+    "phone": "123223243567",
+    "full_name": "CALEB KELECHI ONYEMECH",
+    "business_name": "",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "monthly",
+    "subscription_status": "active",
+    "trial_ends_at": null,
+    "referral_code": "SABI580915",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 13:34:56.346203+00",
+    "created_at": "2025-08-01 04:46:04.701815+00",
+    "updated_at": "2025-08-01 13:35:38.030682+00",
+    "password_hash": "pbkdf2:sha256:600000$FUB8MKEsvYlvwFLj$96f62a65d90c4c35098ab6d00878a6521cacc5cfdbc009dfc8536e757eeabf60",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 04:46:17.913+00",
+    "current_month_invoices": 2,
+    "current_month_expenses": 1,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-08-01 04:46:04.701815+00",
+    "subscription_end_date": "2025-08-31 10:44:13.86896+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 04:46:04.701815+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  }
+]

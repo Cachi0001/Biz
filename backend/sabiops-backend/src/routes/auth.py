@@ -120,6 +120,21 @@ def register():
             user_id = str(uuid.uuid4())
             password_hash = generate_password_hash(password)
 
+            # Generate unique referral code for new user
+            import random
+            import string
+            referral_code = "SABI" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            
+            # Handle referral if provided
+            referred_by_id = None
+            referral_code_used = request.json.get('referral_code', '').strip()
+            if referral_code_used:
+                # Find the user who owns this referral code
+                referrer_result = supabase.table("users").select("id, full_name").eq("referral_code", referral_code_used).execute()
+                if referrer_result.data:
+                    referred_by_id = referrer_result.data[0]["id"]
+                    print(f"[DEBUG] User referred by: {referrer_result.data[0]['full_name']} (ID: {referred_by_id})")
+
             # Calculate trial end date (7 days from now)
             trial_end_date = datetime.now() + timedelta(days=7)
             
@@ -139,7 +154,9 @@ def register():
                 "subscription_end_date": trial_end_date.isoformat(),
                 "trial_ends_at": trial_end_date.isoformat(),
                 "active": True,
-                "email_confirmed": False
+                "email_confirmed": False,
+                "referral_code": referral_code,
+                "referred_by": referred_by_id
             }
 
             print(f"[DEBUG] Inserting user with ID: {user_id}")
