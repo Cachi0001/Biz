@@ -554,7 +554,7 @@ const CustomInvoiceForm = ({
               <RequiredFieldIndicator />
             </label>
             <Select 
-              value={formData.customer_id} 
+              value={formData.customer_id ? String(formData.customer_id) : ''} 
               onValueChange={(value) => {
                 const event = { target: { name: 'customer_id', value } };
                 handleInputChange(event);
@@ -565,7 +565,7 @@ const CustomInvoiceForm = ({
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
+                  <SelectItem key={customer.id} value={String(customer.id)}>
                     {customer.name}
                   </SelectItem>
                 ))}
@@ -675,7 +675,7 @@ const CustomInvoiceForm = ({
                     </button>
                   </div>
                   <Select
-                    value={item.product_id}
+                    value={item.product_id ? String(item.product_id) : ''}
                     onValueChange={(value) => handleItemChange(index, 'product_id', value)}
                     disabled={productsLoading || !!productsError}
                   >
@@ -699,7 +699,7 @@ const CustomInvoiceForm = ({
                         </SelectItem>
                       ) : (
                         products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
+                          <SelectItem key={product.id} value={String(product.id)}>
                             <div className="flex justify-between items-center w-full">
                               <span>{`${product.name} - ${formatNaira(product.price || product.unit_price || 0)}`}</span>
                               <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 ml-2">

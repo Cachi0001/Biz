@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { downloadSalesCSV } from '../utils/csvDownload';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const SalesReport = () => {
   const { user } = useAuth();
@@ -167,52 +169,138 @@ const SalesReport = () => {
         }
         
       } else if (format === 'pdf') {
-        // Generate text format for PDF (can be enhanced with actual PDF generation)
-        const lines = [];
-        lines.push('SALES REPORT');
-        lines.push('='.repeat(60));
-        lines.push(`Report Period: ${reportType === 'daily' ? selectedDate : `${dateRange.start_date} to ${dateRange.end_date}`}`);
-        lines.push(`Generated: ${new Date().toLocaleString()}`);
-        lines.push(`Business: ${user?.business_name || 'SabiOps Business'}`);
-        lines.push('');
-        
-        // Summary
-        lines.push('SALES SUMMARY');
-        lines.push('-'.repeat(40));
-        lines.push(`Total Sales Amount: ₦${salesData.summary.total_sales.toLocaleString()}`);
-        lines.push(`Total Transactions: ${salesData.summary.total_transactions}`);
-        lines.push(`Total Items Sold: ${salesData.summary.total_quantity}`);
-        lines.push(`Average Sale Amount: ₦${salesData.summary.average_sale.toFixed(2)}`);
-        lines.push('');
-        
-        // Payment Breakdown
-        if (Object.keys(salesData.payment_breakdown).length > 0) {
-          lines.push('PAYMENT METHOD BREAKDOWN');
-          lines.push('-'.repeat(40));
-          Object.entries(salesData.payment_breakdown).forEach(([method, data]) => {
-            lines.push(`${method.replace('_', ' ').toUpperCase()}: ₦${data.amount.toLocaleString()} (${data.count} transactions)`);
+        try {
+          // Generate proper PDF using jsPDF
+          const doc = new jsPDF();
+          
+          // Set up the document
+          const pageWidth = doc.internal.pageSize.width;
+          const margin = 20;
+          let yPosition = margin;
+          
+          // Title
+          doc.setFontSize(20);
+          doc.setFont('helvetica', 'bold');
+          doc.text('SALES REPORT', pageWidth / 2, yPosition, { align: 'center' });
+          yPosition += 15;
+          
+          // Report details
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`Report Period: ${reportType === 'daily' ? selectedDate : `${dateRange.start_date} to ${dateRange.end_date}`}`, margin, yPosition);
+          yPosition += 8;
+          doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPosition);
+          yPosition += 8;
+          doc.text(`Business: ${user?.business_name || 'SabiOps Business'}`, margin, yPosition);
+          yPosition += 15;
+          
+          // Summary section
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('SALES SUMMARY', margin, yPosition);
+          yPosition += 10;
+          
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+          const summaryData = [
+            ['Total Sales Amount', `₦${salesData.summary.total_sales.toLocaleString()}`],
+            ['Total Transactions', salesData.summary.total_transactions.toString()],
+            ['Total Items Sold', salesData.summary.total_quantity.toString()],
+            ['Average Sale Amount', `₦${salesData.summary.average_sale.toFixed(2)}`]
+          ];
+          
+          doc.autoTable({
+            startY: yPosition,
+            head: [['Metric', 'Value']],
+            body: summaryData,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185] },
+            styles: { fontSize: 10 },
+            margin: { left: margin, right: margin }
           });
-          lines.push('');
+          
+          yPosition = doc.lastAutoTable.finalY + 15;
+          
+          // Payment method breakdown
+          if (Object.keys(salesData.payment_breakdown).length > 0) {
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAYMENT METHOD BREAKDOWN', margin, yPosition);
+            yPosition += 10;
+            
+            const paymentData = Object.entries(salesData.payment_breakdown).map(([method, data]) => [
+              method.replace('_', ' ').toUpperCase(),
+              `₦${data.amount.toLocaleString()}`,
+              `${data.count} transactions`
+            ]);
+            
+            doc.autoTable({
+              startY: yPosition,
+              head: [['Payment Method', 'Amount', 'Count']],
+              body: paymentData,
+              theme: 'grid',
+              headStyles: { fillColor: [52, 152, 219] },
+              styles: { fontSize: 10 },
+              margin: { left: margin, right: margin }
+            });
+            
+            yPosition = doc.lastAutoTable.finalY + 15;
+          }
+          
+          // Detailed transactions
+          if (salesData.transactions.length > 0) {
+            // Check if we need a new page
+            if (yPosition > 200) {
+              doc.addPage();
+              yPosition = margin;
+            }
+            
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DETAILED TRANSACTIONS', margin, yPosition);
+            yPosition += 10;
+            
+            const transactionData = salesData.transactions.map((transaction) => {
+              const dateTime = formatDate(transaction.created_at);
+              return [
+                transaction.id || 'N/A',
+                `${dateTime.date} ${dateTime.time}`,
+                transaction.customer_name || 'Walk-in Customer',
+                transaction.product_name || 'Unknown Product',
+                (transaction.total_quantity || 0).toString(),
+                (transaction.payment_method || 'cash').replace('_', ' ').toUpperCase(),
+                `₦${(transaction.total_amount || 0).toLocaleString()}`
+              ];
+            });
+            
+            doc.autoTable({
+              startY: yPosition,
+              head: [['ID', 'Date & Time', 'Customer', 'Product', 'Qty', 'Payment', 'Amount']],
+              body: transactionData,
+              theme: 'grid',
+              headStyles: { fillColor: [46, 204, 113] },
+              styles: { fontSize: 9 },
+              columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 35 },
+                4: { cellWidth: 15 },
+                5: { cellWidth: 25 },
+                6: { cellWidth: 25 }
+              },
+              margin: { left: margin, right: margin }
+            });
+          }
+          
+          // Save the PDF
+          doc.save(`sales-report-${dateStr}.pdf`);
+          return; // Exit early since PDF is handled differently
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+          toast.error('Failed to generate PDF report');
+          return;
         }
-        
-        // Detailed Transactions
-        lines.push('DETAILED TRANSACTIONS');
-        lines.push('-'.repeat(40));
-        salesData.transactions.forEach((transaction, index) => {
-          const dateTime = formatDate(transaction.created_at);
-          lines.push(`${index + 1}. Transaction #${transaction.id || 'N/A'}`);
-          lines.push(`   Date: ${dateTime.date} ${dateTime.time}`);
-          lines.push(`   Customer: ${transaction.customer_name || 'Walk-in Customer'}`);
-          lines.push(`   Product: ${transaction.product_name || 'Unknown Product'}`);
-          lines.push(`   Quantity: ${transaction.total_quantity || 0}`);
-          lines.push(`   Payment Method: ${(transaction.payment_method || 'cash').replace('_', ' ').toUpperCase()}`);
-          lines.push(`   Total Amount: ₦${(transaction.total_amount || 0).toLocaleString()}`);
-          lines.push('');
-        });
-        
-        content = lines.join('\n');
-        filename = `sales-report-${dateStr}.txt`;
-        mimeType = 'text/plain;charset=utf-8;';
       }
       
       // Create and download the file

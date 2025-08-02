@@ -165,9 +165,9 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-2">
           <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
           <Select
-            value={formData.customer_id || 'walkin'}
+            value={formData.customer_id ? String(formData.customer_id) : 'walkin'}
             onValueChange={(value) => {
-              const customer = customers.find(c => c.id === value);
+              const customer = customers.find(c => String(c.id) === value);
               setFormData(prev => ({
                 ...prev,
                 customer_id: value === 'walkin' ? '' : value,
@@ -181,7 +181,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
               {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
+                <SelectItem key={customer.id} value={String(customer.id)}>
                   {customer.name}
                 </SelectItem>
               ))}
@@ -207,9 +207,9 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             </Button>
           </div>
           <Select
-            value={formData.product_id}
+            value={formData.product_id ? String(formData.product_id) : ''}
             onValueChange={(value) => {
-              const product = products.find(p => p.id === value);
+              const product = products.find(p => String(p.id) === value);
               if (product) {
                 setFormData(prev => ({
                   ...prev,
@@ -249,7 +249,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
                   return (
                     <SelectItem 
                       key={product.id} 
-                      value={product.id}
+                      value={String(product.id)}
                       disabled={isOutOfStock}
                       className={isOutOfStock ? 'opacity-50' : ''}
                     >
