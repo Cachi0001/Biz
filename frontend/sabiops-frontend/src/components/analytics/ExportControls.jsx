@@ -48,7 +48,7 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
           break;
           
         case 'chart':
-          // Export the main analytics chart
+          // Export the main analytics chart data as text
           result = await analyticsExportService.exportChartAsImage(
             'analytics-main-chart', 
             'analytics_chart'
@@ -60,11 +60,7 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
             analyticsData, 
             timePeriod
           );
-          if (result.success) {
-            // Copy to clipboard
-            await navigator.clipboard.writeText(result.shareUrl);
-            alert('Shareable link copied to clipboard!');
-          }
+          // No clipboard copying needed - file is downloaded directly
           break;
           
         default:
@@ -106,14 +102,14 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
       id: 'chart',
       label: 'Export Chart',
       icon: Image,
-      description: 'Download chart as PNG image',
+      description: 'Download chart data as text file',
       disabled: !canExport
     },
     {
       id: 'share',
-      label: 'Share Link',
+      label: 'Share Summary',
       icon: Share2,
-      description: 'Generate shareable analytics link',
+      description: 'Download analytics summary as text file',
       disabled: false // Available for all users
     }
   ];

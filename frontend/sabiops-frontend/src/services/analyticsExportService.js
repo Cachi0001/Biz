@@ -436,7 +436,7 @@ Chart data would be displayed here in a text format.
   }
 
   /**
-   * Create shareable analytics link
+   * Create shareable analytics summary (as downloadable file)
    */
   generateShareableLink(analyticsData, timePeriod) {
     try {
@@ -451,18 +451,38 @@ Chart data would be displayed here in a text format.
         generated: new Date().toISOString()
       };
 
-      // In a real implementation, you would send this to your backend
-      // and get a shareable URL back
-      const encodedData = btoa(JSON.stringify(shareData));
-      const shareUrl = `${window.location.origin}/analytics/shared/${encodedData}`;
+      // Create a shareable summary as a text file
+      const summaryText = `
+SabiOps Analytics Summary
+========================
+
+Period: ${timePeriod}
+Generated: ${new Date().toLocaleDateString()}
+
+📊 Key Metrics:
+• Total Revenue: ₦${shareData.summary.revenue.toLocaleString()}
+• Total Profit: ₦${shareData.summary.profit.toLocaleString()}
+• Total Customers: ${shareData.summary.customers}
+• Total Products: ${shareData.summary.products}
+
+💡 This summary was generated from SabiOps Analytics.
+For detailed analytics, visit: ${window.location.origin}
+
+---
+SabiOps Business Management Platform
+`;
+      
+      // Download as text file
+      const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
+      const timestamp = new Date().toISOString().split('T')[0];
+      this.downloadFile(blob, `analytics_summary_${timePeriod}_${timestamp}.txt`);
       
       return {
         success: true,
-        shareUrl,
-        message: 'Shareable link generated successfully'
+        message: 'Analytics summary downloaded successfully'
       };
     } catch (error) {
-      console.error('Share link generation failed:', error);
+      console.error('Share summary generation failed:', error);
       return {
         success: false,
         error: error.message

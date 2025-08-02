@@ -588,7 +588,12 @@ const CustomInvoiceForm = ({
               onChange={handleInputChange}
               name="issue_date"
               required
+              readOnly
+              style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280' }}
             />
+            <div className="text-xs text-gray-500 mt-1">
+              📅 Issue date is automatically set to today's date
+            </div>
             {getFieldError('issue_date') && (
               <div className="error-message">{getFieldError('issue_date')}</div>
             )}
