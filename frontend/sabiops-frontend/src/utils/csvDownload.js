@@ -376,8 +376,64 @@ export const downloadSalesHTML = (sales, filename) => {
   }
 };
 
-// Keep the old CSV function for backward compatibility but rename it
-export const downloadSalesCSV = downloadSalesHTML;
+/**
+ * Downloads sales data as CSV
+ * @param {Array} sales - Array of sales objects
+ * @param {string} filename - Optional filename
+ */
+export const downloadSalesCSV = (sales, filename = `sales-report-${new Date().toISOString().split('T')[0]}`) => {
+  try {
+    if (!sales || !Array.isArray(sales) || sales.length === 0) {
+      throw new Error('No sales data available to download');
+    }
+
+    const headers = [
+      { key: 'date', label: 'Date' },
+      { key: 'product_name', label: 'Product Name' },
+      { key: 'customer_name', label: 'Customer Name' },
+      { key: 'quantity', label: 'Quantity' },
+      { key: 'unit_price', label: 'Unit Price' },
+      { key: 'total_amount', label: 'Total Amount' },
+      { key: 'payment_method', label: 'Payment Method' },
+      { key: 'notes', label: 'Notes' }
+    ];
+
+    // Format sales data for CSV
+    const formattedSales = sales.map(sale => {
+      let formattedDate = '';
+      const saleDate = sale.date || sale.created_at || sale.updated_at;
+      
+      if (saleDate) {
+        try {
+          const date = new Date(saleDate);
+          if (!isNaN(date.getTime())) {
+            formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+          }
+        } catch (error) {
+          console.error('Error formatting date for CSV:', error);
+        }
+      }
+
+      return {
+        date: formattedDate,
+        product_name: sale.product_name || 'Unknown Product',
+        customer_name: sale.customer_name || 'N/A',
+        quantity: sale.quantity || 0,
+        unit_price: sale.unit_price || 0,
+        total_amount: sale.total_amount || 0,
+        payment_method: sale.payment_method || 'N/A',
+        notes: sale.notes || ''
+      };
+    });
+
+    downloadCSV(formattedSales, headers, filename, {
+      title: 'Sales Report'
+    });
+  } catch (error) {
+    console.error('Error downloading sales CSV:', error);
+    throw error;
+  }
+};
 
 /**
  * Downloads customers data as CSV

@@ -46,8 +46,7 @@ const Transactions = () => {
   });
   
   const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
+    date: '',
     type: 'all', // all, money_in, money_out
     category: 'all',
     paymentMethod: 'all'
@@ -171,11 +170,8 @@ const Transactions = () => {
     let filtered = [...transactions];
 
     // Date filter
-    if (filters.dateFrom) {
-      filtered = filtered.filter(t => new Date(t.date) >= new Date(filters.dateFrom));
-    }
-    if (filters.dateTo) {
-      filtered = filtered.filter(t => new Date(t.date) <= new Date(filters.dateTo));
+    if (filters.date) {
+      filtered = filtered.filter(t => new Date(t.date) >= new Date(filters.date));
     }
 
     // Type filter
@@ -352,20 +348,12 @@ const Transactions = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>From Date</Label>
+              <Label>Date</Label>
               <MobileDateInput
-                value={filters.dateFrom}
-                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>To Date</Label>
-              <MobileDateInput
-                value={filters.dateTo}
-                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                value={filters.date}
+                onChange={(e) => setFilters({...filters, date: e.target.value})}
               />
             </div>
             

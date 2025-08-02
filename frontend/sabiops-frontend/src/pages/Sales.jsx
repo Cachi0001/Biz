@@ -378,36 +378,8 @@ const Sales = () => {
         return;
       }
 
-      // Prepare sales data with proper formatting for CSV
-      const salesData = filteredSales.map(sale => {
-        // Format date as YYYY-MM-DD for better CSV compatibility
-        const saleDate = sale.created_at || sale.date;
-        let formattedDate = 'N/A';
-        if (saleDate) {
-          try {
-            const date = new Date(saleDate);
-            if (!isNaN(date.getTime())) {
-              formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-            }
-          } catch (error) {
-            console.error('Error formatting date for CSV:', error);
-          }
-        }
-
-        return {
-          date: formattedDate,
-          customer_name: sale.customer_name || 'Walk-in Customer',
-          product_name: sale.product_name || 'Unknown Product',
-          quantity: sale.quantity || 0,
-          unit_price: sale.unit_price || 0,
-          total_amount: sale.total_amount || 0,
-          payment_method: formatPaymentMethod(sale.payment_method),
-          notes: sale.notes || ''
-        };
-      });
-
       // Use the proper CSV utility
-      await downloadSalesCSV(salesData, `sales-${selectedDate}`);
+      await downloadSalesCSV(filteredSales, `sales-${selectedDate}`);
       toastService.success('Sales report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);
@@ -598,6 +570,14 @@ const Sales = () => {
                       Refresh
                     </Button>
                   </MobileButtonGroup>
+                  <Button
+                    variant="outline"
+                    onClick={downloadReport}
+                    className="w-full mt-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download as CSV
+                  </Button>
                 </div>
               </div>
               
@@ -645,6 +625,14 @@ const Sales = () => {
                       <RefreshCw className="h-4 w-4" />
                     </Button>
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={downloadReport}
+                    className="w-full mt-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 h-10"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download as CSV
+                  </Button>
                 </div>
               </div>
             </CardContent>
