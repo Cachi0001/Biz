@@ -174,6 +174,13 @@ export const downloadSalesHTML = (sales, filename) => {
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
     
+    // Calculate actual net profit (Revenue - Expenses)
+    const totalProfitFromSales = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales) || 0), 0);
+    const dailyProfit = totalProfitFromSales; // Daily profit from sales
+    
+    // Net profit calculation (Revenue - Expenses) - simplified for sales context
+    const netProfit = totalProfitFromSales; // Using profit_from_sales as net profit
+    
     // Group sales by payment method
     const paymentMethodBreakdown = sales.reduce((acc, sale) => {
       const method = sale.payment_method || 'Unknown';
@@ -247,11 +254,19 @@ export const downloadSalesHTML = (sales, filename) => {
         </div>
         <div class="summary-card">
             <h3>📦 Items Sold</h3>
-            <div class="value">${totalQuantity.toLocaleString()}</div>
+            <div class="value">${totalQuantity}</div>
         </div>
         <div class="summary-card">
             <h3>📈 Average Sale</h3>
             <div class="value">₦${averageSale.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+        </div>
+        <div class="summary-card">
+            <h3>💰 Net Profit</h3>
+            <div class="value">₦${netProfit.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+        </div>
+        <div class="summary-card">
+            <h3>📊 Daily Profit</h3>
+            <div class="value">₦${dailyProfit.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
         </div>
     </div>
 
@@ -272,9 +287,9 @@ export const downloadSalesHTML = (sales, filename) => {
                   .map(([method, data]) => `
                     <tr>
                         <td>${method}</td>
-                        <td>${data.count}</td>
-                        <td class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-                        <td>${((data.total / totalAmount) * 100).toFixed(1)}%</td>
+                        <td style="text-align: right;">${data.count}</td>
+                        <td style="text-align: right;" class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td style="text-align: right;">${((data.total / totalAmount) * 100).toFixed(1)}%</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -299,9 +314,9 @@ export const downloadSalesHTML = (sales, filename) => {
                   .map(([customer, data]) => `
                     <tr>
                         <td>${customer}</td>
-                        <td>${data.count}</td>
-                        <td class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-                        <td class="amount">₦${(data.total / data.count).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td style="text-align: right;">${data.count}</td>
+                        <td style="text-align: right;" class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td style="text-align: right;" class="amount">₦${(data.total / data.count).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -313,25 +328,25 @@ export const downloadSalesHTML = (sales, filename) => {
         <table>
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th style="text-align: center;">Date</th>
                     <th>Customer</th>
                     <th>Product</th>
-                    <th>Qty</th>
-                    <th>Unit Price</th>
-                    <th>Total</th>
-                    <th>Payment</th>
+                    <th style="text-align: right;">Qty</th>
+                    <th style="text-align: right;">Unit Price</th>
+                    <th style="text-align: right;">Total</th>
+                    <th style="text-align: center;">Payment</th>
                 </tr>
             </thead>
             <tbody>
                 ${sales.map(sale => `
                     <tr>
-                        <td>${new Date(sale.date).toLocaleDateString()}</td>
-                        <td>${sale.customer_name || 'N/A'}</td>
+                        <td style="text-align: center;">${new Date(sale.date).toLocaleDateString()}</td>
+                        <td>${sale.customer_name || 'Walk-in Customer'}</td>
                         <td>${sale.product_name || 'N/A'}</td>
-                        <td>${sale.quantity || 0}</td>
-                        <td class="amount">₦${parseFloat(sale.unit_price || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-                        <td class="amount">₦${parseFloat(sale.total_amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-                        <td>${sale.payment_method || 'N/A'}</td>
+                        <td style="text-align: right;">${sale.quantity || 1}</td>
+                        <td style="text-align: right;" class="amount">₦${parseFloat(sale.unit_price || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td style="text-align: right;" class="amount">₦${parseFloat(sale.total_amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td style="text-align: center;">${sale.payment_method || 'N/A'}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -341,7 +356,7 @@ export const downloadSalesHTML = (sales, filename) => {
     <div class="footer">
         <p><strong>SabiOps Business Management Platform</strong></p>
         <p>This report was generated automatically on ${timestamp}</p>
-        <p>For support, visit: <a href="https://sabiops.com">sabiops.com</a></p>
+        <p>For support, visit: <a href="https://sabiops.vercel.app">sabiops.com</a></p>
     </div>
 </body>
 </html>

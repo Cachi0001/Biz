@@ -561,7 +561,12 @@ const CustomInvoiceForm = ({
               }}
             >
               <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''}`}>
-                <SelectValue placeholder="Select a customer" />
+                <SelectValue placeholder="Select a customer">
+                  {formData.customer_id ? 
+                    (customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Unknown Customer') : 
+                    'Select a customer'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
@@ -687,7 +692,12 @@ const CustomInvoiceForm = ({
                     <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}>
                       <SelectValue 
                         placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)')}
-                      />
+                      >
+                        {item.product_id ? 
+                          (products.find(p => String(p.id) === String(item.product_id))?.name || 'Unknown Product') : 
+                          'Select product'
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {productsLoading ? (
@@ -794,8 +804,6 @@ const CustomInvoiceForm = ({
                     <div className="error-message">{getItemFieldError(index, 'tax_rate')}</div>
                   )}
                 </div>
-
-
               </div>
 
               <div style={{ 
@@ -858,8 +866,6 @@ const CustomInvoiceForm = ({
           </div>
         </div>
 
-
-
         {/* Invoice Total */}
         <div className="invoice-total">
           Invoice Total: {formatNaira(calculateInvoiceTotal())}
@@ -904,4 +910,4 @@ const CustomInvoiceForm = ({
   );
 };
 
-export default CustomInvoiceForm; 
+export default CustomInvoiceForm;

@@ -531,7 +531,7 @@ def update_invoice_status(invoice_id):
         valid_transitions = {
             "draft": ["sent", "paid", "cancelled"],  # Allow draft to paid directly
             "sent": ["paid", "overdue", "cancelled"],
-            "paid": ["overdue"],  # Only allow paid to overdue if needed
+            "paid": [],  # Paid invoices cannot change status - they are final
             "overdue": ["paid", "cancelled"],
             "cancelled": []
         }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../ui/card';
 import { TrendingUp, TrendingDown, Users, FileText, DollarSign, Package, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +8,7 @@ import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 
 const ModernOverviewCards = ({ data, loading }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // DEBUG: Log the complete data object
   console.log('ModernOverviewCards - Complete data object:', data);
@@ -74,7 +76,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       icon: Users,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      trend: 'up'
+      trend: 'up',
+      path: '/customers'
     },
     {
       title: 'Products',
@@ -83,7 +86,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       icon: Package,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      trend: data?.products?.low_stock > 0 ? 'down' : 'up'
+      trend: data?.products?.low_stock > 0 ? 'down' : 'up',
+      path: '/products'
     },
     {
       title: 'Outstanding',
@@ -92,7 +96,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       icon: FileText,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
-      trend: data?.invoices?.overdue > 0 ? 'down' : 'up'
+      trend: data?.invoices?.overdue > 0 ? 'down' : 'up',
+      path: '/invoices'
     },
     {
       title: 'Net Profit',
@@ -110,7 +115,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       {cards.map((card, index) => (
         <GradientCardWrapper 
           key={index} 
-          className="shadow-sm hover:shadow-md transition-shadow"
+          className={`shadow-sm hover:shadow-md transition-shadow ${card.path ? 'cursor-pointer' : ''}`}
+          onClick={() => card.path && navigate(card.path)}
           gradientFrom="from-green-100"
           gradientTo="to-green-200"
         >

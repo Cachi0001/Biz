@@ -306,6 +306,18 @@ const Invoices = () => {
 
   const handleStatusChange = async (invoiceId, newStatus) => {
     try {
+      // Find the current invoice to check its status
+      const currentInvoice = invoices.find(inv => inv.id === invoiceId);
+      
+      // Prevent changing status of paid invoices
+      if (currentInvoice && currentInvoice.status === 'paid') {
+        handleApiErrorWithToast(
+          { message: 'Cannot change status of paid invoices. Paid invoices are final.' },
+          'Invalid Status Change'
+        );
+        return;
+      }
+      
       setLoading(true);
       await invoiceApi.updateInvoiceStatus(invoiceId, { status: newStatus });
       fetchInvoices();
