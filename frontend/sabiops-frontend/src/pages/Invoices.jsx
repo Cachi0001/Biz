@@ -505,12 +505,9 @@ const Invoices = () => {
               ) : (
                 <>
                   {/* Mobile Card View */}
-                  <div className="grid grid-cols-2 gap-4 lg:hidden">
+                  <div className="grid grid-cols-1 gap-4 lg:hidden">
                     {filteredInvoices.map((invoice, idx) => (
-                      <div key={invoice.id} className={
-                        filteredInvoices.length % 2 === 1 && idx === filteredInvoices.length - 1
-                          ? 'col-span-2 flex justify-center' : ''
-                      }>
+                      <div key={invoice.id}>
                         <Card className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
                           <CardContent className="p-5">
                             <div className="space-y-4">
