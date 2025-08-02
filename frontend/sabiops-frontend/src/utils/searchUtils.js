@@ -239,6 +239,8 @@ export const getResultNavigationUrl = (item) => {
       return `/invoices?highlight=${item.id}`;
     case 'expense':
       return `/expenses?highlight=${item.id}`;
+    case 'sale':
+      return `/sales?highlight=${item.id}`;
     default:
       return '/';
   }
@@ -289,7 +291,8 @@ export const getResultIcon = (type) => {
     product: '📦',
     customer: '👤',
     invoice: '📄',
-    expense: '💰'
+    expense: '💰',
+    sale: '🛒'
   };
   
   return icons[type] || '📋';
@@ -340,6 +343,16 @@ export const groupResultsWithCounts = (results) => {
       count: results.expenses.length,
       items: results.expenses,
       icon: '💰'
+    });
+  }
+  
+  if (results.sales && results.sales.length > 0) {
+    categories.push({
+      type: 'sales',
+      label: 'Sales',
+      count: results.sales.length,
+      items: results.sales,
+      icon: '🛒'
     });
   }
   

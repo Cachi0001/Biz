@@ -14,7 +14,7 @@ import {
   groupResultsWithCounts
 } from '../../utils/searchUtils';
 
-const GlobalSearchBar = ({ className = '', placeholder = "Search products, customers, invoices..." }) => {
+const GlobalSearchBar = ({ className = '', placeholder = "Search products, customers, invoices, sales, expenses..." }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);

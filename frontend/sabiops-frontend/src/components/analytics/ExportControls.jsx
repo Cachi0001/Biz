@@ -93,7 +93,7 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
     },
     {
       id: 'report',
-      label: 'Export Report(Recommended for best format)',
+      label: 'Export Report(Best Download format)',
       icon: Download,
       description: 'Download comprehensive HTML report',
       disabled: !canExport

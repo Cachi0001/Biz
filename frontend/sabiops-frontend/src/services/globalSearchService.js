@@ -28,7 +28,8 @@ class GlobalSearchService {
           products: [],
           customers: [],
           invoices: [],
-          expenses: []
+          expenses: [],
+          sales: []
         },
         total_results: 0,
         cached: false
@@ -178,7 +179,8 @@ class GlobalSearchService {
         products: this.formatProductResults(results.products || []),
         customers: this.formatCustomerResults(results.customers || []),
         invoices: this.formatInvoiceResults(results.invoices || []),
-        expenses: this.formatExpenseResults(results.expenses || [])
+        expenses: this.formatExpenseResults(results.expenses || []),
+        sales: this.formatSalesResults(results.sales || [])
       },
       total_results: response.total_results || 0,
       response_time: response.response_time
@@ -246,6 +248,23 @@ class GlobalSearchService {
       date: expense.date || expense.created_at,
       payment_method: expense.payment_method,
       highlight: expense.highlight || expense.description
+    }));
+  }
+
+  /**
+   * Format sales results
+   */
+  formatSalesResults(sales) {
+    return sales.map(sale => ({
+      id: sale.id,
+      type: 'sale',
+      customer_name: sale.customer_name || sale.customer?.name,
+      product_name: sale.product_name || sale.product?.name,
+      total_amount: sale.total_amount || sale.amount,
+      quantity: sale.quantity,
+      date: sale.date || sale.created_at,
+      payment_method: sale.payment_method,
+      highlight: sale.highlight || sale.customer_name || sale.product_name
     }));
   }
 
