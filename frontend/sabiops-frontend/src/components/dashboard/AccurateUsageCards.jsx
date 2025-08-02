@@ -1,74 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { RefreshCw, FileText, Receipt, ShoppingCart, Package, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import subscriptionService from '../../services/subscriptionService';
+import { format } from 'date-fns';
+
+const UsageCard = ({ title, usage, limit, period_end }) => {
+  const percentage = limit > 0 ? (usage / limit) * 100 : 0;
+  const progressBarColor = percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-yellow-500' : 'bg-green-500';
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{usage} / {limit}</div>
+        <p className="text-xs text-muted-foreground">
+          Resets on {format(new Date(period_end), 'MMM dd, yyyy')}
+        </p>
+        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
+          <div className={`${progressBarColor} h-2.5 rounded-full`} style={{ width: `${percentage}%` }}></div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const AccurateUsageCards = () => {
-  const { user, updateToken } = useAuth();
   const [usageData, setUsageData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchAccurateUsage = async () => {
+  const fetchAccurateUsage = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setError(null);
-      
-      const data = await subscriptionService.getUsageStatus();
+      const response = await subscriptionService.getUsageStatus();
+      const data = response.data || response;
+
+      if (!data || !data.current_usage) {
+        throw new Error('Invalid usage data structure received from API.');
+      }
       setUsageData(data);
-      
     } catch (err) {
-      console.error('Error fetching usage data:', err);
-      setError(err.message || 'Failed to load usage data');
+      console.error('Error fetching accurate usage data:', err);
+      setError(err.message || 'Failed to load usage data. Please try again.');
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  };
-
-  // Handle token updates
-  useEffect(() => {
-    const handleTokenUpdate = (event) => {
-      if (event.detail?.token) {
-        // Update the auth context with the new token
-        updateToken(event.detail.token);
-        // Refresh the usage data
-        fetchAccurateUsage();
-      }
-    };
-
-    window.addEventListener('tokenUpdated', handleTokenUpdate);
-    
-    return () => {
-      window.removeEventListener('tokenUpdated', handleTokenUpdate);
-    };
-  }, [updateToken]);
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchAccurateUsage();
-    }
-  }, [user]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
     fetchAccurateUsage();
-  };
+  }, [fetchAccurateUsage]);
 
-  if (loading && !usageData) {
+  if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-3 sm:p-4">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-6 bg-gray-200 rounded"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <p>Loading usage data...</p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -76,161 +69,37 @@ const AccurateUsageCards = () => {
     return (
       <Card className="bg-red-50 border-red-200">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
-              <span className="text-sm text-red-600">Error loading usage data</span>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="text-xs"
-            >
-              <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-              Retry
-            </Button>
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+            <h3 className="text-red-800 font-semibold">Error loading usage data</h3>
           </div>
+          <p className="text-red-700 text-sm mt-1">{error}</p>
+          <Button 
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={fetchAccurateUsage}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
-  if (!usageData) {
+  if (!usageData || !usageData.current_usage) {
     return null;
   }
 
-  const { usage_counts, actual_counts, has_discrepancies } = usageData || {};
-
-  const usageCards = [
-    {
-      title: 'Invoices',
-      icon: FileText,
-      feature_type: 'invoices',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Expenses',
-      icon: Receipt,
-      feature_type: 'expenses',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Sales',
-      icon: ShoppingCart,
-      feature_type: 'sales',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    },
-    {
-      title: 'Products',
-      icon: Package,
-      feature_type: 'products',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-    }
-  ];
+  const { current_usage } = usageData;
 
   return (
-    <div className="space-y-4">
-      {/* Header with refresh button */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Usage Overview</h3>
-        <div className="flex items-center space-x-2">
-          {has_discrepancies && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={subscriptionService.syncUsageCounts}
-              disabled={refreshing}
-              className="text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
-            >
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Fix Counts
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="text-xs"
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* Usage cards grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {usageCards.map((card) => {
-          const usage = usage_counts[card.feature_type] || { current_count: 0, limit_count: 0 };
-          const actualCount = actual_counts[card.feature_type] || 0;
-          const hasDiscrepancy = usage.current_count !== actualCount;
-          
-          return (
-            <Card 
-              key={card.feature_type} 
-              className={`${hasDiscrepancy ? 'border-orange-200 bg-orange-50' : 'border-gray-200'} shadow-sm hover:shadow-md transition-shadow`}
-            >
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                    <card.icon className={`h-4 w-4 ${card.color}`} />
-                  </div>
-                  {hasDiscrepancy && (
-                    <AlertTriangle className="h-3 w-3 text-orange-500" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 mb-1 truncate">{card.title}</p>
-                  <p className="text-sm sm:text-lg font-bold text-gray-900">
-                    {actualCount}
-                    {usage.limit_count > 0 && (
-                      <span className="text-xs text-gray-500 font-normal">
-                        /{usage.limit_count}
-                      </span>
-                    )}
-                  </p>
-                  {hasDiscrepancy ? (
-                    <p className="text-xs text-orange-600">
-                      Tracked: {usage.current_count} (needs sync)
-                    </p>
-                  ) : (
-                    <p className="text-xs text-green-600">
-                      {usage.limit_count > 0 ? 
-                        `${usage.remaining} remaining` : 
-                        'Unlimited'
-                      }
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Discrepancy warning */}
-      {has_discrepancies && (
-        <Card className="bg-orange-50 border-orange-200">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-orange-800">Usage Count Discrepancies Detected</h4>
-                <p className="text-xs text-orange-700 mt-1">
-                  Some usage counts don't match the actual database records. Click "Fix Counts" to synchronize them.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {current_usage.invoices && <UsageCard title="Invoices" usage={current_usage.invoices.current} limit={current_usage.invoices.limit} period_end={current_usage.invoices.period_end} />}
+      {current_usage.sales && <UsageCard title="Sales" usage={current_usage.sales.current} limit={current_usage.sales.limit} period_end={current_usage.sales.period_end} />}
+      {current_usage.products && <UsageCard title="Products" usage={current_usage.products.current} limit={current_usage.products.limit} period_end={current_usage.products.period_end} />}
+      {current_usage.expenses && <UsageCard title="Expenses" usage={current_usage.expenses.current} limit={current_usage.expenses.limit} period_end={current_usage.expenses.period_end} />}
     </div>
   );
 };

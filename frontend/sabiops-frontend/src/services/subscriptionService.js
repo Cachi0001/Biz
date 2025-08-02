@@ -14,7 +14,7 @@ const subscriptionService = {
   verifyPayment: async (reference, planId) => {
     try {
       console.log(`[SubscriptionService] Verifying payment for plan ${planId} with reference ${reference}`);
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/subscription/verify-payment`,
         { reference, plan_id: planId },
@@ -30,20 +30,20 @@ const subscriptionService = {
       // If we get a new token in the response, update it
       if (response.data.access_token) {
         console.log('[SubscriptionService] Received new access token, updating...');
-        
+
         // Store the new token
         setAuthToken(response.data.access_token);
-        
+
         // Update axios default headers with new token
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        
+
         // Notify any listeners that the token was updated
         if (window.dispatchEvent) {
-          const event = new CustomEvent('tokenUpdated', { 
-            detail: { 
+          const event = new CustomEvent('tokenUpdated', {
+            detail: {
               token: response.data.access_token,
               subscription: response.data.subscription
-            } 
+            }
           });
           window.dispatchEvent(event);
         }
@@ -51,25 +51,25 @@ const subscriptionService = {
 
       console.log('[SubscriptionService] Payment verification successful:', response.data);
       return response.data;
-      
+
     } catch (error) {
       console.error('[SubscriptionService] Error verifying payment:', error);
-      
+
       // Handle specific error cases
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);
-        
+
         // If unauthorized, clear the token
         if (error.response.status === 401 || error.response.status === 403) {
           removeAuthToken();
           toastService.error('Your session has expired. Please log in again.');
         }
-        
-        throw error.response.data || { 
-          error: error.response.statusText || 'Payment verification failed' 
+
+        throw error.response.data || {
+          error: error.response.statusText || 'Payment verification failed'
         };
       } else if (error.request) {
         // The request was made but no response was received
@@ -94,13 +94,13 @@ const subscriptionService = {
       console.log('[SubscriptionService] Token:', token);
       console.log('[SubscriptionService] Token type:', typeof token);
       console.log('[SubscriptionService] Token value:', JSON.stringify(token));
-      
+
       // Check if token is null or "null" string
       if (!token || token === 'null' || token === 'undefined') {
         console.error('[SubscriptionService] Invalid token detected:', token);
         throw new Error('No valid authentication token found');
       }
-      
+
       const response = await axios.get(
         `${API_BASE_URL}/subscription/unified-status`,
         {
@@ -111,13 +111,13 @@ const subscriptionService = {
           timeout: 10000, // 10 seconds timeout
         }
       );
-      
+
       console.log('[SubscriptionService] Subscription status:', response.data);
       return response.data.data || response.data;
-      
+
     } catch (error) {
       console.error('[SubscriptionService] Error fetching subscription status:', error);
-      
+
       if (error.response) {
         if (error.response.status === 401 || error.response.status === 403) {
           removeAuthToken();
@@ -125,7 +125,7 @@ const subscriptionService = {
         }
         throw error.response.data || { error: 'Failed to fetch subscription status' };
       }
-      
+
       throw { error: error.message || 'Failed to fetch subscription status' };
     }
   },
@@ -141,13 +141,13 @@ const subscriptionService = {
       console.log('[SubscriptionService] Token:', token);
       console.log('[SubscriptionService] Token type:', typeof token);
       console.log('[SubscriptionService] Token value:', JSON.stringify(token));
-      
+
       // Check if token is null or "null" string
       if (!token || token === 'null' || token === 'undefined') {
         console.error('[SubscriptionService] Invalid token detected:', token);
         throw new Error('No valid authentication token found');
       }
-      
+
       const response = await axios.get(
         `${API_BASE_URL}/subscription/usage-status`,
         {
@@ -158,13 +158,13 @@ const subscriptionService = {
           timeout: 10000, // 10 seconds timeout
         }
       );
-      
+
       console.log('[SubscriptionService] Usage status:', response.data);
       return response.data.data || response.data;
-      
+
     } catch (error) {
       console.error('[SubscriptionService] Error fetching usage status:', error);
-      
+
       if (error.response) {
         if (error.response.status === 401 || error.response.status === 403) {
           removeAuthToken();
@@ -172,7 +172,7 @@ const subscriptionService = {
         }
         throw error.response.data || { error: 'Failed to fetch usage status' };
       }
-      
+
       throw { error: error.message || 'Failed to fetch usage status' };
     }
   },
@@ -184,7 +184,7 @@ const subscriptionService = {
   getPlans: async () => {
     try {
       console.log('[SubscriptionService] Fetching subscription plans...');
-      
+
       const response = await axios.get(
         `${API_BASE_URL}/subscription/plans`,
         {
@@ -195,13 +195,13 @@ const subscriptionService = {
           timeout: 10000, // 10 seconds timeout
         }
       );
-      
+
       console.log('[SubscriptionService] Subscription plans:', response.data);
       return response.data.data || response.data;
-      
+
     } catch (error) {
       console.error('[SubscriptionService] Error fetching subscription plans:', error);
-      
+
       if (error.response) {
         if (error.response.status === 401 || error.response.status === 403) {
           removeAuthToken();
@@ -209,7 +209,7 @@ const subscriptionService = {
         }
         throw error.response.data || { error: 'Failed to fetch subscription plans' };
       }
-      
+
       throw { error: error.message || 'Failed to fetch subscription plans' };
     }
   },

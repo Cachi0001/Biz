@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { ModernOverviewCards } from '../components/dashboard/ModernOverviewCards';
-import { ModernQuickActions } from '../components/dashboard/ModernQuickActions';
+import ModernQuickActions from '../components/dashboard/ModernQuickActions';
 import { ModernRecentActivities } from '../components/dashboard/ModernRecentActivities';
 
 import UnifiedSubscriptionStatus from '../components/subscription/UnifiedSubscriptionStatus';

@@ -66,16 +66,10 @@ const ModernQuickActions = () => {
           description: 'Track expenses'
         }
       );
+    }
 
     if (isOwner) {
       baseActions.push(
-        {
-          icon: Calculator,
-          label: 'Add Expense',
-          action: () => openModal('expense'),
-          variant: 'secondary',
-          description: 'Track expenses'
-        },
         {
           icon: BarChart3,
           label: 'Analytics',
@@ -84,6 +78,7 @@ const ModernQuickActions = () => {
           description: 'View reports'
         }
       );
+    }
 
     if (isSalesperson) {
       baseActions.push(
@@ -124,7 +119,7 @@ const ModernQuickActions = () => {
             key={index}
             variant={action.variant}
             size="lg"
-            onClick={() => handleNavigation(action.path)}
+            onClick={action.action}
             className="h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal"
           >
             <span className="flex items-center justify-center w-full">
@@ -162,72 +157,73 @@ const ModernQuickActions = () => {
             </CardContent>
           </Card>
 
-          {/* Modal Dialogs */}
-          <Dialog open={activeModal !== null} onOpenChange={(open) => !open && closeModal()}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              {activeModal === 'invoice' && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>Create New Invoice</DialogTitle>
-                    <DialogDescription>
-                      Create a new invoice for your customer
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CustomInvoiceForm 
-                    onSuccess={() => handleSuccess('invoice')}
-                    onCancel={closeModal}
-                  />
-                </>
-              )}
-              
-              {activeModal === 'sale' && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>Record New Sale</DialogTitle>
-                    <DialogDescription>
-                      Add a new sale transaction to your records
-                    </DialogDescription>
-                  </DialogHeader>
-                  <SalesForm 
-                    onSuccess={() => handleSuccess('sale')}
-                    onCancel={closeModal}
-                  />
-                </>
-              )}
-              
-              {activeModal === 'product' && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
-                    <DialogDescription>
-                      Add a new product to your inventory
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CustomProductForm 
-                    onSuccess={() => handleSuccess('product')}
-                    onCancel={closeModal}
-                  />
-                </>
-              )}
-              
-              {activeModal === 'expense' && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>Add New Expense</DialogTitle>
-                    <DialogDescription>
-                      Track your business expenses
-                    </DialogDescription>
-                  </DialogHeader>
-                  <ExpenseForm 
-                    onSuccess={() => handleSuccess('expense')}
-                    onCancel={closeModal}
-                  />
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
         </GradientCardWrapper>
       )}
+
+      {/* Modal Dialogs */}
+      <Dialog open={activeModal !== null} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {activeModal === 'invoice' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Create New Invoice</DialogTitle>
+                <DialogDescription>
+                  Create a new invoice for your customer
+                </DialogDescription>
+              </DialogHeader>
+              <CustomInvoiceForm 
+                onSuccess={() => handleSuccess('invoice')}
+                onCancel={closeModal}
+              />
+            </>
+          )}
+          
+          {activeModal === 'sale' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Record New Sale</DialogTitle>
+                <DialogDescription>
+                  Add a new sale transaction to your records
+                </DialogDescription>
+              </DialogHeader>
+              <SalesForm 
+                onSuccess={() => handleSuccess('sale')}
+                onCancel={closeModal}
+              />
+            </>
+          )}
+          
+          {activeModal === 'product' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Add New Product</DialogTitle>
+                <DialogDescription>
+                  Add a new product to your inventory
+                </DialogDescription>
+              </DialogHeader>
+              <CustomProductForm 
+                onSuccess={() => handleSuccess('product')}
+                onCancel={closeModal}
+              />
+            </>
+          )}
+          
+          {activeModal === 'expense' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Add New Expense</DialogTitle>
+                <DialogDescription>
+                  Track your business expenses
+                </DialogDescription>
+              </DialogHeader>
+              <ExpenseForm 
+                onSuccess={() => handleSuccess('expense')}
+                onCancel={closeModal}
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Role-based Quick Stats */}
       <GradientCardWrapper
@@ -251,5 +247,4 @@ const ModernQuickActions = () => {
   );
 };
 
-export { ModernQuickActions };
 export default ModernQuickActions;

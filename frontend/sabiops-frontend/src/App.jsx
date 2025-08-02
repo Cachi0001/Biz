@@ -28,7 +28,7 @@ import SalesReport from './pages/SalesReport';
 import Team from './pages/Team';
 import Customers from './pages/Customers';
 import Settings from './pages/Settings';
-import Payments from './pages/Payments';
+
 import Expenses from './pages/Expenses';
 import Transactions from './pages/Transactions';
 import EmailVerified from './pages/email-verified';
@@ -111,7 +111,7 @@ function App() {
                 <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
                 <Route path="/invoices/new" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
-                <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+                
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
                 <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
