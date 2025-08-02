@@ -1,0 +1,223 @@
+/* Mobile-friendly form styles */
+
+/* Base form styling for mobile devices */
+@media (max-width: 640px) {
+  /* Form containers */
+  .mobile-form-container {
+    @apply space-y-4 p-4;
+  }
+
+  /* Form fields */
+  .mobile-form-field {
+    @apply space-y-2;
+  }
+
+  .mobile-form-label {
+    @apply text-sm font-medium text-gray-700 block;
+  }
+
+  .mobile-form-input {
+    @apply w-full h-11 px-3 py-2 text-base;
+    @apply border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+    @apply transition-colors duration-200;
+    @apply bg-white;
+  }
+
+  .mobile-form-select {
+    @apply w-full h-11 px-3 py-2 text-base;
+    @apply border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+    @apply transition-colors duration-200;
+    @apply bg-white;
+  }
+
+  .mobile-form-textarea {
+    @apply w-full min-h-[88px] px-3 py-2 text-base;
+    @apply border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-green-500 focus:border-green-500;
+    @apply transition-colors duration-200;
+    @apply bg-white resize-y;
+  }
+
+  /* Button groups */
+  .mobile-button-group {
+    @apply grid grid-cols-2 gap-3;
+  }
+
+  .mobile-button-group-single {
+    @apply flex justify-center;
+  }
+
+  .mobile-button-group-single > * {
+    @apply w-1/2;
+  }
+
+  /* Form buttons */
+  .mobile-form-button {
+    @apply w-full h-11 px-4 py-2 text-sm font-medium;
+    @apply rounded-md transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .mobile-form-button-primary {
+    @apply bg-green-600 text-white;
+    @apply hover:bg-green-700 focus:ring-green-500;
+  }
+
+  .mobile-form-button-secondary {
+    @apply bg-gray-600 text-white;
+    @apply hover:bg-gray-700 focus:ring-gray-500;
+  }
+
+  .mobile-form-button-outline {
+    @apply bg-white text-gray-700 border border-gray-300;
+    @apply hover:bg-gray-50 focus:ring-gray-500;
+  }
+
+  /* Cards and containers */
+  .mobile-card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm p-4;
+    @apply hover:shadow-md transition-shadow duration-200;
+  }
+
+  .mobile-card-compact {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm p-3;
+    @apply hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Stats cards */
+  .mobile-stats-card {
+    @apply mobile-card-compact;
+  }
+
+  .mobile-stats-title {
+    @apply text-xs font-medium text-gray-500 uppercase tracking-wide truncate;
+  }
+
+  .mobile-stats-value {
+    @apply text-lg font-bold text-gray-900 mt-1 truncate;
+  }
+
+  /* Grid layouts */
+  .mobile-grid-2x2 {
+    @apply grid grid-cols-2 gap-3;
+  }
+
+  .mobile-grid-1x2 {
+    @apply grid grid-cols-1 gap-3;
+  }
+
+  /* Typography adjustments */
+  .mobile-heading-1 {
+    @apply text-xl font-bold text-gray-900;
+  }
+
+  .mobile-heading-2 {
+    @apply text-lg font-semibold text-gray-900;
+  }
+
+  .mobile-heading-3 {
+    @apply text-base font-medium text-gray-900;
+  }
+
+  .mobile-text-body {
+    @apply text-sm text-gray-600;
+  }
+
+  .mobile-text-caption {
+    @apply text-xs text-gray-500;
+  }
+
+  /* Reduce font weight for better mobile readability */
+  .mobile-text-normal {
+    @apply font-normal;
+  }
+
+  .mobile-text-medium {
+    @apply font-medium;
+  }
+
+  /* Spacing utilities */
+  .mobile-spacing-sm {
+    @apply space-y-2;
+  }
+
+  .mobile-spacing-md {
+    @apply space-y-3;
+  }
+
+  .mobile-spacing-lg {
+    @apply space-y-4;
+  }
+
+  /* Container padding */
+  .mobile-container {
+    @apply px-4;
+  }
+
+  .mobile-container-sm {
+    @apply px-3;
+  }
+
+  /* Error states */
+  .mobile-form-input-error {
+    @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+  }
+
+  .mobile-form-error-text {
+    @apply text-xs text-red-600 mt-1;
+  }
+
+  /* Success states */
+  .mobile-form-input-success {
+    @apply border-green-300 focus:ring-green-500 focus:border-green-500;
+  }
+
+  /* Loading states */
+  .mobile-loading-spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-b-2 border-green-600;
+  }
+
+  /* Badge adjustments for mobile */
+  .mobile-badge {
+    @apply text-xs px-2 py-1 rounded-full font-medium;
+  }
+
+  /* Table alternatives for mobile */
+  .mobile-list-item {
+    @apply bg-white border border-gray-200 rounded-lg p-3 mb-2;
+    @apply hover:shadow-sm transition-shadow duration-200;
+  }
+
+  /* Action buttons in cards */
+  .mobile-action-button {
+    @apply h-8 w-8 p-0 rounded-full;
+    @apply hover:bg-gray-100 transition-colors duration-200;
+  }
+}
+
+/* Desktop overrides to ensure consistency */
+@media (min-width: 641px) {
+  .mobile-form-input,
+  .mobile-form-select,
+  .mobile-form-textarea {
+    @apply h-10 text-sm;
+  }
+
+  .mobile-form-button {
+    @apply h-10 text-sm;
+  }
+
+  .mobile-stats-value {
+    @apply text-xl;
+  }
+
+  .mobile-heading-1 {
+    @apply text-2xl;
+  }
+
+  .mobile-heading-2 {
+    @apply text-xl;
+  }
+}

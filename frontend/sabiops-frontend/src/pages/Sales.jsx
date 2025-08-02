@@ -24,6 +24,7 @@ import DebugLogger from '../utils/debugLogger';
 import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
 import { downloadSalesCSV } from '../utils/csvDownload';
+import { MobileButtonGroup, MobileCard, MobileGrid, MobileStatsCard, MobileContainer } from '../components/ui/MobileLayoutUtils';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -446,7 +447,7 @@ const Sales = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales</h1>
                 <p className="text-gray-600 mt-1">Record sales and track performance</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="hidden sm:flex sm:flex-row gap-3">
                 <Button
                   onClick={() => window.location.href = '/sales/report'}
                   variant="outline"
@@ -462,6 +463,26 @@ const Sales = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Record Sale
                 </Button>
+              </div>
+              
+              {/* Mobile button layout */}
+              <div className="sm:hidden">
+                <MobileButtonGroup>
+                  <Button
+                    onClick={() => window.location.href = '/sales/report'}
+                    variant="outline"
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    View Report
+                  </Button>
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Record Sale
+                  </Button>
+                </MobileButtonGroup>
               </div>
             </div>
           </div>
@@ -491,64 +512,36 @@ const Sales = () => {
             </Alert>
           )}
 
-          {/* Sales Statistics Cards - 2x2 mobile layout like transaction history */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {salesStats.total_transactions || 0}
-                    </p>
-                  </div>
-                  <ShoppingCart className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
+          {/* Sales Statistics Cards - 2x2 mobile layout */}
+          <MobileGrid className="md:grid-cols-4 gap-3 sm:gap-4">
+            <MobileStatsCard
+              title="Total Sales"
+              value={salesStats.total_transactions || 0}
+              icon={ShoppingCart}
+              color="blue"
+            />
             
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatNaira(salesStats.total_sales || 0)}
-                    </p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
+            <MobileStatsCard
+              title="Total Revenue"
+              value={formatNaira(salesStats.total_sales || 0)}
+              icon={DollarSign}
+              color="green"
+            />
             
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Items Sold</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {salesStats.total_quantity || 0}
-                    </p>
-                  </div>
-                  <Package className="h-8 w-8 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
+            <MobileStatsCard
+              title="Items Sold"
+              value={salesStats.total_quantity || 0}
+              icon={Package}
+              color="purple"
+            />
             
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Profit</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatNaira(salesStats.profit_from_sales_monthly || 0)}
-                    </p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <MobileStatsCard
+              title="Profit"
+              value={formatNaira(salesStats.profit_from_sales_monthly || 0)}
+              icon={DollarSign}
+              color="green"
+            />
+          </MobileGrid>
 
           {/* Filters Section - 2x2 mobile layout like transaction history */}
           <Card>
@@ -586,7 +579,7 @@ const Sales = () => {
                 
                 <div className="space-y-2">
                   <Label>Actions</Label>
-                  <div className="flex gap-2">
+                  <div className="hidden sm:flex gap-2">
                     <Button
                       variant="outline"
                       onClick={downloadReport}
@@ -604,6 +597,27 @@ const Sales = () => {
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
+                  </div>
+                  <div className="sm:hidden">
+                    <MobileButtonGroup>
+                      <Button
+                        variant="outline"
+                        onClick={downloadReport}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          fetchSales();
+                          fetchSalesStats();
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh
+                      </Button>
+                    </MobileButtonGroup>
                   </div>
                 </div>
               </div>
@@ -662,47 +676,45 @@ const Sales = () => {
               ) : (
                 <>
                   {/* Mobile Card View */}
-                  <div className="grid grid-cols-2 gap-4 lg:hidden">
-                    {Array.isArray(filteredSales) && filteredSales.map((sale, idx) => (
-                      <div key={sale.id} className={
-                        filteredSales.length % 2 === 1 && idx === filteredSales.length - 1
-                          ? 'col-span-2 flex justify-center' : ''
-                      }>
-                        <Card className="border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-green-300">
-                          <CardContent className="p-5">
-                            <div className="space-y-4">
+                  <MobileGrid className="lg:hidden gap-3">
+                    {Array.isArray(filteredSales) && filteredSales.map((sale, idx) => {
+                      const isLastOdd = filteredSales.length % 2 === 1 && idx === filteredSales.length - 1;
+                      return (
+                        <div key={sale.id} className={isLastOdd ? 'col-span-2 flex justify-center' : ''}>
+                          <MobileCard className={`w-full ${isLastOdd ? 'max-w-xs' : ''} hover:border-green-300`}>
+                            <div className="space-y-3">
                               {/* Header */}
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-900 truncate text-base">
+                                  <h3 className="font-medium text-gray-900 truncate text-sm">
                                     {sale.customer_name || 'Walk-in Customer'}
                                   </h3>
-                                  <p className="text-sm text-gray-600 truncate mt-1">
+                                  <p className="text-xs text-gray-500 truncate mt-0.5">
                                     {sale.product_name || 'Unknown Product'}
                                   </p>
                                 </div>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-blue-50">
-                                  <Eye className="h-4 w-4 text-blue-600" />
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-blue-50 flex-shrink-0">
+                                  <Eye className="h-3 w-3 text-blue-600" />
                                 </Button>
                               </div>
 
                               {/* Details Grid */}
-                              <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
                                   <span className="text-gray-500 font-medium block mb-1">Quantity</span>
-                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
                                     {sale.quantity || 0}
                                   </span>
                                 </div>
                                 <div>
                                   <span className="text-gray-500 font-medium block mb-1">Unit Price</span>
-                                  <span className="font-semibold text-gray-900">
+                                  <span className="font-medium text-gray-900 text-xs">
                                     {formatNaira(sale.unit_price || 0)}
                                   </span>
                                 </div>
                                 <div>
                                   <span className="text-gray-500 font-medium block mb-1">Payment</span>
-                                  <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs">
+                                  <Badge variant={getPaymentMethodBadge(sale.payment_method)} className="text-xs px-1 py-0">
                                     {formatPaymentMethod(sale.payment_method)}
                                   </Badge>
                                 </div>
@@ -715,27 +727,27 @@ const Sales = () => {
                               </div>
 
                               {/* Total */}
-                              <div className="pt-3 border-t border-gray-100">
+                              <div className="pt-2 border-t border-gray-100">
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-600">Total Amount</span>
-                                  <span className="text-xl font-bold text-green-600">
+                                  <span className="text-xs font-medium text-gray-600">Total Amount</span>
+                                  <span className="text-sm font-bold text-green-600">
                                     {formatNaira(sale.total_amount || 0)}
                                   </span>
                                 </div>
                               </div>
                               {/* Profit */}
-                              <div className="pt-1 flex justify-between items-center">
-                                <span className="text-sm text-blue-700 font-medium">Profit:</span>
-                                <span className="text-base font-bold text-blue-700">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-blue-700 font-medium">Profit:</span>
+                                <span className="text-xs font-bold text-blue-700">
                                   {sale.profit_from_sales !== undefined ? formatNaira(sale.profit_from_sales) : '-'}
                                 </span>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
+                          </MobileCard>
+                        </div>
+                      );
+                    })}
+                  </MobileGrid>
 
                   {/* Desktop Table View */}
                   <div className="hidden lg:block">
