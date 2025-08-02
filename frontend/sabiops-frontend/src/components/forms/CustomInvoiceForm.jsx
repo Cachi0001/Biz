@@ -42,7 +42,6 @@ const CustomInvoiceForm = ({
       description: 'Item 1', 
       quantity: 1, 
       unit_price: 0, 
-      tax_rate: 0, 
       discount_rate: 0 
     }],
   });
@@ -104,10 +103,9 @@ const CustomInvoiceForm = ({
             description: item.description || `Item ${index + 1}`,
             quantity: item.quantity || 1,
             unit_price: item.unit_price || 0,
-            tax_rate: item.tax_rate || 0,
             discount_rate: item.discount_rate || 0,
           }))
-          : [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+          : [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, discount_rate: 0 }],
       });
     }
   }, [editingInvoice]);
@@ -135,7 +133,7 @@ const CustomInvoiceForm = ({
       processedValue = value === '' ? 1 : Math.max(1, parseInt(value) || 1);
     } else if (field === 'unit_price') {
       processedValue = value === '' ? 0 : Math.max(0, parseFloat(value) || 0);
-    } else if (field === 'tax_rate' || field === 'discount_rate') {
+    } else if (field === 'discount_rate') {
       processedValue = value === '' ? 0 : Math.max(0, Math.min(100, parseFloat(value) || 0));
     }
 
@@ -170,7 +168,6 @@ const CustomInvoiceForm = ({
         description: `Item ${prev.items.length + 1}`, 
         quantity: 1, 
         unit_price: 0, 
-        tax_rate: 0, 
         discount_rate: 0 
       }]
     }));
@@ -186,12 +183,10 @@ const CustomInvoiceForm = ({
   const calculateItemTotal = (item) => {
     const quantity = Math.max(0, parseFloat(item.quantity) || 0);
     const unitPrice = Math.max(0, parseFloat(item.unit_price) || 0);
-    const taxRate = Math.max(0, parseFloat(item.tax_rate) || 0);
     const discountRate = Math.max(0, Math.min(100, parseFloat(item.discount_rate) || 0));
 
     let total = quantity * unitPrice;
     total -= total * (discountRate / 100);
-    total += total * (taxRate / 100);
 
     return Math.round(total * 100) / 100;
   };
@@ -248,7 +243,7 @@ const CustomInvoiceForm = ({
       terms_and_conditions: 'Payment is due within 30 days of invoice date.',
       currency: 'NGN',
       discount_amount: 0,
-      items: [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, tax_rate: 0, discount_rate: 0 }],
+      items: [{ id: Date.now(), product_id: '', description: 'Item 1', quantity: 1, unit_price: 0, discount_rate: 0 }],
     });
     clearErrors();
     
@@ -556,22 +551,43 @@ const CustomInvoiceForm = ({
             <Select 
               value={formData.customer_id ? String(formData.customer_id) : ''} 
               onValueChange={(value) => {
+                console.log('🎯 InvoiceForm Customer Dropdown Change:', {
+                  selectedValue: value,
+                  customer_id: formData.customer_id,
+                  customersAvailable: customers.length,
+                  foundCustomer: customers.find(c => String(c.id) === value),
+                  allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
+                });
+                
                 const event = { target: { name: 'customer_id', value } };
                 handleInputChange(event);
               }}
             >
-              <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''}`}>
+              <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''} border-2 border-dashed border-blue-300`} style={{ backgroundColor: '#f0f8ff' }}>
                 <SelectValue placeholder="Select a customer">
-                  {formData.customer_id ? 
-                    (customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Unknown Customer') : 
-                    'Select a customer'
-                  }
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>👤</span>
+                    <span>
+                      {formData.customer_id ? 
+                        (customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Unknown Customer') : 
+                        'Select a customer'
+                      }
+                    </span>
+                    <span style={{ fontSize: '10px', color: '#666' }}>
+                      ({formData.customer_id || 'none'})
+                    </span>
+                  </div>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={String(customer.id)}>
-                    {customer.name}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <span>{customer.name}</span>
+                      <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
+                        ID: {customer.id} ({typeof customer.id})
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -686,17 +702,41 @@ const CustomInvoiceForm = ({
                   </div>
                   <Select
                     value={item.product_id ? String(item.product_id) : ''}
-                    onValueChange={(value) => handleItemChange(index, 'product_id', value)}
+                    onValueChange={(value) => {
+                      console.log('🎯 InvoiceForm Product Dropdown Change:', {
+                        itemIndex: index,
+                        selectedValue: value,
+                        product_id: item.product_id,
+                        productsAvailable: products.length,
+                        foundProduct: products.find(p => String(p.id) === value),
+                        allProducts: products.map(p => ({ id: p.id, name: p.name, type: typeof p.id }))
+                      });
+                      
+                      const product = products.find(p => String(p.id) === value);
+                      if (product) {
+                        handleItemChange(index, 'product_id', value);
+                        handleItemChange(index, 'unit_price', parseFloat(product.price || product.unit_price || 0));
+                        handleItemChange(index, 'description', product.name || 'Item ' + (index + 1));
+                      }
+                    }}
                     disabled={productsLoading || !!productsError}
                   >
-                    <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}>
+                    <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''} border-2 border-dashed border-purple-300`} style={{ backgroundColor: '#faf5ff' }}>
                       <SelectValue 
                         placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)')}
                       >
-                        {item.product_id ? 
-                          (products.find(p => String(p.id) === String(item.product_id))?.name || 'Unknown Product') : 
-                          'Select product'
-                        }
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>📦</span>
+                          <span>
+                            {item.product_id ? 
+                              (products.find(p => String(p.id) === String(item.product_id))?.name || 'Unknown Product') : 
+                              'Select product'
+                            }
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#666' }}>
+                            ({item.product_id || 'none'})
+                          </span>
+                        </div>
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -713,16 +753,44 @@ const CustomInvoiceForm = ({
                           No products available
                         </SelectItem>
                       ) : (
-                        products.map((product) => (
-                          <SelectItem key={product.id} value={String(product.id)}>
-                            <div className="flex justify-between items-center w-full">
-                              <span>{`${product.name} - ${formatNaira(product.price || product.unit_price || 0)}`}</span>
-                              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 ml-2">
-                                {`Qty: ${product.quantity || 0}`}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))
+                        products.map((product) => {
+                          const quantity = parseInt(product.quantity) || 0;
+                          const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
+                          const isOutOfStock = quantity === 0;
+                          const isLowStock = quantity <= lowStockThreshold && quantity > 0;
+                          
+                          return (
+                            <SelectItem 
+                              key={product.id} 
+                              value={String(product.id)}
+                              disabled={isOutOfStock}
+                              className={isOutOfStock ? 'opacity-50' : ''}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <span className={isOutOfStock ? 'line-through' : ''}>
+                                  {product.name}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                                  <span style={{ fontSize: '12px', color: '#059669', fontWeight: '500' }}>
+                                    {formatNaira(product.price || product.unit_price || 0)}
+                                  </span>
+                                  <span style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>
+                                    ID: {product.id} ({typeof product.id})
+                                  </span>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    isOutOfStock 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : isLowStock 
+                                      ? 'bg-yellow-100 text-yellow-700' 
+                                      : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low: ${quantity}` : `Qty: ${quantity}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        })
                       )}
                     </SelectContent>
                   </Select>
@@ -789,21 +857,7 @@ const CustomInvoiceForm = ({
                   )}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Tax Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    className={`form-input ${hasItemFieldError(index, 'tax_rate') ? 'error' : ''}`}
-                    value={item.tax_rate}
-                    onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
-                  />
-                  {getItemFieldError(index, 'tax_rate') && (
-                    <div className="error-message">{getItemFieldError(index, 'tax_rate')}</div>
-                  )}
-                </div>
+
               </div>
 
               <div style={{ 

@@ -167,6 +167,14 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
           <Select
             value={formData.customer_id ? String(formData.customer_id) : 'walkin'}
             onValueChange={(value) => {
+              console.log('🎯 SalesForm Customer Dropdown Change:', {
+                selectedValue: value,
+                customer_id: formData.customer_id,
+                customersAvailable: customers.length,
+                foundCustomer: customers.find(c => String(c.id) === value),
+                allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
+              });
+              
               const customer = customers.find(c => String(c.id) === value);
               setFormData(prev => ({
                 ...prev,
@@ -175,18 +183,31 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
               }));
             }}
           >
-            <SelectTrigger className="h-12 text-base">
+            <SelectTrigger className="h-12 text-base border-2 border-dashed border-blue-300" style={{ backgroundColor: '#f0f8ff' }}>
               <SelectValue placeholder="Select customer">
-                {formData.customer_id && customers.length > 0
-                  ? customers.find((c) => String(c.id) === String(formData.customer_id))?.name
-                  : (formData.customer_name || 'Select customer')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔍</span>
+                  <span>
+                    {formData.customer_id && customers.length > 0
+                      ? customers.find((c) => String(c.id) === String(formData.customer_id))?.name
+                      : (formData.customer_name || 'Select customer')}
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#666' }}>
+                    ({formData.customer_id || 'none'})
+                  </span>
+                </div>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
               {customers.map((customer) => (
                 <SelectItem key={customer.id} value={String(customer.id)}>
-                  {customer.name}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span>{customer.name}</span>
+                    <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
+                      ID: {customer.id} ({typeof customer.id})
+                    </span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -213,6 +234,14 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
           <Select
             value={formData.product_id ? String(formData.product_id) : ''}
             onValueChange={(value) => {
+              console.log('🎯 SalesForm Product Dropdown Change:', {
+                selectedValue: value,
+                product_id: formData.product_id,
+                productsAvailable: products.length,
+                foundProduct: products.find(p => String(p.id) === value),
+                allProducts: products.map(p => ({ id: p.id, name: p.name, type: typeof p.id }))
+              });
+              
               const product = products.find(p => String(p.id) === value);
               if (product) {
                 setFormData(prev => ({
@@ -225,11 +254,19 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             }}
             disabled={productsLoading || !!productsError || products.length === 0}
           >
-            <SelectTrigger className="h-12 text-base">
+            <SelectTrigger className="h-12 text-base border-2 border-dashed border-purple-300" style={{ backgroundColor: '#faf5ff' }}>
               <SelectValue placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}>
-                {formData.product_id && products.length > 0
-                  ? products.find((p) => String(p.id) === String(formData.product_id))?.name
-                  : (productsLoading ? 'Loading...' : 'Select product')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🛒</span>
+                  <span>
+                    {formData.product_id && products.length > 0
+                      ? products.find((p) => String(p.id) === String(formData.product_id))?.name
+                      : (productsLoading ? 'Loading...' : 'Select product')}
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#666' }}>
+                    ({formData.product_id || 'none'})
+                  </span>
+                </div>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -259,13 +296,16 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
                       disabled={isOutOfStock}
                       className={isOutOfStock ? 'opacity-50' : ''}
                     >
-                      <div className="flex justify-between items-center w-full">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span className={isOutOfStock ? 'line-through' : ''}>
                           {product.name}
                         </span>
-                        <div className="flex items-center gap-2 ml-2">
-                          <span className="text-sm text-green-600 font-medium">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                          <span style={{ fontSize: '12px', color: '#059669', fontWeight: '500' }}>
                             {formatNaira(product.price || product.unit_price || 0)}
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>
+                            ID: {product.id} ({typeof product.id})
                           </span>
                           <span className={`text-xs px-2 py-1 rounded ${
                             isOutOfStock 
