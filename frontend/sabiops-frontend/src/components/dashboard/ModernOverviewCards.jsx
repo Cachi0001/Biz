@@ -58,7 +58,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      trend: 'up'
+      trend: 'up',
+      path: '/analytics'
     },
     {
       title: 'Profit From Sales',
@@ -67,7 +68,8 @@ const ModernOverviewCards = ({ data, loading }) => {
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      trend: (data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0) > 0 ? 'up' : 'down'
+      trend: (data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0) > 0 ? 'up' : 'down',
+      path: '/sales'
     },
     {
       title: 'Customers',

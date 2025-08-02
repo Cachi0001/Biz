@@ -378,12 +378,26 @@ const Sales = () => {
         return;
       }
 
-      // Use the proper CSV utility
-      await downloadSalesCSV(filteredSales, `sales-${selectedDate}`);
-      toastService.success('Sales report downloaded successfully!');
+      await downloadSalesHTML(filteredSales, `sales-report-${selectedDate}`);
+      toastService.success('Sales report HTML downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);
       toastService.error('Failed to download report');
+    }
+  };
+
+  const downloadCSVReport = async () => {
+    try {
+      if (filteredSales.length === 0) {
+        toastService.error('No sales data to download');
+        return;
+      }
+
+      await downloadSalesCSV(filteredSales, `sales-${selectedDate}`);
+      toastService.success('Sales CSV downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      toastService.error('Failed to download CSV');
     }
   };
 
@@ -557,7 +571,7 @@ const Sales = () => {
                       onClick={downloadReport}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download
+                      Download HTML
                     </Button>
                     <Button
                       variant="outline"
@@ -572,7 +586,7 @@ const Sales = () => {
                   </MobileButtonGroup>
                   <Button
                     variant="outline"
-                    onClick={downloadReport}
+                    onClick={downloadCSVReport}
                     className="w-full mt-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -616,23 +630,13 @@ const Sales = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        fetchSales();
-                        fetchSalesStats();
-                      }}
-                      className="h-10 px-3 text-sm"
+                      onClick={downloadCSVReport}
+                      className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 h-10"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <Download className="h-4 w-4 mr-2" />
+                      Download as CSV
                     </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={downloadReport}
-                    className="w-full mt-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 h-10"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download as CSV
-                  </Button>
                 </div>
               </div>
             </CardContent>
