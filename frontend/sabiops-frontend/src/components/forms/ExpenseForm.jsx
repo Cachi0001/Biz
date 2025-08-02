@@ -11,6 +11,8 @@ import {
 } from '../ui/select';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '../../constants/paymentMethods';
+import { createExpense } from '../../services/api';
+import { toastService } from '../../services/ToastService';
 
 const ExpenseForm = ({ 
   onSubmit, 
@@ -159,14 +161,27 @@ const ExpenseForm = ({
         amount: parseFloat(formData.amount) || 0
       };
       
-      await onSubmit(submitData);
+      // Call the API directly
+      const response = await createExpense(submitData);
       
-      // Reset form if not editing
-      if (!editingExpense) {
-        resetForm();
+      if (response.success) {
+        toastService.success('Expense recorded successfully!');
+        
+        // Call onSubmit callback if provided (for Quick Actions integration)
+        if (onSubmit) {
+          onSubmit('expense');
+        }
+        
+        // Reset form if not editing
+        if (!editingExpense) {
+          resetForm();
+        }
+      } else {
+        toastService.error(response.message || 'Failed to record expense');
       }
     } catch (error) {
       console.error('Error submitting expense:', error);
+      toastService.error('Failed to record expense');
       handleApiErrorWithToast(error, 'Failed to save expense');
     } finally {
       setIsSubmitting(false);

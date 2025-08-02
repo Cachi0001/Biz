@@ -1,8 +1,26 @@
-import axios from 'axios';
-import { getAuthToken, setAuthToken, removeAuthToken } from '../utils/auth';
+import { getAuthToken, setAuthToken, removeAuthToken } from './api';
 import toastService from './ToastService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Import the configured API client instead of using raw axios
+import axios from 'axios';
+
+// Determine the correct base URL based on environment
+const getBaseURL = () => {
+  // Check if we're in development (localhost)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return '/api'; // Use proxy in development
+  }
+  
+  // Check for environment variable first
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // Production fallback - use the correct Vercel backend URL
+  return 'https://sabiops-backend.vercel.app/api';
+};
+
+const API_BASE_URL = getBaseURL();
 
 const subscriptionService = {
   /**

@@ -1,28 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { AlertTriangle, RefreshCw, CheckCircle, Info } from 'lucide-react';
+import { AlertTriangle, RefreshCw, CheckCircle, Info, Crown } from 'lucide-react';
 import subscriptionService from '../../services/subscriptionService';
+import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 
-const StatusCard = ({ status, plan, days_remaining, is_trial }) => {
+const StatusCard = ({ status, plan, days_remaining, is_trial, trial_days_left }) => {
   const isActive = status === 'active';
   const cardClass = isActive ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200';
   const icon = isActive ? <CheckCircle className="h-5 w-5 text-green-600 mr-2" /> : <Info className="h-5 w-5 text-yellow-600 mr-2" />;
   const title = is_trial ? `${plan} (Trial)` : plan;
+  
+  // Use trial_days_left if available, otherwise fall back to days_remaining
+  const daysLeft = trial_days_left !== undefined ? trial_days_left : days_remaining;
 
   return (
     <Card className={cardClass}>
       <CardContent className="p-4">
-        <div className="flex items-center">
-          {icon}
-          <h3 className={`font-semibold ${isActive ? 'text-green-800' : 'text-yellow-800'}`}>
-            {isActive ? 'Subscription Active' : 'Subscription Inactive'}
-          </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            {icon}
+            <h3 className={`font-semibold ${isActive ? 'text-green-800' : 'text-yellow-800'}`}>
+              {isActive ? 'Subscription Active' : 'Subscription Inactive'}
+            </h3>
+          </div>
+          {(is_trial || daysLeft > 0) && (
+            <div className="flex items-center gap-1">
+              <Crown className="h-5 w-5 text-yellow-500" />
+              <span className="text-sm font-medium text-yellow-700">
+                {daysLeft} days left
+              </span>
+            </div>
+          )}
         </div>
         <p className={`text-sm mt-1 ${isActive ? 'text-green-700' : 'text-yellow-700'}`}>
           You are currently on the <strong>{title}</strong> plan.
-          {isActive && days_remaining !== null && ` You have ${days_remaining} days remaining.`}
+          {isActive && daysLeft !== null && daysLeft > 0 && ` You have ${daysLeft} days remaining.`}
         </p>
       </CardContent>
     </Card>
@@ -30,8 +44,9 @@ const StatusCard = ({ status, plan, days_remaining, is_trial }) => {
 };
 
 const UnifiedSubscriptionStatus = () => {
+  const { user, subscription, trialDaysLeft, isAuthenticated } = useAuth();
   const [statusData, setStatusData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchSubscriptionStatus = useCallback(async () => {
@@ -53,11 +68,37 @@ const UnifiedSubscriptionStatus = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchSubscriptionStatus();
-  }, [fetchSubscriptionStatus]);
+  // Use AuthContext data as primary source
+  const getSubscriptionData = () => {
+    if (user && subscription) {
+      return {
+        status: subscription.status || user.subscription_status || 'inactive',
+        plan: subscription.plan || user.subscription_plan || 'free',
+        days_remaining: subscription.days_remaining || user.remaining_days || 0,
+        is_trial: subscription.is_trial || user.is_trial || false,
+        trial_days_left: trialDaysLeft || user.trial_days_left || 0,
+        is_active: subscription.is_active || user.is_active || false
+      };
+    }
+    
+    // Fallback to API data if AuthContext data is not available
+    if (statusData && statusData.subscription) {
+      return statusData.subscription;
+    }
+    
+    return null;
+  };
 
-  if (loading) {
+  const subscriptionData = getSubscriptionData();
+
+  // Only fetch from API if we don't have AuthContext data
+  useEffect(() => {
+    if (!subscriptionData && isAuthenticated) {
+      fetchSubscriptionStatus();
+    }
+  }, [fetchSubscriptionStatus, subscriptionData, isAuthenticated]);
+
+  if (loading && !subscriptionData) {
     return (
       <Card>
         <CardContent className="p-4">
@@ -67,7 +108,7 @@ const UnifiedSubscriptionStatus = () => {
     );
   }
 
-  if (error) {
+  if (error && !subscriptionData) {
     return (
       <Card className="bg-red-50 border-red-200">
         <CardContent className="p-4">
@@ -90,13 +131,11 @@ const UnifiedSubscriptionStatus = () => {
     );
   }
 
-  if (!statusData || !statusData.subscription) {
+  if (!subscriptionData) {
     return null;
   }
 
-  const { subscription } = statusData;
-
-  return <StatusCard {...subscription} />;
+  return <StatusCard {...subscriptionData} />;
 };
 
 export default UnifiedSubscriptionStatus;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
-import { FileText, Users, Package, TrendingUp, Calculator, CreditCard, Settings, BarChart3 } from 'lucide-react';
+import { FileText, Package, TrendingUp, Calculator, Settings, BarChart3, Receipt } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
@@ -12,23 +13,29 @@ import { SalesForm } from '../forms/SalesForm';
 
 const ModernQuickActions = () => {
   const { role, isOwner, isAdmin, isSalesperson } = useAuth();
+  const navigate = useNavigate();
   const [activeModal, setActiveModal] = useState(null);
-  const [modalData, setModalData] = useState({});
 
-  const openModal = (type, data = {}) => {
+  const openModal = (type) => {
     setActiveModal(type);
-    setModalData(data);
   };
 
   const closeModal = () => {
     setActiveModal(null);
-    setModalData({});
   };
 
   const handleSuccess = (type) => {
     closeModal();
     // Emit events to refresh dashboard data
     window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { type } }));
+  };
+
+  const handleAnalyticsClick = () => {
+    navigate('/analytics');
+  };
+
+  const handleViewExpensesClick = () => {
+    navigate('/expenses');
   };
 
   const getActionsForRole = () => {
@@ -73,9 +80,23 @@ const ModernQuickActions = () => {
         {
           icon: BarChart3,
           label: 'Analytics',
-          action: () => openModal('analytics'),
+          action: handleAnalyticsClick,
           variant: 'primary',
           description: 'View reports'
+        }
+      );
+    }
+
+    // Add View Expenses button for owners/admins
+    if (isOwner || isAdmin) {
+      baseActions.push(
+        {
+          icon: Receipt,
+          label: 'View Expenses',
+          action: handleViewExpensesClick,
+          variant: 'secondary',
+          description: 'View expenses',
+          style: 'mild-red'
         }
       );
     }
@@ -142,17 +163,24 @@ const ModernQuickActions = () => {
           <Card className="border-0 bg-transparent">
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-2">
-                {actions.slice(4).map((action, index) => (
-                  <Button
-                    key={index}
-                    variant={action.variant === 'primary' ? 'default' : 'outline'}
-                    className="w-full h-auto py-3 px-4 flex flex-col items-center justify-center gap-2 text-center hover:shadow-lg transition-all duration-200 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
-                    onClick={action.action}
-                  >
-                    <action.icon className="h-5 w-5 mb-1" />
-                    <span className="text-xs font-medium">{action.label}</span>
-                  </Button>
-                ))}
+                {actions.slice(4).map((action, index) => {
+                  const isMildRed = action.style === 'mild-red';
+                  return (
+                    <Button
+                      key={index}
+                      variant={action.variant === 'primary' ? 'default' : 'outline'}
+                      className={`w-full h-auto py-3 px-4 flex flex-col items-center justify-center gap-2 text-center hover:shadow-lg transition-all duration-200 ${
+                        isMildRed 
+                          ? 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:border-red-800 dark:text-red-300' 
+                          : 'bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                      }`}
+                      onClick={action.action}
+                    >
+                      <action.icon className="h-5 w-5 mb-1" />
+                      <span className="text-xs font-medium">{action.label}</span>
+                    </Button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

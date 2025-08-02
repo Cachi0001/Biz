@@ -97,7 +97,28 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error('Error creating sale:', error);
-      toastService.error('Failed to record sale');
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = 'Failed to record sale';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to record sales.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      toastService.error(errorMessage, {
+        duration: 5000,
+        position: 'top-center'
+      });
     } finally {
       setLoading(false);
     }
@@ -120,7 +141,12 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             }}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Select customer" />
+              <SelectValue placeholder="Select customer">
+                {formData.customer_id ? 
+                  (customers.find(c => c.id === formData.customer_id)?.name || 'Walk-in Customer') : 
+                  'Walk-in Customer'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -168,7 +194,12 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             <SelectTrigger className="h-12 text-base">
               <SelectValue 
                 placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-              />
+              >
+                {formData.product_id ? 
+                  (products.find(p => p.id === formData.product_id)?.name || 'Unknown Product') : 
+                  null
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {productsLoading ? (

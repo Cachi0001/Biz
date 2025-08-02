@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import subscriptionService from '../../services/subscriptionService';
+import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 
 const UsageCard = ({ title, usage, limit, period_end }) => {
@@ -28,13 +29,21 @@ const UsageCard = ({ title, usage, limit, period_end }) => {
 };
 
 const AccurateUsageCards = () => {
+  const { user, isAuthenticated } = useAuth();
   const [usageData, setUsageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
-  const fetchAccurateUsage = useCallback(async () => {
-    setLoading(true);
+  const fetchAccurateUsage = useCallback(async (isRetry = false) => {
+    if (isRetry) {
+      setRetrying(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+    
     try {
       const response = await subscriptionService.getUsageStatus();
       const data = response.data || response;
@@ -43,17 +52,36 @@ const AccurateUsageCards = () => {
         throw new Error('Invalid usage data structure received from API.');
       }
       setUsageData(data);
+      setRetryCount(0); // Reset retry count on success
     } catch (err) {
       console.error('Error fetching accurate usage data:', err);
-      setError(err.message || 'Failed to load usage data. Please try again.');
+      const errorMessage = err.message || 'Failed to load usage data. Please try again.';
+      setError(errorMessage);
+      
+      // Implement exponential backoff for automatic retries
+      if (retryCount < 3 && !isRetry) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchAccurateUsage(true);
+        }, delay);
+      }
     } finally {
       setLoading(false);
+      setRetrying(false);
     }
-  }, []);
+  }, [retryCount]);
+
+  const handleManualRetry = useCallback(() => {
+    setRetryCount(0);
+    fetchAccurateUsage(true);
+  }, [fetchAccurateUsage]);
 
   useEffect(() => {
-    fetchAccurateUsage();
-  }, [fetchAccurateUsage]);
+    if (isAuthenticated) {
+      fetchAccurateUsage();
+    }
+  }, [fetchAccurateUsage, isAuthenticated]);
 
   if (loading) {
     return (
@@ -78,10 +106,11 @@ const AccurateUsageCards = () => {
             variant="outline"
             size="sm"
             className="mt-2"
-            onClick={fetchAccurateUsage}
+            onClick={handleManualRetry}
+            disabled={retrying}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
+            <RefreshCw className={`h-4 w-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
+            {retrying ? 'Retrying...' : 'Retry'}
           </Button>
         </CardContent>
       </Card>

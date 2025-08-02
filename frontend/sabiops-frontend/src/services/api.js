@@ -45,15 +45,40 @@ api.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
       // Token expired or invalid
+      console.log('[DEBUG] 401 error detected, attempting to handle authentication');
+      
+      // Try to verify token first
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // If we have a token, try to verify it
+          const verifyResponse = await api.post('/auth/verify-token');
+          if (verifyResponse.data.success) {
+            // Token is still valid, retry the original request
+            return api.request(originalRequest);
+          }
+        }
+      } catch (verifyError) {
+        console.log('[DEBUG] Token verification failed, clearing token');
+      }
+      
+      // Clear invalid token
       localStorage.removeItem('token');
-      // Only redirect if not already on /login and not during a toast
+      
+      // Only redirect if not already on /login
       if (window.location.pathname !== '/login') {
+        console.log('[DEBUG] Redirecting to login due to authentication failure');
         window.location.href = '/login';
       }
     }
+    
     return Promise.reject(error);
   }
 );

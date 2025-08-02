@@ -84,12 +84,12 @@ def get_sales():
             today_sales = sum(
                 float(sale.get("total_amount", 0)) 
                 for sale in sales_data 
-                if sale.get("date", "").startswith(today)
+                if sale.get("date") and str(sale.get("date", "")).startswith(today)
             )
             today_profit = sum(
                 float(sale.get("profit_from_sales", 0)) 
                 for sale in sales_data 
-                if sale.get("date", "").startswith(today)
+                if sale.get("date") and str(sale.get("date", "")).startswith(today)
             )
         except Exception as calc_exc:
             print(f"[ERROR] Calculation error in get_sales: {calc_exc}")

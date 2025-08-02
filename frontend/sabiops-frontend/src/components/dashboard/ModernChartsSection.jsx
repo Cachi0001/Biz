@@ -26,7 +26,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
   // Get revenue trends from analytics data or use mock data
   const revenueTrends = analyticsData?.revenue?.trends || [];
   const cashFlowTrends = analyticsData?.financial?.cash_flow_trends || [];
-  
+
   // Debug logs for troubleshooting
   console.log('ModernChartsSection Debug:', {
     analyticsData: analyticsData,
@@ -34,18 +34,18 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
     cashFlowTrends: cashFlowTrends,
     dashboardData: data
   });
-  
+
   // Create a combined dataset with revenue from revenue trends and expenses from cash flow trends
   let chartRevenueData = [];
-  
+
   if (revenueTrends.length > 0) {
     // Use revenue trends as the base and match with cash flow data for expenses
     chartRevenueData = revenueTrends.map(revenueItem => {
       // Find matching period in cash flow data for expenses
-      const matchingCashFlow = cashFlowTrends.find(cashFlow => 
+      const matchingCashFlow = cashFlowTrends.find(cashFlow =>
         cashFlow.period === revenueItem.period
       );
-      
+
       return {
         month: revenueItem.period,
         revenue: revenueItem.revenue || 0,
@@ -80,7 +80,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
       { month: 'Jun', revenue: 25000, expenses: 14000 },
     ];
   }
-  
+
   // Additional debug log for chart data
   console.log('Chart Revenue Data:', chartRevenueData);
 
@@ -89,11 +89,11 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
     value: Math.round(product.revenue || 0),
     color: ['#16a34a', '#8b5cf6', '#3b82f6', '#f59e0b'][index] || '#6b7280'
   })) || [
-    { name: 'Office Chair', value: 45, color: '#16a34a' },
-    { name: 'Desk Lamp', value: 35, color: '#8b5cf6' },
-    { name: 'Notebook', value: 25, color: '#3b82f6' },
-    { name: 'Pen Set', value: 20, color: '#f59e0b' },
-  ];
+      { name: 'Office Chair', value: 45, color: '#16a34a' },
+      { name: 'Desk Lamp', value: 35, color: '#8b5cf6' },
+      { name: 'Notebook', value: 25, color: '#3b82f6' },
+      { name: 'Pen Set', value: 20, color: '#f59e0b' },
+    ];
 
   // Generate sales data from analytics or use mock data
   const salesData = analyticsData?.revenue?.trends?.slice(-7).map((item, index) => ({
@@ -101,14 +101,14 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
     sales: item.orders || 0,
     target: 15 // This could be configurable
   })) || [
-    { day: 'Mon', sales: 12, target: 15 },
-    { day: 'Tue', sales: 19, target: 15 },
-    { day: 'Wed', sales: 8, target: 15 },
-    { day: 'Thu', sales: 15, target: 15 },
-    { day: 'Fri', sales: 22, target: 15 },
-    { day: 'Sat', sales: 18, target: 15 },
-    { day: 'Sun', sales: 9, target: 15 },
-  ];
+      { day: 'Mon', sales: 12, target: 15 },
+      { day: 'Tue', sales: 19, target: 15 },
+      { day: 'Wed', sales: 8, target: 15 },
+      { day: 'Thu', sales: 15, target: 15 },
+      { day: 'Fri', sales: 22, target: 15 },
+      { day: 'Sat', sales: 18, target: 15 },
+      { day: 'Sun', sales: 9, target: 15 },
+    ];
 
   const getChartsForRole = () => {
     if (isFreeTrial) {
@@ -136,7 +136,7 @@ const ModernChartsSection = ({ data, loading, analyticsData }) => {
         subtitle: 'Monthly comparison',
         component: (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartRevenueData} barCategoryGap="2%">
+            <BarChart data={chartRevenueData} barCategoryGap="30%">
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} />
               <YAxis hide />
               <Bar dataKey="revenue" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={30} />
