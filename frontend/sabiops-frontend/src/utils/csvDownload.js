@@ -170,16 +170,48 @@ export const downloadSalesHTML = (sales, filename) => {
       throw new Error('No sales data available to download');
     }
 
+
+
     const totalAmount = sales.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
     
-    // Calculate actual net profit (Revenue - Expenses)
-    const totalProfitFromSales = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales) || 0), 0);
-    const dailyProfit = totalProfitFromSales; // Daily profit from sales
+    // Calculate actual net profit with robust fallback logic
+    let totalProfitFromSales = 0;
+    let netProfit = 0;
+    let dailyProfit = 0;
     
-    // Net profit calculation (Revenue - Expenses) - simplified for sales context
-    const netProfit = totalProfitFromSales; // Using profit_from_sales as net profit
+    // Try to get profit from sales data with multiple fallback strategies
+    sales.forEach(sale => {
+      let profit = 0;
+      
+      // Priority 1: Use profit_from_sales if available
+      if (sale.profit_from_sales !== undefined && sale.profit_from_sales !== null) {
+        profit = parseFloat(sale.profit_from_sales) || 0;
+      }
+      // Priority 2: Calculate from revenue and cost
+      else if (sale.cost_price && sale.quantity) {
+        const revenue = parseFloat(sale.total_amount) || 0;
+        const cost = parseFloat(sale.cost_price) * parseInt(sale.quantity) || 0;
+        profit = revenue - cost;
+      }
+      // Priority 3: Calculate from unit price and cost
+      else if (sale.unit_price && sale.cost_price && sale.quantity) {
+        const revenue = parseFloat(sale.unit_price) * parseInt(sale.quantity) || 0;
+        const cost = parseFloat(sale.cost_price) * parseInt(sale.quantity) || 0;
+        profit = revenue - cost;
+      }
+      // Priority 4: Use 10% margin as fallback
+      else {
+        const revenue = parseFloat(sale.total_amount) || 0;
+        profit = revenue * 0.1; // 10% default margin
+      }
+      
+      totalProfitFromSales += profit;
+    });
+    
+    dailyProfit = totalProfitFromSales; // Daily profit from sales
+    netProfit = totalProfitFromSales; // Net profit calculation
     
     // Group sales by payment method
     const paymentMethodBreakdown = sales.reduce((acc, sale) => {
