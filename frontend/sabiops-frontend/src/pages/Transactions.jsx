@@ -457,7 +457,11 @@ const Transactions = () => {
                 {filteredTransactions.map((transaction) => {
                   const IconComponent = transaction.icon;
                   return (
-                    <TableRow key={transaction.id}>
+                    <TableRow 
+                      key={transaction.id} 
+                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => handleViewTransaction(transaction)}
+                    >
                       <TableCell>
                         <div>
                           <div className="font-medium">
@@ -501,12 +505,16 @@ const Transactions = () => {
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          onClick={() => handleViewTransaction(transaction)}
-                          className="h-8 w-8 p-0 hover:bg-blue-100"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleViewTransaction(transaction);
+                          }}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                         >
-                          <Eye className="h-4 w-4 text-blue-600" />
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
                         </Button>
                       </TableCell>
                     </TableRow>

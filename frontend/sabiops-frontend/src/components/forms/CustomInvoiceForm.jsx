@@ -790,21 +790,7 @@ const CustomInvoiceForm = ({
                   )}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Discount Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    className={`form-input ${hasItemFieldError(index, 'discount_rate') ? 'error' : ''}`}
-                    value={item.discount_rate}
-                    onChange={(e) => handleItemChange(index, 'discount_rate', e.target.value)}
-                  />
-                  {getItemFieldError(index, 'discount_rate') && (
-                    <div className="error-message">{getItemFieldError(index, 'discount_rate')}</div>
-                  )}
-                </div>
+
               </div>
 
               <div style={{ 
@@ -867,35 +853,7 @@ const CustomInvoiceForm = ({
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Notes</label>
-          <textarea
-            className={`form-textarea ${hasFieldError('notes') ? 'error' : ''}`}
-            value={formData.notes}
-            onChange={handleInputChange}
-            name="notes"
-            placeholder="Additional notes for this invoice..."
-            rows="3"
-          />
-          {getFieldError('notes') && (
-            <div className="error-message">{getFieldError('notes')}</div>
-          )}
-        </div>
 
-        <div className="form-group">
-          <label className="form-label">Terms and Conditions</label>
-          <textarea
-            className={`form-textarea ${hasFieldError('terms_and_conditions') ? 'error' : ''}`}
-            value={formData.terms_and_conditions}
-            onChange={handleInputChange}
-            name="terms_and_conditions"
-            placeholder="Terms and conditions for this invoice..."
-            rows="3"
-          />
-          {getFieldError('terms_and_conditions') && (
-            <div className="error-message">{getFieldError('terms_and_conditions')}</div>
-          )}
-        </div>
 
         {/* Invoice Total */}
         <div className="invoice-total">

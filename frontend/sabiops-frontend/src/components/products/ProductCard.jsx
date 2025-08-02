@@ -21,9 +21,6 @@ const ProductCard = ({ product, onEdit, onDelete, onView }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-                {product.sku && (
-                  <p className="text-sm text-gray-500 truncate">SKU: {product.sku}</p>
-                )}
               </div>
             </div>
             <div className="flex gap-1">

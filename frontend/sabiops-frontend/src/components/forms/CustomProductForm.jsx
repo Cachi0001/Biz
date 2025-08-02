@@ -376,18 +376,7 @@ const CustomProductForm = ({
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Description</label>
-          <textarea
-            ref={descriptionInputRef}
-            className="form-textarea"
-            placeholder="Product description"
-            rows="3"
-            onFocus={() => handleInputFocus('description')}
-            onBlur={() => handleInputBlur('description')}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-          />
-        </div>
+
 
         <div className="form-row">
           <div className="form-group">
@@ -415,44 +404,10 @@ const CustomProductForm = ({
             </Select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Subcategory</label>
-            <Select 
-              value={formData.subcategory} 
-              onValueChange={(value) => handleInputChange('subcategory', value)}
-              disabled={!formData.category}
-            >
-              <SelectTrigger className="form-select">
-                <SelectValue 
-                  placeholder={formData.category ? "Select a subcategory" : "Select category first"}
-                  value={formData.subcategory}
-                />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {getSubcategories(formData.category).map((subcategory) => (
-                  <SelectItem key={subcategory} value={subcategory}>
-                    {subcategory}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Barcode</label>
-            <input
-              ref={barcodeInputRef}
-              type="text"
-              className="form-input"
-              placeholder="Product barcode (optional)"
-              onFocus={() => handleInputFocus('barcode')}
-              onBlur={() => handleInputBlur('barcode')}
-              onChange={(e) => handleInputChange('barcode', e.target.value)}
-            />
-          </div>
-        </div>
+
 
         <div className="form-row">
           <div className="form-group">

@@ -519,15 +519,94 @@ const Team = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="block lg:hidden">
+              <div className="grid gap-4">
+                {filteredMembers.map((member) => (
+                  <Card key={member.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header with name and status */}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-lg">{member.full_name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                        </div>
+                        <Badge variant={member.active ? 'default' : 'destructive'}>
+                          {member.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>
+                          <p className="font-medium">{member.phone || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Role:</span>
+                          <Badge variant={member.role === 'Admin' ? 'default' : 'secondary'} className="mt-1">
+                            {member.role}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2 pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(member)}
+                          className="text-xs"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        {!member.active && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleActivate(member.id)}
+                            className="text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                          >
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Activate
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleResetPassword(member.id)}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset Password
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(member.id)}
+                          className="text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+            
+            {/* Desktop Table Layout */}
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead className="hidden lg:table-cell">Status</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -538,13 +617,13 @@ const Team = () => {
                         <div className="font-medium">{member.full_name}</div>
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{member.phone}</TableCell>
+                      <TableCell>{member.phone || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant={member.role === 'Admin' ? 'default' : 'secondary'}>
                           {member.role}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell>
                         <Badge variant={member.active ? 'default' : 'destructive'}>
                           {member.active ? 'Active' : 'Inactive'}
                         </Badge>
@@ -552,34 +631,42 @@ const Team = () => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleEdit(member)}
+                            className="text-xs"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
                           </Button>
                           {!member.active && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleActivate(member.id)}
+                              className="text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                             >
-                              <UserCheck className="h-4 w-4" />
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Activate
                             </Button>
                           )}
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleResetPassword(member.id)}
+                            className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reset Password
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleDelete(member.id)}
+                            className="text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
                           </Button>
                         </div>
                       </TableCell>
@@ -588,6 +675,7 @@ const Team = () => {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
