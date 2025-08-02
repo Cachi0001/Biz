@@ -83,6 +83,29 @@ const AccurateUsageCards = () => {
     }
   }, [fetchAccurateUsage, isAuthenticated]);
 
+  // Listen for dashboard refresh events
+  useEffect(() => {
+    const handleDataUpdate = (event) => {
+      console.log('[AccurateUsageCards] Data updated, refreshing usage data...', event.detail);
+      fetchAccurateUsage();
+    };
+
+    // Listen for various data update events that should trigger usage refresh
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    window.addEventListener('salesUpdated', handleDataUpdate);
+    window.addEventListener('expenseUpdated', handleDataUpdate);
+    window.addEventListener('invoiceUpdated', handleDataUpdate);
+    window.addEventListener('productUpdated', handleDataUpdate);
+
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+      window.removeEventListener('salesUpdated', handleDataUpdate);
+      window.removeEventListener('expenseUpdated', handleDataUpdate);
+      window.removeEventListener('invoiceUpdated', handleDataUpdate);
+      window.removeEventListener('productUpdated', handleDataUpdate);
+    };
+  }, [fetchAccurateUsage]);
+
   if (loading) {
     return (
       <Card>

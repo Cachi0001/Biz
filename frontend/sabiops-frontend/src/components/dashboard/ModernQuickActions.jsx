@@ -141,7 +141,7 @@ const ModernQuickActions = () => {
             variant={action.variant}
             size="lg"
             onClick={action.action}
-            className="h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal"
+            className="h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal bg-white hover:bg-gray-50 border border-gray-200 text-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
           >
             <span className="flex items-center justify-center w-full">
               <action.icon className="h-5 w-5" />

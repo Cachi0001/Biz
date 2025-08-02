@@ -18,6 +18,7 @@ import StableInput from '../components/ui/StableInput';
 import { EXPENSE_CATEGORIES } from '../constants/categories';
 import { validateExpenseData } from '../utils/expenseValidator';
 import MobileDateInput from '../components/ui/MobileDateInput';
+import { downloadExpensesCSV } from '../utils/csvDownload';
 
 const Expenses = () => {
   // State
@@ -224,51 +225,10 @@ const Expenses = () => {
   // Calculate total expenses
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0);
 
-  // Download expenses as CSV
+  // Download expenses as CSV using the utility
   const handleDownload = () => {
     try {
-      const headers = [
-        'Date',
-        'Category',
-        'Subcategory',
-        'Description',
-        'Amount',
-        'Vendor',
-        'Payment Method',
-        'Reference',
-        'Tax Deductible',
-        'Notes'
-      ];
-
-      const csvRows = [headers.join(',')];
-      
-      filteredExpenses.forEach(expense => {
-        const row = [
-          expense.date || '',
-          expense.category || '',
-          expense.subcategory || '',
-          `"${(expense.description || '').replace(/"/g, '""')}"`,
-          expense.amount || 0,
-          `"${(expense.vendor || '').replace(/"/g, '""')}"`,
-          expense.payment_method || '',
-          `"${(expense.reference || '').replace(/"/g, '""')}"`,
-          expense.tax_deductible ? 'Yes' : 'No',
-          `"${(expense.notes || '').replace(/"/g, '""')}"`
-        ];
-        csvRows.push(row.join(','));
-      });
-
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `expenses-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      downloadExpensesCSV(filteredExpenses);
       success('Expenses report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);

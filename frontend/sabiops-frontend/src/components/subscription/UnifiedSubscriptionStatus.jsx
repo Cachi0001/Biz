@@ -98,6 +98,29 @@ const UnifiedSubscriptionStatus = () => {
     }
   }, [fetchSubscriptionStatus, subscriptionData, isAuthenticated]);
 
+  // Listen for dashboard refresh events to update subscription status
+  useEffect(() => {
+    const handleDataUpdate = (event) => {
+      console.log('[UnifiedSubscriptionStatus] Data updated, refreshing subscription status...', event.detail);
+      fetchSubscriptionStatus();
+    };
+
+    // Listen for various data update events that should trigger subscription refresh
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    window.addEventListener('salesUpdated', handleDataUpdate);
+    window.addEventListener('expenseUpdated', handleDataUpdate);
+    window.addEventListener('invoiceUpdated', handleDataUpdate);
+    window.addEventListener('subscriptionUpdated', handleDataUpdate);
+
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+      window.removeEventListener('salesUpdated', handleDataUpdate);
+      window.removeEventListener('expenseUpdated', handleDataUpdate);
+      window.removeEventListener('invoiceUpdated', handleDataUpdate);
+      window.removeEventListener('subscriptionUpdated', handleDataUpdate);
+    };
+  }, [fetchSubscriptionStatus]);
+
   if (loading && !subscriptionData) {
     return (
       <Card>

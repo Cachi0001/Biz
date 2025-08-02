@@ -23,6 +23,7 @@ import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
+import { downloadSalesCSV } from '../utils/csvDownload';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
