@@ -554,7 +554,8 @@ const Sales = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Mobile Layout - Stack vertically */}
+              <div className="sm:hidden space-y-4">
                 <div className="space-y-2">
                   <Label>Search Sales</Label>
                   <div className="relative">
@@ -578,7 +579,54 @@ const Sales = () => {
                 
                 <div className="space-y-2">
                   <Label>Actions</Label>
-                  <div className="hidden sm:flex gap-2">
+                  <MobileButtonGroup>
+                    <Button
+                      variant="outline"
+                      onClick={downloadReport}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        fetchSales();
+                        fetchSalesStats();
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </MobileButtonGroup>
+                </div>
+              </div>
+              
+              {/* Desktop Layout - 3 columns */}
+              <div className="hidden sm:grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Search Sales</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <StableInput
+                      placeholder="Search..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <MobileDateInput
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Actions</Label>
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       onClick={downloadReport}
@@ -596,27 +644,6 @@ const Sales = () => {
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
-                  </div>
-                  <div className="sm:hidden">
-                    <MobileButtonGroup>
-                      <Button
-                        variant="outline"
-                        onClick={downloadReport}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          fetchSales();
-                          fetchSalesStats();
-                        }}
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Refresh
-                      </Button>
-                    </MobileButtonGroup>
                   </div>
                 </div>
               </div>
@@ -840,9 +867,9 @@ const Sales = () => {
                   <div className="space-y-2">
                     <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
                     <Select
-                      value={formData.customer_id || 'walkin'}
+                      value={String(formData.customer_id || 'walkin')}
                       onValueChange={(value) => {
-                        const customer = customers.find(c => c.id === value);
+                        const customer = customers.find(c => String(c.id) === String(value));
                         setFormData(prev => ({
                           ...prev,
                           customer_id: value === 'walkin' ? '' : value,
@@ -851,15 +878,12 @@ const Sales = () => {
                       }}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue 
-                          placeholder="Select customer"
-                          value={formData.customer_id ? (formData.customer_id === 'walkin' ? 'Walk-in Customer' : customers.find(c => c.id === formData.customer_id)?.name) : undefined}
-                        />
+                        <SelectValue placeholder="Select customer" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walkin">Walk-in Customer</SelectItem>
                         {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
+                          <SelectItem key={customer.id} value={String(customer.id)}>
                             {customer.name}
                           </SelectItem>
                         ))}
@@ -886,9 +910,9 @@ const Sales = () => {
                       </Button>
                     </div>
                     <Select
-                      value={formData.product_id}
+                      value={String(formData.product_id)}
                       onValueChange={(value) => {
-                        const product = products.find(p => p.id === value);
+                        const product = products.find(p => String(p.id) === String(value));
                         if (product) {
                           const productQuantity = parseInt(product.quantity) || 0;
                           const requestedQuantity = parseInt(formData.quantity) || 1;
@@ -926,7 +950,6 @@ const Sales = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue 
                           placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-                          value={formData.product_id ? products.find(p => p.id === formData.product_id)?.name : undefined}
                         />
                       </SelectTrigger>
                       <SelectContent>
@@ -952,7 +975,7 @@ const Sales = () => {
                           return (
                             <SelectItem 
                               key={product.id} 
-                              value={product.id}
+                              value={String(product.id)}
                               disabled={isOutOfStock}
                               className={isOutOfStock ? 'opacity-50' : ''}
                             >
@@ -1067,10 +1090,7 @@ const Sales = () => {
                       onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue 
-                          placeholder="Select payment method"
-                          value={formData.payment_method ? getPaymentMethodLabel(formData.payment_method) : undefined}
-                        />
+                        <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_METHOD_OPTIONS.map((option) => (

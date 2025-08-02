@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { invoiceApi, productApi, customerApi } from '../services/enhancedApiClient';
+import { downloadInvoicePdf } from '../services/api';
 import { formatNaira, formatDate, formatDateTime } from '../utils/formatting';
 import { handleApiErrorWithToast, showSuccessToast, showErrorToast } from '../utils/errorHandling';
 import CustomInvoiceForm from '../components/forms/CustomInvoiceForm';
@@ -136,17 +137,11 @@ const Invoices = () => {
   const handleDownload = async (invoiceId) => {
     try {
       setLoading(true);
-      const blob = await invoiceApi.downloadInvoicePdf(invoiceId);
-      if (blob && blob.size > 0) {
-        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `invoice-${invoiceId}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-      } else {
-        handleApiErrorWithToast(new Error('Failed to download PDF. The file may not exist.'));
+      
+      // Use the downloadInvoicePdf function from api.js
+      const result = await downloadInvoicePdf(invoiceId);
+      if (result.success) {
+        showSuccessToast(result.message);
       }
     } catch (error) {
       console.error('Error downloading invoice PDF:', error);

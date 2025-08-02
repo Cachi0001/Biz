@@ -443,18 +443,15 @@ const ExpenseForm = ({
               <RequiredFieldIndicator />
             </label>
             <Select 
-              value={formData.category} 
+              value={String(formData.category)} 
               onValueChange={(value) => handleSelectChange('category', value)}
             >
               <SelectTrigger className={`form-select ${errors.category ? 'error' : ''}`}>
-                <SelectValue 
-                  placeholder="Select a category"
-                  value={formData.category ? expenseCategories.find(cat => cat.id === formData.category)?.name : undefined}
-                />
+                <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
                 {expenseCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
                   </SelectItem>
                 ))}
@@ -475,7 +472,6 @@ const ExpenseForm = ({
               <SelectTrigger className="form-select">
                 <SelectValue 
                   placeholder={formData.category ? "Select a subcategory" : "Select category first"}
-                  value={formData.subcategory}
                 />
               </SelectTrigger>
               <SelectContent>
@@ -555,10 +551,7 @@ const ExpenseForm = ({
               onValueChange={(value) => handleSelectChange('payment_method', value)}
             >
               <SelectTrigger className="form-select">
-                <SelectValue 
-                  placeholder="Select payment method"
-                  value={formData.payment_method ? getPaymentMethodLabel(formData.payment_method) : undefined}
-                />
+                <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
                 {PAYMENT_METHOD_OPTIONS.map((method) => (

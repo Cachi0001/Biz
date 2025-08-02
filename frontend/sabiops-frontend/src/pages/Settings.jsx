@@ -45,6 +45,9 @@ const Settings = () => {
     new_customer_alerts: false
   });
 
+  // Subscription Upgrade State
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
   const handleUserProfileUpdate = async () => {
     try {
       setLoading(true);
@@ -67,6 +70,79 @@ const Settings = () => {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInlineUpgrade = async (planId) => {
+    if (!user?.email) {
+      toast.error('User email not found. Please refresh and try again.');
+      return;
+    }
+
+    try {
+      setUpgradeLoading(true);
+      console.log('[SETTINGS] Starting inline upgrade to plan:', planId);
+      
+      // Define plan data based on planId
+      const planData = {
+        weekly: {
+          id: 'weekly',
+          name: 'Silver Weekly',
+          price: 140000, // ₦1,400 in kobo
+          displayPrice: '₦1,400',
+          period: '/week'
+        },
+        monthly: {
+          id: 'monthly', 
+          name: 'Silver Monthly',
+          price: 450000, // ₦4,500 in kobo
+          displayPrice: '₦4,500',
+          period: '/month'
+        },
+        yearly: {
+          id: 'yearly',
+          name: 'Silver Yearly', 
+          price: 5000000, // ₦50,000 in kobo
+          displayPrice: '₦50,000',
+          period: '/year'
+        }
+      };
+      
+      const plan = planData[planId];
+      if (!plan) {
+        toast.error('Invalid plan selected.');
+        return;
+      }
+      
+      // Use PaystackService to process the payment
+      await PaystackService.processPayment(
+        plan,
+        user,
+        // Success callback
+        (result) => {
+          console.log('[SETTINGS] Payment successful:', result);
+          toast.success(`Successfully upgraded to ${plan.name}!`);
+          // Refresh the page to update subscription status
+          window.location.reload();
+        },
+        // Cancel callback
+        () => {
+          console.log('[SETTINGS] Payment cancelled by user');
+          toast.info('Payment cancelled.');
+          setUpgradeLoading(false);
+        },
+        // Error callback
+        (error) => {
+          console.error('[SETTINGS] Payment failed:', error);
+          toast.error(error.message || 'Payment failed. Please try again.');
+          setUpgradeLoading(false);
+        }
+      );
+      
+    } catch (error) {
+      console.error('[SETTINGS] Error during inline upgrade:', error);
+      toast.error('Upgrade failed. Please try again later.');
+      setUpgradeLoading(false);
     }
   };
 

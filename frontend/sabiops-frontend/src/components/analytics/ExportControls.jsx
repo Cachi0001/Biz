@@ -97,7 +97,7 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
     },
     {
       id: 'report',
-      label: 'Export Report',
+      label: 'Export Report(Recommended for best format)',
       icon: Download,
       description: 'Download comprehensive HTML report',
       disabled: !canExport
@@ -124,7 +124,7 @@ const ExportControls = ({ analyticsData, timePeriod, onExportStart, onExportComp
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-2">
             <Download className="h-5 w-5 text-green-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Export & Share</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Export & Share(Use Export Report for best format)</h3>
             {!canExport && (
               <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
                 Paid Feature
