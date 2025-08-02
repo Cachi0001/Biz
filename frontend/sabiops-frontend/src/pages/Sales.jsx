@@ -378,17 +378,33 @@ const Sales = () => {
         return;
       }
 
-      // Prepare sales data with proper formatting
-      const salesData = filteredSales.map(sale => ({
-        date: formatDate(sale.created_at || sale.date),
-        customer_name: sale.customer_name || 'Walk-in Customer',
-        product_name: sale.product_name || 'Unknown Product',
-        quantity: sale.quantity || 0,
-        unit_price: sale.unit_price || 0,
-        total_amount: sale.total_amount || 0,
-        payment_method: formatPaymentMethod(sale.payment_method),
-        notes: sale.notes || ''
-      }));
+      // Prepare sales data with proper formatting for CSV
+      const salesData = filteredSales.map(sale => {
+        // Format date as YYYY-MM-DD for better CSV compatibility
+        const saleDate = sale.created_at || sale.date;
+        let formattedDate = 'N/A';
+        if (saleDate) {
+          try {
+            const date = new Date(saleDate);
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            }
+          } catch (error) {
+            console.error('Error formatting date for CSV:', error);
+          }
+        }
+
+        return {
+          date: formattedDate,
+          customer_name: sale.customer_name || 'Walk-in Customer',
+          product_name: sale.product_name || 'Unknown Product',
+          quantity: sale.quantity || 0,
+          unit_price: sale.unit_price || 0,
+          total_amount: sale.total_amount || 0,
+          payment_method: formatPaymentMethod(sale.payment_method),
+          notes: sale.notes || ''
+        };
+      });
 
       // Use the proper CSV utility
       await downloadSalesCSV(salesData, `sales-${selectedDate}`);
