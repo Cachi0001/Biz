@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -10,18 +10,69 @@ import CustomProductForm from '../forms/CustomProductForm';
 import ExpenseForm from '../forms/ExpenseForm';
 import CustomInvoiceForm from '../forms/CustomInvoiceForm';
 import { SalesForm } from '../forms/SalesForm';
+import { customerApi, productApi } from '../../services/enhancedApiClient';
 
 const ModernQuickActions = () => {
   const { role, isOwner, isAdmin, isSalesperson } = useAuth();
   const navigate = useNavigate();
   const [activeModal, setActiveModal] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  const openModal = (type) => {
+  const openModal = async (type) => {
+    // Load data when opening invoice or sales modals
+    if (type === 'invoice' || type === 'sale') {
+      await fetchData();
+    }
     setActiveModal(type);
   };
 
   const closeModal = () => {
     setActiveModal(null);
+  };
+
+  const fetchData = async () => {
+    try {
+      setDataLoading(true);
+      const [customersResponse, productsResponse] = await Promise.all([
+        customerApi.getCustomers(),
+        productApi.getProducts()
+      ]);
+
+      // Handle customers data
+      let customersData = [];
+      if (customersResponse?.data?.customers && Array.isArray(customersResponse.data.customers)) {
+        customersData = customersResponse.data.customers;
+      } else if (customersResponse?.data && Array.isArray(customersResponse.data)) {
+        customersData = customersResponse.data;
+      } else if (Array.isArray(customersResponse)) {
+        customersData = customersResponse;
+      } else if (customersResponse?.customers && Array.isArray(customersResponse.customers)) {
+        customersData = customersResponse.customers;
+      }
+
+      // Handle products data
+      let productsData = [];
+      if (productsResponse?.data?.products && Array.isArray(productsResponse.data.products)) {
+        productsData = productsResponse.data.products;
+      } else if (productsResponse?.data && Array.isArray(productsResponse.data)) {
+        productsData = productsResponse.data;
+      } else if (Array.isArray(productsResponse)) {
+        productsData = productsResponse;
+      } else if (productsResponse?.products && Array.isArray(productsResponse.products)) {
+        productsData = productsResponse.products;
+      }
+
+      setCustomers(customersData);
+      setProducts(productsData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setCustomers([]);
+      setProducts([]);
+    } finally {
+      setDataLoading(false);
+    }
   };
 
   const handleSuccess = (type) => {
@@ -213,6 +264,8 @@ const ModernQuickActions = () => {
                 </DialogDescription>
               </DialogHeader>
               <CustomInvoiceForm
+                customers={customers}
+                products={products}
                 onSuccess={() => handleSuccess('invoice')}
                 onCancel={closeModal}
               />
