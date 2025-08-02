@@ -176,12 +176,19 @@ export const downloadSalesHTML = (sales, filename) => {
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
     
-    // Calculate Net Profit and Daily Profit from the 'profit' field in sales data
     const totalProfit = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit) || 0), 0);
     const netProfit = totalProfit;
-    const dailyProfit = totalProfit;
     
-    // Group sales by payment method
+    // Calculate daily profit based on actual date range
+    let dailyProfit = totalProfit;
+    if (sales.length > 0) {
+      const dates = sales.map(sale => new Date(sale.created_at || sale.date || Date.now()));
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      const daysDiff = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+      dailyProfit = totalProfit / daysDiff;
+    }
+    
     const paymentMethodBreakdown = sales.reduce((acc, sale) => {
       const method = sale.payment_method || 'Unknown';
       if (!acc[method]) {
@@ -192,7 +199,6 @@ export const downloadSalesHTML = (sales, filename) => {
       return acc;
     }, {});
 
-    // Group sales by customer
     const customerBreakdown = sales.reduce((acc, sale) => {
       const customer = sale.customer_name || 'Unknown Customer';
       if (!acc[customer]) {
@@ -351,7 +357,7 @@ export const downloadSalesHTML = (sales, filename) => {
     <div class="footer">
         <p><strong>SabiOps Business Management Platform</strong></p>
         <p>This report was generated automatically on ${timestamp}</p>
-        <p>For support, visit: <a href="https://sabiops.vercel.app">sabiops.com</a></p>
+        <p>For support, visit: <a href="https://sabiops.vercel.app">sabiops.vercel.app</a></p>
     </div>
 </body>
 </html>
