@@ -28,7 +28,8 @@ import {
   Eye,
   X
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
+import { downloadTransactionsCSV } from '../utils/csvDownload';
 import MobileDateInput from '@/components/ui/MobileDateInput';
 import { mobileAmountClasses } from '../utils/mobileUtils';
 
@@ -224,31 +225,33 @@ const Transactions = () => {
   };
 
   const exportTransactions = () => {
-    // Create CSV content
-    const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Payment Method', 'Reference'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredTransactions.map(t => [
-        format(new Date(t.date), 'yyyy-MM-dd'),
-        t.type === 'money_in' ? 'Money In' : 'Money Out',
-        t.category,
-        `"${t.description}"`,
-        t.amount,
-        t.paymentMethod,
-        t.reference
-      ].join(','))
-    ].join('\n');
+    try {
+      if (filteredTransactions.length === 0) {
+        // You can add a toast notification here if needed
+        console.warn('No transactions to export');
+        return;
+      }
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      // Prepare transactions data with proper formatting
+      const transactionsData = filteredTransactions.map(transaction => ({
+        date: format(new Date(transaction.date), 'yyyy-MM-dd'),
+        time: format(new Date(transaction.date), 'HH:mm:ss'),
+        customer_name: transaction.customer_name || 'N/A',
+        product_name: transaction.product_name || transaction.description || 'N/A',
+        quantity: transaction.quantity || 1,
+        unit_price: transaction.unit_price || transaction.amount || 0,
+        total_amount: transaction.amount || 0,
+        payment_method: transaction.paymentMethod || 'N/A',
+        transaction_type: transaction.type === 'money_in' ? 'Money In' : 'Money Out',
+        status: transaction.status || 'Completed'
+      }));
+
+      // Use the proper CSV utility
+      downloadTransactionsCSV(transactionsData, `transactions-${format(new Date(), 'yyyy-MM-dd')}`);
+    } catch (error) {
+      console.error('Error exporting transactions:', error);
+      // You can add error toast notification here if needed
+    }
   };
 
   if (loading) {

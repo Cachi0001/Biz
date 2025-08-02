@@ -308,3 +308,44 @@ export const downloadInvoicesCSV = (invoices, filename) => {
     options
   );
 };
+
+/**
+ * Downloads transactions data as CSV
+ * @param {Array} transactions - Array of transaction objects
+ * @param {string} filename - Optional filename
+ */
+export const downloadTransactionsCSV = (transactions, filename) => {
+  const headers = [
+    { key: 'date', label: 'Date' },
+    { key: 'time', label: 'Time' },
+    { key: 'customer_name', label: 'Customer' },
+    { key: 'product_name', label: 'Product' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'unit_price', label: 'Unit Price (₦)' },
+    { key: 'total_amount', label: 'Total Amount (₦)' },
+    { key: 'payment_method', label: 'Payment Method' },
+    { key: 'transaction_type', label: 'Transaction Type' },
+    { key: 'status', label: 'Status' }
+  ];
+  
+  const totalAmount = transactions.reduce((sum, transaction) => sum + (parseFloat(transaction.total_amount) || 0), 0);
+  const totalQuantity = transactions.reduce((sum, transaction) => sum + (parseInt(transaction.quantity) || 0), 0);
+  
+  const options = {
+    title: 'TRANSACTION HISTORY REPORT',
+    dateRange: `Generated on ${new Date().toLocaleDateString()}`,
+    summary: [
+      { label: 'Total Amount', value: `₦${totalAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` },
+      { label: 'Total Transactions', value: transactions.length },
+      { label: 'Total Items', value: totalQuantity },
+      { label: 'Average Transaction', value: `₦${(totalAmount / transactions.length || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` }
+    ]
+  };
+  
+  return downloadCSV(
+    transactions, 
+    headers, 
+    filename || `transactions-${new Date().toISOString().split('T')[0]}`,
+    options
+  );
+};

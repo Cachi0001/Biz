@@ -561,12 +561,7 @@ const CustomInvoiceForm = ({
               }}
             >
               <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''}`}>
-                <SelectValue placeholder="Select a customer">
-                  {formData.customer_id ? 
-                    customers.find(c => c.id === formData.customer_id)?.name || 'Select a customer'
-                    : 'Select a customer'
-                  }
-                </SelectValue>
+                <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
@@ -687,15 +682,7 @@ const CustomInvoiceForm = ({
                     <SelectTrigger className={`form-select ${hasItemFieldError(index, 'product_id') ? 'error' : ''}`}>
                       <SelectValue 
                         placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)')}
-                      >
-                        {item.product_id ? 
-                          (() => {
-                            const product = products.find(p => p.id === item.product_id);
-                            return product ? `${product.name} - ${formatNaira(product.price || product.unit_price || 0)} (Qty: ${product.quantity || 0})` : 'Select product (optional)';
-                          })()
-                          : (productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)'))
-                        }
-                      </SelectValue>
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {productsLoading ? (

@@ -373,42 +373,25 @@ const Sales = () => {
 
   const downloadReport = async () => {
     try {
-      const headers = [
-        'Date',
-        'Customer',
-        'Product',
-        'Quantity',
-        'Unit Price',
-        'Total Amount',
-        'Payment Method'
-      ];
+      if (filteredSales.length === 0) {
+        toastService.error('No sales data to download');
+        return;
+      }
 
-      const csvRows = [headers.join(',')];
-      
-      filteredSales.forEach(sale => {
-        const row = [
-          formatDate(sale.created_at || sale.date),
-          `"${sale.customer_name || 'Walk-in Customer'}"`,
-          `"${sale.product_name || 'Unknown Product'}"`,
-          sale.quantity || 0,
-          sale.unit_price || 0,
-          sale.total_amount || 0,
-          `"${formatPaymentMethod(sale.payment_method)}"`
-        ];
-        csvRows.push(row.join(','));
-      });
+      // Prepare sales data with proper formatting
+      const salesData = filteredSales.map(sale => ({
+        date: formatDate(sale.created_at || sale.date),
+        customer_name: sale.customer_name || 'Walk-in Customer',
+        product_name: sale.product_name || 'Unknown Product',
+        quantity: sale.quantity || 0,
+        unit_price: sale.unit_price || 0,
+        total_amount: sale.total_amount || 0,
+        payment_method: formatPaymentMethod(sale.payment_method),
+        notes: sale.notes || ''
+      }));
 
-      const csvContent = csvRows.join('\\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `sales-${selectedDate}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      // Use the proper CSV utility
+      await downloadSalesCSV(salesData, `sales-${selectedDate}`);
       toastService.success('Sales report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);

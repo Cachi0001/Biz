@@ -21,6 +21,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { downloadSalesCSV } from '../utils/csvDownload';
 
 const SalesReport = () => {
   const { user } = useAuth();
@@ -138,59 +139,32 @@ const SalesReport = () => {
       const dateStr = reportType === 'daily' ? selectedDate : `${dateRange.start_date}_to_${dateRange.end_date}`;
       
       if (format === 'csv') {
-        // Generate comprehensive CSV content
-        const headers = [
-          'Transaction ID',
-          'Date',
-          'Time', 
-          'Customer Name',
-          'Product Name',
-          'Quantity',
-          'Unit Price (₦)',
-          'Total Amount (₦)',
-          'Payment Method'
-        ];
-        const csvRows = [headers.join(',')];
-        
-        salesData.transactions.forEach(transaction => {
-          const dateTime = formatDate(transaction.created_at);
-          const unitPrice = transaction.total_amount && transaction.total_quantity ? 
-            (transaction.total_amount / transaction.total_quantity).toFixed(2) : '0.00';
-          
-          const row = [
-            `"${transaction.id || 'N/A'}"`,
-            `"${dateTime.date}"`,
-            `"${dateTime.time}"`,
-            `"${transaction.customer_name || 'Walk-in Customer'}"`,
-            `"${transaction.product_name || 'Unknown Product'}"`,
-            transaction.total_quantity || 0,
-            unitPrice,
-            (transaction.total_amount || 0).toFixed(2),
-            `"${(transaction.payment_method || 'cash').replace('_', ' ').toUpperCase()}"`
-          ];
-          csvRows.push(row.join(','));
-        });
-        
-        // Add summary section
-        csvRows.push('');
-        csvRows.push('SALES SUMMARY');
-        csvRows.push(`"Total Sales Amount (₦)",,,,,,,${salesData.summary.total_sales.toFixed(2)},`);
-        csvRows.push(`"Total Transactions",,,,,,,${salesData.summary.total_transactions},`);
-        csvRows.push(`"Total Items Sold",,,,,,,${salesData.summary.total_quantity},`);
-        csvRows.push(`"Average Sale Amount (₦)",,,,,,,${salesData.summary.average_sale.toFixed(2)},`);
-        
-        // Add payment method breakdown
-        if (Object.keys(salesData.payment_breakdown).length > 0) {
-          csvRows.push('');
-          csvRows.push('PAYMENT METHOD BREAKDOWN');
-          Object.entries(salesData.payment_breakdown).forEach(([method, data]) => {
-            csvRows.push(`"${method.replace('_', ' ').toUpperCase()}",,,,,,,${data.amount.toFixed(2)},"${data.count} transactions"`);
+        try {
+          // Prepare sales data for the CSV utility
+          const salesForCSV = salesData.transactions.map(transaction => {
+            const dateTime = formatDate(transaction.created_at);
+            return {
+              id: transaction.id || 'N/A',
+              date: dateTime.date,
+              time: dateTime.time,
+              customer_name: transaction.customer_name || 'Walk-in Customer',
+              product_name: transaction.product_name || 'Unknown Product',
+              quantity: transaction.total_quantity || 0,
+              unit_price: transaction.total_amount && transaction.total_quantity ? 
+                (transaction.total_amount / transaction.total_quantity) : 0,
+              total_amount: transaction.total_amount || 0,
+              payment_method: (transaction.payment_method || 'cash').replace('_', ' ').toUpperCase()
+            };
           });
+
+          // Use the proper CSV utility with report-specific filename
+          await downloadSalesCSV(salesForCSV, `sales-report-${dateStr}`);
+          return; // Exit early since CSV utility handles the download
+        } catch (error) {
+          console.error('Error generating CSV report:', error);
+          toast.error('Failed to generate CSV report');
+          return;
         }
-        
-        content = csvRows.join('\n');
-        filename = `sales-report-${dateStr}.csv`;
-        mimeType = 'text/csv;charset=utf-8;';
         
       } else if (format === 'pdf') {
         // Generate text format for PDF (can be enhanced with actual PDF generation)

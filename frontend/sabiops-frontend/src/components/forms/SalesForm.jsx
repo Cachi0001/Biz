@@ -176,13 +176,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             }}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Select customer">
-                {formData.customer_id ? 
-                  customers.find(c => c.id === formData.customer_id)?.name || 'Select customer'
-                  : formData.customer_id === '' && formData.customer_name === 'Walk-in Customer' ? 'Walk-in Customer'
-                  : 'Select customer'
-                }
-              </SelectValue>
+              <SelectValue placeholder="Select customer" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -230,15 +224,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             <SelectTrigger className="h-12 text-base">
               <SelectValue 
                 placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-              >
-                {formData.product_id ? 
-                  (() => {
-                    const product = products.find(p => p.id === formData.product_id);
-                    return product ? `${product.name} - ${formatNaira(product.price || product.unit_price || 0)} (Qty: ${product.quantity || 0})` : 'Select product';
-                  })()
-                  : (productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product'))
-                }
-              </SelectValue>
+              />
             </SelectTrigger>
             <SelectContent>
               {productsLoading ? (
