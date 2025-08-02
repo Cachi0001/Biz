@@ -379,7 +379,7 @@ const Sales = () => {
       }
 
       await downloadSalesHTML(filteredSales, `sales-report-${selectedDate}`);
-      toastService.success('Sales report HTML downloaded successfully!');
+      toastService.success('Sales report downloaded successfully!');
     } catch (error) {
       console.error('Error downloading report:', error);
       toastService.error('Failed to download report');

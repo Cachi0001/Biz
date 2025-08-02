@@ -174,7 +174,7 @@ const Products = () => {
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
+    const matchesCategory = !selectedCategory || selectedCategory === '' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -302,15 +302,12 @@ const Products = () => {
                 <div className="w-full">
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="h-12 text-base touch-manipulation">
-                      <SelectValue 
-                        placeholder="All Categories"
-                        value={selectedCategory === 'all' ? undefined : categories.find(cat => cat.id === selectedCategory)?.name}
-                      />
+                      <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="">All Categories</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                        <SelectItem key={category.id} value={String(category.id)}>
                           {category.name}
                         </SelectItem>
                       ))}
