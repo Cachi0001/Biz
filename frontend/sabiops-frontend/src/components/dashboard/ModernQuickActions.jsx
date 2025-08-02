@@ -38,6 +38,10 @@ const ModernQuickActions = () => {
     navigate('/expenses');
   };
 
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
+
   const getActionsForRole = () => {
     const baseActions = [
       {
@@ -82,7 +86,8 @@ const ModernQuickActions = () => {
           label: 'Analytics',
           action: handleAnalyticsClick,
           variant: 'primary',
-          description: 'View reports'
+          description: 'View reports',
+          style : 'mild-purple'
         }
       );
     }
@@ -118,7 +123,7 @@ const ModernQuickActions = () => {
       {
         icon: Settings,
         label: 'Settings',
-        action: () => openModal('settings'),
+        action: handleSettingsClick,
         variant: 'secondary',
         description: 'App settings'
       }
