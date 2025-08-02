@@ -21,8 +21,7 @@ import { updateProfile, getErrorMessage } from "../services/api";
 import { toast } from 'react-hot-toast';
 import RoleBasedWrapper from '../components/ui/role-based-wrapper';
 import DataIntegrityWidget from '../components/data/DataIntegrityWidget';
-import ComprehensiveSubscriptionCards from '../components/subscription/ComprehensiveSubscriptionCards';
-import PaystackService from '../services/PaystackService';
+
 
 const Settings = () => {
   const { user, isOwner } = useAuth();
@@ -45,8 +44,7 @@ const Settings = () => {
     new_customer_alerts: false
   });
 
-  // Subscription Upgrade State
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
 
   const handleUserProfileUpdate = async () => {
     try {
@@ -413,13 +411,133 @@ const Settings = () => {
                   </Alert>
 
                   <div className="mt-6">
-                    <ComprehensiveSubscriptionCards 
-                      currentPlan={user?.subscription_plan || 'free'}
-                      showUpgradeButtons={true}
-                      layout="grid"
-                      onUpgrade={handleInlineUpgrade}
-                      loading={upgradeLoading}
-                    />
+                    {/* Plans Grid - Exact copy from SubscriptionUpgrade page */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[
+                        {
+                          id: 'weekly',
+                          name: 'Silver Weekly',
+                          price: 140000,
+                          displayPrice: '₦1,400',
+                          period: '/week',
+                          trial: '7-day free trial',
+                          features: [
+                            '100 invoices per week',
+                            '100 expenses per week',
+                            '250 sales per week',
+                            '100 products per week',
+                            'Advanced reporting',
+                            'Team management',
+                            'All other features unlimited'
+                          ],
+                          popular: true,
+                          color: 'green'
+                        },
+                        {
+                          id: 'monthly',
+                          name: 'Silver Monthly',
+                          price: 450000,
+                          displayPrice: '₦4,500',
+                          period: '/month',
+                          features: [
+                            '450 invoices per month',
+                            '450 expenses per month',
+                            '1,000 sales per month',
+                            '450 products per month',
+                            'Advanced reporting',
+                            'Team management',
+                            'All other features unlimited'
+                          ],
+                          popular: false,
+                          color: 'blue'
+                        },
+                        {
+                          id: 'yearly',
+                          name: 'Gold Yearly',
+                          price: 4500000,
+                          displayPrice: '₦45,000',
+                          period: '/year',
+                          savings: 'Save ₦9,000 per year',
+                          features: [
+                            'Unlimited invoices',
+                            'Unlimited expenses',
+                            'Unlimited sales',
+                            'Unlimited products',
+                            'Advanced reporting',
+                            'Team management',
+                            'Priority support',
+                            'All features unlimited'
+                          ],
+                          popular: false,
+                          color: 'purple'
+                        }
+                      ].map((plan) => (
+                        <Card 
+                          key={plan.id} 
+                          className={`relative border-2 transition-all duration-300 hover:shadow-xl ${
+                            plan.popular 
+                              ? 'border-green-500 shadow-lg transform scale-105' 
+                              : 'border-gray-200 hover:border-green-400'
+                          }`}
+                        >
+                          {plan.popular && (
+                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                              <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
+                                Most Popular
+                              </span>
+                            </div>
+                          )}
+                          
+                          <CardHeader className="text-center pb-4">
+                            <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                              {plan.name}
+                            </CardTitle>
+                            <div className="text-4xl font-bold text-green-600 mb-2">
+                              {plan.displayPrice}
+                              <span className="text-sm font-normal text-gray-500">
+                                {plan.period}
+                              </span>
+                            </div>
+                            {plan.trial && (
+                              <div className="flex items-center justify-center text-blue-600">
+                                <Shield className="h-4 w-4 mr-1" />
+                                <span className="text-sm font-medium">{plan.trial}</span>
+                              </div>
+                            )}
+                            {plan.savings && (
+                              <div className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">
+                                {plan.savings}
+                              </div>
+                            )}
+                          </CardHeader>
+                          
+                          <CardContent>
+                            <ul className="space-y-3 mb-8">
+                              {plan.features.map((feature, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <Shield className="h-4 w-4 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
+                                  <span className="text-gray-700">{feature}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            
+                            <Button
+                              className={`w-full text-white font-medium py-3 ${
+                                plan.popular 
+                                  ? 'bg-green-600 hover:bg-green-700 shadow-lg' 
+                                  : 'bg-gray-600 hover:bg-gray-700'
+                              } transition-all duration-200`}
+                              onClick={() => {
+                                // Navigate to subscription upgrade page
+                                window.location.href = '/subscription-upgrade';
+                              }}
+                            >
+                              Upgrade to {plan.name}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

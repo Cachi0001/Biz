@@ -160,43 +160,214 @@ export const downloadExpensesCSV = (expenses, filename) => {
 };
 
 /**
- * Downloads sales data as CSV
+ * Downloads sales data as well-structured HTML report
  * @param {Array} sales - Array of sales objects
  * @param {string} filename - Optional filename
  */
-export const downloadSalesCSV = (sales, filename) => {
-  const headers = [
-    { key: 'date', label: 'Date' },
-    { key: 'customer_name', label: 'Customer' },
-    { key: 'product_name', label: 'Product' },
-    { key: 'quantity', label: 'Quantity' },
-    { key: 'unit_price', label: 'Unit Price (₦)' },
-    { key: 'total_amount', label: 'Total Amount (₦)' },
-    { key: 'payment_method', label: 'Payment Method' },
-    { key: 'notes', label: 'Notes' }
-  ];
-  
-  const totalAmount = sales.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
-  const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
-  
-  const options = {
-    title: 'SALES REPORT',
-    dateRange: `Generated on ${new Date().toLocaleDateString()}`,
-    summary: [
-      { label: 'Total Sales', value: `₦${totalAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` },
-      { label: 'Total Transactions', value: sales.length },
-      { label: 'Total Items Sold', value: totalQuantity },
-      { label: 'Average Sale', value: `₦${(totalAmount / sales.length || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` }
-    ]
-  };
-  
-  return downloadCSV(
-    sales, 
-    headers, 
-    filename || `sales-${new Date().toISOString().split('T')[0]}`,
-    options
-  );
+export const downloadSalesHTML = (sales, filename) => {
+  try {
+    if (!sales || !Array.isArray(sales) || sales.length === 0) {
+      throw new Error('No sales data available to download');
+    }
+
+    const totalAmount = sales.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
+    const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
+    const averageSale = totalAmount / sales.length || 0;
+    
+    // Group sales by payment method
+    const paymentMethodBreakdown = sales.reduce((acc, sale) => {
+      const method = sale.payment_method || 'Unknown';
+      if (!acc[method]) {
+        acc[method] = { count: 0, total: 0 };
+      }
+      acc[method].count += 1;
+      acc[method].total += parseFloat(sale.total_amount) || 0;
+      return acc;
+    }, {});
+
+    // Group sales by customer
+    const customerBreakdown = sales.reduce((acc, sale) => {
+      const customer = sale.customer_name || 'Unknown Customer';
+      if (!acc[customer]) {
+        acc[customer] = { count: 0, total: 0 };
+      }
+      acc[customer].count += 1;
+      acc[customer].total += parseFloat(sale.total_amount) || 0;
+      return acc;
+    }, {});
+
+    const timestamp = new Date().toLocaleString();
+    const reportDate = new Date().toISOString().split('T')[0];
+    
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report - ${reportDate}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
+        .header { background: linear-gradient(135deg, #16a34a, #059669); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 2em; }
+        .header p { margin: 5px 0 0 0; opacity: 0.9; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; }
+        .summary-card h3 { margin: 0 0 10px 0; color: #16a34a; font-size: 1.1em; }
+        .summary-card .value { font-size: 1.5em; font-weight: bold; color: #1f2937; }
+        .section { margin-bottom: 30px; }
+        .section h2 { color: #16a34a; border-bottom: 2px solid #16a34a; padding-bottom: 5px; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th { background: #16a34a; color: white; padding: 12px; text-align: left; font-weight: bold; }
+        td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        tr:hover { background-color: #f3f4f6; }
+        .amount { text-align: right; font-weight: bold; color: #16a34a; }
+        .breakdown-table { margin-top: 15px; }
+        .breakdown-table th { background: #059669; }
+        .footer { margin-top: 40px; padding: 20px; background: #f8fafc; border-radius: 8px; text-align: center; color: #6b7280; }
+        @media print { body { margin: 0; } .header { background: #16a34a !important; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Sales Report</h1>
+        <p>Generated on ${timestamp}</p>
+        <p>Total Records: ${sales.length} transactions</p>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card">
+            <h3>💰 Total Revenue</h3>
+            <div class="value">₦${totalAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+        </div>
+        <div class="summary-card">
+            <h3>🛒 Total Transactions</h3>
+            <div class="value">${sales.length}</div>
+        </div>
+        <div class="summary-card">
+            <h3>📦 Items Sold</h3>
+            <div class="value">${totalQuantity.toLocaleString()}</div>
+        </div>
+        <div class="summary-card">
+            <h3>📈 Average Sale</h3>
+            <div class="value">₦${averageSale.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>💳 Payment Method Breakdown</h2>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Payment Method</th>
+                    <th>Transactions</th>
+                    <th>Total Amount</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${Object.entries(paymentMethodBreakdown)
+                  .sort(([,a], [,b]) => b.total - a.total)
+                  .map(([method, data]) => `
+                    <tr>
+                        <td>${method}</td>
+                        <td>${data.count}</td>
+                        <td class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td>${((data.total / totalAmount) * 100).toFixed(1)}%</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>👥 Top Customers</h2>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Transactions</th>
+                    <th>Total Amount</th>
+                    <th>Average Order</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${Object.entries(customerBreakdown)
+                  .sort(([,a], [,b]) => b.total - a.total)
+                  .slice(0, 10)
+                  .map(([customer, data]) => `
+                    <tr>
+                        <td>${customer}</td>
+                        <td>${data.count}</td>
+                        <td class="amount">₦${data.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td class="amount">₦${(data.total / data.count).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>📋 Detailed Sales Transactions</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sales.map(sale => `
+                    <tr>
+                        <td>${new Date(sale.date).toLocaleDateString()}</td>
+                        <td>${sale.customer_name || 'N/A'}</td>
+                        <td>${sale.product_name || 'N/A'}</td>
+                        <td>${sale.quantity || 0}</td>
+                        <td class="amount">₦${parseFloat(sale.unit_price || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td class="amount">₦${parseFloat(sale.total_amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                        <td>${sale.payment_method || 'N/A'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p><strong>SabiOps Business Management Platform</strong></p>
+        <p>This report was generated automatically on ${timestamp}</p>
+        <p>For support, visit: <a href="https://sabiops.com">sabiops.com</a></p>
+    </div>
+</body>
+</html>
+    `;
+
+    // Create and download the HTML file
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || `sales-report-${reportDate}.html`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return { success: true, message: 'Sales report downloaded successfully as HTML' };
+  } catch (error) {
+    console.error('Sales HTML export failed:', error);
+    return { success: false, error: error.message };
+  }
 };
+
+// Keep the old CSV function for backward compatibility but rename it
+export const downloadSalesCSV = downloadSalesHTML;
 
 /**
  * Downloads customers data as CSV
