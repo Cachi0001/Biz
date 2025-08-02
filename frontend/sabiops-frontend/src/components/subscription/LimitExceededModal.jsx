@@ -75,10 +75,10 @@ const LimitExceededModal = ({
             </div>
             <div>
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                {getFeatureDisplayName(featureType)} Limit Reached
+                {(getFeatureDisplayName(featureType) || 'Feature')} Limit Reached
               </DialogTitle>
               <DialogDescription className="text-gray-600 mt-1">
-                You've reached your {getFeatureDisplayName(featureType).toLowerCase()} limit for your current plan
+                You've reached your {(getFeatureDisplayName(featureType) || 'feature').toLowerCase()} limit for your current plan
               </DialogDescription>
             </div>
           </div>
@@ -92,7 +92,7 @@ const LimitExceededModal = ({
                 <div>
                   <h3 className="font-medium text-red-800">Current Usage</h3>
                   <p className="text-sm text-red-600 mt-1">
-                    You've used all {limit} {getFeatureDisplayName(featureType).toLowerCase()} 
+                    You've used all {limit} {(getFeatureDisplayName(featureType) || 'feature').toLowerCase()} 
                     allowed on your {currentPlan} plan
                   </p>
                 </div>
@@ -137,11 +137,11 @@ const LimitExceededModal = ({
                               </p>
                             </div>
                             <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                              {plan.features[featureType]} {getFeatureDisplayName(featureType).toLowerCase()}
+                              {plan.features[featureType]} {(getFeatureDisplayName(featureType) || 'feature').toLowerCase()}
                             </div>
                           </div>
                           <div className="mt-2 text-sm text-gray-600">
-                            Get {plan.features[featureType] - limit} more {getFeatureDisplayName(featureType).toLowerCase()}
+                            Get {plan.features[featureType] - limit} more {(getFeatureDisplayName(featureType) || 'feature').toLowerCase()}
                           </div>
                         </div>
                         <ArrowRight className="h-5 w-5 text-gray-400" />

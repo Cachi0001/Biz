@@ -141,7 +141,7 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
           />
 
           {/* Notification Panel */}
-          <Card className="absolute right-0 top-full mt-2 w-80 sm:w-80 max-h-96 overflow-hidden z-50 shadow-lg border notification-dropdown transform sm:transform-none -translate-x-4 sm:translate-x-0">
+          <Card className="absolute top-full mt-2 max-h-96 overflow-hidden z-50 shadow-lg border notification-dropdown w-72 sm:w-80 right-0 sm:right-0 transform translate-x-0 sm:translate-x-0">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium">
