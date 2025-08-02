@@ -141,12 +141,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             }}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Select customer">
-                {formData.customer_id ? 
-                  (customers.find(c => c.id === formData.customer_id)?.name || 'Walk-in Customer') : 
-                  'Walk-in Customer'
-                }
-              </SelectValue>
+              <SelectValue placeholder="Select customer" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -194,12 +189,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             <SelectTrigger className="h-12 text-base">
               <SelectValue 
                 placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-              >
-                {formData.product_id ? 
-                  (products.find(p => p.id === formData.product_id)?.name || 'Unknown Product') : 
-                  null
-                }
-              </SelectValue>
+              />
             </SelectTrigger>
             <SelectContent>
               {productsLoading ? (

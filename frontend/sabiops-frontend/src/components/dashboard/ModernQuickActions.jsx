@@ -141,14 +141,14 @@ const ModernQuickActions = () => {
             variant={action.variant}
             size="lg"
             onClick={action.action}
-            className="h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal bg-white hover:bg-gray-50 border border-gray-200 text-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal"
           >
-            <span className="flex items-center justify-center w-full">
-              <action.icon className="h-5 w-5" />
+            <span className="flex items-center justify-center w-full text-white">
+              <action.icon className="h-5 w-5 text-white" />
             </span>
             <span className="w-full mt-1">
-              <div className="text-xs font-semibold w-full text-center break-words leading-none">{action.label}</div>
-              <div className="text-[10px] opacity-90 w-full text-center break-words leading-none mt-0.5">{action.description}</div>
+              <div className="text-xs font-semibold w-full text-center break-words leading-none text-white">{action.label}</div>
+              <div className="text-[10px] opacity-90 w-full text-center break-words leading-none mt-0.5 text-white">{action.description}</div>
             </span>
           </Button>
         ))}
