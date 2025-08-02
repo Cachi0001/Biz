@@ -48,23 +48,21 @@ export const BUSINESS_SUBCATEGORIES = {
 
 /**
  * Expense categories for business expense tracking
- * Based on common Nigerian business expense types
+ * Based on common Nigerian business expense types - MUST MATCH BACKEND
  */
 export const EXPENSE_CATEGORIES = [
-  'Inventory/Stock Purchase',
+  'Inventory/Stock',
+  'Rent',
+  'Utilities',
   'Rent & Utilities',
-  'Staff Salaries', 
   'Transportation',
-  'Marketing & Advertising',
-  'Equipment & Tools',
+  'Marketing',
+  'Staff Salaries',
+  'Equipment',
   'Professional Services',
   'Insurance',
-  'Taxes & Government Fees',
+  'Taxes',
   'Bank Charges',
-  'Maintenance & Repairs',
-  'Office Supplies',
-  'Communication',
-  'Training & Development',
   'Other'
 ];
 

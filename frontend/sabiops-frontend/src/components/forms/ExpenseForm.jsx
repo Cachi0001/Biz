@@ -11,6 +11,7 @@ import {
 } from '../ui/select';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '../../constants/paymentMethods';
+import { EXPENSE_CATEGORIES } from '../../constants/categories';
 import { createExpense } from '../../services/api';
 import { toastService } from '../../services/ToastService';
 
@@ -39,41 +40,27 @@ const ExpenseForm = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Define expense categories and subcategories
-  const expenseCategories = [
-    { id: 'Inventory/Stock Purchase', name: 'Inventory/Stock Purchase' },
-    { id: 'Rent & Utilities', name: 'Rent & Utilities' },
-    { id: 'Staff Salaries', name: 'Staff Salaries' },
-    { id: 'Transportation', name: 'Transportation' },
-    { id: 'Marketing & Advertising', name: 'Marketing & Advertising' },
-    { id: 'Equipment & Tools', name: 'Equipment & Tools' },
-    { id: 'Professional Services', name: 'Professional Services' },
-    { id: 'Insurance', name: 'Insurance' },
-    { id: 'Taxes & Government Fees', name: 'Taxes & Government Fees' },
-    { id: 'Bank Charges', name: 'Bank Charges' },
-    { id: 'Maintenance & Repairs', name: 'Maintenance & Repairs' },
-    { id: 'Office Supplies', name: 'Office Supplies' },
-    { id: 'Communication', name: 'Communication' },
-    { id: 'Training & Development', name: 'Training & Development' },
-    { id: 'Other', name: 'Other' }
-  ];
+  // Use shared expense categories that match backend
+  const expenseCategories = EXPENSE_CATEGORIES.map(category => ({
+    id: category,
+    name: category
+  }));
 
+  // Backend-matching subcategories
   const subcategories = {
-    'Inventory/Stock Purchase': ['Raw Materials', 'Finished Goods', 'Packaging Materials'],
-    'Rent & Utilities': ['Rent', 'Electricity', 'Water', 'Internet', 'Gas'],
-    'Staff Salaries': ['Full-time Staff', 'Part-time Staff', 'Contract Workers', 'Bonuses'],
-    'Transportation': ['Fuel', 'Vehicle Maintenance', 'Public Transport', 'Delivery Fees'],
-    'Marketing & Advertising': ['Online Ads', 'Print Media', 'Signage', 'Promotions'],
-    'Equipment & Tools': ['Purchase', 'Rental', 'Maintenance', 'Repairs'],
-    'Professional Services': ['Accounting', 'Legal', 'Consulting', 'IT Services'],
-    'Insurance': ['Business Insurance', 'Health Insurance', 'Vehicle Insurance'],
-    'Taxes & Government Fees': ['VAT', 'Income Tax', 'Business Registration', 'Permits'],
-    'Bank Charges': ['Transaction Fees', 'Loan Interest', 'Account Maintenance'],
-    'Maintenance & Repairs': ['Building Maintenance', 'Equipment Repairs'],
-    'Office Supplies': ['Stationery', 'Printing', 'Furniture', 'Electronics'],
-    'Communication': ['Phone Bills', 'Internet', 'Postage'],
-    'Training & Development': ['Workshops', 'Courses', 'Books', 'Conferences'],
-    'Other': ['Miscellaneous']
+    'Inventory/Stock': ['Raw Materials', 'Finished Goods', 'Packaging Materials', 'Import Duties'],
+    'Rent': ['Shop Rent', 'Office Rent', 'Warehouse Rent', 'Equipment Rent'],
+    'Utilities': ['Electricity', 'Water', 'Internet', 'Phone', 'Generator Fuel'],
+    'Rent & Utilities': ['Shop Rent + Utilities', 'Office Rent + Utilities', 'Electricity Bills', 'Water Bills', 'Internet Bills'],
+    'Transportation': ['Fuel', 'Vehicle Maintenance', 'Public Transport', 'Delivery Costs', 'Logistics'],
+    'Marketing': ['Social Media Ads', 'Print Materials', 'Radio/TV Ads', 'Promotional Items', 'Website'],
+    'Staff Salaries': ['Basic Salary', 'Overtime', 'Bonuses', 'Allowances', 'Benefits'],
+    'Equipment': ['Computers', 'Machinery', 'Furniture', 'Tools', 'Software'],
+    'Professional Services': ['Accounting', 'Legal', 'Consulting', 'IT Support', 'Training'],
+    'Insurance': ['Business Insurance', 'Vehicle Insurance', 'Health Insurance', 'Property Insurance'],
+    'Taxes': ['VAT', 'Company Tax', 'PAYE', 'Local Government Levy', 'Import Duty'],
+    'Bank Charges': ['Transaction Fees', 'Account Maintenance', 'Transfer Charges', 'POS Charges'],
+    'Other': ['Miscellaneous', 'Emergency Repairs', 'Cleaning', 'Security', 'Stationery']
   };
 
   // Initialize form with editing data

@@ -1287,7 +1287,19 @@ def verify_token():
                 status_code=401
             )
 
-        print(f"[DEBUG] verify_token: Token valid for user: {user_id}")
+        # Calculate trial days left
+        trial_days_left = 0
+        if user.get("trial_ends_at"):
+            try:
+                trial_end = datetime.fromisoformat(user["trial_ends_at"].replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                if trial_end > now:
+                    trial_days_left = (trial_end - now).days
+            except Exception as e:
+                print(f"[DEBUG] Error calculating trial days: {e}")
+                trial_days_left = 0
+
+        print(f"[DEBUG] verify_token: Token valid for user: {user_id}, trial_days_left: {trial_days_left}")
         return success_response(
             message="Token is valid",
             data={
@@ -1302,6 +1314,7 @@ def verify_token():
                     "subscription_status": user["subscription_status"],
                     "referral_code": user.get("referral_code"),
                     "trial_ends_at": user.get("trial_ends_at"),
+                    "trial_days_left": trial_days_left,
                     "owner_id": user.get("owner_id"),
                     "active": user.get("active", True) # Ensure 'active' is always returned
                 }
