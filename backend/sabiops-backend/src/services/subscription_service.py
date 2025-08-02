@@ -802,10 +802,6 @@ class SubscriptionService:
             return {
                 'requires_manual_review': False,
                 'risk_score': 0,
-                'message': 'Payment approved'
-            }urn {
-                'requires_manual_review': False,
-                'risk_score': 0,
                 'message': 'Abuse detection failed, allowing payment'
             }
 
