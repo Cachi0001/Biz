@@ -27,7 +27,9 @@ const ComprehensiveSubscriptionCards = ({
   currentPlan = 'free', 
   showUpgradeButtons = true,
   layout = 'grid', // 'grid' or 'horizontal'
-  className = ""
+  className = "",
+  onUpgrade = null, // Function to handle upgrades inline
+  loading = false // Loading state for upgrade buttons
 }) => {
   const navigate = useNavigate();
 
@@ -130,7 +132,13 @@ const ComprehensiveSubscriptionCards = ({
 
   const handleUpgrade = (planId) => {
     if (planId === 'free') return;
-    navigate('/subscription-upgrade');
+    
+    // Use inline upgrade handler if provided, otherwise navigate
+    if (onUpgrade) {
+      onUpgrade(planId);
+    } else {
+      navigate('/subscription-upgrade');
+    }
   };
 
   const isCurrentPlan = (planId) => currentPlan === planId;
@@ -265,6 +273,7 @@ const ComprehensiveSubscriptionCards = ({
                     ) : (
                       <Button
                         onClick={() => handleUpgrade(plan.id)}
+                        disabled={loading}
                         className={`w-full ${
                           plan.popular 
                             ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700' 
@@ -274,8 +283,8 @@ const ComprehensiveSubscriptionCards = ({
                         }`}
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Upgrade Now
-                        <ArrowRight className="h-4 w-4 ml-2" />
+                        {loading ? 'Processing...' : 'Upgrade Now'}
+                        {!loading && <ArrowRight className="h-4 w-4 ml-2" />}
                       </Button>
                     )}
                   </div>

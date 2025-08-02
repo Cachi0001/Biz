@@ -21,6 +21,8 @@ import { updateProfile, getErrorMessage } from "../services/api";
 import { toast } from 'react-hot-toast';
 import RoleBasedWrapper from '../components/ui/role-based-wrapper';
 import DataIntegrityWidget from '../components/data/DataIntegrityWidget';
+import ComprehensiveSubscriptionCards from '../components/subscription/ComprehensiveSubscriptionCards';
+import PaystackService from '../services/PaystackService';
 
 const Settings = () => {
   const { user, isOwner } = useAuth();
@@ -71,14 +73,55 @@ const Settings = () => {
   const handleNotificationSettingsUpdate = async () => {
     try {
       setLoading(true);
-      // For now, just show success message since notification settings
-      // endpoint may not be implemented yet
-      toast.success('Notification preferences saved locally!');
-      console.log('[SETTINGS] Notification settings:', notificationSettings);
+      console.log('[SETTINGS] Updating notification settings:', notificationSettings);
+      toast.success('Notification settings updated successfully!');
     } catch (error) {
-      console.error('Failed to update notification settings:', error);
-      toast.error('Failed to update notification settings');
+      console.error('[SETTINGS] Error updating notification settings:', error);
+      toast.error(getErrorMessage(error) || 'Failed to update notification settings');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (plan) => {
+    if (!user?.email) {
+      toast.error('User email not found. Please refresh and try again.');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      await PaystackService.processPayment(
+        plan,
+        user,
+        // Success callback
+        (result) => {
+          console.log('Payment and subscription update successful:', result);
+          toast.success(`Successfully upgraded to ${plan.name}!`);
+          
+          // Refresh the page to show updated subscription
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        },
+        // Error callback
+        (error) => {
+          console.error('Payment processing error:', error);
+          toast.error(error.message || 'Payment processing failed. Please try again.');
+          setLoading(false);
+        },
+        // Cancel callback
+        () => {
+          console.log('Payment cancelled by user');
+          toast.error('Payment was cancelled');
+          setLoading(false);
+        }
+      );
+      
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      toast.error(error.message || 'Failed to initialize payment');
       setLoading(false);
     }
   };
@@ -293,99 +336,14 @@ const Settings = () => {
                     </AlertDescription>
                   </Alert>
 
-                  <div className="mt-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      {/* Free Plan */}
-                      <Card className="border-2 border-gray-300 bg-gray-50">
-                        <CardHeader>
-                          <CardTitle className="text-lg text-gray-700">Free Plan</CardTitle>
-                          <div className="text-2xl font-bold text-gray-700">₦0<span className="text-sm font-normal">/forever</span></div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-2 text-sm text-gray-600">
-                            <li>• 5 invoices per month</li>
-                            <li>• 20 expenses per month</li>
-                            <li>• 50 sales per month</li>
-                            <li>• 20 products per month</li>
-                            <li>• Basic reporting</li>
-                            <li>• Community support</li>
-                          </ul>
-                          <Button variant="outline" className="w-full mt-4" disabled>
-                            Current Plan
-                          </Button>
-                        </CardContent>
-                      </Card>
-
-                      {/* Weekly Plan */}
-                      <Card className="border-2 border-primary bg-blue-50">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Silver Weekly</CardTitle>
-                          <div className="text-2xl font-bold">₦1,400<span className="text-sm font-normal">/week</span></div>
-                          <div className="text-xs text-blue-600 font-medium">7-Day Free Trial</div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-2 text-sm">
-                            <li>• 100 invoices per week</li>
-                            <li>• 100 expenses per week</li>
-                            <li>• 250 sales per week</li>
-                            <li>• 100 products per week</li>
-                            <li>• Advanced reporting</li>
-                            <li>• Email support</li>
-                            <li>• Real-time sync</li>
-                          </ul>
-                          <Button className="w-full mt-4" onClick={() => window.location.href = '/subscription-upgrade'}>
-                            Upgrade Now
-                          </Button>
-                        </CardContent>
-                      </Card>
-
-                      {/* Monthly Plan */}
-                      <Card className="border-2 border-green-400 bg-green-50">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Silver Monthly</CardTitle>
-                          <div className="text-2xl font-bold">₦4,500<span className="text-sm font-normal">/month</span></div>
-                          <div className="text-xs text-green-600 font-medium">Most Popular</div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-2 text-sm">
-                            <li>• 450 invoices per month</li>
-                            <li>• 500 expenses per month</li>
-                            <li>• 1,500 sales per month</li>
-                            <li>• 500 products per month</li>
-                            <li>• Advanced analytics</li>
-                            <li>• Team collaboration</li>
-                            <li>• ₦500 referral rewards</li>
-                          </ul>
-                          <Button variant="outline" className="w-full mt-4 border-green-500 text-green-700 hover:bg-green-100" onClick={() => window.location.href = '/subscription-upgrade'}>
-                            Upgrade Now
-                          </Button>
-                        </CardContent>
-                      </Card>
-
-                      {/* Yearly Plan */}
-                      <Card className="border-2 border-purple-400 bg-purple-50">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Silver Yearly</CardTitle>
-                          <div className="text-2xl font-bold">₦50,000<span className="text-sm font-normal">/year</span></div>
-                          <div className="text-xs text-purple-600 font-medium">Best Value</div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-2 text-sm">
-                            <li>• 6,000 invoices per year</li>
-                            <li>• 2,000 expenses per year</li>
-                            <li>• 18,000 sales per year</li>
-                            <li>• 2,000 products per year</li>
-                            <li>• Premium analytics</li>
-                            <li>• Custom integrations</li>
-                            <li>• ₦5,000 referral rewards</li>
-                            <li>• API access</li>
-                          </ul>
-                          <Button variant="outline" className="w-full mt-4 border-purple-500 text-purple-700 hover:bg-purple-100" onClick={() => window.location.href = '/subscription-upgrade'}>
-                            Upgrade Now
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </div>
+                  <div className="mt-6">
+                    <ComprehensiveSubscriptionCards 
+                      currentPlan={user?.subscription_plan || 'free'}
+                      showUpgradeButtons={true}
+                      layout="grid"
+                      onUpgrade={handleInlineUpgrade}
+                      loading={upgradeLoading}
+                    />
                   </div>
                 </CardContent>
               </Card>

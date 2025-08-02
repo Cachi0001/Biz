@@ -143,7 +143,33 @@ const SubscriptionUpgrade = () => {
       {/* Header */}
       <div className="bg-green-600 shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex items-center justify-between mb-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="hover:bg-green-700 text-white p-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-bold text-xs">S</span>
+                </div>
+                <span className="text-xs font-medium text-white">SabiOps</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <h1 className="text-lg font-bold text-white">Subscription Plans</h1>
+              <p className="text-xs text-green-100">Choose the perfect plan for your business</p>
+            </div>
+          </div>
+          
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"

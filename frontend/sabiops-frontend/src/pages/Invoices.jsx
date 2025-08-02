@@ -564,12 +564,12 @@ const Invoices = () => {
 
                               {/* Actions */}
                               <div className="pt-3 border-t border-gray-100">
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="flex gap-2">
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleEdit(invoice)}
-                                    className="text-xs h-8"
+                                    className="text-xs h-8 flex-1"
                                   >
                                     <Edit className="h-3 w-3 mr-1" />
                                     Edit
@@ -577,17 +577,8 @@ const Invoices = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleSend(invoice.id)}
-                                    className="text-xs h-8"
-                                  >
-                                    <Send className="h-3 w-3 mr-1" />
-                                    Send
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
                                     onClick={() => handleDownload(invoice.id)}
-                                    className="text-xs h-8"
+                                    className="text-xs h-8 flex-1"
                                   >
                                     <Download className="h-3 w-3 mr-1" />
                                     PDF
@@ -596,7 +587,7 @@ const Invoices = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleDelete(invoice.id)}
-                                    className="text-xs h-8 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                    className="text-xs h-8 flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                                   >
                                     <Trash2 className="h-3 w-3 mr-1" />
                                     Delete
