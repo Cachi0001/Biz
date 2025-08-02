@@ -96,6 +96,8 @@ const AccurateUsageCards = () => {
     window.addEventListener('expenseUpdated', handleDataUpdate);
     window.addEventListener('invoiceUpdated', handleDataUpdate);
     window.addEventListener('productUpdated', handleDataUpdate);
+    window.addEventListener('subscriptionUpdated', handleDataUpdate);
+    window.addEventListener('usageStatusUpdated', handleDataUpdate);
 
     return () => {
       window.removeEventListener('dataUpdated', handleDataUpdate);
@@ -103,6 +105,8 @@ const AccurateUsageCards = () => {
       window.removeEventListener('expenseUpdated', handleDataUpdate);
       window.removeEventListener('invoiceUpdated', handleDataUpdate);
       window.removeEventListener('productUpdated', handleDataUpdate);
+      window.removeEventListener('subscriptionUpdated', handleDataUpdate);
+      window.removeEventListener('usageStatusUpdated', handleDataUpdate);
     };
   }, [fetchAccurateUsage]);
 

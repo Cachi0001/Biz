@@ -91,6 +91,21 @@ def verify_payment():
             user_id, plan_id, reference, paystack_result
         )
         
+        # Immediately reset usage counters and apply new limits
+        subscription_service._reset_usage_counters(user_id, plan_id)
+        logger.info(f"Usage counters reset for user {user_id} to {plan_id} plan limits")
+        
+        # Generate new JWT token with updated subscription info
+        from flask_jwt_extended import create_access_token
+        new_token = create_access_token(identity={
+            'id': user_id,
+            'subscription_plan': plan_id,
+            'subscription_status': upgrade_result['subscription']['status'],
+            'subscription_end_date': upgrade_result['subscription']['end_date'],
+            'is_trial': upgrade_result['subscription'].get('is_trial', False),
+            'trial_days_left': 0
+        })
+        
         # Notify user of successful upgrade
         try:
             supa_service = SupabaseService()
@@ -109,6 +124,7 @@ def verify_payment():
                 "subscription": upgrade_result['subscription'],
                 "plan_config": upgrade_result['plan_config'],
                 "usage_reset": upgrade_result['usage_reset'],
+                "access_token": new_token,  # Include new token for immediate frontend update
                 "paystack_data": {
                     "reference": paystack_result['reference'],
                     "amount": paystack_result['amount'],

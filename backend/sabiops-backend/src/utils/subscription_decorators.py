@@ -285,10 +285,24 @@ def protected_invoice_creation(f):
             if not can_create:
                 return jsonify({
                     'success': False,
-                    'error': 'Invoice creation limit reached',
+                    'error': 'limit_exceeded',
                     'message': limit_info.get('message', 'You have reached your invoice creation limit'),
-                    'limit_info': limit_info,
-                    'upgrade_required': True
+                    'limit_info': {
+                        'feature_type': 'invoices',
+                        'current_usage': limit_info.get('current_usage', 0),
+                        'limit': limit_info.get('limit', 0),
+                        'current_plan': limit_info.get('current_plan', 'free'),
+                        'upgrade_required': True
+                    },
+                    'toast': {
+                        'type': 'error',
+                        'message': f"You've reached your invoice limit ({limit_info.get('current_usage', 0)}/{limit_info.get('limit', 0)}). Upgrade to continue.",
+                        'timeout': 5000,
+                        'action': {
+                            'text': 'Upgrade Now',
+                            'url': '/subscription-upgrade'
+                        }
+                    }
                 }), 403
             
             return f(*args, **kwargs)
@@ -297,7 +311,12 @@ def protected_invoice_creation(f):
             logger.error(f"Error in protected_invoice_creation decorator: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Unable to verify invoice creation permissions'
+                'error': 'Unable to verify invoice creation permissions',
+                'toast': {
+                    'type': 'error',
+                    'message': 'Unable to verify permissions. Please try again.',
+                    'timeout': 3000
+                }
             }), 500
     
     return decorated_function
@@ -361,10 +380,24 @@ def protected_product_creation(f):
             if not can_create:
                 return jsonify({
                     'success': False,
-                    'error': 'Product creation limit reached',
+                    'error': 'limit_exceeded',
                     'message': limit_info.get('message', 'You have reached your product creation limit'),
-                    'limit_info': limit_info,
-                    'upgrade_required': True
+                    'limit_info': {
+                        'feature_type': 'products',
+                        'current_usage': limit_info.get('current_usage', 0),
+                        'limit': limit_info.get('limit', 0),
+                        'current_plan': limit_info.get('current_plan', 'free'),
+                        'upgrade_required': True
+                    },
+                    'toast': {
+                        'type': 'error',
+                        'message': f"You've reached your product limit ({limit_info.get('current_usage', 0)}/{limit_info.get('limit', 0)}). Upgrade to continue.",
+                        'timeout': 5000,
+                        'action': {
+                            'text': 'Upgrade Now',
+                            'url': '/subscription-upgrade'
+                        }
+                    }
                 }), 403
             
             return f(*args, **kwargs)
@@ -373,7 +406,12 @@ def protected_product_creation(f):
             logger.error(f"Error in protected_product_creation decorator: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Unable to verify product creation permissions'
+                'error': 'Unable to verify product creation permissions',
+                'toast': {
+                    'type': 'error',
+                    'message': 'Unable to verify permissions. Please try again.',
+                    'timeout': 3000
+                }
             }), 500
     
     return decorated_function
@@ -402,10 +440,24 @@ def protected_sales_creation(f):
             if not can_create:
                 return jsonify({
                     'success': False,
-                    'error': 'Sales creation limit reached',
+                    'error': 'limit_exceeded',
                     'message': limit_info.get('message', 'You have reached your sales creation limit'),
-                    'limit_info': limit_info,
-                    'upgrade_required': True
+                    'limit_info': {
+                        'feature_type': 'sales',
+                        'current_usage': limit_info.get('current_usage', 0),
+                        'limit': limit_info.get('limit', 0),
+                        'current_plan': limit_info.get('current_plan', 'free'),
+                        'upgrade_required': True
+                    },
+                    'toast': {
+                        'type': 'error',
+                        'message': f"You've reached your sales limit ({limit_info.get('current_usage', 0)}/{limit_info.get('limit', 0)}). Upgrade to continue.",
+                        'timeout': 5000,
+                        'action': {
+                            'text': 'Upgrade Now',
+                            'url': '/subscription-upgrade'
+                        }
+                    }
                 }), 403
             
             return f(*args, **kwargs)
@@ -414,7 +466,12 @@ def protected_sales_creation(f):
             logger.error(f"Error in protected_sales_creation decorator: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Unable to verify sales creation permissions'
+                'error': 'Unable to verify sales creation permissions',
+                'toast': {
+                    'type': 'error',
+                    'message': 'Unable to verify permissions. Please try again.',
+                    'timeout': 3000
+                }
             }), 500
     
     return decorated_function
@@ -443,10 +500,24 @@ def protected_expense_creation(f):
             if not can_create:
                 return jsonify({
                     'success': False,
-                    'error': 'Expense creation limit reached',
+                    'error': 'limit_exceeded',
                     'message': limit_info.get('message', 'You have reached your expense creation limit'),
-                    'limit_info': limit_info,
-                    'upgrade_required': True
+                    'limit_info': {
+                        'feature_type': 'expenses',
+                        'current_usage': limit_info.get('current_usage', 0),
+                        'limit': limit_info.get('limit', 0),
+                        'current_plan': limit_info.get('current_plan', 'free'),
+                        'upgrade_required': True
+                    },
+                    'toast': {
+                        'type': 'error',
+                        'message': f"You've reached your expense limit ({limit_info.get('current_usage', 0)}/{limit_info.get('limit', 0)}). Upgrade to continue.",
+                        'timeout': 5000,
+                        'action': {
+                            'text': 'Upgrade Now',
+                            'url': '/subscription-upgrade'
+                        }
+                    }
                 }), 403
             
             return f(*args, **kwargs)
@@ -455,7 +526,12 @@ def protected_expense_creation(f):
             logger.error(f"Error in protected_expense_creation decorator: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Unable to verify expense creation permissions'
+                'error': 'Unable to verify expense creation permissions',
+                'toast': {
+                    'type': 'error',
+                    'message': 'Unable to verify permissions. Please try again.',
+                    'timeout': 3000
+                }
             }), 500
     
     return decorated_function

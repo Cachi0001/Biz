@@ -7,6 +7,9 @@ import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 import { formatNaira } from '../../utils/formatting';
 import { toastService } from '../../services/ToastService';
 import { createSale, getCustomers, getProducts } from '../../services/api';
+import { handleLimitExceeded, checkLimitsBeforeSubmission } from '../../utils/limitHandler';
+import LimitExceededModal from '../subscription/LimitExceededModal';
+import subscriptionService from '../../services/subscriptionService';
 
 export const SalesForm = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -25,6 +28,10 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState('');
+  
+  // Limit exceeded modal state
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalData, setLimitModalData] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -54,6 +61,12 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     }
   };
 
+  // Show limit exceeded modal
+  const showLimitModal = (limitData) => {
+    setLimitModalData(limitData);
+    setLimitModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -65,6 +78,17 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     if (formData.quantity <= 0) {
       toastService.error('Please enter a valid quantity');
       return;
+    }
+
+    // Check limits before submission
+    const canCreate = await checkLimitsBeforeSubmission(
+      'sales',
+      subscriptionService.getUsageStatus,
+      showLimitModal
+    );
+    
+    if (!canCreate) {
+      return; // Limit exceeded, don't proceed
     }
 
     try {
@@ -98,27 +122,38 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     } catch (error) {
       console.error('Error creating sale:', error);
       
-      // Enhanced error handling with specific messages
-      let errorMessage = 'Failed to record sale';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to record sales.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.code === 'NETWORK_ERROR') {
-        errorMessage = 'Network error. Please check your connection.';
+      // Handle limit exceeded errors from backend
+      if (error.response && error.response.data) {
+        const handled = handleLimitExceeded(error.response.data, showLimitModal);
+        if (!handled) {
+          // Enhanced error handling with specific messages
+          let errorMessage = 'Failed to record sale';
+          
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          } else if (error.response?.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (error.response?.status === 403) {
+            errorMessage = 'You do not have permission to record sales.';
+          } else if (error.response?.status >= 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else if (error.code === 'NETWORK_ERROR') {
+            errorMessage = 'Network error. Please check your connection.';
+          }
+          
+          toastService.error(errorMessage, {
+            duration: 5000,
+            position: 'top-center'
+          });
+        }
+      } else {
+        toastService.error('Failed to record sale', {
+          duration: 5000,
+          position: 'top-center'
+        });
       }
-      
-      toastService.error(errorMessage, {
-        duration: 5000,
-        position: 'top-center'
-      });
     } finally {
       setLoading(false);
     }
@@ -348,6 +383,17 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
           Cancel
         </Button>
       </div>
+
+      {/* Limit Exceeded Modal */}
+      <LimitExceededModal
+        isOpen={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+        featureType={limitModalData?.featureType}
+        currentUsage={limitModalData?.currentUsage}
+        limit={limitModalData?.limit}
+        currentPlan={limitModalData?.currentPlan}
+        suggestedPlans={limitModalData?.suggestedPlans}
+      />
     </form>
   );
 };

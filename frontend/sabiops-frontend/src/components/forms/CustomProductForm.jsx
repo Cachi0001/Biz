@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toastService } from '../../services/ToastService';
 import { createProduct, updateProduct } from '../../services/api';
 import { handleApiErrorWithToast } from '../../utils/errorHandling';
@@ -12,6 +12,9 @@ import {
 } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
+import { handleLimitExceeded, checkLimitsBeforeSubmission } from '../../utils/limitHandler';
+import LimitExceededModal from '../subscription/LimitExceededModal';
+import subscriptionService from '../../services/subscriptionService';
 
 const CustomProductForm = ({ 
   categories = [], 
@@ -45,6 +48,10 @@ const CustomProductForm = ({
   });
 
   const [loading, setLoading] = React.useState(false);
+  
+  // Limit exceeded modal state
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalData, setLimitModalData] = useState(null);
 
   // Categories and subcategories are now imported from shared constants
 
@@ -84,9 +91,29 @@ const CustomProductForm = ({
     }
   }, [editingProduct]);
 
+  // Show limit exceeded modal
+  const showLimitModal = (limitData) => {
+    setLimitModalData(limitData);
+    setLimitModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Check limits before submission (only for new products, not edits)
+    if (!editingProduct) {
+      const canCreate = await checkLimitsBeforeSubmission(
+        'products',
+        subscriptionService.getUsageStatus,
+        showLimitModal
+      );
+      
+      if (!canCreate) {
+        return; // Limit exceeded, don't proceed
+      }
+    }
+
     setLoading(true);
 
     // Always use the latest value from formData for quantity
@@ -125,7 +152,17 @@ const CustomProductForm = ({
       });
       if (onSuccess) onSuccess(response);
     } catch (error) {
-      toastService.error(error?.response?.data?.message || error.message || 'Failed to create product');
+      console.error('Error creating/updating product:', error);
+      
+      // Handle limit exceeded errors from backend
+      if (error.response && error.response.data) {
+        const handled = handleLimitExceeded(error.response.data, showLimitModal);
+        if (!handled) {
+          toastService.error(error?.response?.data?.message || error.message || 'Failed to create product');
+        }
+      } else {
+        toastService.error(error?.response?.data?.message || error.message || 'Failed to create product');
+      }
     } finally {
       setLoading(false);
     }
@@ -505,6 +542,17 @@ const CustomProductForm = ({
           </button>
         </div>
       </form>
+
+      {/* Limit Exceeded Modal */}
+      <LimitExceededModal
+        isOpen={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+        featureType={limitModalData?.featureType}
+        currentUsage={limitModalData?.currentUsage}
+        limit={limitModalData?.limit}
+        currentPlan={limitModalData?.currentPlan}
+        suggestedPlans={limitModalData?.suggestedPlans}
+      />
     </div>
   );
 };

@@ -137,7 +137,7 @@ const ModernQuickActions = () => {
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-      
+
       {/* Primary Actions Grid */}
       <div className="grid grid-cols-2 gap-3">
         {actions.slice(0, 4).map((action, index) => {
@@ -149,11 +149,10 @@ const ModernQuickActions = () => {
               variant={action.variant}
               size="lg"
               onClick={action.action}
-              className={`h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal ${
-                isMildPurple
-                  ? 'bg-purple-500 hover:bg-purple-600 border-purple-600 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 border-blue-600 text-white'
-              }`}
+              className={`h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal ${isMildPurple
+                ? 'bg-purple-500 hover:bg-purple-600 border-purple-600 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 border-blue-600 text-white'
+                }`}
             >
               <span className="flex items-center justify-center w-full">
                 <action.icon className="h-5 w-5 text-white" />
@@ -183,13 +182,12 @@ const ModernQuickActions = () => {
                     <Button
                       key={index}
                       variant={action.variant === 'primary' ? 'default' : 'outline'}
-                      className={`w-full h-auto py-3 px-4 flex flex-col items-center justify-center gap-2 text-center hover:shadow-lg transition-all duration-200 ${
-                        isMildRed
-                          ? 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:border-red-800 dark:text-red-300'
-                          : isMildPurple
+                      className={`w-full h-auto py-3 px-4 flex flex-col items-center justify-center gap-2 text-center hover:shadow-lg transition-all duration-200 ${isMildRed
+                        ? 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:border-red-800 dark:text-red-300'
+                        : isMildPurple
                           ? 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300'
                           : 'bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                      }`}
+                        }`}
                       onClick={action.action}
                     >
                       <action.icon className="h-5 w-5 mb-1" />
@@ -214,13 +212,13 @@ const ModernQuickActions = () => {
                   Create a new invoice for your customer
                 </DialogDescription>
               </DialogHeader>
-              <CustomInvoiceForm 
+              <CustomInvoiceForm
                 onSuccess={() => handleSuccess('invoice')}
                 onCancel={closeModal}
               />
             </>
           )}
-          
+
           {activeModal === 'sale' && (
             <>
               <DialogHeader>
@@ -229,13 +227,13 @@ const ModernQuickActions = () => {
                   Add a new sale transaction to your records
                 </DialogDescription>
               </DialogHeader>
-              <SalesForm 
+              <SalesForm
                 onSuccess={() => handleSuccess('sale')}
                 onCancel={closeModal}
               />
             </>
           )}
-          
+
           {activeModal === 'product' && (
             <>
               <DialogHeader>
@@ -244,13 +242,13 @@ const ModernQuickActions = () => {
                   Add a new product to your inventory
                 </DialogDescription>
               </DialogHeader>
-              <CustomProductForm 
+              <CustomProductForm
                 onSuccess={() => handleSuccess('product')}
                 onCancel={closeModal}
               />
             </>
           )}
-          
+
           {activeModal === 'expense' && (
             <>
               <DialogHeader>
@@ -259,7 +257,7 @@ const ModernQuickActions = () => {
                   Track your business expenses
                 </DialogDescription>
               </DialogHeader>
-              <ExpenseForm 
+              <ExpenseForm
                 onSuccess={() => handleSuccess('expense')}
                 onCancel={closeModal}
               />

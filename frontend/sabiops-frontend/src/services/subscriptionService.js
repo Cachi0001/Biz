@@ -46,25 +46,44 @@ const subscriptionService = {
       );
 
       // If we get a new token in the response, update it
-      if (response.data.access_token) {
+      if (response.data.data && response.data.data.access_token) {
         console.log('[SubscriptionService] Received new access token, updating...');
 
         // Store the new token
-        setAuthToken(response.data.access_token);
+        setAuthToken(response.data.data.access_token);
 
         // Update axios default headers with new token
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.access_token}`;
 
         // Notify any listeners that the token was updated
         if (window.dispatchEvent) {
           const event = new CustomEvent('tokenUpdated', {
             detail: {
-              token: response.data.access_token,
-              subscription: response.data.subscription
+              token: response.data.data.access_token,
+              subscription: response.data.data.subscription
             }
           });
           window.dispatchEvent(event);
         }
+
+        // Trigger subscription update event
+        const subscriptionEvent = new CustomEvent('subscriptionUpdated', {
+          detail: {
+            subscription: response.data.data.subscription,
+            plan_config: response.data.data.plan_config,
+            usage_reset: response.data.data.usage_reset
+          }
+        });
+        window.dispatchEvent(subscriptionEvent);
+
+        // Trigger usage status refresh
+        const usageEvent = new CustomEvent('usageStatusUpdated', {
+          detail: {
+            subscription: response.data.data.subscription,
+            usage_reset: response.data.data.usage_reset
+          }
+        });
+        window.dispatchEvent(usageEvent);
       }
 
       console.log('[SubscriptionService] Payment verification successful:', response.data);

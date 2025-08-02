@@ -14,6 +14,9 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPay
 import { EXPENSE_CATEGORIES } from '../../constants/categories';
 import { createExpense } from '../../services/api';
 import { toastService } from '../../services/ToastService';
+import { handleLimitExceeded, checkLimitsBeforeSubmission } from '../../utils/limitHandler';
+import LimitExceededModal from '../subscription/LimitExceededModal';
+import subscriptionService from '../../services/subscriptionService';
 
 const ExpenseForm = ({ 
   onSubmit, 
@@ -39,6 +42,10 @@ const ExpenseForm = ({
   // Form validation
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Limit exceeded modal state
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalData, setLimitModalData] = useState(null);
 
   // Use shared expense categories that match backend
   const expenseCategories = EXPENSE_CATEGORIES.map(category => ({
@@ -131,12 +138,31 @@ const ExpenseForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Show limit exceeded modal
+  const showLimitModal = (limitData) => {
+    setLimitModalData(limitData);
+    setLimitModalOpen(true);
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
+    }
+
+    // Check limits before submission (only for new expenses, not edits)
+    if (!editingExpense) {
+      const canCreate = await checkLimitsBeforeSubmission(
+        'expenses',
+        subscriptionService.getUsageStatus,
+        showLimitModal
+      );
+      
+      if (!canCreate) {
+        return; // Limit exceeded, don't proceed
+      }
     }
     
     setIsSubmitting(true);
@@ -168,8 +194,18 @@ const ExpenseForm = ({
       }
     } catch (error) {
       console.error('Error submitting expense:', error);
-      toastService.error('Failed to record expense');
-      handleApiErrorWithToast(error, 'Failed to save expense');
+      
+      // Handle limit exceeded errors from backend
+      if (error.response && error.response.data) {
+        const handled = handleLimitExceeded(error.response.data, showLimitModal);
+        if (!handled) {
+          toastService.error('Failed to record expense');
+          handleApiErrorWithToast(error, 'Failed to save expense');
+        }
+      } else {
+        toastService.error('Failed to record expense');
+        handleApiErrorWithToast(error, 'Failed to save expense');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -623,6 +659,17 @@ const ExpenseForm = ({
           </button>
         </div>
       </form>
+
+      {/* Limit Exceeded Modal */}
+      <LimitExceededModal
+        isOpen={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+        featureType={limitModalData?.featureType}
+        currentUsage={limitModalData?.currentUsage}
+        limit={limitModalData?.limit}
+        currentPlan={limitModalData?.currentPlan}
+        suggestedPlans={limitModalData?.suggestedPlans}
+      />
     </div>
   );
 };

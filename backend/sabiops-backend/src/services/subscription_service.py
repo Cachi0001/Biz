@@ -661,6 +661,129 @@ class SubscriptionService:
         
         return start_date + timedelta(days=plan_config['duration_days'])
     
+    def get_accurate_usage_counts(self, user_id: str) -> Dict[str, Any]:
+        """Get accurate usage counts directly from database tables"""
+        try:
+            # Get the business owner ID (if user is team member, get their owner's ID)
+            business_owner_id = self._get_business_owner_id(user_id)
+            
+            # Get actual counts from database tables
+            actual_counts = self._get_actual_database_counts(business_owner_id)
+            
+            # Get current tracked counts from feature_usage table
+            usage_result = self.supabase.table('feature_usage').select('*').eq('user_id', business_owner_id).execute()
+            
+            usage_counts = {}
+            discrepancies = []
+            
+            for feature_type, actual_count in actual_counts.items():
+                # Find tracked count for this feature
+                tracked_record = next((u for u in usage_result.data if u['feature_type'] == feature_type), None)
+                
+                if tracked_record:
+                    tracked_count = tracked_record['current_count']
+                    limit_count = tracked_record['limit_count']
+                else:
+                    # No tracking record exists, create one
+                    subscription_status = self.get_unified_subscription_status(business_owner_id)
+                    plan_config = subscription_status['plan_config']
+                    limit_count = plan_config['features'].get(feature_type, 0)
+                    tracked_count = 0
+                    
+                    # Create new usage record
+                    current_time = datetime.now()
+                    new_usage = {
+                        'user_id': business_owner_id,
+                        'feature_type': feature_type,
+                        'current_count': actual_count,
+                        'limit_count': limit_count,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=30)).isoformat(),
+                        'created_at': current_time.isoformat(),
+                        'updated_at': current_time.isoformat()
+                    }
+                    self.supabase.table('feature_usage').insert(new_usage).execute()
+                    tracked_count = actual_count
+                
+                usage_counts[feature_type] = {
+                    'current_count': actual_count,  # Use actual count from database
+                    'limit_count': limit_count,
+                    'remaining': max(0, limit_count - actual_count),
+                    'percentage_used': (actual_count / limit_count * 100) if limit_count > 0 else 0
+                }
+                
+                # Check for discrepancies
+                if tracked_count != actual_count:
+                    discrepancies.append({
+                        'feature_type': feature_type,
+                        'tracked_count': tracked_count,
+                        'actual_count': actual_count,
+                        'difference': actual_count - tracked_count
+                    })
+            
+            return {
+                'user_id': user_id,
+                'business_owner_id': business_owner_id,
+                'usage_counts': usage_counts,
+                'actual_counts': actual_counts,
+                'discrepancies': discrepancies,
+                'has_discrepancies': len(discrepancies) > 0,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting accurate usage counts for user {user_id}: {str(e)}")
+            raise
+
+    def _get_actual_database_counts(self, user_id: str) -> Dict[str, int]:
+        """Get actual counts from database tables for business owner (includes all team member activities)"""
+        try:
+            # Get the business owner ID (if user is team member, get their owner's ID)
+            business_owner_id = self._get_business_owner_id(user_id)
+            
+            counts = {}
+            
+            # Count invoices for the entire business (owner + team members)
+            invoice_result = self.supabase.table('invoices').select('id', count='exact').eq('owner_id', business_owner_id).execute()
+            counts['invoices'] = invoice_result.count or 0
+            
+            # Count expenses for the entire business
+            expense_result = self.supabase.table('expenses').select('id', count='exact').eq('owner_id', business_owner_id).execute()
+            counts['expenses'] = expense_result.count or 0
+            
+            # Count sales for the entire business
+            sales_result = self.supabase.table('sales').select('id', count='exact').eq('owner_id', business_owner_id).execute()
+            counts['sales'] = sales_result.count or 0
+            
+            # Count products for the entire business
+            products_result = self.supabase.table('products').select('id', count='exact').eq('owner_id', business_owner_id).execute()
+            counts['products'] = products_result.count or 0
+            
+            return counts
+            
+        except Exception as e:
+            logger.error(f"Error getting actual database counts for user {user_id}: {str(e)}")
+            return {}
+
+    def _get_business_owner_id(self, user_id: str) -> str:
+        """Get the business owner ID for a user (returns user_id if they are the owner)"""
+        try:
+            user_result = self.supabase.table('users').select('owner_id, role').eq('id', user_id).single().execute()
+            
+            if not user_result.data:
+                return user_id
+            
+            # If user has owner_id, they are a team member - return the owner's ID
+            if user_result.data.get('owner_id'):
+                return user_result.data['owner_id']
+            
+            # If user has no owner_id, they are the owner themselves
+            return user_id
+            
+        except Exception as e:
+            logger.error(f"Error getting business owner ID for user {user_id}: {str(e)}")
+            return user_id
+
     def usage_abuse_detection(self, user_id: str) -> Dict[str, Any]:
         """Simple abuse detection - always allow for now"""
         try:
@@ -677,6 +800,10 @@ class SubscriptionService:
         except Exception as e:
             logger.error(f"Error in abuse detection for user {user_id}: {str(e)}")
             return {
+                'requires_manual_review': False,
+                'risk_score': 0,
+                'message': 'Payment approved'
+            }urn {
                 'requires_manual_review': False,
                 'risk_score': 0,
                 'message': 'Abuse detection failed, allowing payment'
@@ -1382,8 +1509,9 @@ class SubscriptionService:
             plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
             
             # Get current usage
-            usage_counts = self.get_accurate_usage_counts(user_id)
-            current_invoices = usage_counts.get('invoices', 0)
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_invoices = usage_counts.get('invoices', {}).get('current_count', 0)
             invoice_limit = plan_config['features']['invoices']
             
             if current_invoices >= invoice_limit:
@@ -1506,8 +1634,9 @@ class SubscriptionService:
             plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
             
             # Get current usage
-            usage_counts = self.get_accurate_usage_counts(user_id)
-            current_sales = usage_counts.get('sales', 0)
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_sales = usage_counts.get('sales', {}).get('current_count', 0)
             sales_limit = plan_config['features']['sales']
             
             if current_sales >= sales_limit:
@@ -1596,4 +1725,221 @@ class SubscriptionService:
                 'requires_manual_review': False,
                 'recommendation': 'Normal upgrade pattern',
                 'error': str(e)
+            } 
+   
+    def can_create_invoice(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create invoices based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_invoices = usage_counts.get('invoices', {}).get('current_count', 0)
+            invoice_limit = plan_config['features']['invoices']
+            
+            if current_invoices >= invoice_limit:
+                return False, {
+                    'message': f'Invoice limit reached ({current_invoices}/{invoice_limit})',
+                    'current_usage': current_invoices,
+                    'limit': invoice_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Invoice creation allowed',
+                'current_usage': current_invoices,
+                'limit': invoice_limit,
+                'remaining': invoice_limit - current_invoices
             }
+            
+        except Exception as e:
+            logger.error(f"Error checking invoice creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking invoice creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def can_create_product(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create products based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_products = usage_counts.get('products', {}).get('current_count', 0)
+            product_limit = plan_config['features']['products']
+            
+            if current_products >= product_limit:
+                return False, {
+                    'message': f'Product limit reached ({current_products}/{product_limit})',
+                    'current_usage': current_products,
+                    'limit': product_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Product creation allowed',
+                'current_usage': current_products,
+                'limit': product_limit,
+                'remaining': product_limit - current_products
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking product creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking product creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def can_create_sale(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create sales based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_sales = usage_counts.get('sales', {}).get('current_count', 0)
+            sales_limit = plan_config['features']['sales']
+            
+            if current_sales >= sales_limit:
+                return False, {
+                    'message': f'Sales limit reached ({current_sales}/{sales_limit})',
+                    'current_usage': current_sales,
+                    'limit': sales_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Sales creation allowed',
+                'current_usage': current_sales,
+                'limit': sales_limit,
+                'remaining': sales_limit - current_sales
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking sales creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking sales creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+    
+    def can_create_expense(self, user_id: str) -> Tuple[bool, Dict[str, Any]]:
+        """Check if user can create expenses based on subscription limits"""
+        try:
+            subscription_status = self.get_unified_subscription_status(user_id)
+            if not subscription_status:
+                return False, {
+                    'message': 'Unable to verify subscription status',
+                    'upgrade_required': True
+                }
+            
+            current_plan = subscription_status.get('subscription_plan', 'free')
+            plan_config = self.PLAN_CONFIGS.get(current_plan, self.PLAN_CONFIGS['free'])
+            
+            # Get current usage
+            usage_data = self.get_accurate_usage_counts(user_id)
+            usage_counts = usage_data.get('usage_counts', {})
+            current_expenses = usage_counts.get('expenses', {}).get('current_count', 0)
+            expense_limit = plan_config['features']['expenses']
+            
+            if current_expenses >= expense_limit:
+                return False, {
+                    'message': f'Expense limit reached ({current_expenses}/{expense_limit})',
+                    'current_usage': current_expenses,
+                    'limit': expense_limit,
+                    'upgrade_required': True,
+                    'current_plan': current_plan
+                }
+            
+            return True, {
+                'message': 'Expense creation allowed',
+                'current_usage': current_expenses,
+                'limit': expense_limit,
+                'remaining': expense_limit - current_expenses
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking expense creation permission for user {user_id}: {str(e)}")
+            return False, {
+                'message': 'Error checking expense creation permission',
+                'error': str(e),
+                'upgrade_required': True
+            }
+
+    def _reset_usage_counters(self, user_id: str, plan_id: str) -> None:
+        """Reset usage counters for a user to new plan limits"""
+        try:
+            plan_config = self.PLAN_CONFIGS.get(plan_id, self.PLAN_CONFIGS['free'])
+            current_time = datetime.now()
+            
+            # Get business owner ID for team usage tracking
+            business_owner_id = self._get_business_owner_id(user_id)
+            
+            # Reset all feature usage records
+            for feature_type, limit in plan_config['features'].items():
+                # Check if usage record exists
+                usage_result = self.supabase.table('feature_usage').select('*').eq(
+                    'user_id', business_owner_id
+                ).eq('feature_type', feature_type).execute()
+                
+                if usage_result.data:
+                    # Update existing record
+                    self.supabase.table('feature_usage').update({
+                        'current_count': 0,
+                        'limit_count': limit,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=30)).isoformat(),
+                        'updated_at': current_time.isoformat()
+                    }).eq('user_id', business_owner_id).eq('feature_type', feature_type).execute()
+                else:
+                    # Create new record
+                    new_usage = {
+                        'user_id': business_owner_id,
+                        'feature_type': feature_type,
+                        'current_count': 0,
+                        'limit_count': limit,
+                        'period_start': current_time.isoformat(),
+                        'period_end': (current_time + timedelta(days=30)).isoformat(),
+                        'created_at': current_time.isoformat(),
+                        'updated_at': current_time.isoformat()
+                    }
+                    self.supabase.table('feature_usage').insert(new_usage).execute()
+            
+            logger.info(f"Reset usage counters for user {user_id} (business owner: {business_owner_id}) to {plan_id} plan limits")
+            
+        except Exception as e:
+            logger.error(f"Error resetting usage counters for user {user_id}: {str(e)}")
+            raise
