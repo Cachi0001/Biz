@@ -23,7 +23,7 @@ import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
 import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '@/constants/paymentMethods';
-import { downloadSalesCSV } from '../utils/csvDownload';
+import { downloadSalesHTML, downloadSalesCSV } from '../utils/csvDownload';
 import { MobileButtonGroup, MobileCard, MobileGrid, MobileStatsCard, MobileContainer } from '../components/ui/MobileLayoutUtils';
 
 const Sales = () => {
@@ -34,7 +34,12 @@ const Sales = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const adjustedDate = new Date(now.getTime() - (offset * 60000));
+    return adjustedDate.toISOString().split('T')[0];
+  });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
     product_id: '',
@@ -304,7 +309,18 @@ const Sales = () => {
     }
   };
 
-  
+  const handleDateChange = (dateValue) => {
+    if (dateValue) {
+      // Handle timezone offset to ensure correct date selection
+      const selectedDateObj = new Date(dateValue + 'T00:00:00');
+      const offset = selectedDateObj.getTimezoneOffset();
+      const adjustedDate = new Date(selectedDateObj.getTime() + (offset * 60000));
+      setSelectedDate(adjustedDate.toISOString().split('T')[0]);
+    } else {
+      setSelectedDate(dateValue);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -556,11 +572,14 @@ const Sales = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Date</Label>
-                  <MobileDateInput
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                  />
+                  <Label className="text-center sm:text-left">Date</Label>
+                  <div className="flex justify-center sm:block">
+                    <MobileDateInput
+                      value={selectedDate}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="w-full max-w-xs sm:w-full"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -611,11 +630,14 @@ const Sales = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Date</Label>
-                  <MobileDateInput
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                  />
+                  <Label className="text-center sm:text-left">Date</Label>
+                  <div className="flex justify-center sm:block">
+                    <MobileDateInput
+                      value={selectedDate}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="w-full max-w-xs sm:w-full"
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

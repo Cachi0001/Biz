@@ -15,7 +15,6 @@ const escapeCSVField = (value) => {
   
   const stringValue = String(value);
   
-  // If the value contains comma, quote, or newline, wrap in quotes and escape internal quotes
   if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
@@ -40,34 +39,28 @@ export const downloadCSV = (data, headers, filename, options = {}) => {
       throw new Error('Headers are required for CSV download');
     }
 
-    // Create CSV content
     const csvRows = [];
     
-    // Add title if provided
     if (options.title) {
       csvRows.push(escapeCSVField(options.title));
-      csvRows.push(''); // Empty line
+      csvRows.push('');
     }
     
-    // Add date range if provided
     if (options.dateRange) {
       csvRows.push(`Report Period: ${escapeCSVField(options.dateRange)}`);
-      csvRows.push(''); // Empty line
+      csvRows.push('');
     }
     
-    // Add headers
     const headerRow = headers.map(header => 
       escapeCSVField(typeof header === 'string' ? header : header.label)
     );
     csvRows.push(headerRow.join(','));
     
-    // Add data rows
     data.forEach(item => {
       const row = headers.map(header => {
         const key = typeof header === 'string' ? header : header.key;
         const value = item[key];
         
-        // Handle different data types
         if (typeof value === 'number') {
           return value.toString();
         } else if (typeof value === 'boolean') {
@@ -81,9 +74,8 @@ export const downloadCSV = (data, headers, filename, options = {}) => {
       csvRows.push(row.join(','));
     });
     
-    // Add summary if provided
     if (options.summary && Array.isArray(options.summary)) {
-      csvRows.push(''); // Empty line
+      csvRows.push('');
       csvRows.push('SUMMARY');
       options.summary.forEach(summaryItem => {
         if (typeof summaryItem === 'string') {
@@ -97,7 +89,6 @@ export const downloadCSV = (data, headers, filename, options = {}) => {
       });
     }
     
-    // Create and download file
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -111,7 +102,6 @@ export const downloadCSV = (data, headers, filename, options = {}) => {
     link.click();
     document.body.removeChild(link);
     
-    // Clean up the URL object
     URL.revokeObjectURL(url);
     
     return true;
@@ -170,8 +160,6 @@ export const downloadSalesHTML = (sales, filename) => {
       throw new Error('No sales data available to download');
     }
 
-
-
     const totalAmount = sales.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
@@ -179,7 +167,6 @@ export const downloadSalesHTML = (sales, filename) => {
     const totalProfit = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit) || 0), 0);
     const netProfit = totalProfit;
     
-    // Calculate daily profit based on actual date range
     let dailyProfit = totalProfit;
     if (sales.length > 0) {
       const dates = sales.map(sale => new Date(sale.created_at || sale.date || Date.now()));
@@ -210,7 +197,7 @@ export const downloadSalesHTML = (sales, filename) => {
     }, {});
 
     const timestamp = new Date().toLocaleString();
-    const reportDate = new Date().toISOString().split('T')[0];
+    const reportDate = new Date().toLocaleDateString('en-CA'); // Use YYYY-MM-DD format
     
     const htmlContent = `
 <!DOCTYPE html>
@@ -341,7 +328,7 @@ export const downloadSalesHTML = (sales, filename) => {
             <tbody>
                 ${sales.map(sale => `
                     <tr>
-                        <td style="text-align: center;">${new Date(sale.date).toLocaleDateString()}</td>
+                        <td style="text-align: center;">${new Date(sale.date || sale.created_at).toLocaleDateString()}</td>
                         <td>${sale.customer_name || 'Walk-in Customer'}</td>
                         <td>${sale.product_name || 'N/A'}</td>
                         <td style="text-align: right;">${sale.quantity || 1}</td>
@@ -363,17 +350,15 @@ export const downloadSalesHTML = (sales, filename) => {
 </html>
     `;
 
-    // Create and download the HTML file
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename || `sales-report-${reportDate}.html`;
-    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url);
 
     return { success: true, message: 'Sales report downloaded successfully as HTML' };
   } catch (error) {
@@ -404,7 +389,6 @@ export const downloadSalesCSV = (sales, filename = `sales-report-${new Date().to
       { key: 'notes', label: 'Notes' }
     ];
 
-    // Format sales data for CSV
     const formattedSales = sales.map(sale => {
       let formattedDate = '';
       const saleDate = sale.date || sale.created_at || sale.updated_at;
@@ -413,7 +397,7 @@ export const downloadSalesCSV = (sales, filename = `sales-report-${new Date().to
         try {
           const date = new Date(saleDate);
           if (!isNaN(date.getTime())) {
-            formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            formattedDate = date.toISOString().split('T')[0];
           }
         } catch (error) {
           console.error('Error formatting date for CSV:', error);

@@ -185,17 +185,9 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
           >
             <SelectTrigger className="h-12 text-base border-2 border-dashed border-blue-300" style={{ backgroundColor: '#f0f8ff' }}>
               <SelectValue placeholder="Select customer">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🔍</span>
-                  <span>
-                    {formData.customer_id && customers.length > 0
-                      ? customers.find((c) => String(c.id) === String(formData.customer_id))?.name
-                      : (formData.customer_name || 'Select customer')}
-                  </span>
-                  <span style={{ fontSize: '10px', color: '#666' }}>
-                    ({formData.customer_id || 'none'})
-                  </span>
-                </div>
+                {formData.customer_id && customers.length > 0
+                  ? customers.find((c) => String(c.id) === String(formData.customer_id))?.name
+                  : (formData.customer_name || 'Select customer')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -255,18 +247,10 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             disabled={productsLoading || !!productsError || products.length === 0}
           >
             <SelectTrigger className="h-12 text-base border-2 border-dashed border-purple-300" style={{ backgroundColor: '#faf5ff' }}>
-              <SelectValue placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🛒</span>
-                  <span>
-                    {formData.product_id && products.length > 0
-                      ? products.find((p) => String(p.id) === String(formData.product_id))?.name
-                      : (productsLoading ? 'Loading...' : 'Select product')}
-                  </span>
-                  <span style={{ fontSize: '10px', color: '#666' }}>
-                    ({formData.product_id || 'none'})
-                  </span>
-                </div>
+              <SelectValue placeholder="Select product">
+                {formData.product_id && products.length > 0
+                  ? `${products.find((p) => String(p.id) === String(formData.product_id))?.name} (${products.find((p) => String(p.id) === String(formData.product_id))?.quantity || 0} left)`
+                  : 'Select product'}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -303,9 +287,6 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
                           <span style={{ fontSize: '12px', color: '#059669', fontWeight: '500' }}>
                             {formatNaira(product.price || product.unit_price || 0)}
-                          </span>
-                          <span style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>
-                            ID: {product.id} ({typeof product.id})
                           </span>
                           <span className={`text-xs px-2 py-1 rounded ${
                             isOutOfStock 

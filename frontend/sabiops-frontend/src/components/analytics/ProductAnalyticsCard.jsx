@@ -170,12 +170,14 @@ const ProductAnalyticsCard = ({ productData, loading }) => {
                 <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border-l-4 border-red-400">
                   <div>
                     <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                    <p className="text-xs text-gray-600">Category: {product.category || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Category: {product.category || product.product_category || product.cat_name || 'N/A'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-red-600">{product.current_stock || product.stock_quantity || 0} left</p>
+                    <p className="text-sm font-bold text-red-600">
+                      {product.current_stock || product.stock_quantity || product.quantity_left || product.stock || 0} left
+                    </p>
                     <p className="text-xs text-red-500">
-                      Min: {product.minimum_stock || product.min_stock || product.threshold || 'N/A'}
+                      Min: {product.minimum_stock || product.min_stock || product.min_quantity || product.reorder_level || product.threshold || 'N/A'}
                     </p>
                   </div>
                 </div>

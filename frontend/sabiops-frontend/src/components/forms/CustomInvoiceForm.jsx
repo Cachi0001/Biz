@@ -565,18 +565,10 @@ const CustomInvoiceForm = ({
             >
               <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''} border-2 border-dashed border-blue-300`} style={{ backgroundColor: '#f0f8ff' }}>
                 <SelectValue placeholder="Select a customer">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>👤</span>
-                    <span>
-                      {formData.customer_id ? 
-                        (customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Unknown Customer') : 
-                        'Select a customer'
-                      }
-                    </span>
-                    <span style={{ fontSize: '10px', color: '#666' }}>
-                      ({formData.customer_id || 'none'})
-                    </span>
-                  </div>
+                  {formData.customer_id ? 
+                    (customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Unknown Customer') : 
+                    'Select a customer'
+                  }
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -725,18 +717,10 @@ const CustomInvoiceForm = ({
                       <SelectValue 
                         placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product (optional)')}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>📦</span>
-                          <span>
-                            {item.product_id ? 
-                              (products.find(p => String(p.id) === String(item.product_id))?.name || 'Unknown Product') : 
-                              'Select product'
-                            }
-                          </span>
-                          <span style={{ fontSize: '10px', color: '#666' }}>
-                            ({item.product_id || 'none'})
-                          </span>
-                        </div>
+                        {item.product_id ? 
+                          `${products.find(p => String(p.id) === String(item.product_id))?.name || 'Unknown Product'} (${products.find(p => String(p.id) === String(item.product_id))?.quantity || 0} left)` : 
+                          'Select product'
+                        }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
