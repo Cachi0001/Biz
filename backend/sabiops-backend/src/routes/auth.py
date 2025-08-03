@@ -122,7 +122,6 @@ def register():
 
             # Generate unique referral code for new user
             import random
-            import string
             referral_code = "SABI" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             
             # Handle referral if provided
