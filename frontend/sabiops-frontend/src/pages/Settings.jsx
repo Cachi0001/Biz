@@ -453,20 +453,20 @@ const Settings = () => {
                         },
                         {
                           id: 'yearly',
-                          name: 'Gold Yearly',
-                          price: 4500000,
-                          displayPrice: '₦45,000',
+                          name: 'Silver Yearly',
+                          price: 5000000,
+                          displayPrice: '₦50,000',
                           period: '/year',
-                          savings: 'Save ₦9,000 per year',
+                          savings: 'Save ₦4,000 annually',
                           features: [
-                            'Unlimited invoices',
-                            'Unlimited expenses',
-                            'Unlimited sales',
-                            'Unlimited products',
+                            '6,000 invoices per year',
+                            '2,000 expenses per year',
+                            '18,000 sales per year',
+                            '2,000 products per year',
                             'Advanced reporting',
                             'Team management',
-                            'Priority support',
-                            'All features unlimited'
+                            'Referral earnings (10% for 3 payments)',
+                            'All other features unlimited'
                           ],
                           popular: false,
                           color: 'purple'
@@ -596,5 +596,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
-

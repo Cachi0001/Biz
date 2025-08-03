@@ -164,17 +164,17 @@ export const downloadSalesHTML = (sales, filename) => {
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
     
-    const totalProfit = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit) || 0), 0);
-    const netProfit = totalProfit;
+    const totalProfit = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales || sale.profit || 0)), 0);
     
-    let dailyProfit = totalProfit;
+    let daysDiff = 1;
     if (sales.length > 0) {
       const dates = sales.map(sale => new Date(sale.created_at || sale.date || Date.now()));
       const minDate = new Date(Math.min(...dates));
       const maxDate = new Date(Math.max(...dates));
-      const daysDiff = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
-      dailyProfit = totalProfit / daysDiff;
+      daysDiff = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
     }
+    
+    const dailyProfit = sales.profit_from_sales;
     
     const paymentMethodBreakdown = sales.reduce((acc, sale) => {
       const method = sale.payment_method || 'Unknown';
@@ -252,10 +252,6 @@ export const downloadSalesHTML = (sales, filename) => {
         <div class="summary-card">
             <h3>📈 Average Sale</h3>
             <div class="value">₦${averageSale.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
-        </div>
-        <div class="summary-card">
-            <h3>💰 Net Profit</h3>
-            <div class="value">₦${netProfit.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
         </div>
         <div class="summary-card">
             <h3>📊 Daily Profit</h3>

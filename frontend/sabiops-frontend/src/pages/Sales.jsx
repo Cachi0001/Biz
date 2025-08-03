@@ -1025,7 +1025,7 @@ const Sales = () => {
                             >
                               <div className="flex justify-between items-center w-full">
                                 <span className={isOutOfStock ? 'line-through' : ''}>
-                                  {product.name}
+                                  {product.name} (Qty: {product.quantity})
                                 </span>
                                 <div className="flex items-center gap-2 ml-2">
                                   <span className="text-sm text-green-600 font-medium">
