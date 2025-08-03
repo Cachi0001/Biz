@@ -447,20 +447,7 @@ const ExpenseForm = ({
               onValueChange={(value) => handleSelectChange('category', value)}
             >
               <SelectTrigger className={`form-select ${errors.category ? 'error' : ''}`}>
-                <SelectValue placeholder="Select a category">
-                  {formData.category
-                    ? (() => {
-                      const category = expenseCategories.find(cat => String(cat.id) === String(formData.category));
-                      console.log('[DEBUG] Expense category display value:', {
-                        categoryId: formData.category,
-                        categoryName: category?.name,
-                        category
-                      });
-                      return category?.name || `Unknown Category (${formData.category})`;
-                    })()
-                    : 'Select a category'
-                  }
-                </SelectValue>
+                <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
                 {expenseCategories.map((category) => (
@@ -564,20 +551,7 @@ const ExpenseForm = ({
               onValueChange={(value) => handleSelectChange('payment_method', value)}
             >
               <SelectTrigger className="form-select">
-                <SelectValue placeholder="Select payment method">
-                  {formData.payment_method
-                    ? (() => {
-                      const paymentMethod = PAYMENT_METHOD_OPTIONS.find(method => method.value === formData.payment_method);
-                      console.log('[DEBUG] Expense payment method display value:', {
-                        paymentMethodValue: formData.payment_method,
-                        paymentMethodLabel: paymentMethod?.label,
-                        paymentMethod
-                      });
-                      return paymentMethod?.label || `Unknown Payment Method (${formData.payment_method})`;
-                    })()
-                    : 'Select payment method'
-                  }
-                </SelectValue>
+                <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
                 {PAYMENT_METHOD_OPTIONS.map((method) => (

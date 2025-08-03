@@ -1176,16 +1176,27 @@ const Sales = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="date" className="text-base font-medium">Sale Date</Label>
-                    <MobileDateInput
-                      id="date"
-                      name="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                      className="h-12 text-base"
-                    />
+                  <div className="w-full">
+                    <Label htmlFor="date" className="block text-base font-medium mb-1 text-center sm:text-left">
+                      Sale Date
+                    </Label>
+                    <div className="flex justify-center sm:block">
+                      <div className="w-full max-w-xs mx-auto">
+                        <SimpleDatePicker
+                          selected={formData.date ? new Date(formData.date) : null}
+                          onChange={(date) => {
+                            const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                            setFormData(prev => ({ ...prev, date: formattedDate }));
+                          }}
+                          className="w-full h-12 text-base sm:text-sm"
+                          wrapperClassName="w-full"
+                          calendarClassName="shadow-lg rounded-lg border border-gray-200"
+                          popperClassName="z-50"
+                          placeholderText="Select date"
+                          dateFormat="yyyy-MM-dd"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

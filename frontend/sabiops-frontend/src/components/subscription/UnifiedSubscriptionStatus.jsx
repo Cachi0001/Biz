@@ -147,7 +147,8 @@ const UnifiedSubscriptionStatus = () => {
     setError(null);
     try {
       // Force an update from the subscription monitor
-      const status = await subscriptionMonitor.forceUpdate();
+      await subscriptionMonitor.refresh();
+      const status = subscriptionMonitor.getCurrentStatus();
       if (status) {
         setRealTimeStatus(status);
       } else {

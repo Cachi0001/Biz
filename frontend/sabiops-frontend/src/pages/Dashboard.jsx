@@ -88,13 +88,13 @@ const Dashboard = () => {
     if (user && subscription?.plan === 'free') {
       const recommendations = getUpgradeRecommendations();
       const hasHighPriorityRecs = recommendations.some(r => r.priority === 'high');
-      
+
       if (hasHighPriorityRecs && !showIntelligentPrompt) {
         // Show intelligent prompt after a short delay
         const timer = setTimeout(() => {
           setShowIntelligentPrompt(true);
         }, 2000);
-        
+
         return () => clearTimeout(timer);
       }
     }
@@ -161,7 +161,7 @@ const Dashboard = () => {
         <div className="space-y-4 sm:space-y-6">
           {/* Real-time Plan Monitoring System */}
           <section className="w-full">
-            <SafeRealTimePlanMonitor 
+            <SafeRealTimePlanMonitor
               compact={true}
               showUpgradePrompts={true}
               showTeamStatus={true}
@@ -171,7 +171,7 @@ const Dashboard = () => {
 
           {/* Smart Upgrade System */}
           <section className="w-full">
-            <SafeSmartUpgradeSystem 
+            <SafeSmartUpgradeSystem
               showProactivePrompts={subscription?.plan === 'free'}
               showBehaviorInsights={true}
             />
@@ -204,8 +204,8 @@ const Dashboard = () => {
             {/* Left Column */}
             <div className="space-y-4 sm:space-y-6">
               {/* Recent Activities */}              <section>
-                <ModernRecentActivities 
-                  activities={dashboardData?.recent_activities} 
+                <ModernRecentActivities
+                  activities={dashboardData?.recent_activities}
                   loading={loading}
                 />
               </section>
@@ -213,15 +213,15 @@ const Dashboard = () => {
               {/* Analytics Preview Card - Link to full Analytics page */}
               <section>
                 <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-                      onClick={() => window.location.href = 
-'/analytics'}>
+                  onClick={() => window.location.href =
+                    '/analytics'}>
                   <CardContent className="p-6 text-center">
                     <div className="flex items-center justify-center mb-4">
                       <div className="p-3 bg-blue-500 rounded-full">
                         <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
+                        </svg>
+                      </div>
                     </div>
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">View Detailed Analytics</h3>
                     <p className="text-sm text-blue-700 mb-4">
@@ -233,7 +233,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               </section>
-      </div>
+            </div>
 
             {/* Right Column */}
             <div className="space-y-4 sm:space-y-6">
@@ -254,33 +254,33 @@ const Dashboard = () => {
           </div>
 
           {/* Bottom Upgrade Section for Free Plan or Expiring Subscription */}
-         {(subscription?.plan === 'free' || shouldShowUpgradePrompt) && (
-           <section className="w-full mt-6">
-             <div className="bg-gradient-to-r from-green-500 via-orange-500 to-red-500 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl text-white overflow-hidden relative border-2 border-green-300">
-               <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white bg-opacity-20 rounded-full -mr-12 sm:-mr-16 -mt-12 sm:-mt-16" />
-               <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-24 sm:h-24 bg-white bg-opacity-20 rounded-full -ml-8 sm:-ml-12 -mb-8 sm:-mb-12" />
-               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-40 sm:h-40 bg-white bg-opacity-10 rounded-full" />
-               <div className="relative">
-                 <div className="text-center">
-                   <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 text-shadow">
-                     🚀 {subscription?.plan === 'free' ? 'Unlock Full Features' : 'Your Subscription is About to Expire!'}
-                   </h3>
-                   <p className="text-green-100 mb-4 font-medium text-sm sm:text-base">
-                     {subscription?.plan === 'free'
-                       ? `You've used ${currentUsage?.invoices || 3} of 5 invoices this month`
-                       : `You have only ${subscription?.trial_days_left} day(s) left. Renew now to avoid interruption!`}
-                   </p>
-             <button
-                     className="bg-white text-green-600 hover:bg-green-50 active:bg-green-100 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 border-2 border-green-600 text-sm sm:text-base touch-manipulation"
-                     onClick={handleUpgrade}
-             >
-                     {subscription?.plan === 'free' ? 'Upgrade Now 🎯' : 'Renew Subscription'}
-             </button>
-           </div>
-         </div>
-       </div>
-           </section>
-         )}
+          {(subscription?.plan === 'free' || shouldShowUpgradePrompt) && (
+            <section className="w-full mt-6">
+              <div className="bg-gradient-to-r from-green-500 via-orange-500 to-red-500 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl text-white overflow-hidden relative border-2 border-green-300">
+                <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white bg-opacity-20 rounded-full -mr-12 sm:-mr-16 -mt-12 sm:-mt-16" />
+                <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-24 sm:h-24 bg-white bg-opacity-20 rounded-full -ml-8 sm:-ml-12 -mb-8 sm:-mb-12" />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-40 sm:h-40 bg-white bg-opacity-10 rounded-full" />
+                <div className="relative">
+                  <div className="text-center">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 text-shadow">
+                      🚀 {subscription?.plan === 'free' ? 'Unlock Full Features' : 'Your Subscription is About to Expire!'}
+                    </h3>
+                    <p className="text-green-100 mb-4 font-medium text-sm sm:text-base">
+                      {subscription?.plan === 'free'
+                        ? `You've used ${currentUsage?.invoices || 3} of 5 invoices this month`
+                        : `You have only ${subscription?.trial_days_left} day(s) left. Renew now to avoid interruption!`}
+                    </p>
+                    <button
+                      className="bg-white text-green-600 hover:bg-green-50 active:bg-green-100 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 border-2 border-green-600 text-sm sm:text-base touch-manipulation"
+                      onClick={handleUpgrade}
+                    >
+                      {subscription?.plan === 'free' ? 'Upgrade Now 🎯' : 'Renew Subscription'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Refresh Status */}
           <footer className="text-center py-4 sm:py-6">
@@ -293,15 +293,15 @@ const Dashboard = () => {
                 <div className="flex items-center space-x-1">
                   <span className="hidden sm:inline">•</span>
                   <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
-      </div>
+                </div>
               )}
             </div>
           </footer>
-      </div>
+        </div>
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradeModal 
+      <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />

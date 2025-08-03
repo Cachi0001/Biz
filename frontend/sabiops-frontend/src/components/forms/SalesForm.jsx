@@ -184,11 +184,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             }}
           >
             <SelectTrigger className="h-12 text-base border-2 border-dashed border-blue-300" style={{ backgroundColor: '#f0f8ff' }}>
-              <SelectValue placeholder="Select customer">
-                {formData.customer_id && customers.length > 0
-                  ? customers.find((c) => String(c.id) === String(formData.customer_id))?.name
-                  : (formData.customer_name || 'Select customer')}
-              </SelectValue>
+              <SelectValue placeholder="Select customer" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -247,11 +243,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             disabled={productsLoading || !!productsError || products.length === 0}
           >
             <SelectTrigger className="h-12 text-base border-2 border-dashed border-purple-300" style={{ backgroundColor: '#faf5ff' }}>
-              <SelectValue placeholder="Select product">
-                {formData.product_id && products.length > 0
-                  ? `${products.find((p) => String(p.id) === String(formData.product_id))?.name} (${products.find((p) => String(p.id) === String(formData.product_id))?.quantity || 0} left)`
-                  : 'Select product'}
-              </SelectValue>
+              <SelectValue placeholder="Select product" />
             </SelectTrigger>
             <SelectContent>
               {productsLoading ? (
@@ -361,24 +353,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue>
-                {formData.payment_method 
-                  ? (() => {
-                      const paymentMethods = {
-                        'cash': 'Cash',
-                        'card': 'Card', 
-                        'transfer': 'Bank Transfer',
-                        'credit': 'Credit'
-                      };
-                      console.log('[DEBUG] SalesForm payment method display value:', { 
-                        paymentMethod: formData.payment_method, 
-                        paymentLabel: paymentMethods[formData.payment_method]
-                      });
-                      return paymentMethods[formData.payment_method] || `Unknown Payment Method (${formData.payment_method})`;
-                    })()
-                  : 'Select payment method'
-                }
-              </SelectValue>
+              <SelectValue placeholder="Select payment method" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="cash">Cash</SelectItem>
