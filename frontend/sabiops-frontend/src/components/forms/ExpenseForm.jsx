@@ -517,7 +517,7 @@ const ExpenseForm = ({
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="date"
-                className={`form-input pl-10 ${errors.date ? 'error' : ''}`}
+                className={`form-input pl-10 md:pl-10 ${errors.date ? 'error' : ''}`}
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}

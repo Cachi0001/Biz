@@ -573,8 +573,8 @@ const Sales = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-center sm:text-left">Date</Label>
-                  <div className="flex justify-center sm:block">
+                  <Label className="text-center">Date</Label>
+                  <div className="flex justify-center">
                     <SimpleDatePicker
                       value={selectedDate}
                       onChange={(e) => {
@@ -585,8 +585,8 @@ const Sales = () => {
                         });
                         handleDateChange(e.target.value);
                       }}
-                      className="w-full max-w-xs sm:w-full"
-                      max={new Date().toISOString().split('T')[0]} // Don't allow future dates
+                      className="w-full max-w-[280px] mx-auto"
+                      max={new Date().toLocaleDateString('en-CA')} // Don't allow future dates
                     />
                   </div>
                 </div>
@@ -651,7 +651,7 @@ const Sales = () => {
                         });
                         handleDateChange(e.target.value);
                       }}
-                      className="w-full max-w-xs sm:w-full"
+                      className="w-full"
                       max={new Date().toISOString().split('T')[0]} // Don't allow future dates
                     />
                   </div>
@@ -1156,28 +1156,7 @@ const Sales = () => {
                     </Select>
                   </div>
 
-                  <div className="w-full">
-                    <Label htmlFor="date" className="block text-base font-medium mb-1 text-center sm:text-left">
-                      Sale Date
-                    </Label>
-                    <div className="flex justify-center sm:block">
-                      <div className="w-full max-w-xs mx-auto">
-                        <SimpleDatePicker
-                          selected={formData.date ? new Date(formData.date) : null}
-                          onChange={(date) => {
-                            const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                            setFormData(prev => ({ ...prev, date: formattedDate }));
-                          }}
-                          className="w-full h-12 text-base sm:text-sm"
-                          wrapperClassName="w-full"
-                          calendarClassName="shadow-lg rounded-lg border border-gray-200"
-                          popperClassName="z-50"
-                          placeholderText="Select date"
-                          dateFormat="yyyy-MM-dd"
-                        />
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
 
                 {/* Total Amount Display */}

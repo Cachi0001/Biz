@@ -78,7 +78,7 @@ const SimpleDatePicker = ({
             "text-[16px] sm:text-base", // Prevents zoom on iOS (16px minimum)
             
             // Center alignment on mobile
-            "text-center sm:text-left",
+            "text-center",
             
             // Enhanced styling
             "transition-all duration-200",
@@ -90,6 +90,9 @@ const SimpleDatePicker = ({
             "[&::-webkit-calendar-picker-indicator]:rounded",
             "[&::-webkit-calendar-picker-indicator]:p-1",
             
+            // Responsive sizing
+            "max-w-[280px] mx-auto sm:max-w-none sm:mx-0",
+            
             className
           )}
           style={{
@@ -97,11 +100,7 @@ const SimpleDatePicker = ({
             WebkitAppearance: 'none',
             MozAppearance: 'textfield',
             // Center the content
-            textAlign: 'center',
-            // Responsive text alignment
-            '@media (min-width: 640px)': {
-              textAlign: 'left'
-            }
+            textAlign: 'center'
           }}
           {...props}
         />
