@@ -18,13 +18,13 @@ import { handleLimitExceeded, checkLimitsBeforeSubmission } from '../../utils/li
 import LimitExceededModal from '../subscription/LimitExceededModal';
 import subscriptionService from '../../services/subscriptionService';
 
-const ExpenseForm = ({ 
-  onSubmit, 
+const ExpenseForm = ({
+  onSubmit,
   onCancel,
   editingExpense = null
 }) => {
   const formRef = useRef(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     category: '',
@@ -42,7 +42,7 @@ const ExpenseForm = ({
   // Form validation
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Limit exceeded modal state
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [limitModalData, setLimitModalData] = useState(null);
@@ -91,12 +91,12 @@ const ExpenseForm = ({
   // Handle input change
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     // Clear error when field is edited
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
@@ -111,7 +111,7 @@ const ExpenseForm = ({
       // Reset subcategory when category changes
       ...(name === 'category' ? { subcategory: '' } : {})
     }));
-    
+
     // Clear error when field is edited
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
@@ -121,19 +121,19 @@ const ExpenseForm = ({
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.category) {
       newErrors.category = 'Category is required';
     }
-    
+
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       newErrors.amount = 'Valid amount is required';
     }
-    
+
     if (!formData.date) {
       newErrors.date = 'Date is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -147,7 +147,7 @@ const ExpenseForm = ({
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -159,32 +159,32 @@ const ExpenseForm = ({
         subscriptionService.getUsageStatus,
         showLimitModal
       );
-      
+
       if (!canCreate) {
         return; // Limit exceeded, don't proceed
       }
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Format data for API
       const submitData = {
         ...formData,
         amount: parseFloat(formData.amount) || 0
       };
-      
+
       // Call the API directly
       const response = await createExpense(submitData);
-      
+
       if (response.success) {
         toastService.success('Expense recorded successfully!');
-        
+
         // Call onSubmit callback if provided (for Quick Actions integration)
         if (onSubmit) {
           onSubmit('expense');
         }
-        
+
         // Reset form if not editing
         if (!editingExpense) {
           resetForm();
@@ -194,7 +194,7 @@ const ExpenseForm = ({
       }
     } catch (error) {
       console.error('Error submitting expense:', error);
-      
+
       // Handle limit exceeded errors from backend
       if (error.response && error.response.data) {
         const handled = handleLimitExceeded(error.response.data, showLimitModal);
@@ -226,7 +226,7 @@ const ExpenseForm = ({
       tax_deductible: false
     });
     setErrors({});
-    
+
     if (formRef.current) {
       formRef.current.reset();
     }
@@ -442,12 +442,25 @@ const ExpenseForm = ({
               Category
               <RequiredFieldIndicator />
             </label>
-            <Select 
-              value={String(formData.category)} 
+            <Select
+              value={String(formData.category)}
               onValueChange={(value) => handleSelectChange('category', value)}
             >
               <SelectTrigger className={`form-select ${errors.category ? 'error' : ''}`}>
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder="Select a category">
+                  {formData.category
+                    ? (() => {
+                      const category = expenseCategories.find(cat => String(cat.id) === String(formData.category));
+                      console.log('[DEBUG] Expense category display value:', {
+                        categoryId: formData.category,
+                        categoryName: category?.name,
+                        category
+                      });
+                      return category?.name || `Unknown Category (${formData.category})`;
+                    })()
+                    : 'Select a category'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {expenseCategories.map((category) => (
@@ -464,13 +477,13 @@ const ExpenseForm = ({
 
           <div className="form-group">
             <label className="form-label">Subcategory</label>
-            <Select 
-              value={formData.subcategory} 
+            <Select
+              value={formData.subcategory}
               onValueChange={(value) => handleSelectChange('subcategory', value)}
               disabled={!formData.category}
             >
               <SelectTrigger className="form-select">
-                <SelectValue 
+                <SelectValue
                   placeholder={formData.category ? "Select a subcategory" : "Select category first"}
                 />
               </SelectTrigger>
@@ -546,12 +559,25 @@ const ExpenseForm = ({
 
           <div className="form-group">
             <label className="form-label">Payment Method</label>
-            <Select 
-              value={formData.payment_method} 
+            <Select
+              value={formData.payment_method}
               onValueChange={(value) => handleSelectChange('payment_method', value)}
             >
               <SelectTrigger className="form-select">
-                <SelectValue placeholder="Select payment method" />
+                <SelectValue placeholder="Select payment method">
+                  {formData.payment_method
+                    ? (() => {
+                      const paymentMethod = PAYMENT_METHOD_OPTIONS.find(method => method.value === formData.payment_method);
+                      console.log('[DEBUG] Expense payment method display value:', {
+                        paymentMethodValue: formData.payment_method,
+                        paymentMethodLabel: paymentMethod?.label,
+                        paymentMethod
+                      });
+                      return paymentMethod?.label || `Unknown Payment Method (${formData.payment_method})`;
+                    })()
+                    : 'Select payment method'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {PAYMENT_METHOD_OPTIONS.map((method) => (

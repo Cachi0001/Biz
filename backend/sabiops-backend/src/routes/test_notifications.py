@@ -8,8 +8,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 import asyncio
 
-from src.services.triggers.low_stock_trigger import create_low_stock_monitor
-from src.services.notification_service import NotificationService
+from services.triggers.low_stock_trigger import create_low_stock_monitor
+from services.notification_service import NotificationService
+
 
 logger = logging.getLogger(__name__)
 
@@ -91,17 +92,33 @@ def test_notification_create():
             )
         )
         
+        if success:
+            # Also create a few more test notifications for variety
+            run_async(
+                notification_service.send_usage_limit_warning(
+                    user_id=user_id,
+                    feature_type="invoices",
+                    current_usage=45,
+                    limit=50,
+                    percentage=90.0
+                )
+            )
+        
         return jsonify({
             "success": success,
-            "message": "Test notification created" if success else "Failed to create notification",
-            "notification_id": notification_id
+            "message": "Test notifications created" if success else "Failed to create notification",
+            "notification_id": notification_id,
+            "user_id": user_id
         }), 200 if success else 500
         
     except Exception as e:
         logger.error(f"Error creating test notification: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "traceback": traceback.format_exc()
         }), 500
 
 @test_notifications_bp.route('/check-products', methods=['GET'])

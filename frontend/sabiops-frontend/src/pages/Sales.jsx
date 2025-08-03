@@ -18,7 +18,7 @@ import { validateSaleData } from "../services/enhancedApi";
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import UsageLimitPrompt from '../components/subscription/UsageLimitPrompt';
 import StableInput from '@/components/ui/StableInput';
-import MobileDateInput from '@/components/ui/MobileDateInput';
+import SimpleDatePicker from '@/components/ui/SimpleDatePicker';
 import BackButton from '@/components/ui/BackButton';
 import DebugLogger from '../utils/debugLogger';
 import RequiredFieldIndicator from '../components/ui/RequiredFieldIndicator';
@@ -574,10 +574,18 @@ const Sales = () => {
                 <div className="space-y-2">
                   <Label className="text-center sm:text-left">Date</Label>
                   <div className="flex justify-center sm:block">
-                    <MobileDateInput
+                    <SimpleDatePicker
                       value={selectedDate}
-                      onChange={(e) => handleDateChange(e.target.value)}
+                      onChange={(e) => {
+                        console.log('[Sales] Mobile date picker changed:', {
+                          oldValue: selectedDate,
+                          newValue: e.target.value,
+                          eventType: e.type
+                        });
+                        handleDateChange(e.target.value);
+                      }}
                       className="w-full max-w-xs sm:w-full"
+                      max={new Date().toISOString().split('T')[0]} // Don't allow future dates
                     />
                   </div>
                 </div>
@@ -632,10 +640,18 @@ const Sales = () => {
                 <div className="space-y-2">
                   <Label className="text-center sm:text-left">Date</Label>
                   <div className="flex justify-center sm:block">
-                    <MobileDateInput
+                    <SimpleDatePicker
                       value={selectedDate}
-                      onChange={(e) => handleDateChange(e.target.value)}
+                      onChange={(e) => {
+                        console.log('[Sales] Desktop date picker changed:', {
+                          oldValue: selectedDate,
+                          newValue: e.target.value,
+                          eventType: e.type
+                        });
+                        handleDateChange(e.target.value);
+                      }}
                       className="w-full max-w-xs sm:w-full"
+                      max={new Date().toISOString().split('T')[0]} // Don't allow future dates
                     />
                   </div>
                 </div>
@@ -894,7 +910,14 @@ const Sales = () => {
                       }}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select customer" />
+                        <SelectValue placeholder="Select customer">
+                          {formData.customer_id && formData.customer_id !== 'walkin' 
+                            ? customers.find(c => String(c.id) === String(formData.customer_id))?.name || `Unknown Customer (${formData.customer_id})`
+                            : formData.customer_id === 'walkin' || (!formData.customer_id && formData.customer_name === 'Walk-in Customer')
+                            ? 'Walk-in Customer'
+                            : 'Select customer'
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -968,7 +991,27 @@ const Sales = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue 
                           placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-                        />
+                        >
+                          {formData.product_id && products.length > 0
+                            ? (() => {
+                                const product = products.find(p => String(p.id) === String(formData.product_id));
+                                if (product) {
+                                  console.log('[DEBUG] Product display value:', { 
+                                    productId: formData.product_id, 
+                                    productName: product.name || product.stockLabel,
+                                    product 
+                                  });
+                                  return product.stockLabel || product.name;
+                                } else {
+                                  console.warn('[DEBUG] Product not found for ID:', formData.product_id);
+                                  return `Unknown Product (${formData.product_id})`;
+                                }
+                              })()
+                            : productsLoading ? 'Loading products...' 
+                            : productsError ? productsError 
+                            : 'Select product'
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {productsLoading ? (
@@ -1108,7 +1151,20 @@ const Sales = () => {
                       onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue placeholder="Select payment method">
+                          {formData.payment_method 
+                            ? (() => {
+                                const paymentOption = PAYMENT_METHOD_OPTIONS.find(opt => opt.value === formData.payment_method);
+                                console.log('[DEBUG] Payment method display value:', { 
+                                  paymentMethod: formData.payment_method, 
+                                  paymentLabel: paymentOption?.label,
+                                  paymentOption 
+                                });
+                                return paymentOption?.label || `Unknown Payment Method (${formData.payment_method})`;
+                              })()
+                            : 'Select payment method'
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_METHOD_OPTIONS.map((option) => (

@@ -361,7 +361,24 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue />
+              <SelectValue>
+                {formData.payment_method 
+                  ? (() => {
+                      const paymentMethods = {
+                        'cash': 'Cash',
+                        'card': 'Card', 
+                        'transfer': 'Bank Transfer',
+                        'credit': 'Credit'
+                      };
+                      console.log('[DEBUG] SalesForm payment method display value:', { 
+                        paymentMethod: formData.payment_method, 
+                        paymentLabel: paymentMethods[formData.payment_method]
+                      });
+                      return paymentMethods[formData.payment_method] || `Unknown Payment Method (${formData.payment_method})`;
+                    })()
+                  : 'Select payment method'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="cash">Cash</SelectItem>

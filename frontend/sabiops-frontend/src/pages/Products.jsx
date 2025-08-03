@@ -88,27 +88,59 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await getCategories();
+      console.log('[PRODUCTS] Fetching categories...');
+      
+      // First, always use the business categories from constants as they are the source of truth
+      const businessCategories = BUSINESS_CATEGORIES.map(category => ({ id: category, name: category }));
+      setCategories(businessCategories);
+      
+      console.log('[PRODUCTS] Categories loaded from constants:', {
+        count: businessCategories.length,
+        categories: businessCategories.map(c => c.name)
+      });
 
-      // Handle standardized API response format
-      if (response && response.success && response.data) {
-        setCategories(response.data.all_categories || response.data.categories || []);
-      } else if (response && response.all_categories && Array.isArray(response.all_categories)) {
-        setCategories(response.all_categories);
-      } else if (response && response.categories && Array.isArray(response.categories)) {
-        setCategories(response.categories);
-      } else if (response && Array.isArray(response)) {
-        setCategories(response);
-      } else {
-        console.warn('[PRODUCTS] Using fallback categories');
-        // Use shared business categories constants
-        setCategories(BUSINESS_CATEGORIES.map(category => ({ id: category, name: category })));
+      // Optionally try to fetch from API for additional categories, but don't rely on it
+      try {
+        const response = await getCategories();
+        console.log('[PRODUCTS] API categories response:', response);
+
+        let apiCategories = [];
+        
+        // Handle standardized API response format
+        if (response && response.success && response.data) {
+          apiCategories = response.data.all_categories || response.data.categories || [];
+        } else if (response && response.all_categories && Array.isArray(response.all_categories)) {
+          apiCategories = response.all_categories;
+        } else if (response && response.categories && Array.isArray(response.categories)) {
+          apiCategories = response.categories;
+        } else if (response && Array.isArray(response)) {
+          apiCategories = response;
+        }
+
+        if (apiCategories.length > 0) {
+          console.log('[PRODUCTS] Additional API categories found:', apiCategories);
+          // Merge with business categories, avoiding duplicates
+          const mergedCategories = [...businessCategories];
+          apiCategories.forEach(apiCat => {
+            const categoryName = typeof apiCat === 'string' ? apiCat : apiCat.name || apiCat.id;
+            if (!businessCategories.some(bc => bc.name === categoryName)) {
+              mergedCategories.push({ id: categoryName, name: categoryName });
+            }
+          });
+          setCategories(mergedCategories);
+          console.log('[PRODUCTS] Merged categories:', mergedCategories.length);
+        }
+      } catch (apiError) {
+        console.warn('[PRODUCTS] API categories fetch failed, using constants only:', apiError.message);
+        // Keep using business categories from constants
       }
+      
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      toastService.error(getErrorMessage(error, 'Failed to load categories'));
-      // Use shared business categories constants as fallback
-      setCategories(BUSINESS_CATEGORIES.map(category => ({ id: category, name: category })));
+      console.error('[PRODUCTS] Error in fetchCategories:', error);
+      // Fallback to business categories constants
+      const fallbackCategories = BUSINESS_CATEGORIES.map(category => ({ id: category, name: category }));
+      setCategories(fallbackCategories);
+      console.log('[PRODUCTS] Using fallback categories:', fallbackCategories.length);
     }
   };
 
@@ -302,7 +334,21 @@ const Products = () => {
                 <div className="w-full">
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="h-12 text-base touch-manipulation">
-                      <SelectValue placeholder="All Categories" />
+                      <SelectValue placeholder="All Categories">
+                        {selectedCategory 
+                          ? (() => {
+                              const category = categories.find(cat => String(cat.id) === String(selectedCategory));
+                              console.log('[PRODUCTS] Category display value:', { 
+                                selectedCategory, 
+                                categoryName: category?.name,
+                                category,
+                                allCategories: categories.length
+                              });
+                              return category?.name || `Unknown Category (${selectedCategory})`;
+                            })()
+                          : 'All Categories'
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">All Categories</SelectItem>

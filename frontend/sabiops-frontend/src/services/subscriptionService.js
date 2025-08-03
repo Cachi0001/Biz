@@ -168,6 +168,125 @@ const subscriptionService = {
   },
 
   /**
+   * Get real-time subscription status with automatic day countdown
+   * @returns {Promise<Object>} The real-time subscription status data
+   */
+  getCurrentSubscription: async () => {
+    try {
+      const token = getAuthToken();
+      console.log('[SubscriptionService] Fetching real-time subscription status...');
+
+      // Check if token is null or "null" string
+      if (!token || token === 'null' || token === 'undefined') {
+        console.error('[SubscriptionService] Invalid token detected:', token);
+        throw new Error('No valid authentication token found');
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/subscription/realtime-status`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000, // 10 seconds timeout
+        }
+      );
+
+      const data = response.data.data || response.data;
+      console.log('[SubscriptionService] Real-time subscription data:', data);
+      return data;
+
+    } catch (error) {
+      console.error('[SubscriptionService] Error fetching real-time subscription:', error);
+
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          removeAuthToken();
+          toastService.error('Your session has expired. Please log in again.');
+        }
+      }
+
+      // Return free plan as fallback
+      return {
+        plan_name: 'Free Plan',
+        plan_id: 'free',
+        status: 'active',
+        days_remaining: null,
+        is_expired: false,
+        is_expiring_soon: false,
+        is_trial: false,
+        features: [
+          'Basic invoicing',
+          'Up to 10 products',
+          'Basic reporting'
+        ],
+        limits: {
+          invoices: 10,
+          products: 10,
+          customers: 25,
+          sales: 50,
+          storage_mb: 100
+        },
+        display_message: 'You\'re on the free plan. Upgrade to unlock more features.',
+        last_updated: new Date().toISOString()
+      };
+    }
+  },
+
+  /**
+   * Check if user has access to a specific feature
+   * @param {string} feature - The feature to check access for
+   * @returns {Promise<Object>} The feature access data
+   */
+  checkFeatureAccess: async (feature) => {
+    try {
+      const token = getAuthToken();
+      console.log(`[SubscriptionService] Checking ${feature} access...`);
+
+      if (!token || token === 'null' || token === 'undefined') {
+        console.error('[SubscriptionService] Invalid token detected:', token);
+        throw new Error('No valid authentication token found');
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/subscription/feature-access/${feature}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000, // 10 seconds timeout
+        }
+      );
+
+      const data = response.data.data || response.data;
+      console.log(`[SubscriptionService] Feature ${feature} access:`, data);
+      return data;
+
+    } catch (error) {
+      console.error(`[SubscriptionService] Error checking ${feature} access:`, error);
+
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          removeAuthToken();
+          toastService.error('Your session has expired. Please log in again.');
+        }
+      }
+
+      // Default to no access on error
+      return {
+        has_access: false,
+        current_usage: 0,
+        feature_limit: 0,
+        usage_percentage: 100,
+        plan_name: 'Unknown',
+        is_expired: true
+      };
+    }
+  },
+
+  /**
    * Get the current usage status for the authenticated user
    * @returns {Promise<Object>} The usage status data
    */

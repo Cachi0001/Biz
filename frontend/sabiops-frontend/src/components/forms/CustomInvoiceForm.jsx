@@ -889,7 +889,24 @@ const CustomInvoiceForm = ({
               }}
             >
               <SelectTrigger className={`form-select ${hasFieldError('currency') ? 'error' : ''}`}>
-                <SelectValue />
+                <SelectValue>
+                  {formData.currency 
+                    ? (() => {
+                        const currencies = {
+                          'NGN': 'Nigerian Naira (₦)',
+                          'USD': 'US Dollar ($)',
+                          'EUR': 'Euro (€)',
+                          'GBP': 'British Pound (£)'
+                        };
+                        console.log('[DEBUG] Invoice currency display value:', { 
+                          currency: formData.currency, 
+                          currencyLabel: currencies[formData.currency]
+                        });
+                        return currencies[formData.currency] || `Unknown Currency (${formData.currency})`;
+                      })()
+                    : 'Select currency'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>

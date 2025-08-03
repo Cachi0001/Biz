@@ -189,6 +189,10 @@ def create_app():
     # Register test routes (remove in production)
     from .routes.test_notifications import test_notifications_bp
     app.register_blueprint(test_notifications_bp, url_prefix='/api/test')
+    
+    # Register test subscription routes (remove in production)
+    from .routes.test_subscription_tracking import test_subscription_bp
+    app.register_blueprint(test_subscription_bp, url_prefix='/api/test/subscription')
 
     @app.route('/debug', methods=['GET'])
     def debug():

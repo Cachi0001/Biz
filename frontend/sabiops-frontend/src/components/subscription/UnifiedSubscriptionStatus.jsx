@@ -1,19 +1,74 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { AlertTriangle, RefreshCw, CheckCircle, Info, Crown } from 'lucide-react';
+import { AlertTriangle, RefreshCw, CheckCircle, Info, Crown, Clock, Zap } from 'lucide-react';
 import subscriptionService from '../../services/subscriptionService';
+import subscriptionMonitor from '../../services/subscriptionMonitor';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 
-const StatusCard = ({ status, plan, days_remaining, is_trial, trial_days_left }) => {
-  const isActive = status === 'active';
-  const cardClass = isActive ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200';
-  const icon = isActive ? <CheckCircle className="h-5 w-5 text-green-600 mr-2" /> : <Info className="h-5 w-5 text-yellow-600 mr-2" />;
-  const title = is_trial ? `${plan} (Trial)` : plan;
+const StatusCard = ({ status, plan, days_remaining, is_trial, trial_days_left, is_expired, warnings = [] }) => {
+  const isActive = status === 'active' || status === 'trial';
+  const isExpired = is_expired || status === 'expired';
   
-  // Use trial_days_left if available, otherwise fall back to days_remaining
+  // Determine card styling based on status and days remaining
+  let cardClass, textClass, icon, urgency;
+  
+  if (isExpired) {
+    cardClass = 'bg-red-50 border-red-200';
+    textClass = 'text-red-800';
+    icon = <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />;
+    urgency = 'expired';
+  } else if (is_trial) {
+    cardClass = 'bg-blue-50 border-blue-200';
+    textClass = 'text-blue-800';
+    icon = <Zap className="h-5 w-5 text-blue-600 mr-2" />;
+    urgency = 'trial';
+  } else if (isActive) {
+    const daysLeft = trial_days_left !== undefined ? trial_days_left : days_remaining;
+    if (daysLeft <= 3 && daysLeft > 0) {
+      cardClass = 'bg-orange-50 border-orange-200';
+      textClass = 'text-orange-800';
+      icon = <Clock className="h-5 w-5 text-orange-600 mr-2" />;
+      urgency = 'expiring';
+    } else {
+      cardClass = 'bg-green-50 border-green-200';
+      textClass = 'text-green-800';
+      icon = <CheckCircle className="h-5 w-5 text-green-600 mr-2" />;
+      urgency = 'active';
+    }
+  } else {
+    cardClass = 'bg-gray-50 border-gray-200';
+    textClass = 'text-gray-800';
+    icon = <Info className="h-5 w-5 text-gray-600 mr-2" />;
+    urgency = 'inactive';
+  }
+  
+  const title = is_trial ? `${plan} (Trial)` : plan;
   const daysLeft = trial_days_left !== undefined ? trial_days_left : days_remaining;
+  
+  // Get status message
+  const getStatusMessage = () => {
+    if (isExpired) return 'Subscription Expired';
+    if (is_trial) return 'Free Trial Active';
+    if (isActive) return 'Subscription Active';
+    return 'Subscription Inactive';
+  };
+  
+  // Get description message
+  const getDescription = () => {
+    if (isExpired) {
+      return `Your ${title} subscription has expired. Reactivate to continue using premium features.`;
+    }
+    if (is_trial) {
+      return `You're on a free trial of ${title}. ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.`;
+    }
+    if (isActive && daysLeft > 0) {
+      const urgentText = daysLeft <= 3 ? ' Renew soon!' : '';
+      return `You are on the ${title} plan. ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.${urgentText}`;
+    }
+    return `You are currently on the ${title} plan.`;
+  };
 
   return (
     <Card className={cardClass}>
@@ -21,23 +76,40 @@ const StatusCard = ({ status, plan, days_remaining, is_trial, trial_days_left })
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {icon}
-            <h3 className={`font-semibold ${isActive ? 'text-green-800' : 'text-yellow-800'}`}>
-              {isActive ? 'Subscription Active' : 'Subscription Inactive'}
+            <h3 className={`font-semibold ${textClass}`}>
+              {getStatusMessage()}
             </h3>
           </div>
-          {(is_trial || daysLeft > 0) && (
+          {(is_trial || (daysLeft > 0 && !isExpired)) && (
             <div className="flex items-center gap-1">
-              <Crown className="h-5 w-5 text-yellow-500" />
-              <span className="text-sm font-medium text-yellow-700">
-                {daysLeft} days left
+              <Crown className={`h-5 w-5 ${urgency === 'expiring' ? 'text-orange-500' : 'text-yellow-500'}`} />
+              <span className={`text-sm font-medium ${urgency === 'expiring' ? 'text-orange-700' : 'text-yellow-700'}`}>
+                {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
               </span>
             </div>
           )}
         </div>
-        <p className={`text-sm mt-1 ${isActive ? 'text-green-700' : 'text-yellow-700'}`}>
-          You are currently on the <strong>{title}</strong> plan.
-          {isActive && daysLeft !== null && daysLeft > 0 && ` You have ${daysLeft} days remaining.`}
+        
+        <p className={`text-sm mt-1 ${textClass.replace('800', '700')}`}>
+          {getDescription()}
         </p>
+        
+        {/* Show usage warnings if any */}
+        {warnings && warnings.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {warnings.slice(0, 2).map((warning, index) => (
+              <div key={index} className="flex items-center gap-2 text-xs">
+                <AlertTriangle className="h-3 w-3 text-orange-500" />
+                <span className="text-orange-700">{warning.message}</span>
+              </div>
+            ))}
+            {warnings.length > 2 && (
+              <p className="text-xs text-orange-600">
+                +{warnings.length - 2} more warning{warnings.length - 2 !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -48,33 +120,47 @@ const UnifiedSubscriptionStatus = () => {
   const [statusData, setStatusData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [realTimeStatus, setRealTimeStatus] = useState(null);
+
+  // Start real-time monitoring when component mounts
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('[UnifiedSubscriptionStatus] Starting real-time subscription monitoring');
+      subscriptionMonitor.startMonitoring();
+      
+      // Subscribe to real-time updates
+      const unsubscribe = subscriptionMonitor.addListener((status) => {
+        console.log('[UnifiedSubscriptionStatus] Received real-time status update:', status);
+        setRealTimeStatus(status);
+        setError(null); // Clear any previous errors
+      });
+      
+      return () => {
+        unsubscribe();
+        subscriptionMonitor.stopMonitoring();
+      };
+    }
+  }, [isAuthenticated]);
 
   const fetchSubscriptionStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await subscriptionService.getSubscriptionStatus();
-      const data = response.data || response;
+      // Force an update from the subscription monitor
+      const status = await subscriptionMonitor.forceUpdate();
+      if (status) {
+        setRealTimeStatus(status);
+      } else {
+        // Fallback to regular subscription service
+        const response = await subscriptionService.getSubscriptionStatus();
+        const data = response.data || response;
 
-      if (!data) {
-        throw new Error('No subscription data received from API.');
-      }
-      
-      // Handle different API response structures
-      if (!data.subscription && !data.plan && !data.status) {
-        console.warn('Unexpected subscription data structure:', data);
-        // Set default structure if data exists but doesn't match expected format
-        if (typeof data === 'object') {
-          data.subscription = data.subscription || {
-            plan: data.plan || 'free',
-            status: data.status || 'active',
-            ...data
-          };
-        } else {
-          throw new Error('Invalid subscription data structure received from API.');
+        if (!data) {
+          throw new Error('No subscription data received from API.');
         }
+        
+        setStatusData(data);
       }
-      setStatusData(data);
     } catch (err) {
       console.error('Error fetching unified subscription status:', err);
       setError(err.message || 'Failed to load subscription status. Please try again.');
@@ -83,8 +169,23 @@ const UnifiedSubscriptionStatus = () => {
     }
   }, []);
 
-  // Use AuthContext data as primary source
+  // Get subscription data with priority: real-time > AuthContext > API fallback
   const getSubscriptionData = () => {
+    // Priority 1: Real-time status from subscription monitor
+    if (realTimeStatus) {
+      return {
+        status: realTimeStatus.subscription_status || 'inactive',
+        plan: realTimeStatus.subscription_plan || 'free',
+        days_remaining: realTimeStatus.remaining_days || 0,
+        is_trial: realTimeStatus.subscription_status === 'trial',
+        trial_days_left: realTimeStatus.trial_days_left || 0,
+        is_active: realTimeStatus.is_active || false,
+        is_expired: realTimeStatus.is_expired || false,
+        warnings: realTimeStatus.warnings || []
+      };
+    }
+    
+    // Priority 2: AuthContext data
     if (user && subscription) {
       return {
         status: subscription.status || user.subscription_status || 'inactive',
@@ -92,13 +193,25 @@ const UnifiedSubscriptionStatus = () => {
         days_remaining: subscription.days_remaining || user.remaining_days || 0,
         is_trial: subscription.is_trial || user.is_trial || false,
         trial_days_left: trialDaysLeft || user.trial_days_left || 0,
-        is_active: subscription.is_active || user.is_active || false
+        is_active: subscription.is_active || user.is_active || false,
+        is_expired: subscription.is_expired || user.is_expired || false,
+        warnings: []
       };
     }
     
-    // Fallback to API data if AuthContext data is not available
-    if (statusData && statusData.subscription) {
-      return statusData.subscription;
+    // Priority 3: API fallback data
+    if (statusData) {
+      const data = statusData.subscription || statusData;
+      return {
+        status: data.status || data.subscription_status || 'inactive',
+        plan: data.plan || data.subscription_plan || 'free',
+        days_remaining: data.days_remaining || data.remaining_days || 0,
+        is_trial: data.is_trial || false,
+        trial_days_left: data.trial_days_left || 0,
+        is_active: data.is_active || false,
+        is_expired: data.is_expired || false,
+        warnings: data.warnings || []
+      };
     }
     
     return null;
@@ -106,33 +219,41 @@ const UnifiedSubscriptionStatus = () => {
 
   const subscriptionData = getSubscriptionData();
 
-  // Only fetch from API if we don't have AuthContext data
+  // Initial fetch if no data available
   useEffect(() => {
-    if (!subscriptionData && isAuthenticated) {
+    if (!subscriptionData && isAuthenticated && !loading) {
       fetchSubscriptionStatus();
     }
-  }, [fetchSubscriptionStatus, subscriptionData, isAuthenticated]);
+  }, [fetchSubscriptionStatus, subscriptionData, isAuthenticated, loading]);
 
-  // Listen for dashboard refresh events to update subscription status
+  // Listen for global subscription events
   useEffect(() => {
-    const handleDataUpdate = (event) => {
-      console.log('[UnifiedSubscriptionStatus] Data updated, refreshing subscription status...', event.detail);
+    const handleSubscriptionUpdate = (event) => {
+      console.log('[UnifiedSubscriptionStatus] Global subscription update:', event.detail);
       fetchSubscriptionStatus();
     };
 
-    // Listen for various data update events that should trigger subscription refresh
-    window.addEventListener('dataUpdated', handleDataUpdate);
-    window.addEventListener('salesUpdated', handleDataUpdate);
-    window.addEventListener('expenseUpdated', handleDataUpdate);
-    window.addEventListener('invoiceUpdated', handleDataUpdate);
-    window.addEventListener('subscriptionUpdated', handleDataUpdate);
+    const handleSubscriptionExpired = (event) => {
+      console.log('[UnifiedSubscriptionStatus] Subscription expired:', event.detail);
+      setError('Your subscription has expired. Please renew to continue using premium features.');
+    };
+
+    const handleSubscriptionExpiring = (event) => {
+      console.log('[UnifiedSubscriptionStatus] Subscription expiring:', event.detail);
+      // The real-time status will handle this automatically
+    };
+
+    // Listen for various events
+    window.addEventListener('subscriptionStatusUpdated', handleSubscriptionUpdate);
+    window.addEventListener('subscriptionExpired', handleSubscriptionExpired);
+    window.addEventListener('subscriptionExpiring', handleSubscriptionExpiring);
+    window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
 
     return () => {
-      window.removeEventListener('dataUpdated', handleDataUpdate);
-      window.removeEventListener('salesUpdated', handleDataUpdate);
-      window.removeEventListener('expenseUpdated', handleDataUpdate);
-      window.removeEventListener('invoiceUpdated', handleDataUpdate);
-      window.removeEventListener('subscriptionUpdated', handleDataUpdate);
+      window.removeEventListener('subscriptionStatusUpdated', handleSubscriptionUpdate);
+      window.removeEventListener('subscriptionExpired', handleSubscriptionExpired);
+      window.removeEventListener('subscriptionExpiring', handleSubscriptionExpiring);
+      window.removeEventListener('subscriptionUpdated', handleSubscriptionUpdate);
     };
   }, [fetchSubscriptionStatus]);
 

@@ -409,61 +409,52 @@ def check_expired_subscriptions():
 @subscription_bp.route("/unified-status", methods=["GET"])
 @jwt_required()
 def get_unified_subscription_status():
-    """Get unified subscription status - single source of truth"""
+    """Get unified subscription status - single source of truth with real-time updates"""
     try:
-        # Enhanced JWT token debugging with request headers
-        from flask import request as flask_request
-        auth_header = flask_request.headers.get('Authorization', 'No Authorization header')
-        logger.info(f"Unified-status request - Authorization header: {auth_header[:50]}..." if len(str(auth_header)) > 50 else f"Unified-status request - Authorization header: {auth_header}")
+        user_id = get_jwt_identity()
+        logger.info(f"Getting unified status for user {user_id}")
         
-        # Extract and analyze the token
-        token = None
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header[7:]  # Remove 'Bearer ' prefix
-            logger.info(f"Extracted token length: {len(token)} characters")
-            
-            # Check token segments
-            segments = token.split('.')
-            logger.info(f"Token segments: {len(segments)}")
-            
-            if len(segments) != 3:
-                logger.error(f"Invalid JWT format: expected 3 segments, got {len(segments)}")
-                return error_response(f"Invalid JWT format: {len(segments)} segments", "Malformed token", 422)
-        else:
-            logger.error(f"Invalid Authorization header format: {auth_header}")
-            return error_response("Invalid Authorization header format", "Authentication error", 422)
+        # Use the new subscription monitor for real-time status
+        from src.services.subscription_monitor import get_real_time_subscription_status
         
-        try:
-            user_id = get_jwt_identity()
-            logger.info(f"JWT token parsed successfully for unified-status. User ID: {user_id} (type: {type(user_id)})")
-        except Exception as jwt_error:
-            logger.error(f"JWT token parsing failed in unified-status: {str(jwt_error)}")
-            logger.error(f"JWT error type: {type(jwt_error).__name__}")
-            return error_response(f"JWT parsing error: {str(jwt_error)}", "Authentication error", 422)
+        status = get_real_time_subscription_status(user_id)
         
-        # Validate user_id format
-        if not user_id:
-            logger.error(f"Empty user_id from JWT token: {user_id}")
-            return error_response("Empty user ID from token", "Authentication error", 422)
-            
-        if not isinstance(user_id, str):
-            logger.error(f"Invalid user_id type: {user_id} (type: {type(user_id)})")
-            return error_response(f"Invalid user ID type: {type(user_id)}", "Authentication error", 422)
+        if status.get('error'):
+            return error_response(status['error'], "Failed to get subscription status", 500)
         
-        subscription_service = SubscriptionService()
-        
-        # Get unified status that resolves conflicts
-        status = subscription_service.get_unified_subscription_status(user_id)
-        
-        logger.info(f"Successfully retrieved unified status for user {user_id}")
+        logger.info(f"Successfully retrieved real-time unified status for user {user_id}")
         return success_response(
             data=status,
-            message="Unified subscription status retrieved successfully"
+            message="Real-time subscription status retrieved successfully"
         )
         
     except Exception as e:
         logger.error(f"Error getting unified subscription status: {str(e)}")
         return error_response(str(e), "Failed to get unified subscription status", 500)
+
+@subscription_bp.route("/enforce-access/<feature_type>", methods=["POST"])
+@jwt_required()
+def enforce_feature_access(feature_type):
+    """Enforce feature access based on current subscription and usage"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Use the subscription monitor to enforce access
+        from src.services.subscription_monitor import enforce_feature_access
+        
+        access_result = enforce_feature_access(user_id, feature_type)
+        
+        if access_result.get('error'):
+            return error_response(access_result['error'], "Failed to check feature access", 500)
+        
+        return success_response(
+            data=access_result,
+            message="Feature access check completed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error enforcing feature access: {str(e)}")
+        return error_response(str(e), "Failed to enforce feature access", 500)
 
 @subscription_bp.route("/accurate-usage", methods=["GET"])
 @jwt_required()
@@ -811,3 +802,114 @@ def get_direct_usage_status():
     except Exception as e:
         logger.error(f"Error getting usage status: {str(e)}")
         return error_response(str(e), "Failed to get usage status", 500)
+@subs
+cription_bp.route("/realtime-status", methods=["GET"])
+@jwt_required()
+def get_realtime_subscription_status():
+    """Get real-time subscription status with automatic day countdown and expiration handling"""
+    try:
+        user_id = get_jwt_identity()
+        logger.info(f"Getting real-time subscription status for user {user_id}")
+        
+        # Use the subscription service to get unified status
+        subscription_service = SubscriptionService()
+        status_data = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Convert to format expected by frontend
+        frontend_data = {
+            'plan_name': status_data['plan_config']['name'],
+            'plan_id': status_data['subscription_plan'],
+            'status': status_data['unified_status'],
+            'days_remaining': status_data['remaining_days'],
+            'is_expired': status_data['is_expired'],
+            'is_expiring_soon': status_data['remaining_days'] is not None and status_data['remaining_days'] <= 7 and status_data['remaining_days'] > 0,
+            'is_trial': status_data['is_trial'],
+            'features': list(status_data['plan_config']['features'].keys()),
+            'limits': status_data['plan_config']['features'],
+            'display_message': status_data['display_message'],
+            'subscription_end_date': status_data.get('subscription_end_date'),
+            'auto_renew': False,  # Add if needed
+            'last_updated': datetime.now().isoformat()
+        }
+        
+        logger.info(f"Real-time status retrieved for user {user_id}: {frontend_data['status']} - {frontend_data['days_remaining']} days remaining")
+        
+        return success_response(
+            data=frontend_data,
+            message="Real-time subscription status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting real-time subscription status: {str(e)}")
+        return error_response(str(e), "Failed to get subscription status", 500)
+
+@subscription_bp.route("/feature-access/<feature>", methods=["GET"])
+@jwt_required()
+def check_feature_access(feature):
+    """Check if user has access to a specific feature based on subscription and usage"""
+    try:
+        user_id = get_jwt_identity()
+        logger.info(f"Checking {feature} access for user {user_id}")
+        
+        subscription_service = SubscriptionService()
+        
+        # Get current subscription status
+        status_data = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Get current usage for the feature
+        usage_data = subscription_service.get_accurate_usage_counts(user_id)
+        
+        # Check feature access
+        plan_limits = status_data['plan_config']['features']
+        feature_limit = plan_limits.get(feature, 0)
+        
+        # Get current usage for this feature
+        current_usage = 0
+        if usage_data.get('usage_counts') and feature in usage_data['usage_counts']:
+            current_usage = usage_data['usage_counts'][feature].get('current_count', 0)
+        
+        # Calculate access
+        has_access = True
+        usage_percentage = 0
+        
+        if feature_limit > 0:
+            usage_percentage = (current_usage / feature_limit) * 100
+            has_access = current_usage < feature_limit
+        elif feature_limit == -1:
+            # Unlimited access
+            has_access = True
+            usage_percentage = 0
+        else:
+            # Feature not available in plan
+            has_access = False
+            usage_percentage = 100
+        
+        # If subscription is expired, only allow free plan limits
+        if status_data['is_expired']:
+            free_limits = subscription_service.PLAN_CONFIGS['free']['features']
+            free_limit = free_limits.get(feature, 0)
+            has_access = current_usage < free_limit
+            usage_percentage = (current_usage / free_limit) * 100 if free_limit > 0 else 100
+            feature_limit = free_limit
+        
+        access_data = {
+            'has_access': has_access,
+            'current_usage': current_usage,
+            'feature_limit': feature_limit,
+            'usage_percentage': round(usage_percentage, 2),
+            'plan_name': status_data['plan_config']['name'],
+            'is_expired': status_data['is_expired'],
+            'is_trial': status_data['is_trial'],
+            'days_remaining': status_data['remaining_days']
+        }
+        
+        logger.info(f"Feature {feature} access for user {user_id}: {has_access} ({current_usage}/{feature_limit})")
+        
+        return success_response(
+            data=access_data,
+            message=f"Feature access for {feature} checked successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error checking feature access: {str(e)}")
+        return error_response(str(e), f"Failed to check {feature} access", 500)
