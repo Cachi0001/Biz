@@ -29,6 +29,7 @@ const CustomInvoiceForm = ({
   // Enhanced form state with multiple items
   const [formData, setFormData] = useState({
     customer_id: '',
+    customer_name: '',
     issue_date: new Date().toISOString().split('T')[0],
     due_date: '',
     payment_terms: 'Net 30',
@@ -39,6 +40,7 @@ const CustomInvoiceForm = ({
     items: [{ 
       id: Date.now(), 
       product_id: '', 
+      product_name: '',
       description: 'Item 1', 
       quantity: 1, 
       unit_price: 0, 
@@ -549,18 +551,26 @@ const CustomInvoiceForm = ({
               <RequiredFieldIndicator />
             </label>
             <Select 
-              value={formData.customer_id ? String(formData.customer_id) : ''} 
-              onValueChange={(value) => {
+              value={formData.customer_name || ''} 
+              onValueChange={(selectedName) => {
                 console.log('🎯 InvoiceForm Customer Dropdown Change:', {
-                  selectedValue: value,
+                  selectedName: selectedName,
                   customer_id: formData.customer_id,
                   customersAvailable: customers.length,
-                  foundCustomer: customers.find(c => String(c.id) === value),
+                  foundCustomer: customers.find(c => c.name === selectedName),
                   allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
                 });
                 
-                const event = { target: { name: 'customer_id', value: value } };
-                handleInputChange(event);
+                const customer = customers.find(c => c.name === selectedName);
+                if (customer) {
+                  setFormData(prev => ({
+                    ...prev,
+                    customer_id: customer.id,
+                    customer_name: customer.name
+                  }));
+                  touchField('customer_id');
+                  validateSingleField('customer_id', customer.id, { ...formData, customer_id: customer.id });
+                }
               }}
             >
               <SelectTrigger className={`form-select ${hasFieldError('customer_id') ? 'error' : ''} border-2 border-dashed border-blue-300`} style={{ backgroundColor: '#f0f8ff' }}>
@@ -568,7 +578,7 @@ const CustomInvoiceForm = ({
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={String(customer.id)}>
+                  <SelectItem key={customer.id} value={customer.name}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <span>{customer.name}</span>
                       <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
@@ -688,20 +698,21 @@ const CustomInvoiceForm = ({
                     </button>
                   </div>
                   <Select
-                    value={item.product_id ? String(item.product_id) : ''}
-                    onValueChange={(value) => {
+                    value={item.product_name || ''}
+                    onValueChange={(selectedName) => {
                       console.log('🎯 InvoiceForm Product Dropdown Change:', {
                         itemIndex: index,
-                        selectedValue: value,
+                        selectedName: selectedName,
                         product_id: item.product_id,
                         productsAvailable: products.length,
-                        foundProduct: products.find(p => String(p.id) === value),
+                        foundProduct: products.find(p => p.name === selectedName),
                         allProducts: products.map(p => ({ id: p.id, name: p.name, type: typeof p.id }))
                       });
                       
-                      const product = products.find(p => String(p.id) === value);
+                      const product = products.find(p => p.name === selectedName);
                       if (product) {
-                        handleItemChange(index, 'product_id', parseInt(value));
+                        handleItemChange(index, 'product_id', product.id);
+                        handleItemChange(index, 'product_name', product.name);
                         handleItemChange(index, 'unit_price', parseFloat(product.price || product.unit_price || 0));
                         handleItemChange(index, 'description', product.name || 'Item ' + (index + 1));
                       }
@@ -736,7 +747,7 @@ const CustomInvoiceForm = ({
                           return (
                             <SelectItem 
                               key={product.id} 
-                              value={String(product.id)}
+                              value={product.name}
                               disabled={isOutOfStock}
                               className={isOutOfStock ? 'opacity-50' : ''}
                             >

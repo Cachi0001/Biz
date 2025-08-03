@@ -16,6 +16,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     customer_id: '',
     customer_name: '',
     product_id: '',
+    product_name: '',
     quantity: 1,
     unit_price: 0,
     total_amount: 0,
@@ -165,31 +166,40 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
         <div className="space-y-2">
           <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
           <Select
-            value={formData.customer_id ? String(formData.customer_id) : 'walkin'}
-            onValueChange={(value) => {
+            value={formData.customer_name || 'Walk-in Customer'}
+            onValueChange={(selectedName) => {
               console.log('🎯 SalesForm Customer Dropdown Change:', {
-                selectedValue: value,
+                selectedName: selectedName,
                 customer_id: formData.customer_id,
                 customersAvailable: customers.length,
-                foundCustomer: customers.find(c => String(c.id) === value),
                 allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
               });
               
-              const customer = customers.find(c => String(c.id) === value);
-              setFormData(prev => ({
-                ...prev,
-                customer_id: value === 'walkin' ? '' : value,
-                customer_name: customer ? customer.name : (value === 'walkin' ? 'Walk-in Customer' : '')
-              }));
+              if (selectedName === 'Walk-in Customer') {
+                setFormData(prev => ({
+                  ...prev,
+                  customer_id: '',
+                  customer_name: 'Walk-in Customer'
+                }));
+              } else {
+                const customer = customers.find(c => c.name === selectedName);
+                if (customer) {
+                  setFormData(prev => ({
+                    ...prev,
+                    customer_id: customer.id,
+                    customer_name: customer.name
+                  }));
+                }
+              }
             }}
           >
             <SelectTrigger className="h-12 text-base border-2 border-dashed border-blue-300" style={{ backgroundColor: '#f0f8ff' }}>
               <SelectValue placeholder="Select customer" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="walkin">Walk-in Customer</SelectItem>
+              <SelectItem value="Walk-in Customer">Walk-in Customer</SelectItem>
               {customers.map((customer) => (
-                <SelectItem key={customer.id} value={String(customer.id)}>
+                <SelectItem key={customer.id} value={customer.name}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <span>{customer.name}</span>
                     <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
@@ -220,21 +230,21 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             </Button>
           </div>
           <Select
-            value={formData.product_id ? String(formData.product_id) : ''}
-            onValueChange={(value) => {
+            value={formData.product_name || ''}
+            onValueChange={(selectedName) => {
               console.log('🎯 SalesForm Product Dropdown Change:', {
-                selectedValue: value,
+                selectedName: selectedName,
                 product_id: formData.product_id,
                 productsAvailable: products.length,
-                foundProduct: products.find(p => String(p.id) === value),
                 allProducts: products.map(p => ({ id: p.id, name: p.name, type: typeof p.id }))
               });
               
-              const product = products.find(p => String(p.id) === value);
+              const product = products.find(p => p.name === selectedName);
               if (product) {
                 setFormData(prev => ({
                   ...prev,
-                  product_id: value,
+                  product_id: product.id,
+                  product_name: product.name,
                   unit_price: parseFloat(product.price || product.unit_price || 0),
                   total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
                 }));
@@ -247,15 +257,15 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
             </SelectTrigger>
             <SelectContent>
               {productsLoading ? (
-                <SelectItem value="all" disabled>
+                <SelectItem value="loading" disabled>
                   Loading products...
                 </SelectItem>
               ) : productsError ? (
-                <SelectItem value="all" disabled>
+                <SelectItem value="error" disabled>
                   {productsError}
                 </SelectItem>
               ) : products.length === 0 ? (
-                <SelectItem value="all" disabled>
+                <SelectItem value="empty" disabled>
                   No products available
                 </SelectItem>
               ) : (
@@ -268,7 +278,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
                   return (
                     <SelectItem 
                       key={product.id} 
-                      value={String(product.id)}
+                      value={product.name}
                       disabled={isOutOfStock}
                       className={isOutOfStock ? 'opacity-50' : ''}
                     >
