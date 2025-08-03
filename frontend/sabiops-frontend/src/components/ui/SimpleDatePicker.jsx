@@ -90,8 +90,11 @@ const SimpleDatePicker = ({
             "[&::-webkit-calendar-picker-indicator]:rounded",
             "[&::-webkit-calendar-picker-indicator]:p-1",
             
-            // Responsive sizing
-            "max-w-[280px] mx-auto sm:max-w-none sm:mx-0",
+            // Mobile responsive sizing - smaller and centered
+            "max-w-[240px] mx-auto sm:max-w-none sm:mx-0",
+            "text-sm sm:text-base", // Smaller text on mobile
+            "h-10 sm:h-12", // Smaller height on mobile
+            "px-2 sm:px-3", // Less padding on mobile
             
             className
           )}

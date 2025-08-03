@@ -39,6 +39,7 @@ const Sales = () => {
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
+    product_id: '',
     product_name: '',
     customer_id: '',
     customer_name: '',
@@ -368,6 +369,7 @@ const Sales = () => {
       
       setShowAddDialog(false);
       setFormData({
+        product_id: '',
         product_name: '',
         customer_id: '',
         customer_name: '',
@@ -585,7 +587,7 @@ const Sales = () => {
                         });
                         handleDateChange(e.target.value);
                       }}
-                      className="w-full max-w-[280px] mx-auto"
+                      className="w-full max-w-[240px] mx-auto"
                       max={new Date().toLocaleDateString('en-CA')} // Don't allow future dates
                     />
                   </div>
@@ -956,16 +958,17 @@ const Sales = () => {
                         const product = products.find(p => p.name === selectedName);
                         if (product) {
                           const productQuantity = parseInt(product.quantity) || 0;
-                          const requestedQuantity = parseInt(formData.quantity) || 1;
+                          const requestedQuantity = formData.quantity === '' ? '' : parseInt(formData.quantity) || 1;
                           
                           // Check if requested quantity exceeds available stock
-                          if (requestedQuantity > productQuantity && productQuantity > 0) {
+                          if (requestedQuantity !== '' && requestedQuantity > productQuantity && productQuantity > 0) {
                             toastService.warning(
                               `Only ${productQuantity} units available for ${product.name}. Quantity adjusted.`
                             );
                             // Adjust quantity to available stock
                             setFormData(prev => ({
                               ...prev,
+                              product_id: product.id,
                               product_name: product.name,
                               unit_price: parseFloat(product.price || product.unit_price || 0),
                               quantity: productQuantity,
@@ -974,9 +977,11 @@ const Sales = () => {
                           } else {
                             setFormData(prev => ({
                               ...prev,
+                              product_id: product.id,
                               product_name: product.name,
                               unit_price: parseFloat(product.price || product.unit_price || 0),
-                              total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
+                              quantity: requestedQuantity,
+                              total_amount: requestedQuantity === '' ? 0 : parseFloat(product.price || product.unit_price || 0) * requestedQuantity
                             }));
                           }
                           
@@ -1056,11 +1061,23 @@ const Sales = () => {
                       id="quantity"
                       name="quantity"
                       type="number"
-                      min="1"
+                      min="0"
                       value={formData.quantity}
                       onChange={(e) => {
-                        const quantity = parseInt(e.target.value) || 1;
+                        const value = e.target.value;
                         const selectedProduct = products.find(p => p.name === formData.product_name);
+                        
+                        // Allow empty input for clearing
+                        if (value === '') {
+                          setFormData(prev => ({
+                            ...prev,
+                            quantity: '',
+                            total_amount: 0
+                          }));
+                          return;
+                        }
+
+                        const quantity = parseInt(value) || 0;
                         
                         // Only perform basic validation without showing toasts
                         if (selectedProduct) {
@@ -1110,7 +1127,7 @@ const Sales = () => {
                         setFormData(prev => ({
                           ...prev,
                           unit_price: unitPrice,
-                          total_amount: unitPrice * prev.quantity
+                          total_amount: prev.quantity === '' ? 0 : unitPrice * prev.quantity
                         }));
                       }}
                       className="h-12 text-base"
@@ -1180,7 +1197,7 @@ const Sales = () => {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || !formData.product_id}
                     className="h-12 px-6 text-base bg-green-600 hover:bg-green-700"
                   >
                     {submitting ? 'Recording...' : 'Record Sale'}
