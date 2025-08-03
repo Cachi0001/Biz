@@ -143,8 +143,7 @@ const ModernQuickActions = () => {
       );
     }
 
-    // Add View Expenses button for owners/admins
-    if (isOwner || isAdmin) {
+    if (isOwner || isAdmin || isSalesperson) {
       baseActions.push(
         {
           icon: Receipt,
@@ -169,7 +168,6 @@ const ModernQuickActions = () => {
       );
     }
 
-    // Add common actions
     baseActions.push(
       {
         icon: Settings,
@@ -283,6 +281,8 @@ const ModernQuickActions = () => {
               <SalesForm
                 onSuccess={() => handleSuccess('sale')}
                 onCancel={closeModal}
+                customers={customers}
+                products={products}
               />
             </>
           )}

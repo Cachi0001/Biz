@@ -163,7 +163,6 @@ export const downloadSalesHTML = (sales, filename) => {
     const totalAmount = sales.reduce((sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 0);
     const totalQuantity = sales.reduce((sum, sale) => sum + (parseInt(sale.quantity) || 0), 0);
     const averageSale = totalAmount / sales.length || 0;
-    
     const totalProfit = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit_from_sales || sale.profit || 0)), 0);
     
     let daysDiff = 1;
@@ -174,8 +173,7 @@ export const downloadSalesHTML = (sales, filename) => {
       daysDiff = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
     }
     
-    const dailyProfit = sales.profit_from_sales;
-    
+    const dailyProfit = totalProfit;
     const paymentMethodBreakdown = sales.reduce((acc, sale) => {
       const method = sale.payment_method || 'Unknown';
       if (!acc[method]) {

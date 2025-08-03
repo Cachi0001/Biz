@@ -35,10 +35,7 @@ const Sales = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(() => {
-    const now = new Date();
-    const offset = now.getTimezoneOffset();
-    const adjustedDate = new Date(now.getTime() - (offset * 60000));
-    return adjustedDate.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,7 +46,7 @@ const Sales = () => {
     unit_price: 0,
     total_amount: 0,
     payment_method: DEFAULT_PAYMENT_METHOD,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     salesperson_id: ''
   });
   const [salesStats, setSalesStats] = useState({
