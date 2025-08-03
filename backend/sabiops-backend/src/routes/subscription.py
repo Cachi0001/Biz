@@ -802,8 +802,8 @@ def get_direct_usage_status():
     except Exception as e:
         logger.error(f"Error getting usage status: {str(e)}")
         return error_response(str(e), "Failed to get usage status", 500)
-@subs
-cription_bp.route("/realtime-status", methods=["GET"])
+
+@subscription_bp.route("/realtime-status", methods=["GET"])
 @jwt_required()
 def get_realtime_subscription_status():
     """Get real-time subscription status with automatic day countdown and expiration handling"""
