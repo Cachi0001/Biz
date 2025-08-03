@@ -125,18 +125,14 @@ class LowStockMonitor:
             success = False
             notification_id = None
             
-            if alert_type == 'out_of_stock':
-                success, notification_id = await self.notification_service.send_out_of_stock_alert(
-                    owner_id, name, product_id
-                )
-            else:
-                success, notification_id = await self.notification_service.send_low_stock_alert(
-                    user_id=owner_id,
-                    product_name=name,
-                    current_quantity=quantity,
-                    threshold=low_stock_threshold,
-                    product_id=product_id
-                )
+            # Send low stock alert (handles both low stock and out of stock)
+            success, notification_id = await self.notification_service.send_low_stock_alert(
+                user_id=owner_id,
+                product_name=name,
+                current_quantity=quantity,
+                threshold=low_stock_threshold,
+                product_id=product_id
+            )
             
             if success:
                 # Record the notification to prevent spam

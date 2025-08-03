@@ -185,6 +185,10 @@ def create_app():
     app.register_blueprint(data_integrity_bp, url_prefix='/api/data-integrity')
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
     app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
+    
+    # Register test routes (remove in production)
+    from .routes.test_notifications import test_notifications_bp
+    app.register_blueprint(test_notifications_bp, url_prefix='/api/test')
 
     @app.route('/debug', methods=['GET'])
     def debug():
