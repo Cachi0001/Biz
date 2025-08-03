@@ -56,8 +56,23 @@ const UnifiedSubscriptionStatus = () => {
       const response = await subscriptionService.getSubscriptionStatus();
       const data = response.data || response;
 
-      if (!data || !data.subscription) {
-        throw new Error('Invalid subscription data structure received from API.');
+      if (!data) {
+        throw new Error('No subscription data received from API.');
+      }
+      
+      // Handle different API response structures
+      if (!data.subscription && !data.plan && !data.status) {
+        console.warn('Unexpected subscription data structure:', data);
+        // Set default structure if data exists but doesn't match expected format
+        if (typeof data === 'object') {
+          data.subscription = data.subscription || {
+            plan: data.plan || 'free',
+            status: data.status || 'active',
+            ...data
+          };
+        } else {
+          throw new Error('Invalid subscription data structure received from API.');
+        }
       }
       setStatusData(data);
     } catch (err) {

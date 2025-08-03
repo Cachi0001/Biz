@@ -892,7 +892,13 @@ const Sales = () => {
                       }}
                     >
                       <SelectTrigger className="h-12 text-base">
-                        <SelectValue placeholder="Select customer" />
+                        <SelectValue placeholder="Select customer">
+                          {formData.customer_id ? 
+                            (formData.customer_id === 'walkin' ? 'Walk-in Customer' : 
+                             customers.find(c => String(c.id) === String(formData.customer_id))?.name || 'Select customer') :
+                            'Walk-in Customer'
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walkin">Walk-in Customer</SelectItem>
@@ -964,7 +970,12 @@ const Sales = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue 
                           placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-                        />
+                        >
+                          {formData.product_id ? 
+                            products.find(p => String(p.id) === String(formData.product_id))?.name || 'Select product' :
+                            (productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product'))
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {productsLoading ? (
