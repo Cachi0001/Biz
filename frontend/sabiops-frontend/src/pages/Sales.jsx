@@ -42,7 +42,7 @@ const Sales = () => {
   });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formData, setFormData] = useState({
-    product_id: '',
+    product_name: '',
     customer_id: '',
     customer_name: '',
     quantity: '',
@@ -310,12 +310,16 @@ const Sales = () => {
   };
 
   const handleDateChange = (dateValue) => {
+    console.log('[Sales] Date change requested:', {
+      inputValue: dateValue,
+      currentSelectedDate: selectedDate
+    });
+    
     if (dateValue) {
-      // Handle timezone offset to ensure correct date selection
-      const selectedDateObj = new Date(dateValue + 'T00:00:00');
-      const offset = selectedDateObj.getTimezoneOffset();
-      const adjustedDate = new Date(selectedDateObj.getTime() + (offset * 60000));
-      setSelectedDate(adjustedDate.toISOString().split('T')[0]);
+      // Simply use the date value as-is without timezone adjustments
+      // The date picker already provides the correct YYYY-MM-DD format
+      setSelectedDate(dateValue);
+      console.log('[Sales] Date updated to:', dateValue);
     } else {
       setSelectedDate(dateValue);
     }
@@ -346,7 +350,7 @@ const Sales = () => {
       }
 
       // Quantity validation against available stock
-      const selectedProduct = products.find(p => p.id === formData.product_id);
+      const selectedProduct = products.find(p => p.name === formData.product_name);
       if (selectedProduct) {
         const availableQuantity = parseInt(selectedProduct.quantity) || 0;
         const requestedQuantity = parseInt(formData.quantity) || 1; // Default to 1 if empty
@@ -367,7 +371,7 @@ const Sales = () => {
       
       setShowAddDialog(false);
       setFormData({
-        product_id: '',
+        product_name: '',
         customer_id: '',
         customer_name: '',
         quantity: '',
@@ -846,7 +850,7 @@ const Sales = () => {
                                 </span>
                               </TableCell>
                               <TableCell className="px-6 py-4 text-right">
-                                <span className="font-bold text-green-600 text-lg">
+                                <span className="text-sm font-bold text-green-600">
                                   {formatNaira(sale.total_amount || 0)}
                                 </span>
                               </TableCell>
@@ -949,11 +953,10 @@ const Sales = () => {
                       </Button>
                     </div>
                     <Select
-                      value={String(formData.product_id)}
-                      onValueChange={(value) => {
-                        console.log('[DEBUG] Product selection changed:', { value, products: products.length });
-                        const product = products.find(p => String(p.id) === String(value));
-                        console.log('[DEBUG] Found product:', product);
+                      value={formData.product_name || ''}
+                      onValueChange={(selectedName) => {
+                        console.log('[DEBUG] Product selection changed:', { selectedName, products: products.length });
+                        const product = products.find(p => p.name === selectedName);
                         if (product) {
                           const productQuantity = parseInt(product.quantity) || 0;
                           const requestedQuantity = parseInt(formData.quantity) || 1;
@@ -966,7 +969,7 @@ const Sales = () => {
                             // Adjust quantity to available stock
                             setFormData(prev => ({
                               ...prev,
-                              product_id: value,
+                              product_name: product.name,
                               unit_price: parseFloat(product.price || product.unit_price || 0),
                               quantity: productQuantity,
                               total_amount: productQuantity * parseFloat(product.price || product.unit_price || 0)
@@ -974,7 +977,7 @@ const Sales = () => {
                           } else {
                             setFormData(prev => ({
                               ...prev,
-                              product_id: value,
+                              product_name: product.name,
                               unit_price: parseFloat(product.price || product.unit_price || 0),
                               total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
                             }));
@@ -991,27 +994,7 @@ const Sales = () => {
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue 
                           placeholder={productsLoading ? 'Loading products...' : (productsError ? productsError : 'Select product')}
-                        >
-                          {formData.product_id && products.length > 0
-                            ? (() => {
-                                const product = products.find(p => String(p.id) === String(formData.product_id));
-                                if (product) {
-                                  console.log('[DEBUG] Product display value:', { 
-                                    productId: formData.product_id, 
-                                    productName: product.name || product.stockLabel,
-                                    product 
-                                  });
-                                  return product.stockLabel || product.name;
-                                } else {
-                                  console.warn('[DEBUG] Product not found for ID:', formData.product_id);
-                                  return `Unknown Product (${formData.product_id})`;
-                                }
-                              })()
-                            : productsLoading ? 'Loading products...' 
-                            : productsError ? productsError 
-                            : 'Select product'
-                          }
-                        </SelectValue>
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {productsLoading ? (
@@ -1036,13 +1019,13 @@ const Sales = () => {
                           return (
                             <SelectItem 
                               key={product.id} 
-                              value={String(product.id)}
+                              value={product.name}
                               disabled={isOutOfStock}
                               className={isOutOfStock ? 'opacity-50' : ''}
                             >
                               <div className="flex justify-between items-center w-full">
                                 <span className={isOutOfStock ? 'line-through' : ''}>
-                                  {product.stockLabel || product.name}
+                                  {product.name}
                                 </span>
                                 <div className="flex items-center gap-2 ml-2">
                                   <span className="text-sm text-green-600 font-medium">
@@ -1055,14 +1038,14 @@ const Sales = () => {
                                       ? 'bg-yellow-100 text-yellow-700' 
                                       : 'bg-green-100 text-green-700'
                                   }`}>
-                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low Stock: ${quantity}` : `Qty: ${quantity}`}
+                                    {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low: ${quantity}` : `Qty: ${quantity}`}
                                   </span>
                                 </div>
                               </div>
                             </SelectItem>
                           );
-                          })
-                        )}
+                        })
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1080,7 +1063,7 @@ const Sales = () => {
                       value={formData.quantity}
                       onChange={(e) => {
                         const quantity = parseInt(e.target.value) || 1;
-                        const selectedProduct = products.find(p => p.id === formData.product_id);
+                        const selectedProduct = products.find(p => p.name === formData.product_name);
                         
                         // Only perform basic validation without showing toasts
                         if (selectedProduct) {
@@ -1135,9 +1118,9 @@ const Sales = () => {
                       }}
                       className="h-12 text-base"
                       required
-                      disabled={!!formData.product_id}
+                      disabled={!!formData.product_name}
                     />
-                    {formData.product_id && (
+                    {formData.product_name && (
                       <div className="text-xs text-gray-500 mt-1">
                         Price from selected product. Edit product to change price.
                       </div>
@@ -1262,4 +1245,3 @@ const Sales = () => {
 };
 
 export default Sales;
-
