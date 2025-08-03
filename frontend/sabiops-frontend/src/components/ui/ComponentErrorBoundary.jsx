@@ -39,7 +39,8 @@ class ComponentErrorBoundary extends React.Component {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    // Perform hard browser refresh instead of local state reset
+    window.location.reload(true);
   };
 
   render() {
@@ -79,7 +80,7 @@ class ComponentErrorBoundary extends React.Component {
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Try Again
+              Refresh Page
             </Button>
             
             {this.props.onError && (

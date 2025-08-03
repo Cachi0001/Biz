@@ -31,17 +31,14 @@ class ErrorBoundary extends React.Component {
             </p>
             <Button
               onClick={() => {
-                this.setState({ hasError: false, error: null });
-                if (this.props.onRetry) {
-                  this.props.onRetry();
-                }
+                window.location.reload(true);
               }}
               variant="outline"
               size="sm"
               className="text-red-600 border-red-300 hover:bg-red-100 mb-3"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
+              Refresh Page
             </Button>
             <Button
               onClick={() => window.open('https://wa.me/2348158025887', '_blank')}

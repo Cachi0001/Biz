@@ -43,12 +43,8 @@ class FormErrorBoundary extends React.Component {
   }
 
   handleRetry = () => {
-    this.setState(prevState => ({ 
-      hasError: false, 
-      error: null, 
-      errorInfo: null,
-      retryCount: prevState.retryCount + 1
-    }));
+    // Perform hard browser refresh instead of local state reset
+    window.location.reload(true);
   };
 
   handleReset = () => {
@@ -112,7 +108,7 @@ class FormErrorBoundary extends React.Component {
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Try Again
+              Refresh Page
             </Button>
             
             <Button 
