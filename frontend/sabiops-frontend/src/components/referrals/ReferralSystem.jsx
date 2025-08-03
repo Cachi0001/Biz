@@ -25,7 +25,7 @@ const ReferralSystem = () => {
   const fetchReferralData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/referrals/dashboard', {
+      const response = await fetch('/api/referrals/stats', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -35,35 +35,38 @@ const ReferralSystem = () => {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const data = await response.json();
-          setReferralData(data.data);
+          setReferralData(data);
         } else {
           console.warn('Referral API returned non-JSON response');
           // Set default/mock data
           setReferralData({
-            referralCode: 'REF123',
-            totalReferrals: 0,
-            totalEarnings: 0,
-            pendingEarnings: 0
+            referral_code: user?.referral_code || 'REF123',
+            total_referrals: 0,
+            total_earnings: 0,
+            pending_earnings: 0,
+            available_earnings: 0
           });
         }
       } else {
         console.warn('Referral API not available');
         // Set default/mock data
         setReferralData({
-          referralCode: 'REF123',
-          totalReferrals: 0,
-          totalEarnings: 0,
-          pendingEarnings: 0
+          referral_code: user?.referral_code || 'REF123',
+          total_referrals: 0,
+          total_earnings: 0,
+          pending_earnings: 0,
+          available_earnings: 0
         });
       }
     } catch (error) {
       console.error('Failed to fetch referral data:', error);
       // Set default/mock data on error
       setReferralData({
-        referralCode: 'REF123',
-        totalReferrals: 0,
-        totalEarnings: 0,
-        pendingEarnings: 0
+        referral_code: user?.referral_code || 'REF123',
+        total_referrals: 0,
+        total_earnings: 0,
+        pending_earnings: 0,
+        available_earnings: 0
       });
     } finally {
       setLoading(false);
@@ -72,12 +75,13 @@ const ReferralSystem = () => {
 
   const copyReferralCode = async () => {
     try {
-      await navigator.clipboard.writeText(referralData?.referral_code || '');
+      const referralLink = `https://sabiops.vercel.app/register?ref=${referralData?.referral_code || ''}`;
+      await navigator.clipboard.writeText(referralLink);
       setCopied(true);
-      toast.success('Referral code copied to clipboard!');
+      toast.success('Referral link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy referral code');
+      toast.error('Failed to copy referral link');
     }
   };
 
@@ -167,17 +171,17 @@ const ReferralSystem = () => {
       {/* Referral Code */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Your Referral Code</CardTitle>
+          <CardTitle className="text-sm font-medium">Your Referral Link</CardTitle>
           <CardDescription>
-            Share this code with others to earn commissions
+            Share this link with others to earn commissions
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
             <Input
-              value={referralData?.referral_code || 'Loading...'}
+              value={`https://sabiops.vercel.app/register?ref=${referralData?.referral_code || ''}`}
               readOnly
-              className="font-mono text-center"
+              className="font-mono text-center text-sm"
             />
             <Button
               variant="outline"

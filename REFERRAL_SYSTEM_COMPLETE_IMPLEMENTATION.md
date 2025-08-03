@@ -1,200 +1,578 @@
-# 🎯 Complete Referral System Implementation
-
-## ✅ **Referral System Fixed & Enhanced**
-
-I've implemented a complete referral tracking system that generates real referral links and tracks who referred whom. Here's what was implemented:
-
-### **🔧 Backend Fixes Applied:**
-
-#### **1. User Registration with Referral Tracking** (`src/routes/auth.py`)
-- ✅ **Generates unique referral codes** for new users (format: "SABI" + 6 random characters)
-- ✅ **Captures referral codes** during registration
-- ✅ **Links referrer and referee** in the database
-- ✅ **Tracks referral relationships** with `referred_by` field
-
-#### **2. Referral Code Verification** (`src/routes/referral.py`)
-- ✅ **New endpoint**: `/api/referral/verify/<referral_code>`
-- ✅ **Validates referral codes** before registration
-- ✅ **Returns referrer information** for display
-- ✅ **Handles invalid codes** gracefully
-
-### **🎨 Frontend Components Created:**
-
-#### **1. FixedReferralWidget.jsx** (Enhanced Referral Widget)
-- ✅ **Displays actual referral code** from user data
-- ✅ **Shows real referral link**: `https://sabiops.vercel.app/register?ref=SABI123ABC`
-- ✅ **Copy to clipboard** functionality
-- ✅ **Share button** for mobile devices
-- ✅ **Loading states** while referral code loads
-- ✅ **How it works** explanation
-
-#### **2. RegisterWithReferral.jsx** (Enhanced Registration)
-- ✅ **Extracts referral code** from URL parameters
-- ✅ **Shows referral banner** when code is detected
-- ✅ **Verifies referral code** and shows referrer name
-- ✅ **Sends referral code** to backend during registration
-- ✅ **Handles invalid referral codes** gracefully
-
-## 🚀 **How The Complete System Works:**
-
-### **Step 1: User Gets Referral Link**
-```
-User A logs into dashboard → 
-Sees referral widget with their code (e.g., "SABI55CD70") →
-Copies link: https://sabiops.vercel.app/register?ref=SABI55CD70
-```
-
-### **Step 2: Referral Link is Shared**
-```
-User A shares link with User B →
-User B clicks link →
-Registration page shows "You're invited by User A" banner
-```
-
-### **Step 3: New User Registers**
-```
-User B fills registration form →
-System automatically captures referral code from URL →
-Backend links User B to User A in database →
-Both users are now connected in referral system
-```
-
-### **Step 4: Tracking & Rewards**
-```
-System tracks:
-- Who referred whom (User A referred User B)
-- Referral statistics for each user
-- Potential for reward calculations
-```
-
-## 📋 **Implementation Steps:**
-
-### **1. Deploy Backend Changes:**
-```bash
-# Updated files:
-- src/routes/auth.py (referral code generation & tracking)
-- src/routes/referral.py (referral verification endpoint)
-```
-
-### **2. Deploy Frontend Changes:**
-```bash
-# New components created:
-- src/components/referrals/FixedReferralWidget.jsx
-- src/pages/RegisterWithReferral.jsx
-
-# Update your dashboard to use FixedReferralWidget instead of ReferralWidget
-```
-
-### **3. Update Your Routes:**
-```jsx
-// In your App.jsx or router file, add:
-import RegisterWithReferral from './pages/RegisterWithReferral';
-
-// Replace existing register route or add as alternative:
-<Route path="/register" element={<RegisterWithReferral />} />
-```
-
-### **4. Update Dashboard Referral Section:**
-```jsx
-// In your dashboard, replace ReferralWidget with:
-import FixedReferralWidget from '../components/referrals/FixedReferralWidget';
-
-// Use in dashboard:
-<FixedReferralWidget />
-```
-
-## 🧪 **Test Your Referral System:**
-
-### **Test 1: Generate Referral Link**
-```
-1. Login to dashboard ✅
-2. Go to referral section ✅
-3. Should see your actual referral code (e.g., SABI55CD70) ✅
-4. Should see full link: https://sabiops.vercel.app/register?ref=SABI55CD70 ✅
-5. Copy button should work ✅
-```
-
-### **Test 2: Use Referral Link**
-```
-1. Copy your referral link ✅
-2. Open in incognito/private browser ✅
-3. Should see "You're invited!" banner ✅
-4. Should show your name as referrer ✅
-5. Register new account ✅
-6. Check database - new user should have your ID in 'referred_by' field ✅
-```
-
-### **Test 3: Invalid Referral Code**
-```
-1. Try: https://sabiops.vercel.app/register?ref=INVALID123 ✅
-2. Should still allow registration ✅
-3. Should not show referrer banner ✅
-4. Should not break registration process ✅
-```
-
-## 📊 **Database Schema:**
-
-### **Users Table Fields:**
-```sql
-- referral_code: VARCHAR (e.g., "SABI55CD70") -- Generated for each user
-- referred_by: UUID -- ID of user who referred this user
-```
-
-### **Example Data:**
-```json
-User A: {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "referral_code": "SABI55CD70",
-  "referred_by": null
-}
-
-User B: {
-  "id": "987fcdeb-51a2-43d1-9f4e-123456789abc", 
-  "referral_code": "SABIB733A7",
-  "referred_by": "123e4567-e89b-12d3-a456-426614174000" // User A's ID
-}
-```
-
-## 🎉 **Features Implemented:**
-
-### **Real Referral Links:**
-- ✅ Actual referral codes from database
-- ✅ Working links: `https://sabiops.vercel.app/register?ref=USERCODE`
-- ✅ No more dummy "DEMO123" codes
-
-### **Complete Tracking:**
-- ✅ Who referred whom
-- ✅ Referral code validation
-- ✅ Referrer information display
-- ✅ Database relationship tracking
-
-### **User Experience:**
-- ✅ Copy/share functionality
-- ✅ Visual feedback (copied confirmation)
-- ✅ Referral banners on registration
-- ✅ Loading states and error handling
-
-### **Business Logic:**
-- ✅ Unique referral codes per user
-- ✅ Prevents self-referrals
-- ✅ Handles invalid codes gracefully
-- ✅ Ready for reward system implementation
-
-## 🚀 **Ready for Production:**
-
-Your referral system now:
-- ✅ **Generates real referral links** with actual user codes
-- ✅ **Tracks referral relationships** in the database
-- ✅ **Shows proper referral information** in the dashboard
-- ✅ **Handles the complete referral flow** from link sharing to registration
-- ✅ **Works with your deployed frontend** at sabiops.vercel.app
-
-## 📞 **Next Steps:**
-
-1. **Deploy the backend changes** (auth.py and referral.py)
-2. **Deploy the frontend components** (FixedReferralWidget and RegisterWithReferral)
-3. **Update your dashboard** to use the new FixedReferralWidget
-4. **Test the complete flow** with real referral links
-5. **Optional**: Add referral rewards/incentives system later
-
-Your referral system is now complete and production-ready! 🎯
+[
+  {
+    "id": "fe12cd83-859b-45e6-b384-da9b8b23d0fc",
+    "email": "passioncaleb25@gmail.com",
+    "phone": "calebonyemechi22@gmail.com",
+    "full_name": "Onyemechi Caleb",
+    "business_name": "Shekina",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "yearly",
+    "subscription_status": "active",
+    "trial_ends_at": null,
+    "referral_code": "SABIB733A7",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-07-31 21:51:13.869217+00",
+    "created_at": "2025-07-31 17:40:09.638675+00",
+    "updated_at": "2025-07-31 21:51:13.941522+00",
+    "password_hash": "pbkdf2:sha256:600000$PvnnoHAE1Vv5vBN8$ebcbe1853bb6834ad7db7d5370378a0517475827fc327038fbd943c2112d80b0",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-07-31 17:40:43.066+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-07-31",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-07-31 20:41:43.581683+00",
+    "subscription_end_date": "2026-07-31 20:41:43.581683+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-07-31 17:40:09.638675+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": "2025-07-31 20:41:43.581683+00",
+    "payment_reference": "SABI_YEARLY_1753994488365_9zjlsk",
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 7,
+    "upgrade_history": []
+  },
+  {
+    "id": "a1ccab99-b9d3-4f10-ba8d-085be60b7933",
+    "email": "admin@gmail.com",
+    "phone": "+2347041882799",
+    "full_name": "**CALEB KELECHI ONYEAMECHI",
+    "business_name": null,
+    "role": "Admin",
+    "owner_id": "fe12cd83-859b-45e6-b384-da9b8b23d0fc",
+    "subscription_plan": "yearly",
+    "subscription_status": "active",
+    "trial_ends_at": "2025-08-07 20:51:18.60499+00",
+    "referral_code": "SABI55CD70",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 16:56:30.140302+00",
+    "created_at": "2025-07-31 20:51:18.531206+00",
+    "updated_at": "2025-08-01 16:56:30.205191+00",
+    "password_hash": "pbkdf2:sha256:600000$08F8kkpFfnYrlcKr$1a7d66a962bf1b8a5398c2f7d1fb4e067c9c9415daba351973905e03ec4343bc",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-07-31 20:51:18.531181+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-07-31",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": null,
+    "subscription_end_date": "2026-07-31 20:41:43.581683+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-07-31 20:51:18.60499+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "866f21af-4f2b-4fac-b18f-62f943b69f09",
+    "email": "salamitijani02@gmail.com",
+    "phone": "+2349098128958",
+    "full_name": "Olayinka",
+    "business_name": "",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-09 19:02:54.686324+00",
+    "referral_code": "SABIBL2NYO",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 19:02:54.686324+00",
+    "created_at": "2025-08-02 19:02:54.686324+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$d6Beli1p20sre1MO$a76730c206dbc34a91b772fd73b2e324cd89da96bc94b3be2771878e0fca06ba",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-02 19:03:36.49+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-02",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "agbajelolahdhdhdb",
+    "subscription_start_date": "2025-08-02 19:02:54.686324+00",
+    "subscription_end_date": "2025-08-09 19:02:54.686324+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-02 19:02:54.686324+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 5,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "400dbe47-4faf-4fec-b653-a4756e1066dc",
+    "email": "admin2@gmail.com",
+    "phone": "07041882799",
+    "full_name": "Admin",
+    "business_name": null,
+    "role": "Admin",
+    "owner_id": "7a600a40-4a62-4bf7-b46b-7417843b026a",
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-08 15:33:36.580512+00",
+    "referral_code": "SABI84C1DF",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 15:33:36.580512+00",
+    "created_at": "2025-08-01 15:33:36.517784+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$NhL8W84big972GE4$4eb40492aaa9612d0f088b29251a8e32ff8214977cc2be3149be4e30efa10b5d",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 15:33:36.51776+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": null,
+    "subscription_end_date": "2025-08-08 04:39:32.942802+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 15:33:36.580512+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 3,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "2323463b-d4ec-43de-a97e-78f6e91fe82c",
+    "email": "sabiops.vercel@gmail.com00",
+    "phone": "7000000000",
+    "full_name": "CALEB KELECHI ONYEMECH",
+    "business_name": null,
+    "role": "Salesperson",
+    "owner_id": "c9e4e667-94d5-41d3-bf36-41fa09336efe",
+    "subscription_plan": "weekly",
+    "subscription_status": "active",
+    "trial_ends_at": "2025-08-09 06:34:55.658507+00",
+    "referral_code": "SABIF7B4C4",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 06:35:06.830484+00",
+    "created_at": "2025-08-02 06:34:55.42081+00",
+    "updated_at": "2025-08-02 14:59:36.360905+00",
+    "password_hash": "pbkdf2:sha256:600000$LAYIbY687JyYWwoX$8fd32af3abda4df81013c57350cd4abd182874308c129cdc7aee09c8d954c682",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-02 06:34:55.420787+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-02",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": null,
+    "subscription_end_date": "2025-08-08 15:21:47.471692+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-02 06:34:55.658507+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "c9e4e667-94d5-41d3-bf36-41fa09336efe",
+    "email": "sabiops.vercel@gmail.com",
+    "phone": "123223243567",
+    "full_name": "CALEB KELECHI ONYEMECH",
+    "business_name": "",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "monthly",
+    "subscription_status": "active",
+    "trial_ends_at": null,
+    "referral_code": "SABI580915",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 20:38:25.972414+00",
+    "created_at": "2025-08-01 04:46:04.701815+00",
+    "updated_at": "2025-08-02 20:38:26.221743+00",
+    "password_hash": "pbkdf2:sha256:600000$FUB8MKEsvYlvwFLj$96f62a65d90c4c35098ab6d00878a6521cacc5cfdbc009dfc8536e757eeabf60",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 04:46:17.913+00",
+    "current_month_invoices": 7,
+    "current_month_expenses": 5,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-08-01 04:46:04.701815+00",
+    "subscription_end_date": "2025-09-01 08:52:07.285066+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 04:46:04.701815+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "11d9e67e-1de1-45ef-9149-9888bc72eae8",
+    "email": "sabiops.vercel@gmail.com0",
+    "phone": "070418827990",
+    "full_name": "Admin",
+    "business_name": null,
+    "role": "Admin",
+    "owner_id": "c9e4e667-94d5-41d3-bf36-41fa09336efe",
+    "subscription_plan": "weekly",
+    "subscription_status": "active",
+    "trial_ends_at": "2025-08-08 17:37:29.281075+00",
+    "referral_code": "SABI54FF66",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 17:37:29.281075+00",
+    "created_at": "2025-08-01 17:37:29.020164+00",
+    "updated_at": "2025-08-02 14:59:54.64222+00",
+    "password_hash": "pbkdf2:sha256:600000$uPIzVu4N8htcEolA$7b8c818841dc324a24febf8c4a130ba2659110d3b8c2c52d1147b7b077e1f58c",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 17:37:29.020138+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": null,
+    "subscription_end_date": "2025-08-08 15:21:47.471692+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 17:37:29.281075+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 0,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "7a600a40-4a62-4bf7-b46b-7417843b026a",
+    "email": "passioncaleb5@gmail.com",
+    "phone": "+23470418827990",
+    "full_name": "**CALEB KELECHI ONYEAMECHI",
+    "business_name": "Software King",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-08 04:39:32.942802+00",
+    "referral_code": "SABI2041CA",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-01 08:11:58.844811+00",
+    "created_at": "2025-08-01 04:39:32.942802+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$lOwfTHgxqpXUJWYX$39aa204c1c0e9551c5b140e7008ff4e51d5d5f121c01ec7eb58b01394a78660c",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 04:40:02.001+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 3,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "111111",
+    "subscription_start_date": "2025-08-01 04:39:32.942802+00",
+    "subscription_end_date": "2025-08-08 04:39:32.942802+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 04:39:32.942802+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 3,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "c1a72162-1159-4bc8-b666-c44bb3b4575e",
+    "email": "akin@gmail.com",
+    "phone": "09059947055",
+    "full_name": "Akin",
+    "business_name": null,
+    "role": "Admin",
+    "owner_id": "ad641c66-0151-4739-b907-c565807cfd80",
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-09 16:10:53.65409+00",
+    "referral_code": "SABI264C1E",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 16:10:53.65409+00",
+    "created_at": "2025-08-02 16:10:53.59238+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$PxLmmKaDhm4OHPTh$4ea6a8da64a363a21ecfe20defcee8b9f750c03a60b45dc58ec2f81226ba7935",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-02 16:10:53.592355+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-02",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "qwerty",
+    "subscription_start_date": null,
+    "subscription_end_date": "2025-08-09 15:12:10.054788+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-02 16:10:53.65409+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 5,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "ad641c66-0151-4739-b907-c565807cfd80",
+    "email": "okechukwupeter10@gmail.com",
+    "phone": "+2349059947055",
+    "full_name": "Okechukwu Chukwukasi",
+    "business_name": "Steerify ",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-09 15:12:10.054788+00",
+    "referral_code": "SABIVA7ZKQ",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 18:12:54.57582+00",
+    "created_at": "2025-08-02 15:12:10.054788+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$813rT52o3cEmOa8l$660a6b59a03fc852d791abfca4fd84a8ee296230b963c87f40ca3eba5d522f6f",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-02 15:13:06.803+00",
+    "current_month_invoices": 1,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-02",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "u3498rwxjuKw4VZ",
+    "subscription_start_date": "2025-08-02 15:12:10.054788+00",
+    "subscription_end_date": "2025-08-09 15:12:10.054788+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-02 15:12:10.054788+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 5,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "c2d0287a-6318-418a-8d8d-b4b1dc0e175f",
+    "email": "tacgenesis5@gmail.com",
+    "phone": "09168976225",
+    "full_name": "Genesis Jackson",
+    "business_name": "King Genexz ",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-09 19:30:35.837315+00",
+    "referral_code": "SABI50K9NL",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-02 19:31:15.067118+00",
+    "created_at": "2025-08-02 19:30:35.837315+00",
+    "updated_at": "2025-08-03 01:00:00.017481+00",
+    "password_hash": "pbkdf2:sha256:600000$iW1AUwVVdezpTd4G$9ed43c1eb86b2788d988bd1cad53ce2fcf4eed1e584691ad04988851662342ce",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-02 19:31:07.526+00",
+    "current_month_invoices": 0,
+    "current_month_expenses": 0,
+    "usage_reset_date": "2025-08-02",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "Genesco001",
+    "subscription_start_date": "2025-08-02 19:30:35.837315+00",
+    "subscription_end_date": "2025-08-09 19:30:35.837315+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-02 19:30:35.837315+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 5,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  },
+  {
+    "id": "1b75fda6-d80d-4a6d-93c0-23492740edb0",
+    "email": "qwiksupermarket@gmail.com",
+    "phone": "08126133421",
+    "full_name": "Purity paul",
+    "business_name": "",
+    "role": "Owner",
+    "owner_id": null,
+    "subscription_plan": "weekly",
+    "subscription_status": "trial",
+    "trial_ends_at": "2025-08-08 19:36:35.895318+00",
+    "referral_code": "SABIS6I77D",
+    "referred_by": null,
+    "active": true,
+    "last_login": "2025-08-03 05:42:31.959149+00",
+    "created_at": "2025-08-01 19:36:35.895318+00",
+    "updated_at": "2025-08-03 05:42:32.202888+00",
+    "password_hash": "pbkdf2:sha256:600000$8mywXEM0ft2s26MI$fe461f2173355eff70c08b15eed59a58a03f2864427467ddc08d5b771d871af6",
+    "created_by": null,
+    "is_deactivated": false,
+    "email_confirmed": true,
+    "email_confirmed_at": "2025-08-01 19:37:14.844+00",
+    "current_month_invoices": 1,
+    "current_month_expenses": 3,
+    "usage_reset_date": "2025-08-01",
+    "dashboard_preferences": {
+      "theme": "default",
+      "currency": "NGN",
+      "date_format": "DD/MM/YYYY"
+    },
+    "business_address": "N/A",
+    "business_contact": "N/A",
+    "raw_pass": "Purity",
+    "subscription_start_date": "2025-08-01 19:36:35.895318+00",
+    "subscription_end_date": "2025-08-08 19:36:35.895318+00",
+    "subscription_period_type": "monthly",
+    "last_limit_check_date": "2025-08-01 19:36:35.895318+00",
+    "upgrade_prompts_shown": 0,
+    "last_upgrade_prompt_date": null,
+    "last_payment_date": null,
+    "payment_reference": null,
+    "trial_days_left": 3,
+    "proration_details": null,
+    "last_subscription_sync": null,
+    "subscription_conflicts_resolved": false,
+    "trial_bonus_days": 0,
+    "upgrade_history": []
+  }
+]
