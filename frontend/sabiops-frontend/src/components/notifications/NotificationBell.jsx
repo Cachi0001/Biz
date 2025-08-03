@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check, CheckCheck } from 'lucide-react';
+import { Bell, X, Check, CheckCheck, ExternalLink, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '../../lib/utils/index.js';
 import notificationService from '../../services/notificationService';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = ({ className, showText = false, asIcon = false, unreadCount: externalUnreadCount }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [highlightedNotification, setHighlightedNotification] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Subscribe to notification updates
@@ -69,9 +72,18 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'low_stock': return '📦';
-      case 'sale_completed': return '💰';
+      case 'low_stock_alert': return '📦';
+      case 'overdue_invoice': return '💸';
+      case 'usage_limit_warning': return '⚠️';
+      case 'subscription_expiry': return '⏰';
+      case 'profit_alert': return '📉';
       case 'payment_received': return '💳';
+      case 'system_update': return '🔔';
+      case 'invoice_created': return '📄';
+      case 'sale_completed': return '💰';
+      case 'team_activity': return '👥';
+      // Legacy support
+      case 'low_stock': return '📦';
       case 'trial_reminder': return '⏰';
       default: return 'ℹ️';
     }
@@ -79,11 +91,32 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
 
   const getNotificationColor = (type) => {
     switch (type) {
-      case 'low_stock': return 'border-yellow-200 bg-yellow-50';
-      case 'sale_completed': return 'border-green-200 bg-green-50';
-      case 'payment_received': return 'border-blue-200 bg-blue-50';
-      case 'trial_reminder': return 'border-orange-200 bg-orange-50';
-      default: return 'border-gray-200 bg-gray-50';
+      case 'low_stock_alert': return 'border-yellow-200 bg-yellow-50 hover:bg-yellow-100';
+      case 'overdue_invoice': return 'border-red-200 bg-red-50 hover:bg-red-100';
+      case 'usage_limit_warning': return 'border-orange-200 bg-orange-50 hover:bg-orange-100';
+      case 'subscription_expiry': return 'border-purple-200 bg-purple-50 hover:bg-purple-100';
+      case 'profit_alert': return 'border-red-200 bg-red-50 hover:bg-red-100';
+      case 'payment_received': return 'border-green-200 bg-green-50 hover:bg-green-100';
+      case 'system_update': return 'border-blue-200 bg-blue-50 hover:bg-blue-100';
+      case 'invoice_created': return 'border-gray-200 bg-gray-50 hover:bg-gray-100';
+      case 'sale_completed': return 'border-green-200 bg-green-50 hover:bg-green-100';
+      case 'team_activity': return 'border-indigo-200 bg-indigo-50 hover:bg-indigo-100';
+      // Legacy support
+      case 'low_stock': return 'border-yellow-200 bg-yellow-50 hover:bg-yellow-100';
+      case 'trial_reminder': return 'border-orange-200 bg-orange-50 hover:bg-orange-100';
+      default: return 'border-gray-200 bg-gray-50 hover:bg-gray-100';
+    }
+  };
+
+  const getPriorityIndicator = (notification) => {
+    const priority = notification.priority || notification.data?.priority || 'medium';
+    switch (priority) {
+      case 'urgent':
+        return <AlertCircle className="h-3 w-3 text-red-500 animate-pulse" />;
+      case 'high':
+        return <AlertCircle className="h-3 w-3 text-orange-500" />;
+      default:
+        return null;
     }
   };
 
@@ -187,39 +220,56 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
                       <div
                         key={notification.id}
                         className={cn(
-                          "p-3 hover:bg-gray-50 cursor-pointer transition-colors relative",
-                          !notification.read && "bg-blue-50/50",
-                          getNotificationColor(notification.type)
+                          "p-3 cursor-pointer transition-all duration-200 relative border-l-4",
+                          !notification.read && "bg-blue-50/50 border-l-blue-400",
+                          notification.read && "border-l-transparent",
+                          getNotificationColor(notification.type),
+                          highlightedNotification === notification.id && "ring-2 ring-blue-300 bg-blue-100"
                         )}
                         onClick={() => handleNotificationClick(notification)}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-lg flex-shrink-0 mt-0.5">
-                            {getNotificationIcon(notification.type)}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-lg flex-shrink-0 mt-0.5">
+                              {getNotificationIcon(notification.type)}
+                            </span>
+                            {getPriorityIndicator(notification)}
+                          </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {notification.title}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {notification.title}
+                                  </p>
+                                  {notification.navigation_url && (
+                                    <ExternalLink className="h-3 w-3 text-gray-400" />
+                                  )}
+                                </div>
                                 <p className="text-sm text-gray-600 mt-0.5">
                                   {notification.message}
                                 </p>
+                                {notification.action_required && (
+                                  <p className="text-xs text-orange-600 mt-1 font-medium">
+                                    Action required
+                                  </p>
+                                )}
                               </div>
 
-                              {!notification.read && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => handleMarkAsRead(notification.id, e)}
-                                  className="h-6 w-6 p-0 flex-shrink-0"
-                                  title="Mark as read"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {!notification.read && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => handleMarkAsRead(notification.id, e)}
+                                    className="h-6 w-6 p-0 flex-shrink-0 hover:bg-gray-200"
+                                    title="Mark as read"
+                                  >
+                                    <Check className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
 
                             <div className="flex items-center justify-between mt-2">
@@ -227,11 +277,13 @@ const NotificationBell = ({ className, showText = false, asIcon = false, unreadC
                                 {formatTimeAgo(notification.created_at)}
                               </span>
 
-                              {!notification.read && (
-                                <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                                  New
-                                </Badge>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {!notification.read && (
+                                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                    New
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

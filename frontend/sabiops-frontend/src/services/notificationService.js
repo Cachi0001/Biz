@@ -652,6 +652,28 @@ class NotificationService {
     }
   }
 
+  // Register FCM token with new backend
+  async registerFCMToken(fcmToken, deviceType = 'web', deviceInfo = {}) {
+    try {
+      const response = await post('/notifications/push/register', {
+        fcm_token: fcmToken,
+        device_type: deviceType,
+        device_info: deviceInfo
+      });
+      
+      if (response.success) {
+        this.showToast('Push notifications enabled!', 'success');
+        return true;
+      } else {
+        throw new Error(response.message || 'Failed to register FCM token');
+      }
+    } catch (error) {
+      console.error('Failed to register FCM token:', error);
+      this.showToast('Failed to enable push notifications', 'error');
+      return false;
+    }
+  }
+
   async markAsRead(notificationId) {
     try {
       await put(`/notifications/${notificationId}/read`);
@@ -702,19 +724,43 @@ class NotificationService {
 
   // Navigation helper with enhanced visual feedback
   navigateToNotification(notification) {
-    if (notification.action_url) {
+    if (notification.navigation_url || notification.action_url) {
       // Mark as read when navigating
       this.markAsRead(notification.id);
 
-      // Use enhanced navigation handler
+      // Use the navigation_url from new backend or fallback to action_url
+      const targetUrl = notification.navigation_url || notification.action_url;
+
+      // Enhanced navigation with visual effects
       const options = {
-        highlight: notification.data?.productId || notification.data?.invoiceId,
+        highlight: notification.data?.productId || notification.data?.invoiceId || notification.data?.product_id || notification.data?.invoice_id,
         filter: this.getFilterForNotificationType(notification.type),
-        params: notification.data
+        params: notification.data,
+        callback: () => {
+          // Additional callback for specific notification types
+          this.handlePostNavigationEffects(notification);
+        }
       };
 
-      navigationHandler.navigateWithFeedback(notification.action_url, options);
+      navigationHandler.navigateWithFeedback(targetUrl, options);
     }
+  }
+
+  // Handle post-navigation effects for specific notification types
+  handlePostNavigationEffects(notification) {
+    // Store notification context for the target page
+    sessionStorage.setItem('notificationContext', JSON.stringify({
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      data: notification.data,
+      timestamp: Date.now()
+    }));
+
+    // Show success toast
+    setTimeout(() => {
+      this.showToast('Navigated from notification', 'info', { duration: 2000 });
+    }, 1000);
   }
 
   // Get appropriate filter for notification type
