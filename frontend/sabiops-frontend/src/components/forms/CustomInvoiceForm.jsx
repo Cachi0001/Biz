@@ -559,7 +559,7 @@ const CustomInvoiceForm = ({
                   allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
                 });
                 
-                const event = { target: { name: 'customer_id', value } };
+                const event = { target: { name: 'customer_id', value: value } };
                 handleInputChange(event);
               }}
             >
@@ -706,7 +706,7 @@ const CustomInvoiceForm = ({
                       
                       const product = products.find(p => String(p.id) === value);
                       if (product) {
-                        handleItemChange(index, 'product_id', value);
+                        handleItemChange(index, 'product_id', parseInt(value));
                         handleItemChange(index, 'unit_price', parseFloat(product.price || product.unit_price || 0));
                         handleItemChange(index, 'description', product.name || 'Item ' + (index + 1));
                       }
