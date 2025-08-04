@@ -3,6 +3,9 @@ export const getEnvironmentConfig = () => {
   const currentUrl = window.location.href;
   const hostname = window.location.hostname;
   
+  console.log('[ENV DEBUG] Current URL:', currentUrl);
+  console.log('[ENV DEBUG] Hostname:', hostname);
+  
   // Development environment (localhost)
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return {
@@ -15,7 +18,7 @@ export const getEnvironmentConfig = () => {
     };
   }
   
-  // Dev-feature preview environment
+  // Dev-feature preview environment (frontend preview should use preview backend)
   if (currentUrl.includes('dev-feature') || currentUrl.includes('git-dev-feature')) {
     return {
       environment: 'dev-feature',
@@ -39,7 +42,7 @@ export const getEnvironmentConfig = () => {
     };
   }
   
-  // Other preview environments (like sabiops-qsuccmfjn-onyemechicaleb4-7921s-projects.vercel.app)
+  // Preview environments (any preview URL should use preview backend)
   if (currentUrl.includes('vercel.app') && currentUrl.includes('onyemechicaleb4-7921s-projects')) {
     return {
       environment: 'preview',

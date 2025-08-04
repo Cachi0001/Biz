@@ -9,10 +9,10 @@ import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CustomProductForm from '../forms/CustomProductForm';
 import ExpenseForm from '../forms/ExpenseForm';
-import CustomInvoiceForm from '../forms/CustomInvoiceForm';
-import { SalesForm } from '../forms/SalesForm';
 import PaymentForm from '../forms/PaymentForm';
-import { customerApi, productApi } from '../../services/enhancedApiClient';
+import { FormBuilder } from '../forms';
+import { customerApi, productApi, invoiceApi } from '../../services/enhancedApiClient';
+import { invoiceFields, salesFields } from '../forms/fieldConfigs';
 
 const ModernQuickActions = () => {
   const { role, isOwner, isAdmin, isSalesperson } = useAuth();
@@ -23,8 +23,8 @@ const ModernQuickActions = () => {
   const [dataLoading, setDataLoading] = useState(false);
 
   const openModal = async (type) => {
-    // Load data when opening invoice or sales modals
-    if (type === 'invoice' || type === 'sale') {
+    // Load data when opening modals that need it
+    if (type === 'invoice' || type === 'sale' || type === 'product') {
       await fetchData();
     }
     setActiveModal(type);
@@ -275,11 +275,48 @@ const ModernQuickActions = () => {
                   Create a new invoice for your customer
                 </DialogDescription>
               </DialogHeader>
-              <CustomInvoiceForm
-                customers={customers}
-                products={products}
-                onSuccess={() => handleSuccess('invoice')}
+              <FormBuilder
+                entityType="invoice"
+                mode="create"
+                onSubmit={async (data) => {
+                  try {
+                    // Transform data for API submission
+                    const invoiceData = {
+                      ...data,
+                      customer_id: parseInt(data.customer_id),
+                      product_id: parseInt(data.product_id),
+                      // Add any other necessary transformations
+                    };
+                    
+                    await invoiceApi.createInvoice(invoiceData);
+                    handleSuccess('invoice');
+                  } catch (error) {
+                    console.error('Error creating invoice:', error);
+                    // Error will be handled by toastService in the API
+                  }
+                }}
                 onCancel={closeModal}
+                customFields={invoiceFields.map(field => {
+                  if (field.name === 'customer_id') {
+                    return {
+                      ...field,
+                      options: customers.map(customer => ({
+                        value: customer.id,
+                        label: customer.name
+                      }))
+                    };
+                  }
+                  if (field.name === 'product_id') {
+                    return {
+                      ...field,
+                      options: products.map(product => ({
+                        value: product.id,
+                        label: product.name
+                      }))
+                    };
+                  }
+                  return field;
+                })}
               />
             </>
           )}
@@ -292,11 +329,48 @@ const ModernQuickActions = () => {
                   Add a new sale transaction to your records
                 </DialogDescription>
               </DialogHeader>
-              <SalesForm
-                onSuccess={() => handleSuccess('sale')}
+              <FormBuilder
+                entityType="sale"
+                mode="create"
+                onSubmit={async (data) => {
+                  try {
+                    // Transform data for API submission
+                    const saleData = {
+                      ...data,
+                      customer_id: parseInt(data.customer_id),
+                      product_id: parseInt(data.product_id),
+                      // Add any other necessary transformations
+                    };
+                    
+                    await productApi.createSale(saleData);
+                    handleSuccess('sale');
+                  } catch (error) {
+                    console.error('Error recording sale:', error);
+                    // Error will be handled by toastService in the API
+                  }
+                }}
                 onCancel={closeModal}
-                customers={customers}
-                products={products}
+                customFields={salesFields.map(field => {
+                  if (field.name === 'customer_id') {
+                    return {
+                      ...field,
+                      options: customers.map(customer => ({
+                        value: customer.id,
+                        label: customer.name
+                      }))
+                    };
+                  }
+                  if (field.name === 'product_id') {
+                    return {
+                      ...field,
+                      options: products.map(product => ({
+                        value: product.id,
+                        label: product.name
+                      }))
+                    };
+                  }
+                  return field;
+                })}
               />
             </>
           )}
