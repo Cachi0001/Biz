@@ -94,7 +94,10 @@ CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    -- Check if the table has an updated_at column before trying to update it
+    IF TG_TABLE_NAME = 'payment_methods' OR TG_TABLE_NAME = 'product_categories' OR TG_TABLE_NAME = 'sale_payments' THEN
+        NEW.updated_at = NOW();
+    END IF;
     RETURN NEW;
 END;
 $$ language 'plpgsql';
