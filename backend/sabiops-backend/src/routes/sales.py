@@ -640,6 +640,392 @@ def delete_sale(sale_id):
         logging.error(f"Error deleting sale {sale_id}: {str(e)}")
         return error_response(str(e), "Failed to delete sale", status_code=500)
 
+@sales_bp.route("/<sale_id>/update-status", methods=["PUT"])
+@jwt_required()
+def update_sale_status(sale_id):
+    """Update sale payment status with enhanced validation"""
+    try:
+        supabase = get_supabase()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or 'payment_status' not in data:
+            return jsonify({
+                "success": False,
+                "message": "Payment status is required",
+                "toast": {
+                    "type": "error",
+                    "message": "Payment status is required",
+                    "timeout": 3000
+                }
+            }), 400
+        
+        new_status = data['payment_status']
+        payment_method_id = data.get('payment_method_id')
+        
+        # Validate payment status
+        valid_statuses = ['Paid', 'Credit', 'Pending', 'Cancelled']
+        if new_status not in valid_statuses:
+            return jsonify({
+                "success": False,
+                "message": f"Invalid payment status. Must be one of: {valid_statuses}",
+                "toast": {
+                    "type": "error",
+                    "message": "Invalid payment status provided",
+                    "timeout": 3000
+                }
+            }), 400
+        
+        # Validate payment method if marking as paid
+        if new_status == 'Paid' and not payment_method_id:
+            return jsonify({
+                "success": False,
+                "message": "Payment method ID is required when marking sale as paid",
+                "toast": {
+                    "type": "error",
+                    "message": "Payment method is required for paid sales",
+                    "timeout": 3000
+                }
+            }), 400
+        
+        # Use enhanced sales service
+        from src.services.sales_service import SalesService
+        sales_service = SalesService()
+        
+        try:
+            updated_sale = sales_service.update_sale_status(sale_id, new_status, payment_method_id)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Sale status updated to {new_status}",
+                "data": {"sale": updated_sale},
+                "toast": {
+                    "type": "success",
+                    "message": f"Sale marked as {new_status.lower()}",
+                    "timeout": 3000
+                }
+            }), 200
+            
+        except ValidationError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": str(e),
+                    "timeout": 3000
+                }
+            }), 400
+        except NotFoundError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Sale not found",
+                    "timeout": 3000
+                }
+            }), 404
+        except DatabaseError as e:
+            return jsonify({
+                "success": False,
+                "message": "Database error occurred",
+                "error": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Failed to update sale status",
+                    "timeout": 3000
+                }
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"Error updating sale status {sale_id}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to update sale status",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred",
+                "timeout": 4000
+            }
+        }), 500
+
+@sales_bp.route("/<sale_id>/partial-payment", methods=["POST"])
+@jwt_required()
+def record_partial_payment(sale_id):
+    """Record a partial payment for a credit sale"""
+    try:
+        supabase = get_supabase()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['amount', 'payment_method_id']
+        for field in required_fields:
+            if not data or field not in data or not data[field]:
+                return jsonify({
+                    "success": False,
+                    "message": f"{field} is required",
+                    "toast": {
+                        "type": "error",
+                        "message": f"{field} is required",
+                        "timeout": 3000
+                    }
+                }), 400
+        
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({
+                    "success": False,
+                    "message": "Payment amount must be greater than 0",
+                    "toast": {
+                        "type": "error",
+                        "message": "Payment amount must be greater than 0",
+                        "timeout": 3000
+                    }
+                }), 400
+        except (ValueError, TypeError):
+            return jsonify({
+                "success": False,
+                "message": "Invalid payment amount format",
+                "toast": {
+                    "type": "error",
+                    "message": "Invalid payment amount provided",
+                    "timeout": 3000
+                }
+            }), 400
+        
+        # Prepare payment data
+        payment_data = {
+            'amount': amount,
+            'payment_method_id': data['payment_method_id'],
+            'user_id': user_id,
+            'description': data.get('description', f'Partial payment for sale {sale_id}'),
+            'pos_account_name': data.get('pos_account_name', ''),
+            'transaction_type': data.get('transaction_type', 'Sale'),
+            'pos_reference_number': data.get('pos_reference_number', ''),
+            'reference_number': data.get('reference_number', '')
+        }
+        
+        # Use credit sales service
+        from src.services.credit_sales_service import CreditSalesService
+        credit_service = CreditSalesService()
+        
+        try:
+            result = credit_service.record_partial_payment(sale_id, payment_data)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Partial payment of ${amount} recorded successfully",
+                "data": {
+                    "sale": result['sale'],
+                    "payment": result['payment'],
+                    "payment_summary": {
+                        "payment_amount": result['payment_amount'],
+                        "new_amount_paid": result['new_amount_paid'],
+                        "new_amount_due": result['new_amount_due'],
+                        "new_payment_status": result['new_payment_status'],
+                        "is_fully_paid": result['is_fully_paid']
+                    }
+                },
+                "toast": {
+                    "type": "success",
+                    "message": f"Payment of ${amount} recorded. Balance: ${result['new_amount_due']}",
+                    "timeout": 4000
+                }
+            }), 201
+            
+        except ValidationError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": str(e),
+                    "timeout": 3000
+                }
+            }), 400
+        except NotFoundError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Sale not found",
+                    "timeout": 3000
+                }
+            }), 404
+        except DatabaseError as e:
+            return jsonify({
+                "success": False,
+                "message": "Database error occurred",
+                "error": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Failed to record partial payment",
+                    "timeout": 3000
+                }
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"Error recording partial payment for sale {sale_id}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to record partial payment",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred",
+                "timeout": 4000
+            }
+        }), 500
+
+@sales_bp.route("/credit", methods=["GET"])
+@jwt_required()
+def get_outstanding_credit_sales():
+    """Get outstanding credit sales (accounts receivable)"""
+    try:
+        supabase = get_supabase()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        # Get pagination parameters
+        limit = min(int(request.args.get('limit', 100)), 1000)  # Max 1000 records
+        offset = int(request.args.get('offset', 0))
+        
+        # Use credit sales service
+        from src.services.credit_sales_service import CreditSalesService
+        credit_service = CreditSalesService()
+        
+        try:
+            result = credit_service.get_outstanding_credit_sales(
+                user_id=owner_id,  # Filter by owner_id for multi-user businesses
+                limit=limit,
+                offset=offset
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Outstanding credit sales retrieved successfully",
+                "data": {
+                    "outstanding_sales": result['outstanding_sales'],
+                    "summary": {
+                        "total_count": result['total_count'],
+                        "returned_count": result['returned_count'],
+                        "total_outstanding_amount": result['total_outstanding_amount'],
+                        "oldest_sale_date": result['oldest_sale_date'],
+                        "payment_status_breakdown": result['payment_status_breakdown']
+                    },
+                    "pagination": result['pagination']
+                }
+            }), 200
+            
+        except DatabaseError as e:
+            return jsonify({
+                "success": False,
+                "message": "Database error occurred",
+                "error": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Failed to retrieve credit sales",
+                    "timeout": 3000
+                }
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"Error retrieving outstanding credit sales: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to retrieve outstanding credit sales",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred",
+                "timeout": 4000
+            }
+        }), 500
+
+@sales_bp.route("/<sale_id>/payment-history", methods=["GET"])
+@jwt_required()
+def get_sale_payment_history(sale_id):
+    """Get payment history for a specific sale"""
+    try:
+        supabase = get_supabase()
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response(str(e), "Authorization error", 403)
+        
+        # Use credit sales service
+        from src.services.credit_sales_service import CreditSalesService
+        credit_service = CreditSalesService()
+        
+        try:
+            payment_history = credit_service.get_sale_payment_history(sale_id)
+            
+            return jsonify({
+                "success": True,
+                "message": "Payment history retrieved successfully",
+                "data": {
+                    "sale_id": sale_id,
+                    "payment_history": payment_history,
+                    "payment_count": len(payment_history)
+                }
+            }), 200
+            
+        except ValidationError as e:
+            return jsonify({
+                "success": False,
+                "message": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": str(e),
+                    "timeout": 3000
+                }
+            }), 400
+        except DatabaseError as e:
+            return jsonify({
+                "success": False,
+                "message": "Database error occurred",
+                "error": str(e),
+                "toast": {
+                    "type": "error",
+                    "message": "Failed to retrieve payment history",
+                    "timeout": 3000
+                }
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"Error retrieving payment history for sale {sale_id}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to retrieve payment history",
+            "error": str(e),
+            "toast": {
+                "type": "error",
+                "message": "An unexpected error occurred",
+                "timeout": 4000
+            }
+        }), 500
+
 @sales_bp.route("/reports/daily", methods=["GET"])
 @jwt_required()
 def get_daily_sales_report():

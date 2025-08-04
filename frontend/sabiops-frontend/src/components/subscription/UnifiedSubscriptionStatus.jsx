@@ -126,45 +126,55 @@ const UnifiedSubscriptionStatus = () => {
   useEffect(() => {
     if (isAuthenticated) {
       console.log('[UnifiedSubscriptionStatus] Starting real-time subscription monitoring');
-      subscriptionMonitor.startMonitoring();
       
-      // Subscribe to real-time updates
-      const unsubscribe = subscriptionMonitor.addListener((status) => {
-        console.log('[UnifiedSubscriptionStatus] Received real-time status update:', status);
-        setRealTimeStatus(status);
-        setError(null); // Clear any previous errors
-      });
+      // Initial fetch
+      fetchSubscriptionStatus();
+      
+      // Set up automatic refresh every 30 seconds for real-time day countdown
+      const refreshInterval = setInterval(() => {
+        console.log('[UnifiedSubscriptionStatus] Auto-refreshing subscription status...');
+        fetchSubscriptionStatus();
+      }, 30000); // 30 seconds
       
       return () => {
-        unsubscribe();
-        subscriptionMonitor.stopMonitoring();
+        clearInterval(refreshInterval);
       };
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchSubscriptionStatus]);
 
   const fetchSubscriptionStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Force an update from the subscription monitor
-      await subscriptionMonitor.refresh();
-      const status = subscriptionMonitor.getCurrentStatus();
-      if (status) {
-        setRealTimeStatus(status);
-      } else {
-        // Fallback to regular subscription service
-        const response = await subscriptionService.getSubscriptionStatus();
-        const data = response.data || response;
+      // Use the new real-time status endpoint for accurate day calculation
+      const response = await subscriptionService.getRealTimeStatus();
+      const data = response.data || response;
 
-        if (!data) {
-          throw new Error('No subscription data received from API.');
-        }
-        
-        setStatusData(data);
+      if (!data) {
+        throw new Error('No subscription data received from API.');
       }
+      
+      console.log('[UnifiedSubscriptionStatus] Received real-time status:', data);
+      setRealTimeStatus(data);
+      setError(null);
+      
     } catch (err) {
-      console.error('Error fetching unified subscription status:', err);
-      setError(err.message || 'Failed to load subscription status. Please try again.');
+      console.error('Error fetching real-time subscription status:', err);
+      
+      // Fallback to regular subscription service
+      try {
+        const fallbackResponse = await subscriptionService.getSubscriptionStatus();
+        const fallbackData = fallbackResponse.data || fallbackResponse;
+        
+        if (fallbackData) {
+          setStatusData(fallbackData);
+        } else {
+          throw new Error('No fallback data available');
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback also failed:', fallbackErr);
+        setError(err.message || 'Failed to load subscription status. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

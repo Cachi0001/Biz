@@ -28,23 +28,17 @@ def configure_monitoring(app: Flask):
             release=app.config.get('VERSION', '1.0.0')
         )
     
-    # Structured Logging Configuration
     configure_structured_logging(app)
     
-    # Performance Monitoring
     configure_performance_monitoring(app)
     
-    # Business Metrics Tracking
     configure_business_metrics(app)
     
-    # Health Check Endpoints
     configure_health_checks(app)
 
 
 def configure_structured_logging(app: Flask):
-    """Configure structured logging with structlog."""
     
-    # Configure structlog
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,

@@ -1,19 +1,5 @@
-| column_name              | data_type                | is_nullable | column_default           |
-| ------------------------ | ------------------------ | ----------- | ------------------------ |
-| id                       | uuid                     | NO          | uuid_generate_v4()       |
-| user_id                  | uuid                     | YES         | null                     |
-| endpoint                 | text                     | NO          | null                     |
-| keys                     | jsonb                    | NO          | null                     |
-| active                   | boolean                  | NO          | true                     |
-| created_at               | timestamp with time zone | YES         | now()                    |
-| updated_at               | timestamp with time zone | YES         | now()                    |
-| token                    | text                     | NO          | null                     |
-| device_type              | character varying        | YES         | 'web'::character varying |
-| device_info              | jsonb                    | YES         | '{}'::jsonb              |
-| fcm_token                | text                     | YES         | null                     |
-| notification_preferences | jsonb                    | YES         | '{}'::jsonb              |
-| last_used_at             | timestamp with time zone | YES         | now()                    |
+ERROR:  42P13: cannot change return type of existing function
+DETAIL:  Row type defined by OUT parameters is different.
+HINT:  Use DROP FUNCTION get_current_usage_stats(uuid) first.
 
-| total_subscriptions | active_subscriptions | with_fcm_token |
-| ------------------- | -------------------- | -------------- |
-| 0                   | 0                    | 0              |
+Step 8 error C:\Users\DELL\Saas\Biz\backend\sabiops-backend\migrations\011_simple_feature_usage_fix.sql

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { CustomerDropdown, ProductDropdown } from '../dropdowns';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
-import { FileText, Package, TrendingUp, Calculator, Settings, BarChart3, Receipt } from 'lucide-react';
+import { FileText, Package, TrendingUp, Calculator, Settings, BarChart3, Receipt, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { GradientCardWrapper } from '../ui/gradient-card-wrapper';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
@@ -10,6 +11,7 @@ import CustomProductForm from '../forms/CustomProductForm';
 import ExpenseForm from '../forms/ExpenseForm';
 import CustomInvoiceForm from '../forms/CustomInvoiceForm';
 import { SalesForm } from '../forms/SalesForm';
+import PaymentForm from '../forms/PaymentForm';
 import { customerApi, productApi } from '../../services/enhancedApiClient';
 
 const ModernQuickActions = () => {
@@ -108,6 +110,14 @@ const ModernQuickActions = () => {
         action: () => openModal('sale'),
         variant: 'primary',
         description: 'Add new sale'
+      },
+      {
+        icon: CreditCard,
+        label: 'Record Payment',
+        action: () => openModal('payment'),
+        variant: 'primary',
+        description: 'Process payment',
+        style: 'mild-green'
       }
     ];
 
@@ -191,6 +201,7 @@ const ModernQuickActions = () => {
       <div className="grid grid-cols-2 gap-3">
         {actions.slice(0, 4).map((action, index) => {
           const isMildPurple = action.style === 'mild-purple';
+          const isMildGreen = action.style === 'mild-green';
           console.log(`Action: ${action.label}, Style: ${action.style || 'none'}`); // Debug log
           return (
             <Button
@@ -198,9 +209,12 @@ const ModernQuickActions = () => {
               variant={action.variant}
               size="lg"
               onClick={action.action}
-              className={`h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal ${isMildPurple
-                ? 'bg-purple-500 hover:bg-purple-600 border-purple-600 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 border-blue-600 text-white'
+              className={`h-20 flex flex-col items-center justify-center space-y-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-center px-1 whitespace-normal ${
+                isMildPurple
+                  ? 'bg-purple-500 hover:bg-purple-600 border-purple-600 text-white'
+                  : isMildGreen
+                  ? 'bg-green-500 hover:bg-green-600 border-green-600 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 border-blue-600 text-white'
                 }`}
             >
               <span className="flex items-center justify-center w-full">
@@ -312,6 +326,21 @@ const ModernQuickActions = () => {
               </DialogHeader>
               <ExpenseForm
                 onSuccess={() => handleSuccess('expense')}
+                onCancel={closeModal}
+              />
+            </>
+          )}
+
+          {activeModal === 'payment' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Record Payment</DialogTitle>
+                <DialogDescription>
+                  Process a payment transaction with POS support
+                </DialogDescription>
+              </DialogHeader>
+              <PaymentForm
+                onSuccess={() => handleSuccess('payment')}
                 onCancel={closeModal}
               />
             </>

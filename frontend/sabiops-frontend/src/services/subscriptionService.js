@@ -168,6 +168,50 @@ const subscriptionService = {
   },
 
   /**
+   * Get real-time subscription status with accurate day calculation
+   * @returns {Promise<Object>} The real-time subscription status data
+   */
+  getRealTimeStatus: async () => {
+    try {
+      const token = getAuthToken();
+      console.log('[SubscriptionService] Fetching real-time subscription status...');
+
+      if (!token || token === 'null' || token === 'undefined') {
+        console.error('[SubscriptionService] Invalid token detected:', token);
+        throw new Error('No valid authentication token found');
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/subscription/real-time-status`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      const data = response.data.data || response.data;
+      console.log('[SubscriptionService] Real-time subscription data:', data);
+      return data;
+
+    } catch (error) {
+      console.error('[SubscriptionService] Error fetching real-time status:', error);
+
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          removeAuthToken();
+          toastService.error('Your session has expired. Please log in again.');
+        }
+        throw error.response.data || { error: 'Failed to fetch real-time status' };
+      }
+
+      throw { error: error.message || 'Failed to fetch real-time status' };
+    }
+  },
+
+  /**
    * Get real-time subscription status with automatic day countdown
    * @returns {Promise<Object>} The real-time subscription status data
    */

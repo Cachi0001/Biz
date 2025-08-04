@@ -6,10 +6,12 @@ import StableInput from '../ui/StableInput';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
 import { formatNaira } from '../../utils/formatting';
 import { toastService } from '../../services/ToastService';
-import { createSale, getCustomers, getProducts } from '../../services/api';
+import { createSale } from '../../services/api';
 import { handleLimitExceeded, checkLimitsBeforeSubmission } from '../../utils/limitHandler';
 import LimitExceededModal from '../subscription/LimitExceededModal';
 import subscriptionService from '../../services/subscriptionService';
+import { CustomerDropdown, ProductDropdown } from '../dropdowns';
+import PaymentMethodSelector from './PaymentMethodSelector';
 
 export const SalesForm = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -21,46 +23,20 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     unit_price: 0,
     total_amount: 0,
     payment_method: 'cash',
+    payment_details: {},
+    pos_account: '',
+    pos_reference: '',
+    transaction_type: 'Sale',
     notes: ''
   });
   
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [productsError, setProductsError] = useState('');
   
   // Limit exceeded modal state
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [limitModalData, setLimitModalData] = useState(null);
 
-  useEffect(() => {
-    fetchCustomers();
-    fetchProductsData();
-  }, []);
-
-  const fetchCustomers = async () => {
-    try {
-      const customersData = await getCustomers();
-      setCustomers(Array.isArray(customersData) ? customersData : customersData.customers || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  };
-
-  const fetchProductsData = async () => {
-    try {
-      setProductsLoading(true);
-      setProductsError('');
-      const productsData = await getProducts();
-      setProducts(Array.isArray(productsData) ? productsData : productsData.products || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProductsError('Failed to load products');
-    } finally {
-      setProductsLoading(false);
-    }
-  };
+  // Data fetching is now handled by the dropdown components
 
   // Show limit exceeded modal
   const showLimitModal = (limitData) => {
@@ -95,13 +71,7 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
     try {
       setLoading(true);
       
-      const selectedProduct = products.find(p => p.id === formData.product_id);
-      const availableQuantity = parseInt(selectedProduct?.quantity) || 0;
-      
-      if (formData.quantity > availableQuantity) {
-        toastService.error(`Only ${availableQuantity} units available for ${selectedProduct?.name}`);
-        return;
-      }
+      // Product validation is now handled by the ProductDropdown component
 
       const saleData = {
         customer_id: formData.customer_id || null,
@@ -165,148 +135,57 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="customer" className="text-base font-medium">Customer</Label>
-          <Select
-            value={formData.customer_name || 'Walk-in Customer'}
-            onValueChange={(selectedName) => {
-              console.log('🎯 SalesForm Customer Dropdown Change:', {
-                selectedName: selectedName,
-                customer_id: formData.customer_id,
-                customersAvailable: customers.length,
-                allCustomers: customers.map(c => ({ id: c.id, name: c.name, type: typeof c.id }))
-              });
-              
-              if (selectedName === 'Walk-in Customer') {
-                setFormData(prev => ({
-                  ...prev,
-                  customer_id: '',
-                  customer_name: 'Walk-in Customer'
-                }));
-              } else {
-                const customer = customers.find(c => c.name === selectedName);
-                if (customer) {
-                  setFormData(prev => ({
-                    ...prev,
-                    customer_id: customer.id,
-                    customer_name: customer.name
-                  }));
-                }
-              }
+          <CustomerDropdown
+            value={formData.customer_id}
+            onChange={(customer) => {
+              console.log('SalesForm Customer Dropdown Change (Reusable):', customer);
+              setFormData(prev => ({
+                ...prev,
+                customer_id: customer.id,
+                customer_name: customer.name
+              }));
             }}
-          >
-            <SelectTrigger className="h-12 text-base border-2 border-dashed border-blue-300" style={{ backgroundColor: '#f0f8ff' }}>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Walk-in Customer">Walk-in Customer</SelectItem>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <span>{customer.name}</span>
-                    <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
-                      ID: {customer.id} ({typeof customer.id})
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Select customer"
+            allowWalkIn={true}
+            debugLabel="SalesForm"
+            className="h-12 text-base"
+            onError={(error) => {
+              console.error('Customer dropdown error:', error);
+              toastService.error('Failed to load customers');
+            }}
+          />
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="product" className="text-base font-medium flex items-center gap-1">
-              Product
-              <RequiredFieldIndicator />
-            </Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={fetchProductsData}
-              disabled={productsLoading}
-              className="ml-2 px-2 py-1 text-xs h-8"
-            >
-              {productsLoading ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
-          <Select
-            value={formData.product_name || ''}
-            onValueChange={(selectedName) => {
-              console.log('🎯 SalesForm Product Dropdown Change:', {
-                selectedName: selectedName,
-                product_id: formData.product_id,
-                productsAvailable: products.length,
-                allProducts: products.map(p => ({ id: p.id, name: p.name, type: typeof p.id }))
-              });
-              
-              const product = products.find(p => p.name === selectedName);
-              if (product) {
-                setFormData(prev => ({
-                  ...prev,
-                  product_id: product.id,
-                  product_name: product.name,
-                  unit_price: parseFloat(product.price || product.unit_price || 0),
-                  total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
-                }));
-              }
+          <Label htmlFor="product" className="text-base font-medium flex items-center gap-1">
+            Product
+            <RequiredFieldIndicator />
+          </Label>
+          <ProductDropdown
+            value={formData.product_id}
+            onChange={(product) => {
+              console.log('SalesForm Product Dropdown Change (Reusable):', product);
+              setFormData(prev => ({
+                ...prev,
+                product_id: product.id,
+                product_name: product.name,
+                unit_price: parseFloat(product.price || product.unit_price || 0),
+                total_amount: parseFloat(product.price || product.unit_price || 0) * prev.quantity
+              }));
             }}
-            disabled={productsLoading || !!productsError || products.length === 0}
-          >
-            <SelectTrigger className="h-12 text-base border-2 border-dashed border-purple-300" style={{ backgroundColor: '#faf5ff' }}>
-              <SelectValue placeholder="Select product" />
-            </SelectTrigger>
-            <SelectContent>
-              {productsLoading ? (
-                <SelectItem value="loading" disabled>
-                  Loading products...
-                </SelectItem>
-              ) : productsError ? (
-                <SelectItem value="error" disabled>
-                  {productsError}
-                </SelectItem>
-              ) : products.length === 0 ? (
-                <SelectItem value="empty" disabled>
-                  No products available
-                </SelectItem>
-              ) : (
-                products.map((product) => {
-                  const quantity = parseInt(product.quantity) || 0;
-                  const lowStockThreshold = parseInt(product.low_stock_threshold) || 5;
-                  const isOutOfStock = quantity === 0;
-                  const isLowStock = quantity <= lowStockThreshold && quantity > 0;
-                  
-                  return (
-                    <SelectItem 
-                      key={product.id} 
-                      value={product.name}
-                      disabled={isOutOfStock}
-                      className={isOutOfStock ? 'opacity-50' : ''}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <span className={isOutOfStock ? 'line-through' : ''}>
-                          {product.name}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                          <span style={{ fontSize: '12px', color: '#059669', fontWeight: '500' }}>
-                            {formatNaira(product.price || product.unit_price || 0)}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            isOutOfStock 
-                              ? 'bg-red-100 text-red-700' 
-                              : isLowStock 
-                              ? 'bg-yellow-100 text-yellow-700' 
-                              : 'bg-green-100 text-green-700'
-                          }`}>
-                            {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low: ${quantity}` : `Qty: ${quantity}`}
-                          </span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })
-              )}
-            </SelectContent>
-          </Select>
+            placeholder="Select product"
+            required={true}
+            showStock={true}
+            showPrice={true}
+            showQuantityInInput={true}
+            showSearch={true}
+            debugLabel="SalesForm"
+            className="h-12 text-base"
+            onError={(error) => {
+              console.error('Product dropdown error:', error);
+              toastService.error('Failed to load products');
+            }}
+          />
         </div>
 
         <div className="space-y-2">
@@ -358,20 +237,24 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
 
         <div className="space-y-2">
           <Label htmlFor="payment_method" className="text-base font-medium">Payment Method</Label>
-          <Select
+          <PaymentMethodSelector
             value={formData.payment_method}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, payment_method: value }))}
-          >
-            <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Select payment method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cash">Cash</SelectItem>
-              <SelectItem value="card">Card</SelectItem>
-              <SelectItem value="transfer">Bank Transfer</SelectItem>
-              <SelectItem value="credit">Credit</SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={(paymentData) => {
+              console.log('SalesForm Payment Method Change (Enhanced):', paymentData);
+              setFormData(prev => ({
+                ...prev,
+                payment_method: paymentData.method,
+                payment_details: paymentData.details,
+                pos_account: paymentData.pos_account,
+                pos_reference: paymentData.pos_reference,
+                transaction_type: paymentData.transaction_type
+              }));
+            }}
+            className="h-12 text-base"
+            showPOSDetails={true}
+            showCreditOptions={true}
+            debugLabel="SalesForm"
+          />
         </div>
 
         <div className="space-y-2">
@@ -413,7 +296,6 @@ export const SalesForm = ({ onSuccess, onCancel }) => {
         </Button>
       </div>
 
-      {/* Limit Exceeded Modal */}
       <LimitExceededModal
         isOpen={limitModalOpen}
         onClose={() => setLimitModalOpen(false)}

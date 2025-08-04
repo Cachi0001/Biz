@@ -339,7 +339,341 @@ GROUP BY
 ORDER BY payment_date DESC, pm.name;
 
 -- ============================================================================
--- STEP 8: Verification queries (Run this last to check everything worked)
+-- STEP 8: Add trigger functions for auto-updating timestamps (Run this eighth)
+-- ============================================================================
+
+-- Create trigger to update updated_at timestamps (with error handling)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the table has an updated_at column before trying to update it
+    IF TG_TABLE_NAME = 'payment_methods' OR TG_TABLE_NAME = 'product_categories' OR TG_TABLE_NAME = 'sale_payments' THEN
+        NEW.updated_at = NOW();
+    END IF;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply triggers to new tables only (not to existing tables that might not have updated_at)
+CREATE TRIGGER update_payment_methods_updated_at 
+    BEFORE UPDATE ON payment_methods 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_product_categories_updated_at 
+    BEFORE UPDATE ON product_categories 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sale_payments_updated_at 
+    BEFORE UPDATE ON sale_payments 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- STEP 9: Create additional database views (Run this ninth)
+-- ============================================================================
+
+-- Create a view for credit sales tracking
+CREATE OR REPLACE VIEW v_credit_sales_summary AS
+SELECT 
+    s.id,
+    s.customer_name,
+    s.product_name,
+    s.total_amount,
+    s.amount_paid,
+    s.amount_due,
+    s.payment_status,
+    s.date as sale_date,
+    s.created_at,
+    CASE 
+        WHEN s.amount_due = 0 THEN 'Fully Paid'
+        WHEN s.amount_paid = 0 THEN 'Unpaid'
+        ELSE 'Partially Paid'
+    END as payment_summary,
+    (SELECT COUNT(*) FROM sale_payments sp WHERE sp.sale_id = s.id) as payment_count,
+    (SELECT MAX(sp.payment_date) FROM sale_payments sp WHERE sp.sale_id = s.id) as last_payment_date
+FROM sales s
+WHERE s.payment_status IN ('Credit', 'Pending', 'Partially Paid')
+   OR s.amount_due > 0
+ORDER BY s.date DESC, s.amount_due DESC;
+
+-- Create a view for POS cash flow tracking (centralized balance simulation)
+CREATE OR REPLACE VIEW v_pos_cash_flow AS
+SELECT 
+    p.pos_account_name,
+    pm.name as payment_method,
+    DATE(p.created_at) as transaction_date,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Sale', 'Deposit') THEN p.amount 
+        ELSE 0 
+    END) as money_in,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Refund', 'Withdrawal') THEN p.amount 
+        ELSE 0 
+    END) as money_out,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Sale', 'Deposit') THEN p.amount 
+        WHEN p.transaction_type IN ('Refund', 'Withdrawal') THEN -p.amount 
+        ELSE 0 
+    END) as net_flow,
+    COUNT(*) as transaction_count
+FROM payments p
+JOIN payment_methods pm ON p.payment_method_id = pm.id
+WHERE p.is_pos_transaction = TRUE 
+  AND p.pos_account_name IS NOT NULL
+GROUP BY p.pos_account_name, pm.name, DATE(p.created_at)
+ORDER BY transaction_date DESC, p.pos_account_name;
+
+-- Create a view for overall POS balance summary (simulates POS machine balance)
+CREATE OR REPLACE VIEW v_pos_balance_summary AS
+SELECT 
+    pos_account_name,
+    SUM(money_in) as total_money_in,
+    SUM(money_out) as total_money_out,
+    SUM(net_flow) as current_balance,
+    SUM(transaction_count) as total_transactions,
+    MAX(transaction_date) as last_transaction_date
+FROM v_pos_cash_flow
+GROUP BY pos_account_name
+ORDER BY current_balance DESC;
+
+-- Create a view for daily cash flow summary (all payment methods)
+CREATE OR REPLACE VIEW v_daily_cash_flow_summary AS
+SELECT 
+    DATE(p.created_at) as transaction_date,
+    pm.name as payment_method,
+    pm.type as payment_type,
+    pm.is_pos,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Sale', 'Deposit') THEN p.amount 
+        ELSE 0 
+    END) as money_in,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Refund', 'Withdrawal') THEN p.amount 
+        ELSE 0 
+    END) as money_out,
+    SUM(CASE 
+        WHEN p.transaction_type IN ('Sale', 'Deposit') THEN p.amount 
+        WHEN p.transaction_type IN ('Refund', 'Withdrawal') THEN -p.amount 
+        ELSE 0 
+    END) as net_flow,
+    COUNT(*) as transaction_count
+FROM payments p
+JOIN payment_methods pm ON p.payment_method_id = pm.id
+WHERE p.payment_method_id IS NOT NULL
+GROUP BY DATE(p.created_at), pm.name, pm.type, pm.is_pos
+ORDER BY transaction_date DESC, pm.name;
+
+-- ============================================================================
+-- STEP 10: Add table and column documentation (Run this tenth)
+-- ============================================================================
+
+-- Add comments for documentation on tables
+COMMENT ON TABLE payment_methods IS 'Standardized payment methods for consistent tracking across the application';
+COMMENT ON TABLE product_categories IS 'Product categories for sales reporting and analysis';
+COMMENT ON TABLE sale_payments IS 'Tracks partial payments made against credit sales';
+
+-- Add comments for payment_methods table columns
+COMMENT ON COLUMN payment_methods.id IS 'Unique identifier for payment method';
+COMMENT ON COLUMN payment_methods.name IS 'Display name of the payment method (e.g., Cash, POS - Card)';
+COMMENT ON COLUMN payment_methods.type IS 'Category of payment method: Cash, Digital, or Credit';
+COMMENT ON COLUMN payment_methods.is_pos IS 'Indicates if this payment method requires POS terminal processing';
+COMMENT ON COLUMN payment_methods.requires_reference IS 'Indicates if this payment method requires a reference number';
+COMMENT ON COLUMN payment_methods.description IS 'Detailed description of the payment method';
+COMMENT ON COLUMN payment_methods.is_active IS 'Indicates if this payment method is currently available for use';
+
+-- Add comments for product_categories table columns
+COMMENT ON COLUMN product_categories.id IS 'Unique identifier for product category';
+COMMENT ON COLUMN product_categories.name IS 'Name of the product category (e.g., Drinks, Food & Groceries)';
+COMMENT ON COLUMN product_categories.description IS 'Detailed description of what products belong to this category';
+COMMENT ON COLUMN product_categories.is_active IS 'Indicates if this category is currently in use';
+
+-- Add comments for sale_payments table columns
+COMMENT ON COLUMN sale_payments.id IS 'Unique identifier for partial payment record';
+COMMENT ON COLUMN sale_payments.sale_id IS 'Reference to the sale this payment is for';
+COMMENT ON COLUMN sale_payments.payment_id IS 'Optional reference to the main payment record';
+COMMENT ON COLUMN sale_payments.amount_paid IS 'Amount of this partial payment';
+COMMENT ON COLUMN sale_payments.payment_date IS 'Date when this partial payment was made';
+COMMENT ON COLUMN sale_payments.payment_method_id IS 'Payment method used for this partial payment';
+COMMENT ON COLUMN sale_payments.notes IS 'Additional notes about this partial payment';
+COMMENT ON COLUMN sale_payments.created_by IS 'User who recorded this partial payment';
+
+-- Add comments for enhanced payments table columns
+COMMENT ON COLUMN payments.payment_method_id IS 'References standardized payment method';
+COMMENT ON COLUMN payments.is_pos_transaction IS 'Flags transactions processed via POS terminal';
+COMMENT ON COLUMN payments.pos_account_name IS 'Name of POS account (e.g., Moniepoint POS, OPay POS)';
+COMMENT ON COLUMN payments.transaction_type IS 'Type of transaction: Sale, Refund, Deposit, or Withdrawal';
+COMMENT ON COLUMN payments.pos_reference_number IS 'Reference number from POS terminal for reconciliation';
+
+-- Add comments for enhanced sales table columns
+COMMENT ON COLUMN sales.payment_method_id IS 'Payment method used for this sale';
+COMMENT ON COLUMN sales.amount_paid IS 'Total amount paid towards this sale (for credit sales tracking)';
+COMMENT ON COLUMN sales.amount_due IS 'Remaining amount due for this sale (amount_paid + amount_due = total_amount)';
+COMMENT ON COLUMN sales.product_category_id IS 'References product category for reporting';
+
+-- Add comments for enhanced products table columns
+COMMENT ON COLUMN products.category_id IS 'References product category for classification and reporting';
+
+-- Add comments for views
+COMMENT ON VIEW v_payment_methods IS 'Easy lookup view for active payment methods with display formatting';
+COMMENT ON VIEW v_daily_payment_summary IS 'Daily summary of payments grouped by method and transaction type';
+COMMENT ON VIEW v_credit_sales_summary IS 'Summary of all credit sales with payment status and history';
+COMMENT ON VIEW v_pos_cash_flow IS 'Daily cash flow tracking for POS accounts showing money in/out';
+COMMENT ON VIEW v_pos_balance_summary IS 'Current balance summary for each POS account (simulates POS machine balance)';
+COMMENT ON VIEW v_daily_cash_flow_summary IS 'Daily cash flow summary for all payment methods';
+
+-- ============================================================================
+-- STEP 11: Migration logging and statistics (Run this eleventh)
+-- ============================================================================
+
+-- Create migration log table if it doesn't exist
+CREATE TABLE IF NOT EXISTS migration_log (
+    id SERIAL PRIMARY KEY,
+    migration_name VARCHAR(255) UNIQUE NOT NULL,
+    executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    description TEXT,
+    success BOOLEAN DEFAULT TRUE
+);
+
+-- Update statistics and analyze the migration results
+CREATE TEMP TABLE migration_stats AS
+SELECT 
+    'payment_methods_created' as metric,
+    COUNT(*) as count
+FROM payment_methods
+
+UNION ALL
+
+SELECT 
+    'product_categories_created' as metric,
+    COUNT(*) as count
+FROM product_categories
+
+UNION ALL
+
+SELECT 
+    'payments_migrated' as metric,
+    COUNT(*) as count
+FROM payments 
+WHERE payment_method_id IS NOT NULL
+
+UNION ALL
+
+SELECT 
+    'sales_migrated' as metric,
+    COUNT(*) as count
+FROM sales 
+WHERE payment_method_id IS NOT NULL
+
+UNION ALL
+
+SELECT 
+    'products_categorized' as metric,
+    COUNT(*) as count
+FROM products 
+WHERE category_id IS NOT NULL
+
+UNION ALL
+
+SELECT 
+    'credit_sales_initialized' as metric,
+    COUNT(*) as count
+FROM sales 
+WHERE amount_due > 0
+
+UNION ALL
+
+SELECT 
+    'sale_payments_table_ready' as metric,
+    CASE WHEN EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sale_payments') THEN 1 ELSE 0 END as count
+
+UNION ALL
+
+SELECT 
+    'pos_accounts_identified' as metric,
+    COUNT(DISTINCT pos_account_name) as count
+FROM payments 
+WHERE pos_account_name IS NOT NULL;
+
+-- Log migration results with detailed statistics
+DO $$
+DECLARE
+    stats_record RECORD;
+    log_message TEXT := 'Enhanced Payment & Sales Management Migration completed successfully. Stats: ';
+BEGIN
+    FOR stats_record IN SELECT * FROM migration_stats ORDER BY metric LOOP
+        log_message := log_message || stats_record.metric || '=' || stats_record.count || ', ';
+    END LOOP;
+    
+    -- Remove trailing comma and space
+    log_message := rtrim(log_message, ', ');
+    
+    INSERT INTO migration_log (migration_name, executed_at, description, success) VALUES
+    ('010_enhanced_payment_sales_complete', NOW(), log_message, TRUE)
+    ON CONFLICT (migration_name) DO UPDATE SET 
+        executed_at = NOW(),
+        description = EXCLUDED.description,
+        success = EXCLUDED.success;
+END $$;
+
+-- Verify data integrity after migration
+DO $$
+DECLARE
+    integrity_issues INTEGER := 0;
+    issue_message TEXT := '';
+    warning_message TEXT := '';
+BEGIN
+    -- Check for payments without payment_method_id
+    SELECT COUNT(*) INTO integrity_issues FROM payments WHERE payment_method_id IS NULL;
+    IF integrity_issues > 0 THEN
+        issue_message := issue_message || 'Payments without payment_method_id: ' || integrity_issues || '; ';
+    END IF;
+    
+    -- Check for sales with amount imbalance
+    SELECT COUNT(*) INTO integrity_issues 
+    FROM sales 
+    WHERE ABS((amount_paid + amount_due) - total_amount) > 0.01;
+    IF integrity_issues > 0 THEN
+        issue_message := issue_message || 'Sales with amount imbalance: ' || integrity_issues || '; ';
+    END IF;
+    
+    -- Check for sales without payment_method_id
+    SELECT COUNT(*) INTO integrity_issues FROM sales WHERE payment_method_id IS NULL;
+    IF integrity_issues > 0 THEN
+        warning_message := warning_message || 'Sales without payment_method_id: ' || integrity_issues || '; ';
+    END IF;
+    
+    -- Check for products without categories
+    SELECT COUNT(*) INTO integrity_issues FROM products WHERE category_id IS NULL;
+    IF integrity_issues > 0 THEN
+        warning_message := warning_message || 'Products without category: ' || integrity_issues || '; ';
+    END IF;
+    
+    -- Log any integrity issues
+    IF LENGTH(issue_message) > 0 THEN
+        RAISE WARNING 'Data integrity issues found: %', issue_message;
+        INSERT INTO migration_log (migration_name, executed_at, description, success) VALUES
+        ('010_data_integrity_check', NOW(), 'ISSUES FOUND: ' || issue_message, FALSE);
+    ELSIF LENGTH(warning_message) > 0 THEN
+        RAISE NOTICE 'Minor data warnings: %', warning_message;
+        INSERT INTO migration_log (migration_name, executed_at, description, success) VALUES
+        ('010_data_integrity_check', NOW(), 'WARNINGS: ' || warning_message, TRUE);
+    ELSE
+        INSERT INTO migration_log (migration_name, executed_at, description, success) VALUES
+        ('010_data_integrity_check', NOW(), 'All data integrity checks passed successfully', TRUE);
+    END IF;
+END $$;
+
+-- Display migration statistics
+SELECT 
+    '=== MIGRATION STATISTICS ===' as info,
+    '' as value
+UNION ALL
+SELECT metric, count::text as value FROM migration_stats ORDER BY metric;
+
+-- Clean up temporary tables
+DROP TABLE IF EXISTS migration_stats;
+
+-- ============================================================================
+-- STEP 12: Final verification queries (Run this last to check everything worked)
 -- ============================================================================
 
 -- Check that payment methods were created

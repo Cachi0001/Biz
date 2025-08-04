@@ -414,18 +414,13 @@ def get_unified_subscription_status():
         user_id = get_jwt_identity()
         logger.info(f"Getting unified status for user {user_id}")
         
-        # Use the new subscription monitor for real-time status
-        from src.services.subscription_monitor import get_real_time_subscription_status
+        subscription_service = SubscriptionService()
+        status = subscription_service.get_unified_subscription_status(user_id)
         
-        status = get_real_time_subscription_status(user_id)
-        
-        if status.get('error'):
-            return error_response(status['error'], "Failed to get subscription status", 500)
-        
-        logger.info(f"Successfully retrieved real-time unified status for user {user_id}")
+        logger.info(f"Successfully retrieved unified status for user {user_id}")
         return success_response(
             data=status,
-            message="Real-time subscription status retrieved successfully"
+            message="Unified subscription status retrieved successfully"
         )
         
     except Exception as e:
@@ -913,3 +908,108 @@ def check_feature_access(feature):
     except Exception as e:
         logger.error(f"Error checking feature access: {str(e)}")
         return error_response(str(e), f"Failed to check {feature} access", 500)
+@
+subscription_bp.route("/check-expiration", methods=["POST"])
+@jwt_required()
+def check_expiration():
+    """Manual expiration check for a user"""
+    try:
+        user_id = get_jwt_identity()
+        
+        from src.services.subscription_expiration_monitor import SubscriptionExpirationMonitor
+        expiration_monitor = SubscriptionExpirationMonitor()
+        
+        status = expiration_monitor.check_subscription_status(user_id)
+        
+        return success_response(
+            data=status,
+            message="Expiration check completed successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error checking expiration for user {user_id}: {str(e)}")
+        return error_response(str(e), "Failed to check expiration", 500)
+
+@subscription_bp.route("/usage-enforcement/<feature_type>", methods=["POST"])
+@jwt_required()
+def check_usage_enforcement(feature_type):
+    """Check if user can create a new record of specified feature type"""
+    try:
+        user_id = get_jwt_identity()
+        
+        from src.services.usage_limit_enforcer import UsageLimitEnforcer
+        enforcer = UsageLimitEnforcer()
+        
+        access_result = enforcer.check_feature_access(user_id, feature_type)
+        
+        return success_response(
+            data=access_result,
+            message="Usage enforcement check completed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error checking usage enforcement: {str(e)}")
+        return error_response(str(e), "Failed to check usage enforcement", 500)
+
+@subscription_bp.route("/real-time-status", methods=["GET"])
+@jwt_required()
+def get_real_time_status():
+    """Get real-time subscription status with accurate day calculation"""
+    try:
+        user_id = get_jwt_identity()
+        
+        subscription_service = SubscriptionService()
+        status = subscription_service.get_unified_subscription_status(user_id)
+        
+        # Add real-time calculations
+        from src.services.real_time_day_calculator import RealTimeDayCalculator
+        day_calculator = RealTimeDayCalculator()
+        
+        if status.get('subscription_end_date'):
+            # Add formatted time remaining
+            time_remaining = day_calculator.format_time_remaining(status['subscription_end_date'])
+            status['time_remaining'] = time_remaining
+            
+            # Add expiration warnings
+            if status.get('remaining_days', 0) >= 0:
+                warnings = day_calculator.get_expiration_warnings(status['remaining_days'])
+                status['warnings'] = warnings
+        
+        return success_response(
+            data=status,
+            message="Real-time subscription status retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting real-time status: {str(e)}")
+        return error_response(str(e), "Failed to get real-time status", 500)
+
+@subscription_bp.route("/force-downgrade", methods=["POST"])
+@jwt_required()
+def force_downgrade():
+    """Force downgrade a user (admin only)"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        target_user_id = data.get('target_user_id', user_id)
+        reason = data.get('reason', 'Manual downgrade')
+        
+        # Add admin check here if needed
+        # For now, users can only downgrade themselves
+        if target_user_id != user_id:
+            return error_response("Unauthorized", "Cannot downgrade other users", 403)
+        
+        from src.services.auto_downgrade_service import AutoDowngradeService
+        downgrade_service = AutoDowngradeService()
+        
+        result = downgrade_service.force_downgrade_user(target_user_id, reason)
+        
+        return success_response(
+            data=result,
+            message="Force downgrade completed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in force downgrade: {str(e)}")
+        return error_response(str(e), "Failed to force downgrade", 500)

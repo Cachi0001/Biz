@@ -10,6 +10,9 @@ from typing import Dict, Optional, Tuple, Any
 import logging
 from flask import current_app
 
+# Import the new Real-time Day Calculator
+from .real_time_day_calculator import RealTimeDayCalculator
+
 logger = logging.getLogger(__name__)
 
 class SubscriptionService:
@@ -80,6 +83,7 @@ class SubscriptionService:
     def __init__(self):
         self.supabase = current_app.config.get('SUPABASE')
         self.paystack_secret = os.getenv('PAYSTACK_SECRET_KEY')
+        self.day_calculator = RealTimeDayCalculator()
         
     def get_unified_subscription_status(self, user_id: str) -> Dict[str, Any]:
         """Get single source of truth for subscription status - resolves conflicts"""
@@ -130,6 +134,9 @@ class SubscriptionService:
             # Get plan configuration
             plan_config = self.PLAN_CONFIGS.get(subscription_plan, self.PLAN_CONFIGS['free'])
             
+            # Get expiration warnings using the day calculator
+            warnings = self.day_calculator.get_expiration_warnings(remaining_days) if remaining_days >= 0 else []
+            
             return {
                 'user_id': user_id,
                 'subscription_plan': subscription_plan,
@@ -144,6 +151,7 @@ class SubscriptionService:
                 'is_expired': unified_status == 'expired',
                 'is_team_member': bool(owner_id),
                 'owner_id': owner_id,
+                'warnings': warnings,
                 'display_message': self._get_status_display_message(unified_status, remaining_days, subscription_plan)
             }
             
@@ -172,8 +180,9 @@ class SubscriptionService:
             trial_days_left = user.get('trial_days_left', 0)
             
             if subscription_end_date and subscription_status == 'active':
-                end_date = datetime.fromisoformat(subscription_end_date.replace('Z', '+00:00'))
-                if end_date < current_time and trial_days_left <= 0:
+                # Use the Real-time Day Calculator for accurate expiration check
+                is_expired = self.day_calculator.is_subscription_expired(subscription_end_date)
+                if is_expired and trial_days_left <= 0:
                     # Subscription has expired but still marked as active
                     self.supabase.table('users').update({
                         'subscription_status': 'expired',
@@ -614,7 +623,7 @@ class SubscriptionService:
     
     def _calculate_remaining_days(self, plan: str, end_date_str: Optional[str], 
                                 trial_days: int) -> int:
-        """Calculate remaining subscription days"""
+        """Calculate remaining subscription days using Real-time Day Calculator"""
         try:
             if plan == 'free':
                 return -1  # Unlimited for free plan
@@ -625,29 +634,11 @@ class SubscriptionService:
             if not end_date_str:
                 return 0
             
-            from datetime import timezone, datetime
+            # Use the Real-time Day Calculator for accurate calculation
+            remaining_days = self.day_calculator.calculate_remaining_days(end_date_str)
             
-            # Parse the end date and ensure it's timezone-aware
-            if isinstance(end_date_str, str):
-                if end_date_str.endswith('Z'):
-                    end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-                else:
-                    end_date = datetime.fromisoformat(end_date_str)
-                    if end_date.tzinfo is None:
-                        end_date = end_date.replace(tzinfo=timezone.utc)
-            elif hasattr(end_date_str, 'isoformat'):  # Already a datetime object
-                end_date = end_date_str
-                if end_date.tzinfo is None:
-                    end_date = end_date.replace(tzinfo=timezone.utc)
-            else:
-                return 0
-            
-            # Get current time in UTC
-            now = datetime.now(timezone.utc)
-            
-            # Calculate remaining days
-            remaining = (end_date - now).days
-            return max(0, remaining)
+            logger.debug(f"Calculated {remaining_days} days remaining for plan {plan}")
+            return remaining_days
             
         except Exception as e:
             logger.error(f"Error calculating remaining days: {str(e)}", exc_info=True)
