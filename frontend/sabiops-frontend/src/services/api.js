@@ -1,20 +1,11 @@
-// SabiOps API Service - Refactored for Minification Safety
+// SabiOps API Service - Refactored for Environment-Aware Configuration
 import axios from 'axios';
+import { ENV_CONFIG } from '../config/environment.js';
 
-// Determine the correct base URL based on environment
+// Use environment-aware configuration
 const getBaseURL = () => {
-  // Check if we're in development (localhost)
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return '/api'; // Use proxy in development
-  }
-  
-  // Check for environment variable first
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-  
-  // Production fallback - use the correct Vercel backend URL
-  return 'https://sabiops-backend.vercel.app/api';
+  console.log(`[DEBUG] Using ${ENV_CONFIG.environment} environment - API Base URL: ${ENV_CONFIG.apiBaseUrl}`);
+  return ENV_CONFIG.apiBaseUrl;
 };
 
 // Create axios instance with base configuration

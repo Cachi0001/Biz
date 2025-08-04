@@ -43,18 +43,77 @@ def create_app():
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-    CORS(
-        app,
-        origins=[
-            "https://sabiops.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:5173"
-        ],
-        supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    )
-    print("[DEBUG] CORS initialized with origins: https://sabiops.vercel.app, http://localhost:3000, http://localhost:5173")
+    # Dynamic CORS configuration for production and preview environments
+    def get_cors_origins():
+        """Get CORS origins based on environment"""
+        base_origins = [
+            "https://sabiops.vercel.app",  # Production frontend
+            "http://localhost:3000",       # Local development
+            "http://localhost:5173",       # Vite dev server
+            "http://127.0.0.1:3000",      # Alternative localhost
+            "http://127.0.0.1:5173"       # Alternative localhost
+        ]
+        
+        # Add preview environment origins
+        preview_origins = [
+            # Vercel preview patterns for frontend
+            "https://sabiops-frontend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app",
+            "https://sabiops-frontend-git-main-onyemechicaleb4-7921s-projects.vercel.app",
+            # Additional preview patterns
+            "https://sabiops-olnjhgn12-onyemechicaleb4-7921s-projects.vercel.app",
+        ]
+        
+        # Get current Vercel URL if available (for dynamic preview URLs)
+        vercel_url = os.getenv('VERCEL_URL')
+        if vercel_url:
+            preview_origins.extend([
+                f"https://{vercel_url}",
+                f"http://{vercel_url}"
+            ])
+        
+        all_origins = base_origins + preview_origins
+        print(f"[DEBUG] CORS origins configured: {all_origins}")
+        return all_origins
+
+    # Custom CORS handler for wildcard support
+    def handle_cors_origin(origin):
+        """Handle CORS origin validation with wildcard support"""
+        allowed_origins = get_cors_origins()
+        
+        # Direct match
+        if origin in allowed_origins:
+            return True
+            
+        # Wildcard pattern matching for Vercel preview URLs
+        if origin and origin.startswith('https://') and 'vercel.app' in origin:
+            # Allow any Vercel preview URL for sabiops-frontend
+            if 'sabiops-frontend' in origin or 'sabiops-olnjhgn12' in origin:
+                print(f"[DEBUG] CORS: Allowing Vercel preview origin: {origin}")
+                return True
+        
+        return False
+
+    # Configure CORS with custom origin handler
+    cors_origins = get_cors_origins()
+    
+    # Use wildcard for development, specific origins for production
+    if os.getenv('VERCEL_ENV') == 'development' or not os.getenv('VERCEL_ENV'):
+        cors_config = {
+            'origins': '*',  # Allow all origins in development/preview
+            'supports_credentials': True,
+            'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
+            'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+        }
+    else:
+        cors_config = {
+            'origins': cors_origins,
+            'supports_credentials': True,
+            'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
+            'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+        }
+    
+    CORS(app, **cors_config)
+    print(f"[DEBUG] CORS initialized with config: {cors_config}")
     jwt = JWTManager(app)
 
     supabase_url = os.getenv("SUPABASE_URL")
@@ -197,6 +256,20 @@ def create_app():
     @app.route('/debug', methods=['GET'])
     def debug():
         return 'Debug route is working!', 200
+
+    @app.route('/debug/cors', methods=['GET'])
+    def debug_cors():
+        """Debug endpoint to test CORS configuration"""
+        origin = request.headers.get('Origin', 'No Origin Header')
+        return jsonify({
+            'message': 'CORS debug endpoint',
+            'origin': origin,
+            'cors_config': cors_config,
+            'vercel_env': os.getenv('VERCEL_ENV', 'Not set'),
+            'vercel_url': os.getenv('VERCEL_URL', 'Not set'),
+            'allowed_origins': get_cors_origins(),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
 
     @app.route('/debug/supabase', methods=['GET'])
     def debug_supabase():

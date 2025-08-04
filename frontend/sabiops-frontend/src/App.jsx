@@ -12,6 +12,9 @@ import businessEventMonitor from './services/businessEventMonitor';
 // import PageReloadPrevention from './utils/pageReloadPrevention'; // Auto-initializes itself
 // import ErrorRecoverySystem from './utils/errorRecoverySystem'; // Auto-initializes itself
 
+// Environment testing (auto-runs in development/preview)
+import './utils/testEnvironment.js';
+
 // Pages
 import Landing from './pages/Landing';
 import Login from './pages/Login';
