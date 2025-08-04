@@ -908,8 +908,8 @@ def check_feature_access(feature):
     except Exception as e:
         logger.error(f"Error checking feature access: {str(e)}")
         return error_response(str(e), f"Failed to check {feature} access", 500)
-@
-subscription_bp.route("/check-expiration", methods=["POST"])
+
+@subscription_bp.route("/check-expiration", methods=["POST"])
 @jwt_required()
 def check_expiration():
     """Manual expiration check for a user"""
