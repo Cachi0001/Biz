@@ -45,14 +45,73 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Handle trailing slashes consistently to avoid redirects that break CORS
 app.url_map.strict_slashes = False
 
-CORS(
-    app,
-    origins=["https://sabiops.vercel.app", "http://localhost:3000", "http://localhost:5173"],
-    supports_credentials=True,
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-)
-print("[DEBUG] CORS initialized with origins: https://sabiops.vercel.app, http://localhost:3000, http://localhost:5173")
+# Dynamic CORS configuration for production and preview environments
+def get_cors_origins():
+    """Get CORS origins based on environment"""
+    base_origins = [
+        "https://sabiops.vercel.app",  # Production frontend
+        "http://localhost:3000",       # Local development
+        "http://localhost:5173",       # Vite dev server
+        "http://127.0.0.1:3000",      # Alternative localhost
+        "http://127.0.0.1:5173"       # Alternative localhost
+    ]
+    
+    # Add preview environment origins
+    preview_origins = [
+        # Vercel preview patterns for frontend
+        "https://sabiops-frontend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app",
+        "https://sabiops-frontend-git-main-onyemechicaleb4-7921s-projects.vercel.app",
+        # Additional preview patterns
+        "https://sabiops-olnjhgn12-onyemechicaleb4-7921s-projects.vercel.app",
+    ]
+    
+    # Get current Vercel URL if available (for dynamic preview URLs)
+    vercel_url = os.getenv('VERCEL_URL')
+    if vercel_url:
+        preview_origins.extend([
+            f"https://{vercel_url}",
+            f"http://{vercel_url}"
+        ])
+    
+    all_origins = base_origins + preview_origins
+    print(f"[DEBUG] CORS origins configured: {all_origins}")
+    return all_origins
+
+# Custom CORS handler for wildcard support
+def handle_cors_origin(origin):
+    """Handle CORS origin validation with wildcard support"""
+    allowed_origins = get_cors_origins()
+    
+    # Direct match
+    if origin in allowed_origins:
+        return True
+        
+    # Wildcard pattern matching for Vercel preview URLs
+    if origin and origin.startswith('https://') and 'vercel.app' in origin:
+        # Allow any Vercel preview URL that contains 'sabiops'
+        if 'sabiops' in origin and 'onyemechicaleb4-7921s-projects.vercel.app' in origin:
+            print(f"[DEBUG] CORS: Allowing Vercel preview origin: {origin}")
+            return True
+    
+    return False
+
+# Configure CORS with more permissive settings for preview environments
+cors_origins = get_cors_origins()
+
+# For now, use wildcard CORS for all environments to fix the immediate issue
+# TODO: Restrict this to specific origins in production later
+cors_config = {
+    'origins': '*',  # Allow all origins temporarily
+    'supports_credentials': True,
+    'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
+    'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+}
+
+CORS(app, **cors_config)
+print(f"[DEBUG] CORS initialized with wildcard origins for all environments")
+print(f"[DEBUG] CORS config: {cors_config}")
+print(f"[DEBUG] VERCEL_ENV: {os.getenv('VERCEL_ENV', 'Not set')}")
+print(f"[DEBUG] Current origins would be: {cors_origins}")
 jwt = JWTManager(app)
 
 supabase_url = os.getenv("SUPABASE_URL")
@@ -181,6 +240,20 @@ def debug():
         'mode': 'development' if not supabase else 'production',
         'supabase_connected': supabase is not None,
         'mock_db': mock_db
+    }), 200
+
+@app.route('/debug/cors', methods=['GET'])
+def debug_cors():
+    """Debug endpoint to test CORS configuration"""
+    origin = request.headers.get('Origin', 'No Origin Header')
+    return jsonify({
+        'message': 'CORS debug endpoint',
+        'origin': origin,
+        'cors_config': cors_config,
+        'vercel_env': os.getenv('VERCEL_ENV', 'Not set'),
+        'vercel_url': os.getenv('VERCEL_URL', 'Not set'),
+        'allowed_origins': get_cors_origins(),
+        'timestamp': datetime.utcnow().isoformat()
     }), 200
 
 # Print all registered routes for debugging

@@ -96,30 +96,20 @@ def create_app():
     # Configure CORS with more permissive settings for preview environments
     cors_origins = get_cors_origins()
     
-    # Check if we're in a preview environment (not production)
-    is_preview = os.getenv('VERCEL_ENV') in ['preview', 'development'] or not os.getenv('VERCEL_ENV')
-    
-    if is_preview:
-        # Use wildcard for preview/development environments
-        cors_config = {
-            'origins': '*',  # Allow all origins in development/preview
-            'supports_credentials': True,
-            'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
-            'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
-        }
-        print(f"[DEBUG] CORS: Using wildcard origins for preview environment")
-    else:
-        # Use specific origins for production
-        cors_config = {
-            'origins': cors_origins,
-            'supports_credentials': True,
-            'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
-            'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
-        }
-        print(f"[DEBUG] CORS: Using specific origins for production environment")
+    # For now, use wildcard CORS for all environments to fix the immediate issue
+    # TODO: Restrict this to specific origins in production later
+    cors_config = {
+        'origins': '*',  # Allow all origins temporarily
+        'supports_credentials': True,
+        'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
+        'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+    }
     
     CORS(app, **cors_config)
-    print(f"[DEBUG] CORS initialized with config: {cors_config}")
+    print(f"[DEBUG] CORS initialized with wildcard origins for all environments")
+    print(f"[DEBUG] CORS config: {cors_config}")
+    print(f"[DEBUG] VERCEL_ENV: {os.getenv('VERCEL_ENV', 'Not set')}")
+    print(f"[DEBUG] Current origins would be: {cors_origins}")
     jwt = JWTManager(app)
 
     supabase_url = os.getenv("SUPABASE_URL")
