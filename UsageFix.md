@@ -43,3 +43,4 @@ scriptErrorIsolation.js:94 [AUTH] Login error: AxiosError$1
 console.error @ scriptErrorIsolation.js:94Understand this error
 sabiops-backend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app/api/auth/login:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
 manifest.json:1  Failed to load resource: the server responded with a status of 401 ()
+/
