@@ -39,10 +39,22 @@ export const getEnvironmentConfig = () => {
     };
   }
   
-  // Other preview environments - default to dev-feature backend
-  if (currentUrl.includes('vercel.app')) {
+  // Other preview environments (like sabiops-qsuccmfjn-onyemechicaleb4-7921s-projects.vercel.app)
+  if (currentUrl.includes('vercel.app') && currentUrl.includes('onyemechicaleb4-7921s-projects')) {
     return {
       environment: 'preview',
+      apiBaseUrl: 'https://sabiops-backend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app/api',
+      backendUrl: 'https://sabiops-backend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app',
+      isProduction: false,
+      isPreview: true,
+      isDevelopment: false
+    };
+  }
+  
+  // Any other vercel.app URL - fallback to dev-feature backend
+  if (currentUrl.includes('vercel.app')) {
+    return {
+      environment: 'preview-fallback',
       apiBaseUrl: 'https://sabiops-backend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app/api',
       backendUrl: 'https://sabiops-backend-git-dev-feature-onyemechicaleb4-7921s-projects.vercel.app',
       isProduction: false,

@@ -86,31 +86,37 @@ def create_app():
             
         # Wildcard pattern matching for Vercel preview URLs
         if origin and origin.startswith('https://') and 'vercel.app' in origin:
-            # Allow any Vercel preview URL for sabiops-frontend
-            if 'sabiops-frontend' in origin or 'sabiops-olnjhgn12' in origin:
+            # Allow any Vercel preview URL that contains 'sabiops'
+            if 'sabiops' in origin and 'onyemechicaleb4-7921s-projects.vercel.app' in origin:
                 print(f"[DEBUG] CORS: Allowing Vercel preview origin: {origin}")
                 return True
         
         return False
 
-    # Configure CORS with custom origin handler
+    # Configure CORS with more permissive settings for preview environments
     cors_origins = get_cors_origins()
     
-    # Use wildcard for development, specific origins for production
-    if os.getenv('VERCEL_ENV') == 'development' or not os.getenv('VERCEL_ENV'):
+    # Check if we're in a preview environment (not production)
+    is_preview = os.getenv('VERCEL_ENV') in ['preview', 'development'] or not os.getenv('VERCEL_ENV')
+    
+    if is_preview:
+        # Use wildcard for preview/development environments
         cors_config = {
             'origins': '*',  # Allow all origins in development/preview
             'supports_credentials': True,
             'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
             'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
         }
+        print(f"[DEBUG] CORS: Using wildcard origins for preview environment")
     else:
+        # Use specific origins for production
         cors_config = {
             'origins': cors_origins,
             'supports_credentials': True,
             'allow_headers': ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "X-Vercel-Deployment-Url"],
             'methods': ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
         }
+        print(f"[DEBUG] CORS: Using specific origins for production environment")
     
     CORS(app, **cors_config)
     print(f"[DEBUG] CORS initialized with config: {cors_config}")
