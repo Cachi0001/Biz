@@ -42,21 +42,42 @@ UPDATE sales
 SET payment_method_id = (SELECT id FROM payment_methods WHERE name = 'Cash')
 WHERE payment_method_id IS NULL;
 
+-- Temporarily disable the balance constraint to allow safe updates
+ALTER TABLE sales DROP CONSTRAINT IF EXISTS chk_sales_amounts_balance;
+
 -- Initialize amount_paid and amount_due for existing sales
--- For completed sales, set amount_paid = total_amount and amount_due = 0
+-- We need to handle this carefully to avoid constraint violations
+
+-- First, set amount_paid to 0 for all sales where it's NULL
+UPDATE sales 
+SET amount_paid = 0
+WHERE amount_paid IS NULL;
+
+-- Then, set amount_due to total_amount for all sales where it's NULL
+UPDATE sales 
+SET amount_due = total_amount
+WHERE amount_due IS NULL;
+
+-- Now update the amounts based on payment status
+-- For completed/paid sales, set amount_paid = total_amount and amount_due = 0
 UPDATE sales 
 SET 
-    amount_paid = CASE 
-        WHEN payment_status = 'completed' THEN total_amount
-        WHEN payment_status = 'paid' THEN total_amount
-        ELSE 0
-    END,
-    amount_due = CASE 
-        WHEN payment_status = 'completed' THEN 0
-        WHEN payment_status = 'paid' THEN 0
-        ELSE total_amount
-    END
-WHERE amount_paid IS NULL OR amount_due IS NULL;
+    amount_paid = total_amount,
+    amount_due = 0
+WHERE payment_status IN ('completed', 'paid');
+
+-- For pending/failed/refunded sales, ensure they're set up as credit sales
+UPDATE sales 
+SET 
+    amount_paid = 0,
+    amount_due = total_amount
+WHERE payment_status IN ('pending', 'failed', 'refunded');
+
+-- Re-add the balance constraint after all updates are complete
+-- Using a small tolerance for floating point precision issues
+ALTER TABLE sales 
+ADD CONSTRAINT chk_sales_amounts_balance 
+CHECK (ABS((amount_paid + amount_due) - total_amount) < 0.01);
 
 -- Update payment_status for credit sales
 UPDATE sales 

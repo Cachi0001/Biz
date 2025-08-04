@@ -50,12 +50,20 @@ ADD COLUMN IF NOT EXISTS pos_account_name VARCHAR(100),
 ADD COLUMN IF NOT EXISTS transaction_type VARCHAR(20) DEFAULT 'Sale' CHECK (transaction_type IN ('Sale', 'Refund', 'Deposit', 'Withdrawal')),
 ADD COLUMN IF NOT EXISTS pos_reference_number VARCHAR(100);
 
+-- First, drop the existing payment_status constraint to allow new values
+ALTER TABLE sales DROP CONSTRAINT IF EXISTS sales_payment_status_check;
+
 -- Add new columns to sales table
 ALTER TABLE sales 
 ADD COLUMN IF NOT EXISTS payment_method_id UUID REFERENCES payment_methods(id),
 ADD COLUMN IF NOT EXISTS amount_paid NUMERIC(10,2) DEFAULT 0 CHECK (amount_paid >= 0),
 ADD COLUMN IF NOT EXISTS amount_due NUMERIC(10,2) DEFAULT 0 CHECK (amount_due >= 0),
 ADD COLUMN IF NOT EXISTS product_category_id UUID REFERENCES product_categories(id);
+
+-- Add updated payment_status constraint with new values
+ALTER TABLE sales 
+ADD CONSTRAINT sales_payment_status_check 
+CHECK (payment_status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text, 'refunded'::text, 'Credit'::text, 'Partially Paid'::text, 'paid'::text]));
 
 -- Add new column to products table
 ALTER TABLE products 
@@ -79,10 +87,8 @@ CREATE INDEX IF NOT EXISTS idx_sale_payments_payment_method_id ON sale_payments(
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 
--- Add constraints to ensure data integrity
-ALTER TABLE sales 
-ADD CONSTRAINT IF NOT EXISTS chk_sales_amounts_balance 
-CHECK (amount_paid + amount_due = total_amount);
+-- Note: The balance constraint (amount_paid + amount_due = total_amount) 
+-- will be added in the data migration script after all data is properly initialized
 
 -- Create trigger to update updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()

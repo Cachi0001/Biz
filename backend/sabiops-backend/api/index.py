@@ -112,6 +112,7 @@ print(f"[DEBUG] CORS initialized with wildcard origins for all environments")
 print(f"[DEBUG] CORS config: {cors_config}")
 print(f"[DEBUG] VERCEL_ENV: {os.getenv('VERCEL_ENV', 'Not set')}")
 print(f"[DEBUG] Current origins would be: {cors_origins}")
+
 jwt = JWTManager(app)
 
 supabase_url = os.getenv("SUPABASE_URL")
@@ -144,11 +145,19 @@ if not supabase:
         'settings': {}
     }
 
-# Remove the insecure preflight handler for OPTIONS requests
-
 @app.before_request
-def load_user():
-    """Load user information for authenticated requests"""
+def handle_preflight_and_load_user():
+    """Handle CORS preflight requests and load user information"""
+    # Handle CORS preflight requests
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'OK'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With,Accept,Origin,X-Vercel-Deployment-Url")
+        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS,PATCH")
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+    
+    # Load user information for authenticated requests
     g.user = None
     g.supabase = supabase
     g.mock_db = app.config.get('MOCK_DB')
