@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import RequiredFieldIndicator from '../ui/RequiredFieldIndicator';
-import { PAYMENT_METHODS, PAYMENT_METHOD_OPTIONS, DEFAULT_PAYMENT_METHOD, getPaymentMethodLabel } from '../../constants/paymentMethods';
+import PaymentMethodSelector from './PaymentMethodSelector';
 import { EXPENSE_CATEGORIES } from '../../constants/categories';
 import { createExpense } from '../../services/api';
 import { toastService } from '../../services/ToastService';
@@ -32,11 +32,22 @@ const ExpenseForm = ({
     amount: '',
     date: new Date().toISOString().split('T')[0],
     vendor: '',
-    payment_method: DEFAULT_PAYMENT_METHOD,
     reference: '',
     notes: '',
     receipt_url: '',
     tax_deductible: false
+  });
+
+  // Payment method state
+  const [paymentMethodData, setPaymentMethodData] = useState({
+    payment_method_id: '',
+    payment_method: null,
+    pos_data: {}
+  });
+
+  const [paymentMethodValidation, setPaymentMethodValidation] = useState({
+    isValid: false,
+    errors: []
   });
 
   // Form validation
@@ -79,14 +90,36 @@ const ExpenseForm = ({
         amount: editingExpense.amount?.toString() || '',
         date: editingExpense.date || new Date().toISOString().split('T')[0],
         vendor: editingExpense.vendor || '',
-        payment_method: editingExpense.payment_method || 'cash',
         reference: editingExpense.reference || '',
         notes: editingExpense.notes || '',
         receipt_url: editingExpense.receipt_url || '',
         tax_deductible: editingExpense.tax_deductible || false
       });
+
+      // Set payment method data if editing
+      if (editingExpense.payment_method_id) {
+        setPaymentMethodData({
+          payment_method_id: editingExpense.payment_method_id,
+          payment_method: null, // Will be loaded by PaymentMethodSelector
+          pos_data: {
+            pos_account_name: editingExpense.pos_account_name || '',
+            transaction_type: editingExpense.transaction_type || 'Sale',
+            pos_reference_number: editingExpense.pos_reference_number || '',
+            reference_number: editingExpense.reference_number || ''
+          }
+        });
+      }
     }
   }, [editingExpense]);
+
+  // Handle payment method changes
+  const handlePaymentMethodChange = (data) => {
+    setPaymentMethodData(data);
+  };
+
+  const handlePaymentMethodValidation = (validation) => {
+    setPaymentMethodValidation(validation);
+  };
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -171,7 +204,9 @@ const ExpenseForm = ({
       // Format data for API
       const submitData = {
         ...formData,
-        amount: parseFloat(formData.amount) || 0
+        amount: parseFloat(formData.amount) || 0,
+        payment_method_id: paymentMethodData.payment_method_id,
+        ...paymentMethodData.pos_data
       };
 
       // Call the API directly
@@ -219,12 +254,23 @@ const ExpenseForm = ({
       amount: '',
       date: new Date().toISOString().split('T')[0],
       vendor: '',
-      payment_method: DEFAULT_PAYMENT_METHOD,
       reference: '',
       notes: '',
       receipt_url: '',
       tax_deductible: false
     });
+    
+    setPaymentMethodData({
+      payment_method_id: '',
+      payment_method: null,
+      pos_data: {}
+    });
+    
+    setPaymentMethodValidation({
+      isValid: false,
+      errors: []
+    });
+    
     setErrors({});
 
     if (formRef.current) {
@@ -530,39 +576,27 @@ const ExpenseForm = ({
           </div>
         </div>
 
-        {/* Vendor and Payment Method */}
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Vendor/Supplier</label>
-            <input
-              type="text"
-              className="form-input"
-              name="vendor"
-              value={formData.vendor}
-              onChange={handleInputChange}
-              placeholder="Enter vendor name"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Payment Method</label>
-            <Select
-              value={formData.payment_method}
-              onValueChange={(value) => handleSelectChange('payment_method', value)}
-            >
-              <SelectTrigger className="form-select">
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_METHOD_OPTIONS.map((method) => (
-                  <SelectItem key={method.value} value={method.value}>
-                    {method.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Vendor */}
+        <div className="form-group">
+          <label className="form-label">Vendor/Supplier</label>
+          <input
+            type="text"
+            className="form-input"
+            name="vendor"
+            value={formData.vendor}
+            onChange={handleInputChange}
+            placeholder="Enter vendor name"
+          />
         </div>
+
+        {/* Payment Method */}
+        <PaymentMethodSelector
+          value={paymentMethodData.payment_method_id}
+          onChange={handlePaymentMethodChange}
+          onValidationChange={handlePaymentMethodValidation}
+          disabled={isSubmitting}
+          className="form-group"
+        />
 
         {/* Reference */}
         <div className="form-group">

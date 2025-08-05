@@ -4,75 +4,73 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import { Separator } from '../ui/separator';
-import { CreditCard, Clock, DollarSign, User, Calendar, Receipt } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { 
+  CreditCard, 
+  Calendar, 
+  User, 
+  DollarSign, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle,
+  Plus,
+  Eye,
+  TrendingUp
+} from 'lucide-react';
 import PaymentMethodSelector from '../forms/PaymentMethodSelector';
-import { toast } from 'react-hot-toast';
+import { salesApi, paymentApi } from '../../services/enhancedApiClient';
 
-const CreditSalesManager = ({ userId }) => {
+const CreditSalesManager = () => {
   const [outstandingSales, setOutstandingSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [paymentModal, setPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentData, setPaymentData] = useState({});
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
+  const [summary, setSummary] = useState({
+    total_outstanding_amount: 0,
+    outstanding_count: 0,
+    payment_status_breakdown: {}
+  });
+
+  // Partial payment form state
+  const [partialPaymentData, setPartialPaymentData] = useState({
+    amount: '',
+    description: ''
+  });
+
+  const [paymentMethodData, setPaymentMethodData] = useState({
+    payment_method_id: '',
+    payment_method: null,
+    pos_data: {}
+  });
+
+  const [paymentMethodValidation, setPaymentMethodValidation] = useState({
+    isValid: false,
+    errors: []
+  });
+
+  const [submittingPayment, setSubmittingPayment] = useState(false);
 
   useEffect(() => {
     fetchOutstandingSales();
-  }, [userId]);
+  }, []);
 
   const fetchOutstandingSales = async () => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await salesApi.getOutstandingCreditSales();
       
-      const mockSales = [
-        {
-          id: '1',
-          customer_name: 'John Doe',
-          customer_id: 'cust_1',
-          product_name: 'Rice 50kg',
-          total_amount: 25000,
-          amount_paid: 10000,
-          amount_due: 15000,
-          payment_status: 'Credit',
-          date: '2025-01-10',
-          created_at: '2025-01-10T10:00:00Z'
-        },
-        {
-          id: '2',
-          customer_name: 'Jane Smith',
-          customer_id: 'cust_2',
-          product_name: 'Cooking Oil 5L',
-          total_amount: 8000,
-          amount_paid: 3000,
-          amount_due: 5000,
-          payment_status: 'Credit',
-          date: '2025-01-12',
-          created_at: '2025-01-12T14:30:00Z'
-        },
-        {
-          id: '3',
-          customer_name: 'Mike Johnson',
-          customer_id: 'cust_3',
-          product_name: 'Bread Loaves x10',
-          total_amount: 3000,
-          amount_paid: 0,
-          amount_due: 3000,
-          payment_status: 'Pending',
-          date: '2025-01-14',
-          created_at: '2025-01-14T09:15:00Z'
-        }
-      ];
-      
-      setOutstandingSales(mockSales);
+      if (response.outstanding_sales) {
+        setOutstandingSales(response.outstanding_sales);
+        setSummary({
+          total_outstanding_amount: response.total_outstanding_amount || 0,
+          outstanding_count: response.total_count || 0,
+          payment_status_breakdown: response.payment_status_breakdown || {}
+        });
+      }
     } catch (error) {
       console.error('Error fetching outstanding sales:', error);
-      toast.error('Failed to load outstanding sales');
     } finally {
       setLoading(false);
     }
@@ -80,99 +78,120 @@ const CreditSalesManager = ({ userId }) => {
 
   const fetchPaymentHistory = async (saleId) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockHistory = [
-        {
-          id: '1',
-          amount: 10000,
-          payment_method: 'Cash',
-          payment_date: '2025-01-11T10:00:00Z',
-          description: 'Partial payment',
-          pos_account_name: null,
-          reference_number: null
-        },
-        {
-          id: '2',
-          amount: 3000,
-          payment_method: 'POS - Card',
-          payment_date: '2025-01-13T15:30:00Z',
-          description: 'Partial payment via POS',
-          pos_account_name: 'Moniepoint POS',
-          reference_number: 'REF123456'
-        }
-      ];
-      
-      setPaymentHistory(mockHistory);
+      const response = await salesApi.getSalePaymentHistory(saleId);
+      setPaymentHistory(response.payment_history || []);
     } catch (error) {
       console.error('Error fetching payment history:', error);
-      toast.error('Failed to load payment history');
+      setPaymentHistory([]);
     }
   };
 
-  const handleRecordPayment = async (sale) => {
+  const handleViewHistory = async (sale) => {
     setSelectedSale(sale);
-    setPaymentAmount('');
-    setPaymentData({});
     await fetchPaymentHistory(sale.id);
-    setPaymentModal(true);
+    setHistoryModalOpen(true);
   };
 
-  const handlePaymentSubmit = async () => {
-    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-      toast.error('Please enter a valid payment amount');
-      return;
+  const handleRecordPayment = (sale) => {
+    setSelectedSale(sale);
+    setPartialPaymentData({
+      amount: '',
+      description: `Partial payment for sale ${sale.id}`
+    });
+    setPaymentMethodData({
+      payment_method_id: '',
+      payment_method: null,
+      pos_data: {}
+    });
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentMethodChange = (data) => {
+    setPaymentMethodData(data);
+  };
+
+  const handlePaymentMethodValidation = (validation) => {
+    setPaymentMethodValidation(validation);
+  };
+
+  const validatePartialPayment = () => {
+    const amount = parseFloat(partialPaymentData.amount);
+    const amountDue = parseFloat(selectedSale?.amount_due || 0);
+
+    if (!amount || amount <= 0) {
+      return { isValid: false, error: 'Please enter a valid payment amount' };
     }
 
-    const amount = parseFloat(paymentAmount);
-    if (amount > selectedSale.amount_due) {
-      toast.error(`Payment amount cannot exceed outstanding balance of ₦${selectedSale.amount_due.toLocaleString()}`);
-      return;
+    if (amount > amountDue) {
+      return { 
+        isValid: false, 
+        error: `Payment amount cannot exceed outstanding balance of ₦${amountDue.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` 
+      };
     }
 
-    if (!paymentData.payment_method_id) {
-      toast.error('Please select a payment method');
+    if (!paymentMethodValidation.isValid) {
+      return { 
+        isValid: false, 
+        error: paymentMethodValidation.errors[0] || 'Please complete payment method selection' 
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const handleSubmitPartialPayment = async () => {
+    const validation = validatePartialPayment();
+    if (!validation.isValid) {
       return;
     }
 
     try {
-      setSubmitting(true);
+      setSubmittingPayment(true);
+
+      const paymentData = {
+        amount: parseFloat(partialPaymentData.amount),
+        payment_method_id: paymentMethodData.payment_method_id,
+        description: partialPaymentData.description,
+        ...paymentMethodData.pos_data
+      };
+
+      await salesApi.recordPartialPayment(selectedSale.id, paymentData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Refresh data
+      await fetchOutstandingSales();
       
-      // Update the sale in the list
-      const newAmountPaid = selectedSale.amount_paid + amount;
-      const newAmountDue = selectedSale.amount_due - amount;
-      const newStatus = newAmountDue === 0 ? 'Paid' : selectedSale.payment_status;
-      
-      setOutstandingSales(prev => 
-        prev.map(sale => 
-          sale.id === selectedSale.id 
-            ? {
-                ...sale,
-                amount_paid: newAmountPaid,
-                amount_due: newAmountDue,
-                payment_status: newStatus
-              }
-            : sale
-        ).filter(sale => sale.amount_due > 0) // Remove fully paid sales
-      );
-      
-      toast.success(`Payment of ₦${amount.toLocaleString()} recorded successfully!`);
-      setPaymentModal(false);
+      // Close modal and reset form
+      setPaymentModalOpen(false);
+      setPartialPaymentData({ amount: '', description: '' });
+      setPaymentMethodData({ payment_method_id: '', payment_method: null, pos_data: {} });
       
     } catch (error) {
-      console.error('Error recording payment:', error);
-      toast.error('Failed to record payment. Please try again.');
+      console.error('Error recording partial payment:', error);
     } finally {
-      setSubmitting(false);
+      setSubmittingPayment(false);
     }
   };
 
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      'Credit': { color: 'bg-orange-100 text-orange-800', icon: Clock },
+      'Pending': { color: 'bg-yellow-100 text-yellow-800', icon: AlertCircle },
+      'Paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle }
+    };
+
+    const config = statusConfig[status] || statusConfig['Credit'];
+    const Icon = config.icon;
+
+    return (
+      <Badge className={`${config.color} flex items-center gap-1`}>
+        <Icon className="h-3 w-3" />
+        {status}
+      </Badge>
+    );
+  };
+
   const formatCurrency = (amount) => {
-    return `₦${amount.toLocaleString('en-NG')}`;
+    return `₦${parseFloat(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString) => {
@@ -183,22 +202,12 @@ const CreditSalesManager = ({ userId }) => {
     });
   };
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      'Credit': 'bg-orange-100 text-orange-800',
-      'Pending': 'bg-yellow-100 text-yellow-800',
-      'Paid': 'bg-green-100 text-green-800'
-    };
-    
-    return (
-      <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-        {status}
-      </Badge>
-    );
-  };
-
-  const calculateTotalOutstanding = () => {
-    return outstandingSales.reduce((total, sale) => total + sale.amount_due, 0);
+  const getDaysOutstanding = (dateString) => {
+    const saleDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today - saleDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -206,7 +215,7 @@ const CreditSalesManager = ({ userId }) => {
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading outstanding sales...</p>
+          <p className="text-gray-600">Loading outstanding credit sales...</p>
         </div>
       </div>
     );
@@ -218,49 +227,42 @@ const CreditSalesManager = ({ userId }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <CreditCard className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Outstanding Sales</p>
-                <p className="text-xl font-bold text-gray-900">{outstandingSales.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-red-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Outstanding</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {formatCurrency(calculateTotalOutstanding())}
+                <p className="text-2xl font-bold text-orange-600">
+                  {formatCurrency(summary.total_outstanding_amount)}
                 </p>
               </div>
+              <DollarSign className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-5 w-5 text-blue-600" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Avg Days Outstanding</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {Math.round(outstandingSales.reduce((sum, sale) => {
-                    const days = Math.floor((new Date() - new Date(sale.created_at)) / (1000 * 60 * 60 * 24));
-                    return sum + days;
-                  }, 0) / outstandingSales.length) || 0}
+                <p className="text-sm text-gray-600">Outstanding Sales</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {summary.outstanding_count}
                 </p>
               </div>
+              <TrendingUp className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Credit Sales</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {summary.payment_status_breakdown.Credit || 0}
+                </p>
+              </div>
+              <CreditCard className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -270,64 +272,70 @@ const CreditSalesManager = ({ userId }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
+            <CreditCard className="h-5 w-5" />
             Outstanding Credit Sales
           </CardTitle>
         </CardHeader>
         <CardContent>
           {outstandingSales.length === 0 ? (
             <div className="text-center py-8">
-              <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <p className="text-gray-600">No outstanding credit sales</p>
-              <p className="text-sm text-gray-500">All sales have been fully paid</p>
+              <p className="text-sm text-gray-500">All sales have been paid in full</p>
             </div>
           ) : (
             <div className="space-y-4">
               {outstandingSales.map((sale) => (
-                <div key={sale.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-900">{sale.customer_name}</h3>
-                        {getStatusBadge(sale.payment_status)}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <p><span className="font-medium">Product:</span> {sale.product_name}</p>
-                          <p><span className="font-medium">Sale Date:</span> {formatDate(sale.date)}</p>
-                        </div>
-                        <div>
-                          <p><span className="font-medium">Total Amount:</span> {formatCurrency(sale.total_amount)}</p>
-                          <p><span className="font-medium">Amount Paid:</span> {formatCurrency(sale.amount_paid)}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 p-3 bg-red-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-red-800">Outstanding Balance:</span>
-                          <span className="text-lg font-bold text-red-900">
-                            {formatCurrency(sale.amount_due)}
-                          </span>
-                        </div>
-                        <div className="mt-2 bg-red-200 rounded-full h-2">
-                          <div 
-                            className="bg-red-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${(sale.amount_paid / sale.total_amount) * 100}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-red-700 mt-1">
-                          {((sale.amount_paid / sale.total_amount) * 100).toFixed(1)}% paid
-                        </p>
+                <div key={sale.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="font-medium">{sale.customer_name || 'Walk-in Customer'}</p>
+                        <p className="text-sm text-gray-600">{sale.product_name}</p>
                       </div>
                     </div>
-                    
-                    <div className="ml-4">
+                    {getStatusBadge(sale.payment_status)}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Total Amount</p>
+                      <p className="font-medium">{formatCurrency(sale.total_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Amount Paid</p>
+                      <p className="font-medium text-green-600">{formatCurrency(sale.amount_paid)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Amount Due</p>
+                      <p className="font-medium text-orange-600">{formatCurrency(sale.amount_due)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Days Outstanding</p>
+                      <p className="font-medium">{getDaysOutstanding(sale.created_at)} days</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>Sale Date: {formatDate(sale.created_at)}</span>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewHistory(sale)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        History
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => handleRecordPayment(sale)}
                         className="bg-green-600 hover:bg-green-700"
-                        size="sm"
                       >
+                        <Plus className="h-4 w-4 mr-1" />
                         Record Payment
                       </Button>
                     </div>
@@ -339,114 +347,94 @@ const CreditSalesManager = ({ userId }) => {
         </CardContent>
       </Card>
 
-      {/* Payment Modal */}
-      <Dialog open={paymentModal} onOpenChange={setPaymentModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Partial Payment Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Record Partial Payment</DialogTitle>
-            <DialogDescription>
-              Record a payment for {selectedSale?.customer_name}'s outstanding balance
-            </DialogDescription>
           </DialogHeader>
-
+          
           {selectedSale && (
             <div className="space-y-6">
               {/* Sale Summary */}
-              <Card className="border-blue-200 bg-blue-50">
+              <Card className="bg-gray-50">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p><span className="font-medium">Customer:</span> {selectedSale.customer_name}</p>
-                      <p><span className="font-medium">Product:</span> {selectedSale.product_name}</p>
+                      <p className="text-sm text-gray-600">Customer</p>
+                      <p className="font-medium">{selectedSale.customer_name}</p>
                     </div>
                     <div>
-                      <p><span className="font-medium">Total Amount:</span> {formatCurrency(selectedSale.total_amount)}</p>
-                      <p><span className="font-medium">Outstanding:</span> <span className="font-bold text-red-600">{formatCurrency(selectedSale.amount_due)}</span></p>
+                      <p className="text-sm text-gray-600">Product</p>
+                      <p className="font-medium">{selectedSale.product_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Amount</p>
+                      <p className="font-medium">{formatCurrency(selectedSale.total_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Outstanding Balance</p>
+                      <p className="font-medium text-orange-600">{formatCurrency(selectedSale.amount_due)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Payment Amount */}
-              <div className="space-y-2">
-                <Label htmlFor="payment_amount">Payment Amount *</Label>
-                <Input
-                  id="payment_amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={selectedSale.amount_due}
-                  placeholder="0.00"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="text-lg font-semibold"
+              {/* Payment Form */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payment_amount">Payment Amount *</Label>
+                  <Input
+                    id="payment_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={selectedSale.amount_due}
+                    placeholder="0.00"
+                    value={partialPaymentData.amount}
+                    onChange={(e) => setPartialPaymentData(prev => ({ ...prev, amount: e.target.value }))}
+                    className="text-lg font-semibold"
+                  />
+                  <p className="text-xs text-gray-600">
+                    Maximum: {formatCurrency(selectedSale.amount_due)}
+                  </p>
+                </div>
+
+                <PaymentMethodSelector
+                  value={paymentMethodData.payment_method_id}
+                  onChange={handlePaymentMethodChange}
+                  onValidationChange={handlePaymentMethodValidation}
+                  required={true}
+                  disabled={submittingPayment}
                 />
-                <p className="text-xs text-gray-600">
-                  Maximum: {formatCurrency(selectedSale.amount_due)}
-                </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment_description">Description</Label>
+                  <Input
+                    id="payment_description"
+                    placeholder="Payment description"
+                    value={partialPaymentData.description}
+                    onChange={(e) => setPartialPaymentData(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
               </div>
-
-              {/* Payment Method Selector */}
-              <PaymentMethodSelector
-                value={paymentData}
-                onChange={setPaymentData}
-                required={true}
-              />
-
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Optional payment description"
-                  rows={2}
-                />
-              </div>
-
-              {/* Payment History */}
-              {paymentHistory.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Payment History</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {paymentHistory.map((payment) => (
-                        <div key={payment.id} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
-                          <div>
-                            <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                            <p className="text-gray-600">{formatDate(payment.payment_date)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p>{payment.payment_method}</p>
-                            {payment.pos_account_name && (
-                              <p className="text-xs text-gray-500">{payment.pos_account_name}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button
-                  type="button"
                   variant="outline"
-                  onClick={() => setPaymentModal(false)}
+                  onClick={() => setPaymentModalOpen(false)}
                   className="flex-1"
-                  disabled={submitting}
+                  disabled={submittingPayment}
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handlePaymentSubmit}
+                  onClick={handleSubmitPartialPayment}
                   className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={submitting}
+                  disabled={submittingPayment || !paymentMethodValidation.isValid}
                 >
-                  {submitting ? (
+                  {submittingPayment ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Recording...
@@ -455,6 +443,75 @@ const CreditSalesManager = ({ userId }) => {
                     'Record Payment'
                   )}
                 </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment History Modal */}
+      <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Payment History</DialogTitle>
+          </DialogHeader>
+          
+          {selectedSale && (
+            <div className="space-y-4">
+              {/* Sale Info */}
+              <Card className="bg-gray-50">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Customer</p>
+                      <p className="font-medium">{selectedSale.customer_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Amount</p>
+                      <p className="font-medium">{formatCurrency(selectedSale.total_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Outstanding</p>
+                      <p className="font-medium text-orange-600">{formatCurrency(selectedSale.amount_due)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment History */}
+              <div className="space-y-3">
+                <h4 className="font-medium">Payment History</h4>
+                {paymentHistory.length === 0 ? (
+                  <p className="text-gray-600 text-center py-4">No payments recorded yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {paymentHistory.map((payment, index) => (
+                      <div key={payment.id || index} className="border rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{formatCurrency(payment.amount)}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatDate(payment.payment_date)} • {payment.payment_method_name || 'Unknown Method'}
+                            </p>
+                            {payment.description && (
+                              <p className="text-xs text-gray-500">{payment.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            {payment.pos_account_name && (
+                              <p className="text-xs text-gray-600">POS: {payment.pos_account_name}</p>
+                            )}
+                            {(payment.pos_reference_number || payment.reference_number) && (
+                              <p className="text-xs text-gray-600">
+                                Ref: {payment.pos_reference_number || payment.reference_number}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

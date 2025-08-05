@@ -37,39 +37,63 @@ const ModernOverviewCards = ({ data, loading }) => {
   }
 
 
-  const totalRevenue = data?.revenue?.total || 0;
-  const thisMonthRevenue = data?.revenue?.this_month || 0;
+  // Revenue Recognition Logic - Only include paid sales
+  const recognizedRevenue = data?.revenue?.recognized_revenue || data?.revenue?.total || 0;
+  const thisMonthRecognizedRevenue = data?.revenue?.this_month_recognized_revenue || data?.revenue?.this_month || 0;
   const totalExpenses = data?.expenses?.total || 0;
   const thisMonthExpenses = data?.expenses?.this_month || 0;
-  const netProfit = totalRevenue - totalExpenses;
-  const thisMonthNetProfit = thisMonthRevenue - thisMonthExpenses;
   
-  const revenueGrowth = totalRevenue > thisMonthRevenue ? 
-    Math.round(((thisMonthRevenue / (totalRevenue - thisMonthRevenue)) * 100)) : 0;
-  const profitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
+  // Accounts Receivable - Outstanding credit sales
+  const accountsReceivable = data?.revenue?.accounts_receivable || data?.revenue?.outstanding || 0;
+  const unrecognizedRevenue = data?.revenue?.unrecognized_revenue || 0;
+  
+  // Profit calculations based on recognized revenue only
+  const recognizedNetProfit = recognizedRevenue - totalExpenses;
+  const thisMonthRecognizedNetProfit = thisMonthRecognizedRevenue - thisMonthExpenses;
+  
+  const revenueGrowth = recognizedRevenue > thisMonthRecognizedRevenue ? 
+    Math.round(((thisMonthRecognizedRevenue / (recognizedRevenue - thisMonthRecognizedRevenue)) * 100)) : 0;
+  const profitMargin = recognizedRevenue > 0 ? Math.round((recognizedNetProfit / recognizedRevenue) * 100) : 0;
+  
+  // Revenue recognition rate
+  const totalSalesAmount = recognizedRevenue + unrecognizedRevenue;
+  const recognitionRate = totalSalesAmount > 0 ? Math.round((recognizedRevenue / totalSalesAmount) * 100) : 100;
 
   const todayCOGS = data?.revenue?.today_cogs || 0;
 
   const cards = [
     {
-      title: 'Total Revenue',
-      value: formatNaira(totalRevenue),
-      change: formatNaira(thisMonthRevenue),
+      title: 'Recognized Revenue',
+      value: formatNaira(recognizedRevenue),
+      change: `${formatNaira(thisMonthRecognizedRevenue)} this month`,
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
       trend: 'up',
-      path: '/analytics'
+      path: '/analytics',
+      subtitle: `${recognitionRate}% of total sales`
     },
     {
-      title: 'Profit From Sales',
-      value: formatNaira(data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0),
-      change: `${formatNaira(data?.revenue?.this_month_profit_from_sales || 0)} this month`,
+      title: 'Recognized Profit',
+      value: formatNaira(data?.revenue?.recognized_profit || data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || 0),
+      change: `${formatNaira(data?.revenue?.this_month_recognized_profit || data?.revenue?.this_month_profit_from_sales || 0)} this month`,
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      trend: (data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || data?.revenue?.today_profit_from_sales || 0) > 0 ? 'up' : 'down',
-      path: '/sales'
+      trend: (data?.revenue?.recognized_profit || data?.revenue?.total_profit_from_sales || data?.revenue?.profit_from_sales || 0) > 0 ? 'up' : 'down',
+      path: '/sales',
+      subtitle: 'From paid sales only'
+    },
+    {
+      title: 'Accounts Receivable',
+      value: formatNaira(accountsReceivable),
+      change: unrecognizedRevenue > 0 ? `${formatNaira(unrecognizedRevenue)} pending` : 'All collected',
+      icon: FileText,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      trend: accountsReceivable > 0 ? 'down' : 'up',
+      path: '/sales',
+      subtitle: 'Outstanding credit sales'
     },
     {
       title: 'Customers',
@@ -86,29 +110,20 @@ const ModernOverviewCards = ({ data, loading }) => {
       value: (data?.products?.total || 0).toLocaleString(),
       change: data?.products?.low_stock > 0 ? `${data.products.low_stock} low stock` : 'All in stock',
       icon: Package,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-50',
       trend: data?.products?.low_stock > 0 ? 'down' : 'up',
       path: '/products'
     },
     {
-      title: 'Outstanding',
-      value: formatNaira(data?.revenue?.outstanding || 0),
-      change: data?.invoices?.overdue > 0 ? `${data.invoices.overdue} overdue` : 'All current',
-      icon: FileText,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      trend: data?.invoices?.overdue > 0 ? 'down' : 'up',
-      path: '/invoices'
-    },
-    {
       title: 'Net Profit',
-      value: formatNaira(netProfit),
+      value: formatNaira(recognizedNetProfit),
       change: profitMargin > 0 ? `${profitMargin}% margin` : 'Break even',
       icon: Crown,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50',
-      trend: netProfit > 0 ? 'up' : 'down'
+      trend: recognizedNetProfit > 0 ? 'up' : 'down',
+      subtitle: 'Based on recognized revenue'
     }
   ];
 
@@ -140,6 +155,11 @@ const ModernOverviewCards = ({ data, loading }) => {
                 <p className={`text-xs ${card.trend === 'up' ? 'text-green-600' : 'text-red-600'} truncate`}>
                   {card.change}
                 </p>
+                {card.subtitle && (
+                  <p className="text-xs text-gray-500 mt-1 truncate">
+                    {card.subtitle}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

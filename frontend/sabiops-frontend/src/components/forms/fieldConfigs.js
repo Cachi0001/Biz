@@ -331,13 +331,24 @@ export const salesFields = [
   {
     name: 'payment_method',
     label: 'Payment Method',
+    type: 'payment_method_selector',
+    required: true,
+    section: 'Payment',
+    component: 'PaymentMethodSelector',
+    helpText: 'Select payment method and provide POS details if applicable'
+  },
+  {
+    name: 'payment_status',
+    label: 'Payment Status',
     type: 'select',
     required: true,
     section: 'Payment',
-    options: getPaymentMethods().map(method => ({
-      value: method,
-      label: method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-    }))
+    options: [
+      { value: 'paid', label: 'Paid' },
+      { value: 'credit', label: 'Credit Sale' },
+      { value: 'pending', label: 'Pending Payment' }
+    ],
+    helpText: 'Select payment status for revenue recognition'
   },
   {
     name: 'date',
@@ -427,13 +438,11 @@ export const expenseFields = [
   {
     name: 'payment_method',
     label: 'Payment Method',
-    type: 'select',
+    type: 'payment_method_selector',
     required: true,
     section: 'Payment',
-    options: getPaymentMethods().map(method => ({
-      value: method,
-      label: method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-    }))
+    component: 'PaymentMethodSelector',
+    helpText: 'Select payment method and provide POS details if applicable'
   },
   {
     name: 'receipt_number',

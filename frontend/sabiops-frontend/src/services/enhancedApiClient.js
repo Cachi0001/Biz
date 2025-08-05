@@ -285,6 +285,44 @@ export const salesApi = {
       },
       'Generating sales report...'
     );
+  },
+
+  async getOutstandingCreditSales(params = {}) {
+    const response = await getWithRetry('/sales/credit', { params });
+    return response.data?.data || response.data;
+  },
+
+  async recordPartialPayment(saleId, paymentData) {
+    return await withLoadingToast(
+      async () => {
+        const response = await post(`/sales/${saleId}/partial-payment`, paymentData);
+        const amount = parseFloat(paymentData.amount);
+        toastService.success(`Partial payment of ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} recorded successfully!`);
+        return response.data;
+      },
+      'Recording partial payment...'
+    );
+  },
+
+  async updateSaleStatus(saleId, statusData) {
+    return await withLoadingToast(
+      async () => {
+        const response = await put(`/sales/${saleId}/update-status`, statusData);
+        toastService.success(`Sale status updated to ${statusData.payment_status}`);
+        return response.data;
+      },
+      'Updating sale status...'
+    );
+  },
+
+  async getSalePaymentHistory(saleId) {
+    const response = await get(`/sales/${saleId}/payment-history`);
+    return response.data?.data || response.data;
+  },
+
+  async getSaleById(saleId) {
+    const response = await get(`/sales/${saleId}`);
+    return response.data?.data || response.data;
   }
 };
 
@@ -470,6 +508,189 @@ export const utilityApi = {
   async globalSearch(query, limit = 5) {
     const response = await get(`/search?q=${encodeURIComponent(query)}&limit=${limit}`);
     return response.data;
+  }
+};
+
+/**
+ * Payment API with enhanced toast handling
+ */
+export const paymentApi = {
+  async getPaymentMethods(params = {}) {
+    const response = await getWithRetry('/payments/methods', { params });
+    return response.data?.data || response.data;
+  },
+
+  async recordPayment(paymentData) {
+    return await withLoadingToast(
+      async () => {
+        const response = await post('/payments/record', paymentData);
+        toastService.success(`Payment of ₦${parseFloat(paymentData.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })} recorded successfully!`);
+        return response.data;
+      },
+      'Recording payment...'
+    );
+  },
+
+  async getDailySummary(date) {
+    const params = date ? { date } : {};
+    const response = await getWithRetry('/payments/daily-summary', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getPaymentById(paymentId) {
+    const response = await get(`/payments/${paymentId}`);
+    return response.data?.data || response.data;
+  },
+
+  async searchPaymentByReference(reference, isPos = false) {
+    const params = { reference, is_pos: isPos };
+    const response = await get('/payments/search', { params });
+    return response.data?.data || response.data;
+  },
+
+  async updatePaymentStatus(paymentId, statusData) {
+    return await withLoadingToast(
+      async () => {
+        const response = await put(`/payments/${paymentId}/status`, statusData);
+        toastService.success(`Payment status updated to ${statusData.status}`);
+        return response.data;
+      },
+      'Updating payment status...'
+    );
+  }
+};
+
+/**
+ * Revenue API with enhanced toast handling
+ */
+export const revenueApi = {
+  async getRevenueRecognitionSummary(periodDays = 30) {
+    const params = { period_days: periodDays };
+    const response = await getWithRetry('/revenue/recognition-summary', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getMonthlyRevenueTrend(months = 12) {
+    const params = { months };
+    const response = await getWithRetry('/revenue/monthly-trend', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getRevenueBreakdown(startDate, endDate) {
+    const params = { start_date: startDate, end_date: endDate };
+    const response = await getWithRetry('/revenue/breakdown', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getAccountsReceivableAging() {
+    const response = await getWithRetry('/revenue/accounts-receivable-aging');
+    return response.data?.data || response.data;
+  },
+
+  async downloadRevenueRecognitionHTML(periodDays = 30) {
+    try {
+      const revenueData = await this.getRevenueRecognitionSummary(periodDays);
+      const { downloadRevenueRecognitionHTML } = await import('../utils/htmlReportDownload.js');
+      const result = downloadRevenueRecognitionHTML(revenueData, `${periodDays} days`);
+      
+      if (result.success) {
+        toastService.success('Revenue recognition report downloaded successfully!');
+      } else {
+        throw new Error(result.error);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error downloading revenue recognition HTML:', error);
+      toastService.error('Failed to download revenue recognition report');
+      throw error;
+    }
+  }
+};
+
+/**
+ * Reports API with enhanced toast handling
+ */
+export const reportsApi = {
+  async getDailySummary(date) {
+    const params = date ? { date } : {};
+    const response = await getWithRetry('/reports/daily-summary', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getWeeklySummary(weekEnding) {
+    const params = weekEnding ? { week_ending: weekEnding } : {};
+    const response = await getWithRetry('/reports/weekly-summary', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getMonthlySummary(year, month) {
+    const params = { year, month };
+    const response = await getWithRetry('/reports/monthly-summary', { params });
+    return response.data?.data || response.data;
+  },
+
+  async getFinancialDashboard() {
+    const response = await getWithRetry('/reports/financial-dashboard');
+    return response.data?.data || response.data;
+  },
+
+  async downloadDailySummaryHTML(date) {
+    try {
+      const summaryData = await this.getDailySummary(date);
+      const { downloadDailySummaryHTML } = await import('../utils/htmlReportDownload.js');
+      const result = downloadDailySummaryHTML(summaryData, date);
+      
+      if (result.success) {
+        toastService.success('Daily summary report downloaded successfully!');
+      } else {
+        throw new Error(result.error);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error downloading daily summary HTML:', error);
+      toastService.error('Failed to download daily summary report');
+      throw error;
+    }
+  },
+
+  async downloadWeeklySummaryHTML(weekEnding) {
+    const params = weekEnding ? { week_ending: weekEnding } : {};
+    const response = await get('/reports/weekly-summary/download-html', { 
+      params,
+      responseType: 'blob'
+    });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `weekly_summary_${weekEnding || new Date().toISOString().split('T')[0]}.html`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    toastService.success('Weekly summary report downloaded successfully!');
+    return response.data;
+  },
+
+  async validateDateRange(startDate, endDate) {
+    const params = { start_date: startDate, end_date: endDate };
+    const response = await get('/reports/date-range-validation', { params });
+    return response.data?.data || response.data;
+  },
+
+  async clearCache() {
+    return await withLoadingToast(
+      async () => {
+        const response = await post('/reports/cache/clear');
+        toastService.success('Reports cache cleared successfully!');
+        return response.data;
+      },
+      'Clearing reports cache...'
+    );
   }
 };
 

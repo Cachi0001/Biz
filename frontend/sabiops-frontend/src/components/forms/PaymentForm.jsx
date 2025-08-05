@@ -1,85 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Textarea } from '../ui/textarea';
-import { Checkbox } from '../ui/checkbox';
-import { CreditCard, Smartphone, Building2, Banknote } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import PaymentMethodSelector from './PaymentMethodSelector';
+import { paymentApi } from '../../services/enhancedApiClient';
 
-const PaymentForm = ({ onSuccess, onCancel }) => {
+const PaymentForm = ({ onSuccess, onCancel, initialData = {} }) => {
   const [formData, setFormData] = useState({
-    amount: '',
-    payment_method_id: '',
-    description: '',
-    reference_number: '',
-    is_pos_transaction: false,
-    pos_account_name: '',
-    transaction_type: 'Sale',
-    pos_reference_number: ''
+    amount: initialData.amount || '',
+    description: initialData.description || '',
+    ...initialData
   });
 
-  const [paymentMethods, setPaymentMethods] = useState([]);
-  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [paymentMethodData, setPaymentMethodData] = useState({
+    payment_method_id: '',
+    payment_method: null,
+    pos_data: {}
+  });
+
+  const [paymentMethodValidation, setPaymentMethodValidation] = useState({
+    isValid: false,
+    errors: []
+  });
+
   const [loading, setLoading] = useState(false);
-  const [loadingMethods, setLoadingMethods] = useState(true);
-
-  // Mock payment methods - in real app, fetch from API
-  useEffect(() => {
-    const fetchPaymentMethods = async () => {
-      try {
-        setLoadingMethods(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const mockMethods = [
-          {
-            id: '1',
-            name: 'Cash',
-            type: 'Cash',
-            is_pos: false,
-            requires_reference: false,
-            description: 'Physical cash payments'
-          },
-          {
-            id: '2',
-            name: 'POS - Card',
-            type: 'Digital',
-            is_pos: true,
-            requires_reference: true,
-            description: 'Card payments via POS terminal'
-          },
-          {
-            id: '3',
-            name: 'Mobile Money',
-            type: 'Digital',
-            is_pos: false,
-            requires_reference: true,
-            description: 'Mobile money transfers'
-          },
-          {
-            id: '4',
-            name: 'Bank Transfer',
-            type: 'Digital',
-            is_pos: false,
-            requires_reference: true,
-            description: 'Direct bank transfers'
-          }
-        ];
-        
-        setPaymentMethods(mockMethods);
-      } catch (error) {
-        console.error('Error fetching payment methods:', error);
-        toast.error('Failed to load payment methods');
-      } finally {
-        setLoadingMethods(false);
-      }
-    };
-
-    fetchPaymentMethods();
-  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -88,202 +34,84 @@ const PaymentForm = ({ onSuccess, onCancel }) => {
     }));
   };
 
-  const handlePaymentMethodChange = (methodId) => {
-    const method = paymentMethods.find(m => m.id === methodId);
-    setSelectedMethod(method);
-    
-    setFormData(prev => ({
-      ...prev,
-      payment_method_id: methodId,
-      is_pos_transaction: method?.is_pos || false,
-      // Clear POS fields if not POS method
-      pos_account_name: method?.is_pos ? prev.pos_account_name : '',
-      pos_reference_number: method?.is_pos ? prev.pos_reference_number : '',
-      // Clear reference if not required
-      reference_number: method?.requires_reference && !method?.is_pos ? prev.reference_number : ''
-    }));
+  const handlePaymentMethodChange = (data) => {
+    setPaymentMethodData(data);
+  };
+
+  const handlePaymentMethodValidation = (validation) => {
+    setPaymentMethodValidation(validation);
   };
 
   const validateForm = () => {
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return false;
+      return { isValid: false, error: 'Please enter a valid amount' };
     }
 
-    if (!formData.payment_method_id) {
-      toast.error('Please select a payment method');
-      return false;
+    if (!paymentMethodValidation.isValid) {
+      return { 
+        isValid: false, 
+        error: paymentMethodValidation.errors[0] || 'Please complete payment method selection' 
+      };
     }
 
-    if (selectedMethod?.is_pos) {
-      if (!formData.pos_account_name.trim()) {
-        toast.error('POS account name is required');
-        return false;
-      }
-      if (selectedMethod.requires_reference && !formData.pos_reference_number.trim()) {
-        toast.error('POS reference number is required');
-        return false;
-      }
-    } else if (selectedMethod?.requires_reference && !formData.reference_number.trim()) {
-      toast.error('Reference number is required');
-      return false;
-    }
-
-    return true;
+    return { isValid: true };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    const validation = validateForm();
+    if (!validation.isValid) {
       return;
     }
 
     try {
       setLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prepare payment data for API
+      const paymentData = {
+        amount: parseFloat(formData.amount),
+        payment_method_id: paymentMethodData.payment_method_id,
+        description: formData.description,
+        ...paymentMethodData.pos_data
+      };
       
-      // In real app, make API call to record payment
-      console.log('Recording payment:', formData);
-      
-      toast.success('Payment recorded successfully!');
+      await paymentApi.recordPayment(paymentData);
       onSuccess();
     } catch (error) {
       console.error('Error recording payment:', error);
-      toast.error('Failed to record payment. Please try again.');
+      // Error toast is handled by the API client
     } finally {
       setLoading(false);
     }
   };
 
-  const getPaymentMethodIcon = (method) => {
-    if (method.type === 'Cash') return <Banknote className="h-4 w-4" />;
-    if (method.is_pos) return <CreditCard className="h-4 w-4" />;
-    if (method.name.includes('Mobile')) return <Smartphone className="h-4 w-4" />;
-    return <Building2 className="h-4 w-4" />;
-  };
-
-  if (loadingMethods) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading payment methods...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Amount */}
-        <div className="space-y-2">
-          <Label htmlFor="amount">Amount *</Label>
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            value={formData.amount}
-            onChange={(e) => handleInputChange('amount', e.target.value)}
-            className="text-lg font-semibold"
-          />
-        </div>
-
-        {/* Payment Method */}
-        <div className="space-y-2">
-          <Label htmlFor="payment_method">Payment Method *</Label>
-          <Select value={formData.payment_method_id} onValueChange={handlePaymentMethodChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select payment method" />
-            </SelectTrigger>
-            <SelectContent>
-              {paymentMethods.map((method) => (
-                <SelectItem key={method.id} value={method.id}>
-                  <div className="flex items-center gap-2">
-                    {getPaymentMethodIcon(method)}
-                    <span>{method.name}</span>
-                    {method.is_pos && <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">POS</span>}
-                    {method.requires_reference && <span className="text-xs bg-orange-100 text-orange-800 px-1 rounded">Ref</span>}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedMethod && (
-            <p className="text-xs text-gray-600">{selectedMethod.description}</p>
-          )}
-        </div>
+      {/* Amount */}
+      <div className="space-y-2">
+        <Label htmlFor="amount">Amount *</Label>
+        <Input
+          id="amount"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="0.00"
+          value={formData.amount}
+          onChange={(e) => handleInputChange('amount', e.target.value)}
+          className="text-lg font-semibold"
+          disabled={loading}
+        />
       </div>
 
-      {/* POS Fields */}
-      {selectedMethod?.is_pos && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              POS Transaction Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pos_account_name">POS Account Name *</Label>
-                <Input
-                  id="pos_account_name"
-                  placeholder="e.g., Moniepoint POS, Opay POS"
-                  value={formData.pos_account_name}
-                  onChange={(e) => handleInputChange('pos_account_name', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="transaction_type">Transaction Type</Label>
-                <Select value={formData.transaction_type} onValueChange={(value) => handleInputChange('transaction_type', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sale">Sale</SelectItem>
-                    <SelectItem value="Refund">Refund</SelectItem>
-                    <SelectItem value="Deposit">Deposit</SelectItem>
-                    <SelectItem value="Withdrawal">Withdrawal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {selectedMethod.requires_reference && (
-              <div className="space-y-2">
-                <Label htmlFor="pos_reference_number">POS Reference Number *</Label>
-                <Input
-                  id="pos_reference_number"
-                  placeholder="Enter POS reference/receipt number"
-                  value={formData.pos_reference_number}
-                  onChange={(e) => handleInputChange('pos_reference_number', e.target.value)}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reference Number for non-POS methods */}
-      {selectedMethod?.requires_reference && !selectedMethod?.is_pos && (
-        <div className="space-y-2">
-          <Label htmlFor="reference_number">Reference Number *</Label>
-          <Input
-            id="reference_number"
-            placeholder="Enter transaction reference number"
-            value={formData.reference_number}
-            onChange={(e) => handleInputChange('reference_number', e.target.value)}
-          />
-        </div>
-      )}
+      {/* Payment Method Selector */}
+      <PaymentMethodSelector
+        value={paymentMethodData.payment_method_id}
+        onChange={handlePaymentMethodChange}
+        onValidationChange={handlePaymentMethodValidation}
+        required={true}
+        disabled={loading}
+      />
 
       {/* Description */}
       <div className="space-y-2">
@@ -294,11 +122,12 @@ const PaymentForm = ({ onSuccess, onCancel }) => {
           value={formData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           rows={3}
+          disabled={loading}
         />
       </div>
 
       {/* Payment Summary */}
-      {formData.amount && selectedMethod && (
+      {formData.amount && paymentMethodData.payment_method && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -307,15 +136,15 @@ const PaymentForm = ({ onSuccess, onCancel }) => {
                 <p className="text-lg font-semibold text-green-800">
                   ₦{parseFloat(formData.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-sm text-gray-600">via {selectedMethod.name}</p>
+                <p className="text-sm text-gray-600">via {paymentMethodData.payment_method.name}</p>
               </div>
               <div className="text-right">
-                {selectedMethod.is_pos && formData.pos_account_name && (
-                  <p className="text-xs text-gray-600">POS: {formData.pos_account_name}</p>
+                {paymentMethodData.payment_method.is_pos && paymentMethodData.pos_data.pos_account_name && (
+                  <p className="text-xs text-gray-600">POS: {paymentMethodData.pos_data.pos_account_name}</p>
                 )}
-                {(formData.pos_reference_number || formData.reference_number) && (
+                {(paymentMethodData.pos_data.pos_reference_number || paymentMethodData.pos_data.reference_number) && (
                   <p className="text-xs text-gray-600">
-                    Ref: {formData.pos_reference_number || formData.reference_number}
+                    Ref: {paymentMethodData.pos_data.pos_reference_number || paymentMethodData.pos_data.reference_number}
                   </p>
                 )}
               </div>
@@ -338,7 +167,7 @@ const PaymentForm = ({ onSuccess, onCancel }) => {
         <Button
           type="submit"
           className="flex-1 bg-green-600 hover:bg-green-700"
-          disabled={loading}
+          disabled={loading || !paymentMethodValidation.isValid}
         >
           {loading ? (
             <div className="flex items-center gap-2">

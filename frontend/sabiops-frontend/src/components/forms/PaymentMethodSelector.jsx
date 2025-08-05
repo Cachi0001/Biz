@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CreditCard, Smartphone, Building2, Banknote, AlertCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { paymentApi } from '../../services/enhancedApiClient';
 
 const PaymentMethodSelector = ({ 
   value, 
@@ -12,7 +12,10 @@ const PaymentMethodSelector = ({
   onValidationChange,
   className = "",
   required = false,
-  disabled = false 
+  disabled = false,
+  showDropdownFormat = true,
+  filterType = null, // 'Cash', 'Digital', 'Credit'
+  posOnly = false
 }) => {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedMethod, setSelectedMethod] = useState(null);
@@ -25,82 +28,33 @@ const PaymentMethodSelector = ({
   const [validationErrors, setValidationErrors] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock payment methods - in real app, fetch from API
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
         
-        const mockMethods = [
-          {
-            id: '1',
-            name: 'Cash',
-            type: 'Cash',
-            is_pos: false,
-            requires_reference: false,
-            description: 'Physical cash payments',
-            display_name: 'Cash'
-          },
-          {
-            id: '2',
-            name: 'POS - Card',
-            type: 'Digital',
-            is_pos: true,
-            requires_reference: true,
-            description: 'Card payments via POS terminal',
-            display_name: 'POS - Card (Requires: Account Name, Reference)'
-          },
-          {
-            id: '3',
-            name: 'POS - Transfer',
-            type: 'Digital',
-            is_pos: true,
-            requires_reference: true,
-            description: 'Bank transfers via POS',
-            display_name: 'POS - Transfer (Requires: Account Name, Reference)'
-          },
-          {
-            id: '4',
-            name: 'Mobile Money',
-            type: 'Digital',
-            is_pos: false,
-            requires_reference: true,
-            description: 'Mobile money transfers',
-            display_name: 'Mobile Money (Requires: Reference)'
-          },
-          {
-            id: '5',
-            name: 'Bank Transfer',
-            type: 'Digital',
-            is_pos: false,
-            requires_reference: true,
-            description: 'Direct bank transfers',
-            display_name: 'Bank Transfer (Requires: Reference)'
-          },
-          {
-            id: '6',
-            name: 'Credit',
-            type: 'Credit',
-            is_pos: false,
-            requires_reference: false,
-            description: 'Credit sales (pay later)',
-            display_name: 'Credit'
-          }
-        ];
+        const params = {
+          active_only: true,
+          dropdown: showDropdownFormat,
+          ...(filterType && { type: filterType }),
+          ...(posOnly && { pos_only: true })
+        };
         
-        setPaymentMethods(mockMethods);
+        const response = await paymentApi.getPaymentMethods(params);
+        const methods = response.payment_methods || response || [];
+        
+        setPaymentMethods(methods);
       } catch (error) {
         console.error('Error fetching payment methods:', error);
-        toast.error('Failed to load payment methods');
+        // Error toast is handled by the API client
+        setPaymentMethods([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPaymentMethods();
-  }, []);
+  }, [showDropdownFormat, filterType, posOnly]);
 
   // Validate current selection
   useEffect(() => {
