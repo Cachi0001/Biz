@@ -36,7 +36,7 @@ export const authService = {
   // Confirm registration (email verification)
   async registerConfirmed(userData) {
     try {
-      const response = await require('./api').registerConfirmed(userData);
+      const response = await registerConfirmed(userData);
       if (response.data && response.data.access_token) {
         localStorage.setItem("token", response.data.access_token);
         localStorage.setItem("user", JSON.stringify(response.data.user));

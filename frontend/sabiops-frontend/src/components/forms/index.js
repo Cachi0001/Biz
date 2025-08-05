@@ -31,25 +31,34 @@ export {
 
 // Re-export commonly used form patterns
 export const FormComponents = {
-  StandardForm: require('./StandardForm').default,
-  FormModal: require('./FormModal').default,
-  FormBuilder: require('./FormBuilder').default
+  StandardForm: StandardForm,
+  FormModal: FormModal,
+  FormBuilder: FormBuilder
 };
 
 export const FieldConfigs = {
-  customer: require('./fieldConfigs').customerFields,
-  product: require('./fieldConfigs').productFields,
-  invoice: require('./fieldConfigs').invoiceFields,
-  sale: require('./fieldConfigs').salesFields,
-  expense: require('./fieldConfigs').expenseFields,
-  user: require('./fieldConfigs').userFields,
-  settings: require('./fieldConfigs').settingsFields
+  customer: customerFields,
+  product: productFields,
+  invoice: invoiceFields,
+  sale: salesFields,
+  expense: expenseFields,
+  user: userFields,
+  settings: settingsFields
 };
 
 export default {
-  StandardForm: require('./StandardForm').default,
-  FormModal: require('./FormModal').default,
-  FormBuilder: require('./FormBuilder').default,
-  useFormBuilder: require('./FormBuilder').useFormBuilder,
-  ...require('./fieldConfigs')
+  StandardForm: StandardForm,
+  FormModal: FormModal,
+  FormBuilder: FormBuilder,
+  useFormBuilder: useFormBuilder,
+  customerFields,
+  productFields,
+  invoiceFields,
+  salesFields,
+  expenseFields,
+  userFields,
+  settingsFields,
+  getFieldConfig,
+  createFieldSubset,
+  modifyFields
 };
