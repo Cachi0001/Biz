@@ -94,13 +94,6 @@ const DailySummaryDashboard = ({ userId }) => {
         pos_summary: {
           pos_accounts: [
             {
-              account_name: 'Moniepoint POS',
-              deposits: 45000,
-              withdrawals: 5000,
-              net_flow: 40000,
-              transaction_count: 15
-            },
-            {
               account_name: 'Opay POS',
               deposits: 35000,
               withdrawals: 2000,
