@@ -241,6 +241,10 @@ def create_app():
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
     app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
     
+    # Register enhanced payment routes
+    from .infrastructure.web.controllers.enhanced_payment_controller import enhanced_payment_bp
+    app.register_blueprint(enhanced_payment_bp)
+    
     # Register test routes (remove in production)
     from .routes.test_notifications import test_notifications_bp
     app.register_blueprint(test_notifications_bp, url_prefix='/api/test')

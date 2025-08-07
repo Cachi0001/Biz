@@ -1,1243 +1,334 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
-import uuid
 import logging
-import json
-from src.utils.user_context import get_user_context
-from src.utils.subscription_decorators import protected_sales_creation, get_usage_status_for_response
 
+from core.use_cases.sales.create_sale_use_case import CreateSaleUseCase
+from utils.user_context import get_user_context
+from utils.subscription_decorators import protected_sales_creation, get_usage_status_for_response
+from shared.utils.response_utils import (
+    success_response, error_response, validation_error_response,
+    internal_server_error_response, not_found_response
+)
+
+logger = logging.getLogger(__name__)
 sales_bp = Blueprint("sales", __name__)
 
 def get_supabase():
     """Get Supabase client from Flask app config"""
     return current_app.config['SUPABASE']
 
-def success_response(data=None, message="Success", status_code=200):
-    return jsonify({
-        "success": True,
-        "data": data,
-        "message": message
-    }), status_code
-
-def error_response(error, message="Error", status_code=400):
-    return jsonify({
-        "success": False,
-        "error": error,
-        "message": message
-    }), status_code
-
-@sales_bp.route("/", methods=["GET"])
-@jwt_required()
-def get_sales():
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
+class SalesService:
+    """Service for sales operations"""
+    
+    def __init__(self, supabase_client):
+        self.supabase = supabase_client
+    
+    def get_sales_with_filters(self, owner_id: str, filters: dict) -> dict:
+        """Get sales with optional filters"""
         try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-
-        if not supabase:
-            print("[ERROR] Supabase connection not available in get_sales")
-            return error_response("Database connection not available", 500)
-        # Build query with filters
-        query = supabase.table("sales").select("*").eq("owner_id", owner_id)
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
-        customer_id = request.args.get("customer_id")
-        product_id = request.args.get("product_id")
-        if start_date:
-            query = query.gte("date", start_date)
-        if end_date:
-            query = query.lte("date", end_date)
-        if customer_id:
-            query = query.eq("customer_id", customer_id)
-        if product_id:
-            query = query.eq("product_id", product_id)
-        try:
+            # Build query with filters
+            query = self.supabase.table("sales").select("*").eq("owner_id", owner_id)
+            
+            if filters.get("start_date"):
+                query = query.gte("date", filters["start_date"])
+            if filters.get("end_date"):
+                query = query.lte("date", filters["end_date"])
+            if filters.get("customer_id"):
+                query = query.eq("customer_id", filters["customer_id"])
+            if filters.get("product_id"):
+                query = query.eq("product_id", filters["product_id"])
+            
             sales_result = query.order("date", desc=True).execute()
-        except Exception as db_exc:
-            print(f"[ERROR] Supabase DB error in get_sales: {db_exc}")
-            return error_response("Database error: " + str(db_exc), 500)
-        if not sales_result.data:
-            return success_response(
-                data={
+            
+            if not sales_result.data:
+                return {
                     "sales": [],
                     "summary": {
                         "total_sales": 0.0,
                         "total_transactions": 0,
-                        "today_sales": 0.0
+                        "today_sales": 0.0,
+                        "total_profit": 0.0,
+                        "profit_margin": 0.0
                     }
                 }
-            )
-        # Calculate summary statistics
-        sales_data = sales_result.data
-        try:
+            
+            # Calculate summary statistics
+            sales_data = sales_result.data
             total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales_data)
             total_transactions = len(sales_data)
-            total_profit_from_sales = sum(float(sale.get("profit_from_sales", 0)) for sale in sales_data)
-            total_cogs = sum(float(sale.get("total_cogs", 0)) for sale in sales_data)
-            profit_margin = (total_profit_from_sales / total_sales * 100) if total_sales > 0 else 0
+            total_profit = sum(float(sale.get("profit_from_sales", 0)) for sale in sales_data)
+            profit_margin = (total_profit / total_sales * 100) if total_sales > 0 else 0
             
+            # Today's sales
             today = datetime.now().date().isoformat()
             today_sales = sum(
                 float(sale.get("total_amount", 0)) 
                 for sale in sales_data 
                 if sale.get("date") and str(sale.get("date", "")).startswith(today)
             )
-            today_profit = sum(
-                float(sale.get("profit_from_sales", 0)) 
-                for sale in sales_data 
-                if sale.get("date") and str(sale.get("date", "")).startswith(today)
-            )
-        except Exception as calc_exc:
-            print(f"[ERROR] Calculation error in get_sales: {calc_exc}")
-            return error_response("Calculation error: " + str(calc_exc), 500)
-        formatted_sales = []
-        for sale in sales_data:
-            formatted_sale = {
-                "id": sale.get("id"),
-                "customer_id": sale.get("customer_id"),
-                "customer_name": sale.get("customer_name", "Walk-in Customer"),
-                "product_id": sale.get("product_id"),
-                "product_name": sale.get("product_name"),
-                "quantity": sale.get("quantity"),
-                "unit_price": float(sale.get("unit_price", 0)),
-                "total_amount": float(sale.get("total_amount", 0)),
-                "total_cogs": float(sale.get("total_cogs", 0)),
-                "gross_profit": float(sale.get("gross_profit", 0)),
-                "profit_from_sales": float(sale.get("profit_from_sales", 0)),
-                "payment_method": sale.get("payment_method", "cash"),
-                "date": sale.get("date"),
-                "salesperson_id": sale.get("salesperson_id"),
-                "created_at": sale.get("created_at")
-            }
-            formatted_sales.append(formatted_sale)
-        return success_response(
-            data={
-                "sales": formatted_sales,
+            
+            return {
+                "sales": sales_data,
                 "summary": {
                     "total_sales": total_sales,
                     "total_transactions": total_transactions,
                     "today_sales": today_sales,
-                    "total_profit_from_sales": total_profit_from_sales,
-                    "total_cogs": total_cogs,
-                    "profit_margin": round(profit_margin, 2),
-                    "today_profit": today_profit
+                    "total_profit": total_profit,
+                    "profit_margin": round(profit_margin, 2)
                 }
             }
+            
+        except Exception as e:
+            logerror(f"Error getting sales: {str(e)}")
+            raise
+    
+    def get_sale_by_id(self, sale_id: str, owner_id: str) -> dict:
+        """Get single sale by ID"""
+        try:
+            result = self.supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).execute()
+            
+            if not result.data:
+                return None
+            
+            return result.data[0]
+            
+        except Exception as e:
+            logger.error(f"Error getting sale by ID: {str(e)}")
+            raise
+
+@sales_bp.route("/", methods=["GET"])
+@jwt_required()
+def get_sales():
+    """Get sales with optional filters"""
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
+        
+        # Get filters from query parameters
+        filters = {
+            "start_date": request.args.get("start_date"),
+            "end_date": request.args.get("end_date"),
+            "customer_id": request.args.get("customer_id"),
+            "product_id": request.args.get("product_id")
+        }
+        
+        # Remove None values
+        filters = {k: v for k, v in filters.items() if v is not None}
+        
+        sales_service = SalesService(supabase)
+        result = sales_service.get_sales_with_filters(owner_id, filters)
+        
+        return success_response(
+            data=result,
+            message="Sales retrieved successfully"
         )
+        
     except Exception as e:
-        print(f"[ERROR] Unhandled exception in get_sales: {e}")
-        import traceback
-        print(traceback.format_exc())
-        return error_response(str(e), "Failed to fetch sales", status_code=500)
+        logger.error(f"Get sales error: {str(e)}")
+        return internal_server_error_response(f"Failed to get sales: {str(e)}")
+
+@sales_bp.route("/<sale_id>", methods=["GET"])
+@jwt_required()
+def get_sale(sale_id):
+    """Get single sale by ID"""
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
+        user_id = get_jwt_identity()
+        try:
+            owner_id, user_role = get_user_context(user_id)
+        except ValueError as e:
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
+        
+        sales_service = SalesService(supabase)
+        sale = sales_service.get_sale_by_id(sale_id, owner_id)
+        
+        if not sale:
+            return not_found_response("Sale", sale_id)
+        
+        return success_response(
+            data=sale,
+            message="Sale retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get sale error: {str(e)}")
+        return internal_server_error_response(f"Failed to get sale: {str(e)}")
 
 @sales_bp.route("/", methods=["POST"])
 @jwt_required()
 @protected_sales_creation
 def create_sale():
+    """Create a new sale with inventory management"""
     try:
         supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
+        
         data = request.get_json()
-
-        if not isinstance(data, dict):
-            logging.error(f"Received non-dictionary data in create_sale: {data}")
-            return error_response("Invalid request data format. Expected JSON.", "Validation failed", 400)
-
-        # Process the complete sale transaction with automatic inventory updates and transaction creation
-        required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({
-                    "success": False,
-                    "message": f"{field} is required",
-                    "toast": {
-                        "type": "error",
-                        "message": f"{field} is required",
-                        "timeout": 3000
-                    }
-                }), 400
+        if not data:
+            return validation_error_response("Request body is required")
         
-        # Validate numeric fields
-        try:
-            quantity = int(data["quantity"])
-            unit_price = float(data["unit_price"])
-            total_amount = float(data["total_amount"])
+        # Create sale using use case
+        create_sale_use_case = CreateSaleUseCase(supabase)
+        result = create_sale_use_case.execute(data, owner_id)
+        
+        if result["success"]:
+            # Add usage status to response
+            response_data = result["data"]
+            usage_status = get_usage_status_for_response(user_id)
+            if usage_status:
+                response_data["usage_status"] = usage_status
             
-            if quantity <= 0:
-                return jsonify({
-                    "success": False,
-                    "message": "Quantity must be greater than 0",
-                    "toast": {
-                        "type": "error",
-                        "message": "Quantity must be greater than 0",
-                        "timeout": 3000
-                    }
-                }), 400
-            if unit_price < 0:
-                return jsonify({
-                    "success": False,
-                    "message": "Unit price cannot be negative",
-                    "toast": {
-                        "type": "error",
-                        "message": "Unit price cannot be negative",
-                        "timeout": 3000
-                    }
-                }), 400
-            if total_amount < 0:
-                return jsonify({
-                    "success": False,
-                    "message": "Total amount cannot be negative",
-                    "toast": {
-                        "type": "error",
-                        "message": "Total amount cannot be negative",
-                        "timeout": 3000
-                    }
-                }), 400
-                
-        except (ValueError, TypeError):
-            return jsonify({
-                "success": False,
-                "message": "Invalid numeric values provided",
-                "toast": {
-                    "type": "error",
-                    "message": "Invalid numeric values provided",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Use business operations manager for data consistency
-        from src.utils.business_operations import BusinessOperationsManager
-        business_ops = BusinessOperationsManager(supabase)
-        
-        # Ensure data is a dictionary before passing to business_ops
-        if isinstance(data, str):
-            try:
-                data = json.loads(data)
-            except json.JSONDecodeError:
-                logging.error(f"Failed to decode JSON string data: {data}")
-                return error_response("Invalid JSON format in request body.", "Validation failed", 400)
-        
-        # Pre-processing validation and data format consistency
-        try:
-            # Log the incoming data for debugging
-            logging.debug(f"Sales route received data: {type(data)} - {data}")
-            
-            # Ensure data is a dictionary
-            if not isinstance(data, dict):
-                logging.error(f"Sales route received non-dictionary data: {type(data)}")
-                return jsonify({
-                    "success": False,
-                    "message": "Invalid request data format. Expected JSON object.",
-                    "toast": {
-                        "type": "error",
-                        "message": "Invalid request data format.",
-                        "timeout": 3000
-                    }
-                }), 400
-            
-            # Validate that required fields are present and not empty strings
-            required_fields = ["product_id", "quantity", "unit_price", "total_amount"]
-            for field in required_fields:
-                if field not in data or data[field] is None or data[field] == "":
-                    logging.error(f"Missing or empty required field: {field}")
-                    return jsonify({
-                        "success": False,
-                        "message": f"Required field '{field}' is missing or empty",
-                        "toast": {
-                            "type": "error",
-                            "message": f"Required field '{field}' is missing or empty",
-                            "timeout": 3000
-                        }
-                    }), 400
-            
-            # Ensure numeric fields are properly formatted
-            try:
-                data["quantity"] = int(data["quantity"])
-                data["unit_price"] = float(data["unit_price"])
-                data["total_amount"] = float(data["total_amount"])
-                
-                # Optional numeric fields
-                if "discount_amount" in data and data["discount_amount"] is not None:
-                    data["discount_amount"] = float(data["discount_amount"])
-                if "tax_amount" in data and data["tax_amount"] is not None:
-                    data["tax_amount"] = float(data["tax_amount"])
-                    
-            except (ValueError, TypeError) as e:
-                logging.error(f"Error converting numeric fields: {str(e)}")
-                return jsonify({
-                    "success": False,
-                    "message": "Invalid numeric values in request data",
-                    "toast": {
-                        "type": "error",
-                        "message": "Invalid numeric values provided",
-                        "timeout": 3000
-                    }
-                }), 400
-            
-            # Ensure string fields are properly formatted
-            string_fields = ["product_id", "customer_id", "customer_name", "payment_method", "notes"]
-            for field in string_fields:
-                if field in data and data[field] is not None and not isinstance(data[field], str):
-                    data[field] = str(data[field])
-            
-            logging.debug(f"Sales route processed data: {data}")
-            
-        except Exception as validation_error:
-            logging.error(f"Data validation error in sales route: {str(validation_error)}")
-            return jsonify({
-                "success": False,
-                "message": "Data validation failed",
-                "error": str(validation_error),
-                "toast": {
-                    "type": "error",
-                    "message": "Data validation failed. Please check your input.",
-                    "timeout": 3000
-                }
-            }), 400
-
-        # Process the complete sale transaction with automatic inventory updates and transaction creation
-        success, error_message, sale_record = business_ops.process_sale_transaction(data, owner_id)
-        
-        if not success:
-            return jsonify({
-                "success": False,
-                "message": error_message,
-                "toast": {
-                    "type": "error",
-                    "message": error_message,
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Get updated usage status for response
-        usage_status = get_usage_status_for_response(user_id, 'sales')
-        
-        return jsonify({
-            "success": True,
-            "message": "Sale created successfully with inventory update",
-            "data": {
-                "sale": sale_record,
-                "usage_status": usage_status
-            },
-            "toast": {
-                "type": "success",
-                "message": "Sale created successfully.",
-                "timeout": 3000
-            }
-        }), 201
-        
-    except Exception as e:
-        logging.error(f"Error creating sale: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Failed to create sale",
-            "error": str(e),
-            "toast": {
-                "type": "error",
-                "message": "An unexpected error occurred while creating the sale.",
-                "timeout": 4000
-            }
-        }), 500
-
-@sales_bp.route("/stats", methods=["GET"])
-@jwt_required()
-def get_sales_stats():
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
-        
-        query = supabase.table("sales").select("*").eq("owner_id", owner_id)
-        
-        if start_date:
-            query = query.gte("date", start_date)
-        
-        if end_date:
-            query = query.lte("date", end_date)
-        
-        sales_result = query.execute()
-        
-        if not sales_result.data:
             return success_response(
-                data={
-                    "total_sales": 0.0,
-                    "total_transactions": 0,
-                    "average_sale_value": 0.0,
-                    "total_gross_profit": 0.0,
-                    "total_profit_from_sales": 0.0,
-                    "top_selling_products": [],
-                    "sales_by_payment_method": {},
-                    "monthly_sales": []
-                }
+                data=response_data,
+                message=result["message"]
             )
-        
-        sales = sales_result.data
-        
-        # Calculate basic statistics
-        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
-        total_transactions = len(sales)
-        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
-        total_profit_from_sales = sum(float(sale.get("profit_from_sales", 0)) for sale in sales)
-        average_sale_value = total_sales / total_transactions if total_transactions > 0 else 0
-        
-        # Calculate product sales statistics
-        product_sales = {}
-        for sale in sales:
-            product_id = sale.get("product_id")
-            if product_id and product_id not in product_sales:
-                product_sales[product_id] = {
-                    "product_name": sale.get("product_name", "Unknown"),
-                    "quantity": 0, 
-                    "total_revenue": 0.0,
-                    "total_profit": 0.0,
-                    "total_profit_from_sales": 0.0
-                }
-            if product_id:
-                product_sales[product_id]["quantity"] += int(sale.get("quantity", 0))
-                product_sales[product_id]["total_revenue"] += float(sale.get("total_amount", 0))
-                product_sales[product_id]["total_profit"] += float(sale.get("gross_profit", 0))
-                product_sales[product_id]["total_profit_from_sales"] += float(sale.get("profit_from_sales", 0))
-        
-        # Get top selling products by revenue
-        top_selling_products = sorted(
-            [
-                {"product_id": pid, **data} 
-                for pid, data in product_sales.items()
-            ],
-            key=lambda x: x["total_revenue"],
-            reverse=True
-        )[:5]
-        
-        # Calculate sales by payment method
-        sales_by_payment_method = {}
-        for sale in sales:
-            payment_method = sale.get("payment_method", "cash")
-            if payment_method not in sales_by_payment_method:
-                sales_by_payment_method[payment_method] = {
-                    "count": 0,
-                    "total_amount": 0.0
-                }
-            sales_by_payment_method[payment_method]["count"] += 1
-            sales_by_payment_method[payment_method]["total_amount"] += float(sale.get("total_amount", 0))
-        
-        # Calculate monthly sales (last 12 months)
-        monthly_sales = {}
-        for sale in sales:
-            sale_date = sale.get("date", "")
-            if sale_date:
-                try:
-                    month_key = sale_date[:7]  # YYYY-MM format
-                    if month_key not in monthly_sales:
-                        monthly_sales[month_key] = {
-                            "month": month_key,
-                            "total_sales": 0.0,
-                            "transaction_count": 0,
-                            "gross_profit": 0.0,
-                            "profit_from_sales": 0.0
-                        }
-                    monthly_sales[month_key]["total_sales"] += float(sale.get("total_amount", 0))
-                    monthly_sales[month_key]["transaction_count"] += 1
-                    monthly_sales[month_key]["gross_profit"] += float(sale.get("gross_profit", 0))
-                    monthly_sales[month_key]["profit_from_sales"] += float(sale.get("profit_from_sales", 0))
-                except:
-                    continue
-        
-        # Sort monthly sales by month
-        monthly_sales_list = sorted(monthly_sales.values(), key=lambda x: x["month"], reverse=True)[:12]
-        
-        return success_response(
-            data={
-                "total_sales": total_sales,
-                "total_transactions": total_transactions,
-                "average_sale_value": round(average_sale_value, 2),
-                "total_gross_profit": total_gross_profit,
-                "total_profit_from_sales": total_profit_from_sales,
-                "top_selling_products": top_selling_products,
-                "sales_by_payment_method": sales_by_payment_method,
-                "monthly_sales": monthly_sales_list
-            }
-        )
+        else:
+            if result.get("errors"):
+                return validation_error_response(result["message"], result["errors"])
+            else:
+                return error_response("SALE_CREATION_FAILED", result["message"], 400)
         
     except Exception as e:
-        logging.error(f"Error fetching sales stats: {str(e)}")
-        return error_response(str(e), "Failed to fetch sales statistics", status_code=500)
-
-
-
-
-@sales_bp.route("/<sale_id>", methods=["GET"])
-@jwt_required()
-def get_sale_by_id(sale_id):
-    """Get a specific sale by ID"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        sale_result = supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
-        
-        if not sale_result.data:
-            return error_response("Sale not found", status_code=404)
-        
-        sale = sale_result.data
-        formatted_sale = {
-            "id": sale.get("id"),
-            "customer_id": sale.get("customer_id"),
-            "customer_name": sale.get("customer_name", "Walk-in Customer"),
-            "product_id": sale.get("product_id"),
-            "product_name": sale.get("product_name"),
-            "quantity": sale.get("quantity"),
-            "unit_price": float(sale.get("unit_price", 0)),
-            "total_amount": float(sale.get("total_amount", 0)),
-            "total_cogs": float(sale.get("total_cogs", 0)),
-            "gross_profit": float(sale.get("gross_profit", 0)),
-            "profit_from_sales": float(sale.get("profit_from_sales", 0)),
-            "payment_method": sale.get("payment_method", "cash"),
-            "date": sale.get("date"),
-            "salesperson_id": sale.get("salesperson_id"),
-            "created_at": sale.get("created_at")
-        }
-        
-        return success_response(
-            data={"sale": formatted_sale}
-        )
-        
-    except Exception as e:
-        logging.error(f"Error fetching sale {sale_id}: {str(e)}")
-        return error_response(str(e), "Failed to fetch sale", status_code=500)
+        logger.error(f"Create sale error: {str(e)}")
+        return internal_server_error_response(f"Failed to create sale: {str(e)}")
 
 @sales_bp.route("/<sale_id>", methods=["PUT"])
 @jwt_required()
 def update_sale(sale_id):
-    """Update a sale record"""
+    """Update an existing sale"""
     try:
         supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
+        
         data = request.get_json()
+        if not data:
+            return validation_error_response("Request body is required")
         
         # Check if sale exists
-        existing_sale_result = supabase.table("sales").select("*").eq("id", sale_id).eq("owner_id", owner_id).single().execute()
-        if not existing_sale_result.data:
-            return error_response("Sale not found", status_code=404)
+        sales_service = SalesService(supabase)
+        existing_sale = sales_service.get_sale_by_id(sale_id, owner_id)
         
-        existing_sale = existing_sale_result.data
+        if not existing_sale:
+            return not_found_response("Sale", sale_id)
         
-        # Validate numeric fields if provided
-        if "quantity" in data:
-            try:
-                quantity = int(data["quantity"])
-                if quantity <= 0:
-                    return error_response("Quantity must be greater than 0", status_code=400)
-            except (ValueError, TypeError):
-                return error_response("Invalid quantity value", status_code=400)
+        # Update allowed fields
+        allowed_fields = ['customer_name', 'customer_id', 'notes', 'payment_method']
+        updates = {k: v for k, v in data.items() if k in allowed_fields and v is not None}
         
-        if "unit_price" in data:
-            try:
-                unit_price = float(data["unit_price"])
-                if unit_price < 0:
-                    return error_response("Unit price cannot be negative", status_code=400)
-            except (ValueError, TypeError):
-                return error_response("Invalid unit price value", status_code=400)
+        if not updates:
+            return validation_error_response("No valid fields to update")
         
-        if "total_amount" in data:
-            try:
-                total_amount = float(data["total_amount"])
-                if total_amount < 0:
-                    return error_response("Total amount cannot be negative", status_code=400)
-            except (ValueError, TypeError):
-                return error_response("Invalid total amount value", status_code=400)
+        updates['updated_at'] = datetime.now().isoformat()
         
-        # Prepare update data
-        update_data = {}
-        allowed_fields = ["customer_id", "customer_name", "quantity", "unit_price", "total_amount", "payment_method", "date"]
+        result = supabase.table("sales").update(updates).eq("id", sale_id).eq("owner_id", owner_id).execute()
         
-        for field in allowed_fields:
-            if field in data:
-                update_data[field] = data[field]
-        
-        # If quantity or unit_price changed, recalculate totals
-        if "quantity" in update_data or "unit_price" in update_data:
-            # Get product details for cost calculation
-            product_result = supabase.table("products").select("cost_price").eq("id", existing_sale["product_id"]).single().execute()
-            cost_price = float(product_result.data.get("cost_price", 0)) if product_result.data else 0
-            
-            new_quantity = update_data.get("quantity", existing_sale["quantity"])
-            new_unit_price = update_data.get("unit_price", existing_sale["unit_price"])
-            new_total_amount = update_data.get("total_amount", new_quantity * new_unit_price)
-            
-            new_total_cogs = new_quantity * cost_price
-            new_gross_profit = new_total_amount - new_total_cogs
-            new_profit_from_sales = new_total_amount - new_total_cogs  # Same as gross_profit
-            
-            update_data.update({
-                "total_amount": new_total_amount,
-                "total_cogs": new_total_cogs,
-                "gross_profit": new_gross_profit,
-                "profit_from_sales": new_profit_from_sales
-            })
-        
-        # Update the sale
-        result = supabase.table("sales").update(update_data).eq("id", sale_id).execute()
-        
-        return success_response(
-            message="Sale updated successfully",
-            data={"sale": result.data[0]}
-        )
+        if result.data:
+            return success_response(
+                data=result.data[0],
+                message="Sale updated successfully"
+            )
+        else:
+            return error_response("UPDATE_FAILED", "Failed to update sale", 400)
         
     except Exception as e:
-        logging.error(f"Error updating sale {sale_id}: {str(e)}")
-        return error_response(str(e), "Failed to update sale", status_code=500)
+        logger.error(f"Update sale error: {str(e)}")
+        return internal_server_error_response(f"Failed to update sale: {str(e)}")
 
 @sales_bp.route("/<sale_id>", methods=["DELETE"])
 @jwt_required()
 def delete_sale(sale_id):
-    """Delete a sale record and restore inventory using business operations manager"""
+    """Delete a sale (soft delete)"""
     try:
         supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
         
-        # Use business operations manager for data consistency
-        from src.utils.business_operations import BusinessOperationsManager
-        business_ops = BusinessOperationsManager(supabase)
+        # Check if sale exists
+        sales_service = SalesService(supabase)
+        existing_sale = sales_service.get_sale_by_id(sale_id, owner_id)
         
-        # Reverse the complete sale transaction with automatic inventory restoration
-        success, error_message = business_ops.reverse_sale_transaction(sale_id, owner_id)
+        if not existing_sale:
+            return not_found_response("Sale", sale_id)
         
-        if not success:
-            return error_response(error_message, status_code=404 if "not found" in error_message.lower() else 400)
+        # Soft delete by updating status
+        result = supabase.table("sales").update({
+            "status": "cancelled",
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", sale_id).eq("owner_id", owner_id).execute()
         
-        return success_response(
-            message="Sale deleted successfully with automatic inventory restoration and transaction cleanup"
-        )
-        
-    except Exception as e:
-        logging.error(f"Error deleting sale {sale_id}: {str(e)}")
-        return error_response(str(e), "Failed to delete sale", status_code=500)
-
-@sales_bp.route("/<sale_id>/update-status", methods=["PUT"])
-@jwt_required()
-def update_sale_status(sale_id):
-    """Update sale payment status with enhanced validation"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        data = request.get_json()
-        
-        # Validate required fields
-        if not data or 'payment_status' not in data:
-            return jsonify({
-                "success": False,
-                "message": "Payment status is required",
-                "toast": {
-                    "type": "error",
-                    "message": "Payment status is required",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        new_status = data['payment_status']
-        payment_method_id = data.get('payment_method_id')
-        
-        # Validate payment status
-        valid_statuses = ['Paid', 'Credit', 'Pending', 'Cancelled']
-        if new_status not in valid_statuses:
-            return jsonify({
-                "success": False,
-                "message": f"Invalid payment status. Must be one of: {valid_statuses}",
-                "toast": {
-                    "type": "error",
-                    "message": "Invalid payment status provided",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Validate payment method if marking as paid
-        if new_status == 'Paid' and not payment_method_id:
-            return jsonify({
-                "success": False,
-                "message": "Payment method ID is required when marking sale as paid",
-                "toast": {
-                    "type": "error",
-                    "message": "Payment method is required for paid sales",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Use enhanced sales service
-        from src.services.sales_service import SalesService
-        sales_service = SalesService()
-        
-        try:
-            updated_sale = sales_service.update_sale_status(sale_id, new_status, payment_method_id)
-            
-            return jsonify({
-                "success": True,
-                "message": f"Sale status updated to {new_status}",
-                "data": {"sale": updated_sale},
-                "toast": {
-                    "type": "success",
-                    "message": f"Sale marked as {new_status.lower()}",
-                    "timeout": 3000
-                }
-            }), 200
-            
-        except ValidationError as e:
-            return jsonify({
-                "success": False,
-                "message": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": str(e),
-                    "timeout": 3000
-                }
-            }), 400
-        except NotFoundError as e:
-            return jsonify({
-                "success": False,
-                "message": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Sale not found",
-                    "timeout": 3000
-                }
-            }), 404
-        except DatabaseError as e:
-            return jsonify({
-                "success": False,
-                "message": "Database error occurred",
-                "error": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Failed to update sale status",
-                    "timeout": 3000
-                }
-            }), 500
-            
-    except Exception as e:
-        logging.error(f"Error updating sale status {sale_id}: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Failed to update sale status",
-            "error": str(e),
-            "toast": {
-                "type": "error",
-                "message": "An unexpected error occurred",
-                "timeout": 4000
-            }
-        }), 500
-
-@sales_bp.route("/<sale_id>/partial-payment", methods=["POST"])
-@jwt_required()
-def record_partial_payment(sale_id):
-    """Record a partial payment for a credit sale"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        data = request.get_json()
-        
-        # Validate required fields
-        required_fields = ['amount', 'payment_method_id']
-        for field in required_fields:
-            if not data or field not in data or not data[field]:
-                return jsonify({
-                    "success": False,
-                    "message": f"{field} is required",
-                    "toast": {
-                        "type": "error",
-                        "message": f"{field} is required",
-                        "timeout": 3000
-                    }
-                }), 400
-        
-        # Validate amount
-        try:
-            amount = float(data['amount'])
-            if amount <= 0:
-                return jsonify({
-                    "success": False,
-                    "message": "Payment amount must be greater than 0",
-                    "toast": {
-                        "type": "error",
-                        "message": "Payment amount must be greater than 0",
-                        "timeout": 3000
-                    }
-                }), 400
-        except (ValueError, TypeError):
-            return jsonify({
-                "success": False,
-                "message": "Invalid payment amount format",
-                "toast": {
-                    "type": "error",
-                    "message": "Invalid payment amount provided",
-                    "timeout": 3000
-                }
-            }), 400
-        
-        # Prepare payment data
-        payment_data = {
-            'amount': amount,
-            'payment_method_id': data['payment_method_id'],
-            'user_id': user_id,
-            'description': data.get('description', f'Partial payment for sale {sale_id}'),
-            'pos_account_name': data.get('pos_account_name', ''),
-            'transaction_type': data.get('transaction_type', 'Sale'),
-            'pos_reference_number': data.get('pos_reference_number', ''),
-            'reference_number': data.get('reference_number', '')
-        }
-        
-        # Use credit sales service
-        from src.services.credit_sales_service import CreditSalesService
-        credit_service = CreditSalesService()
-        
-        try:
-            result = credit_service.record_partial_payment(sale_id, payment_data)
-            
-            return jsonify({
-                "success": True,
-                "message": f"Partial payment of ${amount} recorded successfully",
-                "data": {
-                    "sale": result['sale'],
-                    "payment": result['payment'],
-                    "payment_summary": {
-                        "payment_amount": result['payment_amount'],
-                        "new_amount_paid": result['new_amount_paid'],
-                        "new_amount_due": result['new_amount_due'],
-                        "new_payment_status": result['new_payment_status'],
-                        "is_fully_paid": result['is_fully_paid']
-                    }
-                },
-                "toast": {
-                    "type": "success",
-                    "message": f"Payment of ${amount} recorded. Balance: ${result['new_amount_due']}",
-                    "timeout": 4000
-                }
-            }), 201
-            
-        except ValidationError as e:
-            return jsonify({
-                "success": False,
-                "message": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": str(e),
-                    "timeout": 3000
-                }
-            }), 400
-        except NotFoundError as e:
-            return jsonify({
-                "success": False,
-                "message": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Sale not found",
-                    "timeout": 3000
-                }
-            }), 404
-        except DatabaseError as e:
-            return jsonify({
-                "success": False,
-                "message": "Database error occurred",
-                "error": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Failed to record partial payment",
-                    "timeout": 3000
-                }
-            }), 500
-            
-    except Exception as e:
-        logging.error(f"Error recording partial payment for sale {sale_id}: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Failed to record partial payment",
-            "error": str(e),
-            "toast": {
-                "type": "error",
-                "message": "An unexpected error occurred",
-                "timeout": 4000
-            }
-        }), 500
-
-@sales_bp.route("/credit", methods=["GET"])
-@jwt_required()
-def get_outstanding_credit_sales():
-    """Get outstanding credit sales (accounts receivable)"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        # Get pagination parameters
-        limit = min(int(request.args.get('limit', 100)), 1000)  # Max 1000 records
-        offset = int(request.args.get('offset', 0))
-        
-        # Use credit sales service
-        from src.services.credit_sales_service import CreditSalesService
-        credit_service = CreditSalesService()
-        
-        try:
-            result = credit_service.get_outstanding_credit_sales(
-                user_id=owner_id,  # Filter by owner_id for multi-user businesses
-                limit=limit,
-                offset=offset
-            )
-            
-            return jsonify({
-                "success": True,
-                "message": "Outstanding credit sales retrieved successfully",
-                "data": {
-                    "outstanding_sales": result['outstanding_sales'],
-                    "summary": {
-                        "total_count": result['total_count'],
-                        "returned_count": result['returned_count'],
-                        "total_outstanding_amount": result['total_outstanding_amount'],
-                        "oldest_sale_date": result['oldest_sale_date'],
-                        "payment_status_breakdown": result['payment_status_breakdown']
-                    },
-                    "pagination": result['pagination']
-                }
-            }), 200
-            
-        except DatabaseError as e:
-            return jsonify({
-                "success": False,
-                "message": "Database error occurred",
-                "error": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Failed to retrieve credit sales",
-                    "timeout": 3000
-                }
-            }), 500
-            
-    except Exception as e:
-        logging.error(f"Error retrieving outstanding credit sales: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Failed to retrieve outstanding credit sales",
-            "error": str(e),
-            "toast": {
-                "type": "error",
-                "message": "An unexpected error occurred",
-                "timeout": 4000
-            }
-        }), 500
-
-@sales_bp.route("/<sale_id>/payment-history", methods=["GET"])
-@jwt_required()
-def get_sale_payment_history(sale_id):
-    """Get payment history for a specific sale"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        # Use credit sales service
-        from src.services.credit_sales_service import CreditSalesService
-        credit_service = CreditSalesService()
-        
-        try:
-            payment_history = credit_service.get_sale_payment_history(sale_id)
-            
-            return jsonify({
-                "success": True,
-                "message": "Payment history retrieved successfully",
-                "data": {
-                    "sale_id": sale_id,
-                    "payment_history": payment_history,
-                    "payment_count": len(payment_history)
-                }
-            }), 200
-            
-        except ValidationError as e:
-            return jsonify({
-                "success": False,
-                "message": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": str(e),
-                    "timeout": 3000
-                }
-            }), 400
-        except DatabaseError as e:
-            return jsonify({
-                "success": False,
-                "message": "Database error occurred",
-                "error": str(e),
-                "toast": {
-                    "type": "error",
-                    "message": "Failed to retrieve payment history",
-                    "timeout": 3000
-                }
-            }), 500
-            
-    except Exception as e:
-        logging.error(f"Error retrieving payment history for sale {sale_id}: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Failed to retrieve payment history",
-            "error": str(e),
-            "toast": {
-                "type": "error",
-                "message": "An unexpected error occurred",
-                "timeout": 4000
-            }
-        }), 500
-
-@sales_bp.route("/reports/daily", methods=["GET"])
-@jwt_required()
-def get_daily_sales_report():
-    """Get daily sales report"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        target_date = request.args.get("date", datetime.now().date().isoformat())
-        
-        # Get sales for the specific date
-        sales_result = supabase.table("sales").select("*").eq("owner_id", owner_id).gte("date", target_date).lt("date", target_date + "T23:59:59").execute()
-        
-        sales = sales_result.data
-        
-        if not sales:
-            return success_response(
-                data={
-                    "date": target_date,
-                    "total_sales": 0.0,
-                    "total_transactions": 0,
-                    "total_gross_profit": 0.0,
-                    "sales_by_hour": {},
-                    "top_products": [],
-                    "payment_methods": {}
-                }
-            )
-        
-        # Calculate daily statistics
-        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
-        total_transactions = len(sales)
-        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
-        
-        # Sales by hour
-        sales_by_hour = {}
-        for sale in sales:
-            try:
-                hour = datetime.fromisoformat(sale.get("date", "")).hour
-                if hour not in sales_by_hour:
-                    sales_by_hour[hour] = {"count": 0, "amount": 0.0}
-                sales_by_hour[hour]["count"] += 1
-                sales_by_hour[hour]["amount"] += float(sale.get("total_amount", 0))
-            except:
-                continue
-        
-        # Top products for the day
-        product_sales = {}
-        for sale in sales:
-            product_id = sale.get("product_id")
-            if product_id:
-                if product_id not in product_sales:
-                    product_sales[product_id] = {
-                        "product_name": sale.get("product_name", "Unknown"),
-                        "quantity": 0,
-                        "revenue": 0.0
-                    }
-                product_sales[product_id]["quantity"] += int(sale.get("quantity", 0))
-                product_sales[product_id]["revenue"] += float(sale.get("total_amount", 0))
-        
-        top_products = sorted(product_sales.values(), key=lambda x: x["revenue"], reverse=True)[:5]
-        
-        # Payment methods breakdown
-        payment_methods = {}
-        for sale in sales:
-            method = sale.get("payment_method", "cash")
-            if method not in payment_methods:
-                payment_methods[method] = {"count": 0, "amount": 0.0}
-            payment_methods[method]["count"] += 1
-            payment_methods[method]["amount"] += float(sale.get("total_amount", 0))
-        
-        return success_response(
-            data={
-                "date": target_date,
-                "total_sales": total_sales,
-                "total_transactions": total_transactions,
-                "total_gross_profit": total_gross_profit,
-                "sales_by_hour": sales_by_hour,
-                "top_products": top_products,
-                "payment_methods": payment_methods
-            }
-        )
+        if result.data:
+            return success_response(message="Sale deleted successfully")
+        else:
+            return error_response("DELETE_FAILED", "Failed to delete sale", 400)
         
     except Exception as e:
-        logging.error(f"Error generating daily sales report: {str(e)}")
-        return error_response(str(e), "Failed to generate daily sales report", status_code=500)
+        logger.error(f"Delete sale error: {str(e)}")
+        return internal_server_error_response(f"Failed to delete sale: {str(e)}")
 
-@sales_bp.route("/reports/summary", methods=["GET"])
+@sales_bp.route("/summary", methods=["GET"])
 @jwt_required()
 def get_sales_summary():
-    """Get comprehensive sales summary with various metrics"""
+    """Get sales summary statistics"""
     try:
         supabase = get_supabase()
+        if not supabase:
+            return internal_server_error_response("Database connection not available")
+        
         user_id = get_jwt_identity()
         try:
             owner_id, user_role = get_user_context(user_id)
         except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
+            return error_response("AUTHORIZATION_ERROR", str(e), 403)
         
-        # Get all sales
-        sales_result = supabase.table("sales").select("*").eq("owner_id", owner_id).execute()
+        # Get date range from query parameters
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
         
-        if not sales_result.data:
-            return success_response(
-                data={
-                    "total_sales": 0.0,
-                    "total_transactions": 0,
-                    "total_gross_profit": 0.0,
-                    "average_sale_value": 0.0,
-                    "today_sales": 0.0,
-                    "this_week_sales": 0.0,
-                    "this_month_sales": 0.0,
-                    "growth_metrics": {
-                        "daily_growth": 0.0,
-                        "weekly_growth": 0.0,
-                        "monthly_growth": 0.0
-                    }
-                }
-            )
+        filters = {}
+        if start_date:
+            filters["start_date"] = start_date
+        if end_date:
+            filters["end_date"] = end_date
         
-        sales = sales_result.data
-        now = datetime.now()
-        today = now.date().isoformat()
-        week_start = (now - datetime.timedelta(days=now.weekday())).date().isoformat()
-        month_start = now.replace(day=1).date().isoformat()
-        
-        # Calculate totals
-        total_sales = sum(float(sale.get("total_amount", 0)) for sale in sales)
-        total_transactions = len(sales)
-        total_gross_profit = sum(float(sale.get("gross_profit", 0)) for sale in sales)
-        average_sale_value = total_sales / total_transactions if total_transactions > 0 else 0
-        
-        # Calculate period-specific sales
-        today_sales = sum(
-            float(sale.get("total_amount", 0)) 
-            for sale in sales 
-            if sale.get("date", "").startswith(today)
-        )
-        
-        this_week_sales = sum(
-            float(sale.get("total_amount", 0)) 
-            for sale in sales 
-            if sale.get("date", "") >= week_start
-        )
-        
-        this_month_sales = sum(
-            float(sale.get("total_amount", 0)) 
-            for sale in sales 
-            if sale.get("date", "") >= month_start
-        )
-        
-        # Calculate growth metrics (simplified - comparing with previous periods)
-        yesterday = (now - datetime.timedelta(days=1)).date().isoformat()
-        yesterday_sales = sum(
-            float(sale.get("total_amount", 0)) 
-            for sale in sales 
-            if sale.get("date", "").startswith(yesterday)
-        )
-        
-        daily_growth = ((today_sales - yesterday_sales) / yesterday_sales * 100) if yesterday_sales > 0 else 0
+        sales_service = SalesService(supabase)
+        result = sales_service.get_sales_with_filters(owner_id, filters)
         
         return success_response(
-            data={
-                "total_sales": total_sales,
-                "total_transactions": total_transactions,
-                "total_gross_profit": total_gross_profit,
-                "average_sale_value": round(average_sale_value, 2),
-                "today_sales": today_sales,
-                "this_week_sales": this_week_sales,
-                "this_month_sales": this_month_sales,
-                "growth_metrics": {
-                    "daily_growth": round(daily_growth, 2),
-                    "weekly_growth": 0.0,  # Would need more complex calculation
-                    "monthly_growth": 0.0  # Would need more complex calculation
-                }
-            }
+            data=result["summary"],
+            message="Sales summary retrieved successfully"
         )
         
     except Exception as e:
-        logging.error(f"Error generating sales summary: {str(e)}")
-        return error_response(str(e), "Failed to generate sales summary", status_code=500)
-
-@sales_bp.route("/search", methods=["GET"])
-@jwt_required()
-def search_sales():
-    """Search sales by customer name, product name, or notes"""
-    try:
-        supabase = get_supabase()
-        user_id = get_jwt_identity()
-        try:
-            owner_id, user_role = get_user_context(user_id)
-        except ValueError as e:
-            return error_response(str(e), "Authorization error", 403)
-        
-        query_term = request.args.get("q")
-        if not query_term:
-            return error_response("Search term 'q' is required", status_code=400)
-        
-        # Search across multiple fields
-        search_result = supabase.table("sales").select("*").eq("owner_id", owner_id).or_(
-            f"customer_name.ilike.%{query_term}%",
-            f"product_name.ilike.%{query_term}%",
-            f"notes.ilike.%{query_term}%"
-        ).execute()
-        
-        return success_response(
-            data={"sales": search_result.data}
-        )
-        
-    except Exception as e:
-        logging.error(f"Error searching sales: {str(e)}")
-        return error_response(str(e), "Failed to search sales", status_code=500)
+        logger.error(f"Get sales summary error: {str(e)}")
+        return internal_server_error_response(f"Failed to get sales summary: {str(e)}")

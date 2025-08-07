@@ -405,3 +405,29 @@ export default {
   businessValidation,
   realtimeValidation
 };
+//
+ Simple validation functions for backward compatibility
+export const validateEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email.trim());
+};
+
+export const validatePassword = (password) => {
+  if (!password || typeof password !== 'string') return false;
+  const trimmed = password.trim();
+  return trimmed.length >= 8 && 
+         /[A-Za-z]/.test(trimmed) && 
+         /\d/.test(trimmed);
+};
+
+export const validateRequired = (value) => {
+  if (value === null || value === undefined) return false;
+  return value.toString().trim().length > 0;
+};
+
+export const validateNumber = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  const num = parseFloat(value);
+  return !isNaN(num) && num > 0;
+};

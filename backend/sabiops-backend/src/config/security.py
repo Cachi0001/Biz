@@ -1,5 +1,3 @@
-"""Security configuration for Bizflow SME Nigeria."""
-
 import os
 from datetime import timedelta
 from flask import Flask

@@ -136,7 +136,6 @@ class HTMLReportService:
                 </tr>
                 """
         
-        # Generate POS accounts table
         pos_accounts_rows = ""
         if pos_summary.get('pos_accounts'):
             for account in pos_summary['pos_accounts']:
