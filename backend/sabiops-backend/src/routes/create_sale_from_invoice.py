@@ -5,8 +5,6 @@ def create_sale_from_invoice(invoice):
     Product quantity reduction happens during invoice creation, not when marked as paid.
     """
     try:
-        # This function is kept for backward compatibility but does nothing
-        # All revenue recording and inventory management is now handled by InvoiceInventoryManager
         print(f"[INFO] create_sale_from_invoice called for invoice {invoice.get('id', 'unknown')} - using new InvoiceInventoryManager instead")
         pass
     except Exception as e:
